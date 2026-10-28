@@ -74,3 +74,15 @@ La integración compañera (dominio `homemanager`, sin dependencias externas) gu
 ## D12 — Reemplazo del plano sin perder configuración
 
 Los dispositivos, bindings, acciones y paneles no dependen del SVG; sólo `position` y la detección de espacio dependen de su geometría. Al importar un plano nuevo el editor informa espacios sin zona y zonas nuevas, exige exportar una copia si cambia el viewBox y ofrece dos migraciones de posiciones: **mismo punto del dibujo** (predeterminada: recortes o ampliaciones del mismo dibujo) o **misma proporción** (reescalado completo). Un dispositivo que quede fuera del nuevo viewBox se lleva al borde y se informa; nunca se elimina.
+
+## D13 — Idiomas
+
+Textos en el código como fuente en español con traducción por clave (`t('…')`, estilo gettext) y un diccionario por idioma (`src/i18n/en.ts`). El idioma sigue al usuario de Home Assistant (`hass.locale.language`). Una prueba falla si una cadena carece de traducción o pierde una variable. Se eligió frente a claves abstractas porque mantiene el código legible y una traducción ausente nunca muestra una clave.
+
+## D14 — Entidades en estado `unknown`
+
+`unknown` significa que Home Assistant no conoce el estado (dispositivos optimistas o asumidos, habituales en RF), no que la entidad rechace comandos: las acciones se permiten. Sólo `unavailable` las bloquea. El estado mostrado sigue las reglas de confianza: nunca *confirmado* sin una fuente medida y verificada.
+
+## D15 — Versiones y publicación
+
+SemVer con una sola versión en `package.json`, replicada en `manifest.json`, el bundle y `CHANGELOG.md` (comprobado por prueba). Las releases las crea sólo el propietario; el workflow `release.yml` verifica el tag, ejecuta todas las pruebas y adjunta `homemanager.zip`. La CI prueba la integración en la versión mínima declarada y en la actual de Home Assistant.
