@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newDeviceId, pendingReferences, persistentConfiguration, removeDevice, stableKey, summarizeImport, upsertAction, upsertDevice, upsertPanel, upsertStateSource } from '../../.work/editor/model.js';
+import { moveRoom, newDeviceId, pendingReferences, persistentConfiguration, remapPositions, removeDevice, removeRoom, stableKey, summarizeImport, upsertAction, upsertDevice, upsertPanel, upsertRoom, upsertStateSource } from '../../.work/editor/model.js';
 
 const device = (id='test-light', overrides={}) => ({id,roomId:'living',kind:'light',position:{x:.2,y:.4},mobility:'editable',display:{label:'Test light',icon:'mdi:lightbulb'},bindings:{entityId:'light.test_light',primaryAction:'test-toggle',advancedPopupId:'test-panel'},state:{value:'unknown',confidence:'unknown'},...overrides});
-function configuration() { return {schemaVersion:1,catalog:{schemaVersion:1,devices:[device()]},architecture:{format:'svg',content:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg>'},actions:{'test-toggle':{domain:'light',service:'toggle',target:{entity_id:'light.test_light'}}},panels:{'test-panel':{kind:'device-controls',title:'Test panel',controls:[{id:'toggle',label:'Toggle',actionId:'test-toggle'}]}},stateSources:{'test-light':{entityId:'light.test_light',attribute:null,feedback:'optimistic'}}}; }
+function configuration() { return {schemaVersion:2,rooms:[{id:'living',label:'Space A'},{id:'kitchen',label:'Space B'}],catalog:{schemaVersion:2,devices:[device()]},architecture:{format:'svg',content:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg>'},actions:{'test-toggle':{domain:'light',service:'toggle',target:{entity_id:'light.test_light'}}},panels:{'test-panel':{kind:'device-controls',title:'Test panel',controls:[{id:'toggle',label:'Toggle',actionId:'test-toggle'}]}},stateSources:{'test-light':{entityId:'light.test_light',attribute:null,feedback:'optimistic'}}}; }
 
 test('device edits keep IDs, HA bindings and shared logical maps when room changes',()=>{
   const original=configuration(), before=structuredClone(original), edited=device('test-light',{roomId:'kitchen',position:{x:.7,y:.8}});
@@ -94,4 +94,44 @@ test('import summary distinguishes new/deleted/changed icons and excludes live s
   after.catalog.devices[0].display.label='Updated';after.catalog.devices.push(device('new-device'));after.architecture.content+=' ';
   const summary=summarizeImport(before,after);assert.deepEqual(summary.added,['new-device']);assert.deepEqual(summary.changed,['test-light']);assert.equal(summary.architectureChanged,true);
   assert.deepEqual(summarizeImport(after,before).removed,['new-device']);
+});
+test('spaces are created, renamed, reordered and removed without touching devices or bindings',()=>{
+  let config=upsertRoom(configuration(),{id:'attic',label:'  Attic  '});
+  assert.deepEqual(config.rooms.at(-1),{id:'attic',label:'Attic'});
+  assert.throws(()=>upsertRoom(config,{id:'attic',label:'Again'}),/ya existe/);
+  assert.throws(()=>upsertRoom(config,{id:'Attic Room',label:'Bad'}),/kebab/);
+  assert.throws(()=>upsertRoom(config,{id:'loft',label:'Renamed'},{previousId:'attic'}),/inmutable/);
+  config=upsertRoom(config,{id:'attic',label:'Loft'},{previousId:'attic'});assert.equal(config.rooms.at(-1).label,'Loft');
+  config=moveRoom(config,'attic',-1);assert.deepEqual(config.rooms.map(r=>r.id),['living','attic','kitchen']);
+  assert.deepEqual(moveRoom(config,'living',-1).rooms.map(r=>r.id),['living','attic','kitchen']);
+  const removed=removeRoom(config,'living');
+  assert.deepEqual(removed.unassigned,['test-light']);assert.equal(removed.configuration.catalog.devices[0].roomId,null);
+  assert.deepEqual(removed.configuration.catalog.devices[0].bindings,configuration().catalog.devices[0].bindings);
+  assert.equal(config.catalog.devices[0].roomId,'living','inputs are never mutated');
+});
+test('devices must reference a declared space or stay explicitly unassigned',()=>{
+  assert.throws(()=>upsertDevice(configuration(),device('new-light',{roomId:'attic'})),/Espacio/);
+  assert.equal(upsertDevice(configuration(),device('new-light',{roomId:null})).catalog.devices[1].roomId,null);
+});
+test('V1 drafts are upgraded in memory with their spaces derived from use',()=>{
+  const v1={...configuration(),schemaVersion:1,catalog:{schemaVersion:1,devices:[device()]}};delete v1.rooms;
+  const next=persistentConfiguration(v1);
+  assert.equal(next.schemaVersion,2);assert.deepEqual(next.rooms,[{id:'living',label:'Living'}]);assert.equal(v1.schemaVersion,1);
+});
+test('replacing the plan remaps positions to the same drawing point or keeps proportions',()=>{
+  const config=configuration();config.catalog.devices[0].position={x:.5,y:.5};
+  const from={x:0,y:0,width:100,height:100};
+  // Same drawing, extended canvas: the device must stay on SVG point (50,50).
+  const drawing=remapPositions(config,from,{x:-100,y:0,width:200,height:100},'drawing');
+  assert.deepEqual(drawing.configuration.catalog.devices[0].position,{x:.75,y:.5});assert.deepEqual(drawing.clamped,[]);
+  assert.deepEqual(remapPositions(config,from,{x:0,y:0,width:400,height:400},'relative').configuration.catalog.devices[0].position,{x:.5,y:.5});
+  // Cropping that leaves the device outside: clamped to the edge and reported, never dropped.
+  const cropped=remapPositions(config,from,{x:60,y:0,width:40,height:100},'drawing');
+  assert.deepEqual(cropped.configuration.catalog.devices[0].position,{x:0,y:.5});assert.deepEqual(cropped.clamped,['test-light']);
+  assert.throws(()=>remapPositions(config,from,{x:0,y:0,width:0,height:1},'drawing'),/viewBox/);
+  assert.deepEqual(config.catalog.devices[0].position,{x:.5,y:.5});
+});
+test('import summary reports added and removed spaces',()=>{
+  const before=configuration(),after=upsertRoom(removeRoom(before,'kitchen').configuration,{id:'garage',label:'Garage'});
+  const summary=summarizeImport(before,after);assert.deepEqual(summary.roomsAdded,['garage']);assert.deepEqual(summary.roomsRemoved,['kitchen']);
 });

@@ -11,6 +11,12 @@ const ajv = new Ajv2020({ allErrors: true, strict: true, strictTypes: false });
 addFormats(ajv);
 for (const name of schemaNames) ajv.addSchema(schemas[name], `${name}.schema.json`);
 const validators = Object.fromEntries(schemaNames.map(name => [name, ajv.getSchema(`${name}.schema.json`)]));
+// V1 stays compilable so migration tests can prove V1 input is genuine V1.
+const legacy = new Ajv2020({ allErrors: true, strict: true, strictTypes: false });
+addFormats(legacy);
+for (const name of ['catalog', 'configuration']) legacy.addSchema(JSON.parse(readFileSync(path.join(root, 'schemas', 'v1', `${name}.schema.json`), 'utf8')), `${name}.schema.json`);
+validators['catalog-v1'] = legacy.getSchema('catalog.schema.json');
+validators['configuration-v1'] = legacy.getSchema('configuration.schema.json');
 const dataDepth = value => value && typeof value === 'object' ? 1 + Math.max(0, ...Object.values(value).map(dataDepth)) : 0;
 
 export function validateFoundation(kind, value) {
@@ -28,6 +34,12 @@ export function validateFoundation(kind, value) {
     }
   }
   if (kind === 'configuration') {
+    const roomIds = new Set();
+    for (const room of value.rooms) {
+      if (roomIds.has(room.id)) errors.push(`Duplicate space id: ${room.id}`);
+      roomIds.add(room.id);
+    }
+    for (const device of value.catalog.devices) if (device.roomId !== null && !roomIds.has(device.roomId)) errors.push(`Undeclared space: ${device.id}`);
     const actions = value.actions;
     const panels = value.panels;
     if (Buffer.byteLength(value.architecture.content, 'utf8') > 1_048_576) errors.push('Architecture exceeds 1 MiB UTF-8');

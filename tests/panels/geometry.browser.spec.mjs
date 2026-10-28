@@ -130,8 +130,23 @@ test('room hit-testing respects concave paths, grouped shapes, transforms and am
     const {sanitizeArchitecture,roomAt}=await import('/.work/card/geometry.js');
     const output=sanitizeArchitecture('<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 300 200"><g transform="translate(20 30)"><g id="room-living"><path d="M0 0H100V30H30V100H0Z"/></g></g><g id="room-kitchen" transform="translate(180 40)"><rect width="30" height="30"/><circle cx="50" cy="60" r="15"/></g><g id="room-office"><rect x="180" y="40" width="10" height="10"/></g></svg>');
     document.querySelector('#mount').replaceChildren(output.svg);
-    const at=(x,y)=>roomAt(output.svg,{x:(x-output.box.x)/output.box.width,y:(y-output.box.y)/output.box.height},output.box);
-    return {lArm:at(35,90),lTop:at(90,40),concaveHole:at(90,90),groupCircle:at(230,100),groupGap:at(220,75),ambiguous:at(185,45),outside:roomAt(output.svg,{x:-.1,y:.5},output.box)};
+    const rooms=['living','kitchen','office'];
+    const at=(x,y,ids=rooms)=>roomAt(output.svg,{x:(x-output.box.x)/output.box.width,y:(y-output.box.y)/output.box.height},output.box,ids);
+    // Only configured spaces participate: without 'office' the overlap is no longer ambiguous.
+    return {lArm:at(35,90),lTop:at(90,40),concaveHole:at(90,90),groupCircle:at(230,100),groupGap:at(220,75),ambiguous:at(185,45),onlyConfigured:at(185,45,['living','kitchen']),unconfigured:at(35,90,['kitchen']),outside:roomAt(output.svg,{x:-.1,y:.5},output.box,rooms)};
   });
-  expect(result).toEqual({lArm:'living',lTop:'living',concaveHole:null,groupCircle:'kitchen',groupGap:null,ambiguous:null,outside:null});
+  expect(result).toEqual({lArm:'living',lTop:'living',concaveHole:null,groupCircle:'kitchen',groupGap:null,ambiguous:null,onlyConfigured:'kitchen',unconfigured:null,outside:null});
+});
+
+test('memoized sanitization returns independent nodes and its output is a fixed point',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const {sanitizeArchitecture}=await import('/.work/card/geometry.js');
+    const source='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><style>.a{fill:red}</style><rect id="room-a" class="a" width="5" height="5" onclick="x()"/></svg>';
+    const fresh=(await import('/.work/card/geometry.js?uncached')).sanitizeArchitecture;
+    // A separate module instance has an empty cache, so this really re-sanitizes the output.
+    const first=sanitizeArchitecture(source),second=sanitizeArchitecture(source),again=fresh(first.content);
+    first.svg.querySelector('rect').setAttribute('fill','blue');
+    return {distinct:first.svg!==second.svg,untouched:second.svg.querySelector('rect').getAttribute('fill'),fixedPoint:again.content===first.content,warnings:[first.warnings.length,second.warnings.length,again.warnings.length]};
+  });
+  expect(result).toEqual({distinct:true,untouched:'red',fixedPoint:true,warnings:[1,1,0]});
 });

@@ -1,7 +1,10 @@
 import { assertActionDefinition } from './actions.mjs';
+import { migrateConfiguration } from './migration.mjs';
 
-export const ROOM_IDS = Object.freeze(['living','dining','kitchen','office','master-bedroom','bath-2','master-bath','balcony','entry','hallway','dbst','ac-ledge']);
-const KINDS = ['light','fan','curtain','ac','sensor','switch','robot','purifier','plant','infra','energy'];
+// Spaces are instance data since V2 (see migration.mjs); there is no room vocabulary here.
+export const KINDS = Object.freeze(['light','fan','curtain','ac','sensor','switch','robot','purifier','plant','infra','energy','media','lock','camera','appliance','other']);
+export const MAX_ROOMS = 200;
+export const MAX_CONFIGURATION_BYTES = 3*1024*1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
 const UNSAFE = new Set(['__proto__','prototype','constructor']);
@@ -62,18 +65,28 @@ function map(value,path,limit=2000) {
 
 function shape(configuration) {
   safeJson(configuration);
-  if(encoder.encode(JSON.stringify(configuration)).byteLength>8*1024*1024)invalid('configuration','document exceeds 8 MiB');
-  fields(configuration,['schemaVersion','catalog','architecture','actions','panels','stateSources'],['commandTtlSeconds'],'configuration');
-  if(configuration.schemaVersion!==1)invalid('schemaVersion','expected 1');
+  // HA's websocket accepts at most 4 MiB per incoming message (aiohttp default) and
+  // a Lovelace save sends the WHOLE dashboard, JSON-escaped. Keep headroom.
+  if(encoder.encode(JSON.stringify(configuration)).byteLength>MAX_CONFIGURATION_BYTES)invalid('configuration','document exceeds 3 MiB');
+  fields(configuration,['schemaVersion','rooms','catalog','architecture','actions','panels','stateSources'],['commandTtlSeconds'],'configuration');
+  if(configuration.schemaVersion!==2)invalid('schemaVersion','expected 2 (V1 documents are migrated before validation)');
+  if(!Array.isArray(configuration.rooms)||configuration.rooms.length>MAX_ROOMS)invalid('rooms',`array of at most ${MAX_ROOMS} spaces required`);
+  const roomIds=new Set();
+  configuration.rooms.forEach((room,index)=>{
+    const path=`rooms[${index}]`;
+    fields(room,['id','label'],[],path);id(room.id,`${path}.id`);text(room.label,`${path}.label`);
+    if(roomIds.has(room.id))invalid(`${path}.id`,'duplicate space identifier');roomIds.add(room.id);
+  });
   const catalog=configuration.catalog;
   fields(catalog,['schemaVersion','devices'],[],'catalog');
-  if(catalog.schemaVersion!==1||!Array.isArray(catalog.devices)||catalog.devices.length>2000)invalid('catalog','V1 array of at most 2000 devices required');
+  if(catalog.schemaVersion!==2||!Array.isArray(catalog.devices)||catalog.devices.length>2000)invalid('catalog','V2 array of at most 2000 devices required');
   const deviceIds=new Set();
   catalog.devices.forEach((device,index)=>{
     const path=`catalog.devices[${index}]`;
     fields(device,['id','roomId','kind','position','mobility','display','bindings','state'],[],path);
     id(device.id,`${path}.id`);if(deviceIds.has(device.id))invalid(`${path}.id`,'duplicate identifier');deviceIds.add(device.id);
-    one(device.roomId,ROOM_IDS,`${path}.roomId`);one(device.kind,KINDS,`${path}.kind`);one(device.mobility,['fixed','editable','portable'],`${path}.mobility`);
+    if(device.roomId!==null){id(device.roomId,`${path}.roomId`);if(!roomIds.has(device.roomId))invalid(`${path}.roomId`,'space is not declared in rooms');}
+    one(device.kind,KINDS,`${path}.kind`);one(device.mobility,['fixed','editable','portable'],`${path}.mobility`);
     position(device.position,`${path}.position`);
     fields(device.display,['label','icon'],[],`${path}.display`);text(device.display.label,`${path}.display.label`);text(device.display.icon,`${path}.display.icon`);
     fields(device.bindings,['entityId','primaryAction','advancedPopupId'],[],`${path}.bindings`);
@@ -118,19 +131,21 @@ function shape(configuration) {
 /** Missing references stay visible as disabled pending items. Strict export/review
  * may pass allowPending:false. Neither mode executes actions or sanitizes SVG.
  */
-export function inspectConfiguration(configuration,{allowPending=true}={}) {
+export function inspectConfiguration(input,{allowPending=true}={}) {
   const issues=[];
-  try{shape(configuration);}catch(error){return{valid:false,issues:error.issues??[{path:'configuration',code:'invalid-format',severity:'error',message:error.message}]};}
+  let configuration;
+  try{safeJson(input);configuration=migrateConfiguration(input);shape(configuration);}catch(error){return{valid:false,issues:error.issues??[{path:'configuration',code:'invalid-format',severity:'error',message:error.message}]};}
   const pending=(path,message)=>issues.push({path,code:'unresolved-reference',severity:allowPending?'pending':'error',message});
   for(const device of configuration.catalog.devices){
     if(device.bindings.primaryAction&&!Object.hasOwn(configuration.actions,device.bindings.primaryAction))pending(`catalog.${device.id}.bindings.primaryAction`,'Action is absent; execution disabled');
     if(device.bindings.advancedPopupId&&!Object.hasOwn(configuration.panels,device.bindings.advancedPopupId))pending(`catalog.${device.id}.bindings.advancedPopupId`,'Native panel is absent; control disabled');
   }
   for(const [key,panel]of Object.entries(configuration.panels))for(const control of panel.controls)if(!Object.hasOwn(configuration.actions,control.actionId))pending(`panels.${key}.${control.id}`,'Action is absent; control disabled');
-  return{valid:!issues.some(issue=>issue.severity==='error'),issues};
+  return{valid:!issues.some(issue=>issue.severity==='error'),issues,configuration};
 }
+/** Accepts V1 or V2 input and always returns a validated V2 clone. */
 export function assertConfiguration(configuration,options) {
   const result=inspectConfiguration(configuration,options);
   if(!result.valid)throw new ConfigurationError(result.issues.map(issue=>`${issue.path}: ${issue.message}`).join('; '),result.issues);
-  return structuredClone(configuration);
+  return result.configuration;
 }

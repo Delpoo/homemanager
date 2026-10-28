@@ -201,3 +201,24 @@ test('dispose clears commands, event listeners and ignores delayed service respo
   assert.equal((await adapter.executePrimary('contract-device')).reason,'adapter-disposed');
   assert.throws(()=>adapter.setHass(hass),/disposed/);assert.equal(state(adapter).command,null);
 });
+
+test('unrelated HA churn does not republish; relevant changes and reconnects do', t => {
+  const { adapter, hass, events } = setup(t);
+  const published = [];
+  adapter.subscribe(snapshot => published.push(snapshot));
+  adapter.setHass(hass);
+  const baseline = published.length;
+  // HA hands out a new hass object for every state change anywhere in the installation.
+  for (let i = 0; i < 50; i++) adapter.setHass({ ...hass, states: { ...hass.states, [`sensor.unrelated_${i}`]: { state: String(i), attributes: {}, last_updated: '2026-01-01T00:00:01.000Z' } } });
+  assert.equal(published.length, baseline);
+  const changed = { ...hass, states: { ...hass.states, 'sensor.contract_feedback': { state: '12', last_updated: '2026-01-01T00:00:10.000Z', attributes: {} } } };
+  adapter.setHass(changed);
+  assert.equal(published.length, baseline + 1);
+  assert.equal(published.at(-1).states['contract-device'].value, '12');
+  // A connection reset clears the runtime; the next identical hass must still republish fresh state.
+  events.dispatchEvent(new Event('ready'));
+  assert.equal(published.at(-1).states['contract-device'].confidence, 'unknown');
+  adapter.setHass(changed);
+  assert.equal(published.at(-1).states['contract-device'].value, '12');
+  assert.equal(adapter.getActionAvailability('contract-on').available, true);
+});

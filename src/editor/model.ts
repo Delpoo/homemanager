@@ -1,4 +1,6 @@
-import { KINDS, ROOM_IDS, SERVICES, clone, type Action, type Configuration, type Device, type NativePanel, type StateSource } from '../card/types.js';
+import { KINDS, SERVICES, clone, type Action, type Configuration, type Device, type NativePanel, type Room, type StateSource } from '../card/types.js';
+import { migrateConfiguration } from '../ha/migration.mjs';
+import type { ViewBox } from '../card/geometry.js';
 
 const KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
@@ -18,7 +20,8 @@ function plainText(value: string, label: string): string {
 }
 /** Explicitly reconstruct persistent fields; runtime readings never enter exports or drafts. */
 export function persistentConfiguration(configuration: Configuration): Configuration {
-  const next = clone(configuration);
+  // Editing a V1 document upgrades the draft to V2; only an explicit save persists it.
+  const next = migrateConfiguration<Configuration>(configuration);
   for (const device of next.catalog.devices) device.state = { value: 'unknown', confidence: 'unknown' };
   return next;
 }
@@ -36,7 +39,7 @@ export function upsertDevice(configuration: Configuration, input: Device, option
   if (options.previousId && !previous) fail('El icono que querés editar ya no existe.');
   if (previous && id !== previous.id) fail('El ID de un icono existente es inmutable.');
   if (!previous && next.catalog.devices.some(device => device.id === id)) fail('Ese ID ya existe.');
-  if (!ROOM_IDS.includes(input.roomId) || !KINDS.includes(input.kind) || !['fixed', 'editable', 'portable'].includes(input.mobility)) fail('Habitación, tipo o movilidad inválidos.');
+  if ((input.roomId !== null && !next.rooms.some(room => room.id === input.roomId)) || !KINDS.includes(input.kind) || !['fixed', 'editable', 'portable'].includes(input.mobility)) fail('Espacio, tipo o movilidad inválidos.');
   for (const coordinate of [input.position.x, input.position.y]) if (!Number.isFinite(coordinate) || coordinate < 0 || coordinate > 1) fail('Las coordenadas deben estar entre 0 y 1.');
   if (previous?.mobility === 'fixed' && !options.allowFixedPosition && (previous.position.x !== input.position.x || previous.position.y !== input.position.y || previous.roomId !== input.roomId)) fail('Usá la acción explícita de corregir ubicación para un elemento fijo.');
   if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.display.icon)) fail('El icono debe ser un nombre mdi: válido.');
@@ -46,6 +49,54 @@ export function upsertDevice(configuration: Configuration, input: Device, option
   if (previous) next.catalog.devices[next.catalog.devices.findIndex(device => device.id === id)] = device;
   else next.catalog.devices.push(device);
   return next;
+}
+/** Spaces are instance data. IDs are stable kebab-case keys matching the SVG
+ * convention `room-${id}`; labels are free text and can be renamed at any time. */
+export function upsertRoom(configuration: Configuration, input: Room, options: { previousId?: string } = {}): Configuration {
+  const next = persistentConfiguration(configuration);
+  const id = stableKey(input.id, 'ID de espacio'), label = plainText(input.label, 'Nombre del espacio');
+  const index = options.previousId === undefined ? -1 : next.rooms.findIndex(room => room.id === options.previousId);
+  if (options.previousId !== undefined && index < 0) fail('El espacio que querés editar ya no existe.');
+  if (index >= 0 && id !== options.previousId) fail('El ID de un espacio existente es inmutable; creá uno nuevo y mové los dispositivos.');
+  if (index < 0 && next.rooms.some(room => room.id === id)) fail('Ese espacio ya existe.');
+  if (index < 0 && next.rooms.length >= 200) fail('Se admite un máximo de 200 espacios.');
+  if (index >= 0) next.rooms[index] = { id, label }; else next.rooms.push({ id, label });
+  return next;
+}
+/** Removing a space never deletes devices: they stay on the plan without a space. */
+export function removeRoom(configuration: Configuration, id: string): { configuration: Configuration; unassigned: string[] } {
+  const next = persistentConfiguration(configuration);
+  if (!next.rooms.some(room => room.id === id)) fail('Ese espacio ya no existe.');
+  next.rooms = next.rooms.filter(room => room.id !== id);
+  const unassigned: string[] = [];
+  for (const device of next.catalog.devices) if (device.roomId === id) { device.roomId = null; unassigned.push(device.id); }
+  return { configuration: next, unassigned };
+}
+export function moveRoom(configuration: Configuration, id: string, offset: -1 | 1): Configuration {
+  const next = persistentConfiguration(configuration), index = next.rooms.findIndex(room => room.id === id), target = index + offset;
+  if (index < 0) fail('Ese espacio ya no existe.');
+  if (target < 0 || target >= next.rooms.length) return next;
+  [next.rooms[index], next.rooms[target]] = [next.rooms[target], next.rooms[index]];
+  return next;
+}
+export type PositionMode = 'drawing' | 'relative';
+/** Replacing the plan with a different viewBox. 'drawing' keeps every device on
+ * the same SVG point (right when the new file is the same drawing re-cropped or
+ * extended); 'relative' keeps the normalized fractions (right when the drawing
+ * was rescaled as a whole). Devices that fall outside the new viewBox are clamped
+ * to its edge and reported, never dropped. */
+export function remapPositions(configuration: Configuration, from: ViewBox, to: ViewBox, mode: PositionMode): { configuration: Configuration; clamped: string[] } {
+  const next = persistentConfiguration(configuration), clamped: string[] = [];
+  for (const box of [from, to]) if (![box.x, box.y, box.width, box.height].every(Number.isFinite) || box.width <= 0 || box.height <= 0) fail('viewBox no válido para migrar posiciones.');
+  if (mode !== 'drawing' && mode !== 'relative') fail('Modo de migración de posiciones no válido.');
+  if (mode === 'relative' || (from.x === to.x && from.y === to.y && from.width === to.width && from.height === to.height)) return { configuration: next, clamped };
+  for (const device of next.catalog.devices) {
+    const x = (from.x + device.position.x * from.width - to.x) / to.width, y = (from.y + device.position.y * from.height - to.y) / to.height;
+    const cx = Math.min(1, Math.max(0, x)), cy = Math.min(1, Math.max(0, y));
+    if (cx !== x || cy !== y) clamped.push(device.id);
+    device.position = { x: Math.round(cx * 1e6) / 1e6, y: Math.round(cy * 1e6) / 1e6 };
+  }
+  return { configuration: next, clamped };
 }
 export function removeDevice(configuration: Configuration, id: string): Configuration {
   const next = persistentConfiguration(configuration);
@@ -124,9 +175,9 @@ export function pendingReferences(configuration: Configuration, states: Record<s
   }
   return pending;
 }
-export interface ImportSummary { added: string[]; removed: string[]; changed: string[]; actions: number; panels: number; architectureChanged: boolean }
+export interface ImportSummary { added: string[]; removed: string[]; changed: string[]; actions: number; panels: number; architectureChanged: boolean; roomsAdded: string[]; roomsRemoved: string[] }
 export function summarizeImport(before: Configuration, after: Configuration): ImportSummary {
   const previous = new Map(before.catalog.devices.map(device => [device.id, device]));
   const incoming = new Map(after.catalog.devices.map(device => [device.id, device]));
-  return { added: [...incoming.keys()].filter(id => !previous.has(id)), removed: [...previous.keys()].filter(id => !incoming.has(id)), changed: [...incoming].filter(([id, device]) => previous.has(id) && JSON.stringify({ ...device, state: undefined }) !== JSON.stringify({ ...previous.get(id), state: undefined })).map(([id]) => id), actions: Object.keys(after.actions).length, panels: Object.keys(after.panels).length, architectureChanged: before.architecture.content !== after.architecture.content };
+  return { added: [...incoming.keys()].filter(id => !previous.has(id)), removed: [...previous.keys()].filter(id => !incoming.has(id)), changed: [...incoming].filter(([id, device]) => previous.has(id) && JSON.stringify({ ...device, state: undefined }) !== JSON.stringify({ ...previous.get(id), state: undefined })).map(([id]) => id), actions: Object.keys(after.actions).length, panels: Object.keys(after.panels).length, architectureChanged: before.architecture.content !== after.architecture.content, roomsAdded: after.rooms.filter(room => !before.rooms.some(old => old.id === room.id)).map(room => room.id), roomsRemoved: before.rooms.filter(room => !after.rooms.some(next => next.id === room.id)).map(room => room.id) };
 }

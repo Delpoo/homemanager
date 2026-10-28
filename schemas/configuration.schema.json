@@ -1,12 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Persistent configuration V1",
+  "title": "Persistent configuration V2",
   "description": "Authenticated persistent configuration. Runtime HA state, command acknowledgements and session credentials are excluded.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "catalog", "architecture", "actions", "panels", "stateSources"],
+  "required": ["schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
+    "rooms": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "$ref": "#/$defs/room" },
+      "$comment": "Ordered instance spaces (navigation order). Unique IDs and device roomId membership are semantic rules."
+    },
     "catalog": {
       "allOf": [
         { "$ref": "catalog.schema.json" },
@@ -59,6 +65,15 @@
     "commandTtlSeconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
   },
   "$defs": {
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "catalog.schema.json#/$defs/roomId" },
+        "label": { "$ref": "catalog.schema.json#/$defs/text" }
+      }
+    },
     "mapKey": {
       "allOf": [
         { "$ref": "catalog.schema.json#/$defs/deviceId" },
@@ -164,5 +179,5 @@
       }
     }
   },
-  "$comment": "Schema validation is necessary but insufficient. Enforce SVG sanitization, UTF-8 byte/depth limits, unique IDs, catalog and action/panel references, allowed entity domains, compatible target domains, no all targets, service-specific typed data, verified script signatures, and rejection of executable templates/code. JSON data is never evaluated."
+  "$comment": "Schema validation is necessary but insufficient. Enforce SVG sanitization, unique space IDs and declared device spaces, a 3 MiB serialized document (HA websocket frames are limited to 4 MiB and Lovelace saves the whole dashboard), UTF-8 byte/depth limits, unique IDs, catalog and action/panel references, allowed entity domains, compatible target domains, no all targets, service-specific typed data, verified script signatures, and rejection of executable templates/code. JSON data is never evaluated."
 }

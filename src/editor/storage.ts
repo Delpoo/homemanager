@@ -7,6 +7,8 @@ export interface LovelaceStoreOptions {
   dashboardMode?: 'storage' | 'yaml';
 }
 type JsonRecord = Record<string, unknown>;
+/** Leaves headroom under HA's 4 MiB websocket frame for the message envelope. */
+export const MAX_SAVE_BYTES = 4 * 1024 * 1024 - 64 * 1024;
 interface SessionIdentity { callWS: Hass['callWS']; userId: string | undefined; connection: Hass['connection'] }
 
 function record(value: unknown): value is JsonRecord {
@@ -123,6 +125,10 @@ export class LovelaceConfigurationStore {
       if (fingerprint(latest) !== fingerprint(current)) throw new Error('El dashboard cambió mientras se preparaba el guardado. No se sobrescribió.');
       // Replace only our persistent document; preserve all other cards and dashboard fields.
       uniqueCard(latest, this.options.cardId).configuration = clone(clean);
+      // HA rejects websocket messages above 4 MiB (aiohttp default) and the save
+      // carries the WHOLE dashboard. Fail clearly before sending instead of after.
+      const bytes = new TextEncoder().encode(JSON.stringify({ type: 'lovelace/config/save', url_path: this.path, config: latest })).byteLength;
+      if (bytes > MAX_SAVE_BYTES) throw new Error(`El dashboard ocuparía ${(bytes / 1048576).toFixed(1)} MiB y Home Assistant admite hasta 4 MiB por mensaje. Reducí el plano o mové otras tarjetas a otro dashboard; el borrador se conserva.`);
       this.sameSession(session);
       await this.session(true).callWS({ type: 'lovelace/config/save', url_path: this.path, config: latest });
       const readback = await this.read(session);
