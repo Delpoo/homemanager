@@ -35,3 +35,8 @@ test('unsafe objects, getters, sparse/cyclic inputs fail without evaluating gett
 test('UTF-8 architecture byte bound is independent of character count',()=>{
   const config=make();config.architecture.content='é'.repeat(524289);assert.throws(()=>assertConfiguration(config));
 });
+test('imported array prototypes cannot execute inherited serialization hooks',()=>{
+  const config=make();let reads=0;
+  Object.setPrototypeOf(config.catalog.devices,Object.assign(Object.create(Array.prototype),{toJSON(){reads++;return[];}}));
+  assert.throws(()=>assertConfiguration(config));assert.equal(reads,0);
+});

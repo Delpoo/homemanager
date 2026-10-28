@@ -251,21 +251,27 @@ export class HomeAssistantAdapter {
     });
     const pending = { context, deviceIds: affected.map(device => device.id) };
     this._inFlight.set(actionId, pending);
+    let completed = false;
     try {
       await executeService(this._configuration.actions[actionId], this._hass, this._verification());
       if (!this._contextValid(context)) return { ok: false, reason: 'stale-context' };
       for (const [id, command] of commands) this._commands.set(id, { ...command, status: 'sent' });
       this._scheduleExpiry();
-      this._publish();
+      completed = true;
       return { ok: true, status: 'sent' };
     } catch (error) {
       if (!this._contextValid(context)) return { ok: false, reason: 'stale-context' };
       for (const [id, command] of commands) this._commands.set(id, { ...command, status: 'error' });
       this._scheduleExpiry();
-      this._publish();
+      completed = true;
       return { ok: false, reason: typeof error?.code === 'string' && REASON.test(error.code) ? error.code : 'service-error' };
     } finally {
-      if (this._inFlight.get(actionId) === pending) this._inFlight.delete(actionId);
+      if (this._inFlight.get(actionId) === pending) {
+        this._inFlight.delete(actionId);
+        // A completion observer may immediately recompute button availability.
+        // Notify only after releasing this call's lock, and never for old sessions.
+        if (completed && this._contextValid(context)) this._publish();
+      }
     }
   }
 

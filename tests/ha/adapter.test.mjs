@@ -172,6 +172,28 @@ test('observer failures and mutation cannot turn an accepted service into failur
   assert.equal(delivered,2);assert.equal(state(adapter).confidence,'sent');assert.equal(adapter.lastObserverError,'render failed');stop();
 });
 
+test('completion subscribers see actions unlocked once for accepted and rejected calls', async t => {
+  for (const rejected of [false, true]) {
+    const { adapter, hass } = setup(t);
+    if (rejected) hass.callService = async () => { throw new Error('service rejected'); };
+    adapter.setHass(hass);
+    const seen = [];
+    adapter.subscribe(snapshot => {
+      seen.push({
+        confidence: snapshot.states['contract-device'].confidence,
+        availability: adapter.getActionAvailability('contract-on'),
+      });
+    });
+    const result = await adapter.executePrimary('contract-device');
+    assert.equal(result.ok, !rejected);
+    assert.equal(seen.length, 2, 'initial snapshot and one completion notification');
+    assert.deepEqual(seen[1], {
+      confidence: rejected ? 'error' : 'sent',
+      availability: { available: true },
+    });
+  }
+});
+
 test('dispose clears commands, event listeners and ignores delayed service response', async t => {
   const {adapter,hass,events}=setup(t);adapter.setHass(hass);let release;
   hass.callService=()=>new Promise(resolve=>{release=resolve;});const pending=adapter.executePrimary('contract-device');
