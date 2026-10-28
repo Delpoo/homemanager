@@ -29,7 +29,11 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Validate boundary and contracts
         run: npm run check
-      - name: Build foundation artifacts
+      - name: Build HomeManager bundle
         run: npm run build
+      - name: Install Chromium for synthetic browser checks
+        run: npx playwright install --with-deps chromium
+      - name: Validate frontend in desktop and mobile browsers
+        run: npm run test:browser
       - name: Audit all dependencies
         run: npm audit --audit-level=high

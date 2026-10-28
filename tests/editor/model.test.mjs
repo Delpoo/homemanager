@@ -1,0 +1,97 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { newDeviceId, pendingReferences, persistentConfiguration, removeDevice, stableKey, summarizeImport, upsertAction, upsertDevice, upsertPanel, upsertStateSource } from '../../.work/editor/model.js';
+
+const device = (id='test-light', overrides={}) => ({id,roomId:'living',kind:'light',position:{x:.2,y:.4},mobility:'editable',display:{label:'Test light',icon:'mdi:lightbulb'},bindings:{entityId:'light.test_light',primaryAction:'test-toggle',advancedPopupId:'test-panel'},state:{value:'unknown',confidence:'unknown'},...overrides});
+function configuration() { return {schemaVersion:1,catalog:{schemaVersion:1,devices:[device()]},architecture:{format:'svg',content:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"></svg>'},actions:{'test-toggle':{domain:'light',service:'toggle',target:{entity_id:'light.test_light'}}},panels:{'test-panel':{kind:'device-controls',title:'Test panel',controls:[{id:'toggle',label:'Toggle',actionId:'test-toggle'}]}},stateSources:{'test-light':{entityId:'light.test_light',attribute:null,feedback:'optimistic'}}}; }
+
+test('device edits keep IDs, HA bindings and shared logical maps when room changes',()=>{
+  const original=configuration(), before=structuredClone(original), edited=device('test-light',{roomId:'kitchen',position:{x:.7,y:.8}});
+  const next=upsertDevice(original,edited,{previousId:'test-light'});
+  assert.equal(next.catalog.devices[0].roomId,'kitchen');
+  assert.deepEqual(next.catalog.devices[0].bindings,before.catalog.devices[0].bindings);
+  assert.deepEqual(next.actions,before.actions);assert.deepEqual(next.panels,before.panels);assert.deepEqual(next.stateSources,before.stateSources);
+  assert.deepEqual(original,before);
+});
+test('immutable existing ID and duplicate new ID are rejected',()=>{
+  assert.throws(()=>upsertDevice(configuration(),device('renamed'),{previousId:'test-light'}),/inmutable/);
+  assert.throws(()=>upsertDevice(configuration(),device()),/ya existe/);
+});
+test('fixed room/coordinate correction requires explicit authorization, including a mobility change',()=>{
+  const config=configuration();config.catalog.devices[0].mobility='fixed';
+  const moved=device('test-light',{position:{x:.7,y:.8},mobility:'portable'});
+  assert.throws(()=>upsertDevice(config,moved,{previousId:'test-light'}),/corregir ubicación/);
+  assert.equal(upsertDevice(config,moved,{previousId:'test-light',allowFixedPosition:true}).catalog.devices[0].position.x,.7);
+});
+test('position/name/icon/reference validation prevents unsafe or incomplete edits',()=>{
+  for(const x of [-.01,1.01,NaN,Infinity]) assert.throws(()=>upsertDevice(configuration(),device('new-light',{position:{x,y:.5}})),/coordenadas/);
+  assert.throws(()=>upsertDevice(configuration(),device('new-light',{display:{label:' ',icon:'mdi:lightbulb'}})),/Nombre/);
+  assert.throws(()=>upsertDevice(configuration(),device('new-light',{display:{label:'Test',icon:'<svg>'}})),/mdi/);
+  assert.throws(()=>stableKey('__proto__'),/kebab/);
+});
+test('new device IDs are unique, stable, normalized and never unsafe object keys',()=>{
+  const config=configuration();config.catalog.devices.push(device('luz-cocina'),device('luz-cocina-2'));
+  assert.equal(newDeviceId('Lúz / cocina',config),'luz-cocina-3');
+  assert.equal(newDeviceId('constructor',config),'device');
+  assert.equal(newDeviceId('💡',config),'device');
+});
+test('persistent snapshots reset readings and commands without mutating live device state',()=>{
+  const config=configuration();config.catalog.devices[0].state={value:'on',confidence:'confirmed'};
+  assert.deepEqual(persistentConfiguration(config).catalog.devices[0].state,{value:'unknown',confidence:'unknown'});
+  assert.equal(config.catalog.devices[0].state.value,'on');
+});
+test('delete removes icon/stateSource only; reusable actions and panels remain',()=>{
+  const before=configuration(),next=removeDevice(before,'test-light');
+  assert.deepEqual(next.catalog.devices,[]);assert.deepEqual(next.stateSources,{});
+  assert.deepEqual(next.actions,before.actions);assert.deepEqual(next.panels,before.panels);
+  assert.equal(before.catalog.devices.length,1);assert.throws(()=>removeDevice(next,'test-light'),/ya no existe/);
+});
+test('actions accept explicit HA service targets and structured data without executing anything',()=>{
+  const config=configuration(),action={domain:'fan',service:'set_percentage',target:{entity_id:['fan.test_a','fan.test_b']},data:{percentage:35}};
+  const next=upsertAction(config,'set-test-speed',action);assert.deepEqual(next.actions['set-test-speed'],action);
+  action.data.percentage=80;assert.equal(next.actions['set-test-speed'].data.percentage,35);
+});
+test('action targets reject broadcast, duplicate, mismatched and indirect destinations',()=>{
+  const action={domain:'light',service:'toggle',target:{entity_id:'light.test'}};
+  for(const target of [{entity_id:'light.all'},{entity_id:['light.test','light.test']},{entity_id:'switch.test'},{entity_id:[]},{entity_id:'light.test',area_id:'test'}]) assert.throws(()=>upsertAction(configuration(),'test-action',{...action,target}));
+  assert.throws(()=>upsertAction(configuration(),'test-action',{...action,domain:'mqtt',service:'publish'}),/permitido/);
+});
+test('action data rejects raw radio payloads, target overrides, templates and non-JSON values',()=>{
+  const action={domain:'script',service:'turn_on',target:{entity_id:'script.test'}};
+  for(const data of [{raw:'abc'},{rf_code:123},{entity_id:'light.other'},{variables:{code:123}},{variables:{x:'{{ states() }}'}},{x:'javascript:alert(1)'},{x:'eval(1)'},{x:new Date()},{x:new Map()},{x:undefined},{x:Infinity},JSON.parse('{"__proto__":{}}')]) assert.throws(()=>upsertAction(configuration(),'test-script',{...action,data}));
+});
+test('action data enforces bounded byte size, string length, lists and nesting',()=>{
+  const action={domain:'script',service:'turn_on',target:{entity_id:'script.test'}};
+  const nested={};let pointer=nested;for(let i=0;i<12;i++)pointer=pointer.next={};
+  for(const data of [{list:Array(101).fill(0)},{text:'a'.repeat(1025)},nested,{list:Array(10).fill('é'.repeat(500))}]) assert.throws(()=>upsertAction(configuration(),'test-script',{...action,data}));
+});
+test('state sources require a device, declared entity and safe attribute; removal is explicit',()=>{
+  const next=upsertStateSource(configuration(),'test-light',{entityId:'sensor.test_feedback',attribute:'power',feedback:'measured'});
+  assert.equal(next.stateSources['test-light'].feedback,'measured');
+  assert.deepEqual(upsertStateSource(next,'test-light',null).stateSources,{});
+  assert.throws(()=>upsertStateSource(next,'missing',{entityId:'sensor.test',attribute:null,feedback:'optimistic'}),/existente/);
+  assert.throws(()=>upsertStateSource(next,'test-light',{entityId:'sensor.test',attribute:'__proto__',feedback:'measured'}),/atributo/);
+});
+test('RF native panels allow script.turn_on only and preserve reusable action references',()=>{
+  const config=upsertAction(configuration(),'test-script',{domain:'script',service:'turn_on',target:{entity_id:'script.test'}});
+  const panel={kind:'rf-fan',title:'Test radio controls',controls:[{id:'run',label:'Run HA script',actionId:'test-script'}]};
+  assert.deepEqual(upsertPanel(config,'test-rf',panel).panels['test-rf'],panel);
+  assert.throws(()=>upsertPanel(config,'test-rf',{...panel,controls:[{id:'run',label:'Run',actionId:'test-toggle'}]}),/script.turn_on/);
+});
+test('panel control IDs are unique and absent action refs remain explicit pending drafts',()=>{
+  const panel={kind:'device-controls',title:'Test panel',controls:[{id:'run',label:'Run',actionId:'missing-action'}]};
+  const next=upsertPanel(configuration(),'new-panel',panel);assert.equal(next.panels['new-panel'].controls[0].actionId,'missing-action');
+  assert.throws(()=>upsertPanel(configuration(),'new-panel',{...panel,controls:[...panel.controls,...panel.controls]}),/únicos/);
+});
+test('pending references include missing device bindings, panel actions and feedback entities',()=>{
+  const config=configuration();config.catalog.devices[0].bindings.primaryAction='missing-action';config.catalog.devices[0].bindings.advancedPopupId='missing-panel';config.panels['test-panel'].controls[0].actionId='pending-control';
+  const pending=pendingReferences(config,{});assert.equal(pending.length,6);assert(pending.some(text=>text.includes('missing-action')));assert(pending.some(text=>text.includes('pending-control')));assert(pending.some(text=>text.includes('destino light.test_light pendiente')));
+  assert.equal(pendingReferences(configuration(),{'light.test_light':{}}).length,0);
+});
+test('import summary distinguishes new/deleted/changed icons and excludes live state differences',()=>{
+  const before=configuration(),after=structuredClone(before);after.catalog.devices[0].state={value:'on',confidence:'confirmed'};
+  assert.deepEqual(summarizeImport(before,after).changed,[]);
+  after.catalog.devices[0].display.label='Updated';after.catalog.devices.push(device('new-device'));after.architecture.content+=' ';
+  const summary=summarizeImport(before,after);assert.deepEqual(summary.added,['new-device']);assert.deepEqual(summary.changed,['test-light']);assert.equal(summary.architectureChanged,true);
+  assert.deepEqual(summarizeImport(after,before).removed,['new-device']);
+});

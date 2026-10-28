@@ -2,7 +2,7 @@
 
 Frontend Lovelace para visualizar espacios, vincular iconos a entidades de Home Assistant y abrir controles avanzados nativos.
 
-**Estado: fundación de producto. No hay tarjeta instalable ni versión funcional publicada.** Las validaciones de este repositorio comprueban el contrato y la estructura; no prueban control de dispositivos reales.
+**Estado: frontend implementado, validado con una sesión HA simulada.** El build genera `dist/homemanager.js` con la tarjeta, editor y paneles nativos. No está instalado ni verificado contra una instancia real de Home Assistant o hardware.
 
 ## Arquitectura
 
@@ -34,7 +34,9 @@ No copiar proyectos previos completos: cada archivo debe pasar revisión de priv
 
 ## Desarrollo
 
-Requiere Node.js 24. Usar `npm ci --ignore-scripts`, `npm run check` y `npm run build`. La compilación actual genera contratos y metadatos de fundación. El agente de frontend incorporará el bundle `dist/homemanager.js` cuando exista una implementación probada. No generar un archivo JavaScript vacío para simular ese resultado.
+Requiere Node.js 24. Usar `npm ci --ignore-scripts`, `npm run check` y `npm run test:browser` (requiere Chromium o Chrome). `npm run build` genera `dist/homemanager.js` sin datos de instalación ni estado en vivo. Las pruebas usan geometría, dispositivos y servicios sintéticos.
+
+Para registrar la tarjeta, importar la arquitectura y configurar el guardado administrador en Lovelace `storage`, ver [la guía del frontend](docs/frontend.md). El editor permite modificar iconos, entidades, acciones/scripts, fuentes de estado y paneles sin recompilar el recurso. Las lecturas y confirmaciones de comandos permanecen en memoria.
 
 Comenzar por [contrato V1](docs/contract.md), [colaboración](docs/contributing.md) y [decisiones](docs/decisions.md). La distribución prevista está en [HACS](docs/hacs.md); los controles obligatorios están en [seguridad](docs/security.md).
 
