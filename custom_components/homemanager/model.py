@@ -30,6 +30,19 @@ UNSAFE_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 REQUIRED_KEYS = frozenset({"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"})
 OPTIONAL_KEYS = frozenset({"commandTtlSeconds"})
 MAX_DEPTH = 32
+# Defence in depth. Every client sanitizes the plan with an explicit allowlist
+# before saving AND before rendering (src/card/geometry.ts); the server refuses
+# content that no sanitized plan can contain, so a crafted websocket call cannot
+# park active content in storage for other viewers.
+UNSAFE_PLAN = re.compile(
+    r"<\s*(?:script|foreignobject|iframe|object|embed|image|a|animate|set|handler|listener)\b"
+    r"|<!(?:doctype|entity)"
+    r"|\son[a-z]+\s*="
+    r"|=\s*[\"'][^\"']*\b(?:javascript|vbscript|data|file|blob|https?)\s*:"
+    r"|url\s*\(\s*['\"]?\s*(?!#)"
+    r"|@import",
+    re.IGNORECASE,
+)
 
 
 class ModelError(Exception):
@@ -104,6 +117,10 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         raise ModelError("invalid_configuration", "architecture must be {format: 'svg', content}")
     if len(architecture["content"].encode("utf-8")) > MAX_PLAN_BYTES:
         raise ModelError("plan_too_large", "the plan exceeds 1 MiB")
+    # Namespace declarations are the only URLs a sanitized plan carries.
+    scanned = re.sub(r"\sxmlns(?::[\w.-]+)?\s*=\s*\"[^\"]*\"", "", architecture["content"])
+    if not scanned.lstrip().startswith("<svg") or UNSAFE_PLAN.search(scanned):
+        raise ModelError("unsafe_plan", "the plan must be a sanitized SVG (save it from the HomeManager editor)")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > MAX_CONFIGURATION_BYTES:
         raise ModelError("configuration_too_large", "the configuration exceeds 3 MiB")
     return configuration

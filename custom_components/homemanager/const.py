@@ -5,6 +5,7 @@ from __future__ import annotations
 DOMAIN = "homemanager"
 
 STORAGE_VERSION = 1
+STORAGE_MINOR_VERSION = 1
 STORAGE_KEY = "homemanager.homes"
 PLAN_STORAGE_KEY_PREFIX = "homemanager.plans."
 

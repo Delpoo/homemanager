@@ -1,8 +1,10 @@
-import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { build } from 'esbuild';
 import './validate-foundation.mjs';
+// Single source of truth for the release version (checked against manifest.json by tests).
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const root = fileURLToPath(new URL('../', import.meta.url));
 mkdirSync(path.join(root, 'dist'), { recursive: true });
 await build({
@@ -12,6 +14,7 @@ await build({
   format: 'esm',
   target: 'es2022',
   outfile: 'dist/homemanager.js',
+  define: { __HOMEMANAGER_VERSION__: JSON.stringify(version) },
   minify: true,
   legalComments: 'none',
   charset: 'utf8',
@@ -32,7 +35,8 @@ writeFileSync(
       frontendBundle: 'homemanager.js',
       integrationPackage: 'homemanager.zip',
       schemaVersion: 2,
-      realHomeAssistantTested: 'local disposable instance 2026.2.3',
+      version,
+      realHomeAssistantTested: 'disposable local instances 2026.2.3 and 2026.10.4',
       deployed: false,
     },
     null,

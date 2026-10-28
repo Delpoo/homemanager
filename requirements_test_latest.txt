@@ -1,0 +1,4 @@
+# Companion integration tests against the CURRENT Home Assistant release.
+# Bump together with the version used in the CI matrix and docs.
+pytest-homeassistant-custom-component==0.13.375
+home-assistant-frontend==20260930.5

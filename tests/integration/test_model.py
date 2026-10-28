@@ -74,3 +74,32 @@ def test_plan_history_skips_duplicates_and_keeps_the_newest() -> None:
     assert len(history) == MAX_PLAN_HISTORY
     assert history[-1].revision == MAX_PLAN_HISTORY + 3
     assert len({plan.plan_id for plan in history}) == MAX_PLAN_HISTORY
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><div/></foreignObject></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><use href="javascript:alert(1)"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://x.test/a.svg#p)"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><use href="data:image/svg+xml,abc"/></svg>',
+        '<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg"/>',
+        '<html><svg xmlns="http://www.w3.org/2000/svg"/></html>',
+    ],
+)
+def test_server_refuses_plans_no_sanitized_svg_can_contain(plan: str) -> None:
+    with pytest.raises(ModelError) as error:
+        validate_configuration(configuration(plan))
+    assert error.value.code == "unsafe_plan"
+
+
+def test_sanitized_plans_with_namespaces_gradients_and_text_are_accepted() -> None:
+    plan = (
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10">'
+        '<desc>Source: https://example.test/plan (text is never executed)</desc>'
+        '<defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs>'
+        '<rect id="room-a" width="5" height="5" fill="url(#g)"/><use xlink:href="#room-a"/></svg>'
+    )
+    assert validate_configuration(configuration(plan))["architecture"]["content"] == plan

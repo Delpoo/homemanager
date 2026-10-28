@@ -1,6 +1,6 @@
 {
   "name": "homemanager",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "check": "node scripts/check-public-boundary.mjs && node scripts/validate-foundation.mjs && npm run typecheck && npm test",
-    "test": "npm run build && node --test tests/foundation.test.mjs tests/i18n.test.mjs tests/ha/*.test.mjs tests/editor/*.test.mjs tests/panels/*.test.mjs",
+    "test": "npm run build && node --test tests/foundation.test.mjs tests/i18n.test.mjs tests/versioning.test.mjs tests/ha/*.test.mjs tests/editor/*.test.mjs tests/panels/*.test.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test:browser": "npm run build && playwright test",

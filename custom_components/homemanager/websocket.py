@@ -21,7 +21,11 @@ HOME_ID = vol.All(str, vol.Length(min=1, max=64))
 
 
 def _store(hass: HomeAssistant) -> HomeManagerStore:
-    return hass.data[DOMAIN]
+    store = hass.data.get(DOMAIN)
+    if store is None:
+        # Commands stay registered after an unload; answer clearly instead of crashing.
+        raise ModelError("not_loaded", "the HomeManager integration is not loaded")
+    return store
 
 
 def _error(connection: websocket_api.ActiveConnection, msg_id: int, error: ModelError) -> None:
@@ -40,7 +44,11 @@ def async_register(hass: HomeAssistant) -> None:
 @websocket_api.websocket_command({vol.Required("type"): "homemanager/homes"})
 @callback
 def ws_homes(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    homes = _store(hass).state.homes.values()
+    try:
+        homes = _store(hass).state.homes.values()
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+        return
     connection.send_result(msg["id"], {"homes": [home.summary() for home in sorted(homes, key=lambda home: home.home_id)]})
 
 
@@ -105,7 +113,12 @@ def ws_home_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConne
     def forward(home_id: str, revision: int | None) -> None:
         connection.send_message(websocket_api.event_message(msg_id, {"home_id": home_id, "revision": revision, "deleted": revision is None}))
 
-    connection.subscriptions[msg_id] = _store(hass).async_subscribe(msg["home_id"], forward)
+    try:
+        store = _store(hass)
+    except ModelError as error:
+        _error(connection, msg_id, error)
+        return
+    connection.subscriptions[msg_id] = store.async_subscribe(msg["home_id"], forward)
     connection.send_result(msg_id)
 
 

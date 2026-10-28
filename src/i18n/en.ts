@@ -456,4 +456,5 @@ export const en: Record<string, string> = {
     'An RF panel can only run explicit Home Assistant scripts.',
   'No se pudo verificar esta acción.': 'This action could not be verified.',
   'Ejecutar acción': 'Run action',
+  'Versión {version}': 'Version {version}',
 };
