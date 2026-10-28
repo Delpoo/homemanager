@@ -16,7 +16,7 @@ const css = `${tokens}
 .toolbar select option{color:var(--hm-text);background:var(--hm-bg)}
 .menu{width:40px;padding:0!important;border:0!important;font-size:22px}
 .content{padding:12px;max-width:1600px;margin:auto}
-homemanager-card{--hm-viewport-height:calc(100dvh - 210px)}
+homemanager-card{--hm-viewport-height:calc(100dvh - 210px);--hm-title-display:none}
 .empty{max-width:520px;margin:48px auto;padding:24px;border-radius:var(--hm-radius);background:var(--hm-bg);line-height:1.6;box-shadow:var(--hm-shadow)}
 .empty form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .empty input{flex:1;min-width:180px}
@@ -139,12 +139,16 @@ export class HomeManagerApp extends HTMLElement {
   private renderMessages(creating = false): void {
     const host = this.root.querySelector('.messages');
     if (!host) return;
+    // A reconnect can repaint the form while someone is typing: keep their text.
+    const typed = host.querySelector<HTMLInputElement>('input[name=homeId]')?.value;
     const admin = this._hass?.user?.is_admin === true;
     const empty =
       this.homes && (!this.selected || creating)
         ? `<div class="empty"><h2>${this.homes.length ? t('Nuevo hogar') : t('Todavía no hay hogares')}</h2>${admin ? `<p>${e(t('Elegí un identificador para tu vivienda. Después importá el plano SVG desde'))} <strong>${e(t('Editar plano → Importar y exportar'))}</strong> ${e(t('y detectá sus espacios.'))}</p><form class="create"><input name="homeId" aria-label="${e(t('ID del hogar'))}" required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="home"><button type="submit">${e(t('Crear hogar'))}</button></form>` : `<p>${e(t('Pedile a una persona administradora de Home Assistant que cree el hogar en este panel.'))}</p>`}</div>`
         : '';
     host.innerHTML = `${this.error ? `<p class="error" role="alert">${e(this.error)}</p>` : ''}${this.homes ? empty : `<p>${e(t('Cargando…'))}</p>`}`;
+    const field = host.querySelector<HTMLInputElement>('input[name=homeId]');
+    if (field && typed) field.value = typed;
     host.querySelector('form.create')?.addEventListener('submit', event => {
       event.preventDefault();
       const id = new FormData(event.target as HTMLFormElement).get('homeId');

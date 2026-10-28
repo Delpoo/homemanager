@@ -201,11 +201,21 @@ test('HA service registry, connection and accessible valid target state are requ
   assert.equal(reason(definition, { ...hass, connected: false }), 'ha_unavailable');
   assert.equal(reason(definition, { ...hass, services: {} }), 'service_missing');
   assert.equal(reason(definition, { ...hass, states: {} }), 'entity_missing');
-  for (const state of ['unknown', 'unavailable', ''])
+  for (const state of ['unavailable', ''])
     assert.equal(
       reason(definition, { ...hass, states: { 'light.contract_control': { state } } }),
       'entity_unavailable',
     );
+  // Optimistic and assumed-state devices (typical of RF) report "unknown" but accept commands.
+  assert.deepEqual(
+    getActionAvailability(definition, {
+      ...hass,
+      states: { 'light.contract_control': { state: 'unknown', attributes: {} } },
+    }),
+    {
+      available: true,
+    },
+  );
 });
 
 test('fan actions require current advertised feature bits, types and preset values', () => {

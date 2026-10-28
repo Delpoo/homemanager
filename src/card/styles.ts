@@ -6,6 +6,8 @@ export const styles = `${tokens}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
 h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logo{font-size:20px;color:var(--hm-accent)}
+.header h1,.header .logo{display:var(--hm-title-display,block)}
+.header .icon:first-of-type{margin-left:auto}
 .icon{width:var(--hm-touch);min-width:var(--hm-touch);flex:0 0 var(--hm-touch);font-size:19px;display:inline-grid;place-items:center;padding:0;border-radius:50%;border-color:transparent;background:transparent}
 .icon[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent)}
 .rooms{display:flex;gap:6px;overflow-x:auto;padding:4px 12px 10px;scrollbar-width:none;scroll-snap-type:x proximity}

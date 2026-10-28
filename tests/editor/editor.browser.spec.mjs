@@ -398,3 +398,20 @@ test('replacing the plan detects zones and keeps devices on the same drawing poi
   await button(page, 'Agregar Estudio').click();
   expect((await current(page)).rooms.at(-1)).toEqual({ id: 'studio', label: 'Estudio' });
 });
+
+test('importing a complete JSON keeps its own positions even when its plan has another viewBox', async ({ page }) => {
+  await section(page, 'Importar y exportar');
+  const config = await current(page);
+  config.architecture.content =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect id="room-living" width="200" height="300"/></svg>';
+  config.catalog.devices[0].position = { x: 0.3, y: 0.6 };
+  await field(page, 'Importar JSON o SVG').setInputFiles({
+    name: 'export.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(config)),
+  });
+  // No position migration is offered and no backup is required for a self-consistent export.
+  await expect(editor(page).getByText('El viewBox cambió')).toHaveCount(0);
+  await button(page, 'Aplicar importación al borrador').click();
+  expect((await current(page)).catalog.devices[0].position).toEqual({ x: 0.3, y: 0.6 });
+});
