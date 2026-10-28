@@ -452,7 +452,13 @@ export class HomeManagerPanel extends HTMLElement {
     if (!value || !confidence || !this.state) return;
     const labels = CONFIDENCE();
     const valid = Object.hasOwn(labels, this.state.confidence) ? this.state.confidence : 'unknown';
-    value.textContent = stateText(this.state.value);
+    // While a command is pending the runtime has no confirmed value; show what HA
+    // reports, labelled as such, instead of a bare "unknown".
+    const reported = this.state.value === 'unknown' ? this.options?.getEntity?.()?.state : undefined;
+    value.textContent =
+      reported && reported !== 'unknown'
+        ? t('{value} · según Home Assistant', { value: stateText(reported) })
+        : stateText(this.state.value);
     confidence.textContent = labels[valid];
     confidence.style.setProperty('--state', `var(--hm-${valid})`);
     if (hint) hint.textContent = HINT()[valid];

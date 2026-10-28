@@ -682,7 +682,9 @@ export class HomeManagerEditor extends HTMLElement {
       this.imported = {
         configuration: clean,
         summary: summarizeImport(this.configuration, clean),
-        viewBoxChanged: JSON.stringify(previous.box) !== JSON.stringify(incoming.box),
+        // Only a plan replacement moves devices: a JSON export already carries
+        // positions that belong to its own plan and must be applied unchanged.
+        viewBoxChanged: svg && JSON.stringify(previous.box) !== JSON.stringify(incoming.box),
         backedUp: false,
         from: previous.box,
         to: incoming.box,

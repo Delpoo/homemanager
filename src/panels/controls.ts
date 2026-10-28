@@ -87,7 +87,8 @@ const list = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string' && item.length <= 100).slice(0, 50)
     : [];
-const live = (entity: HassEntity) => !['unavailable', 'unknown'].includes(entity.state);
+// Unknown state still accepts commands (assumed-state/RF devices); unavailable does not.
+const live = (entity: HassEntity) => entity.state !== 'unavailable';
 const options = (values: string[]) => values.map(value => ({ value, label: humanize(value) }));
 
 /** "heat_cool" -> "Heat cool"; HA's own translations are not available to cards. */
@@ -111,7 +112,8 @@ export function entityControls(entityId: string, entity: HassEntity | undefined,
       kind: 'toggle',
       id: 'power',
       label: t('Encendido'),
-      value: entity.state === 'off' ? false : true,
+      // Unknown is shown as neither on nor off (assumed-state devices).
+      value: entity.state === 'off' ? false : entity.state === 'unknown' ? null : true,
       on,
       off,
     });

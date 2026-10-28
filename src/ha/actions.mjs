@@ -432,12 +432,9 @@ function validated(action, hass, options) {
   for (const id of targets) {
     if (!OWN(hass.states ?? {}, id)) fail('entity_missing');
     const entity = hass.states[id];
-    if (
-      !entity ||
-      typeof entity.state !== 'string' ||
-      !entity.state.trim() ||
-      ['unknown', 'unavailable'].includes(entity.state)
-    )
+    // "unknown" only means HA has no reading (optimistic or assumed-state devices,
+    // typical of RF): commands are still accepted. "unavailable" means they are not.
+    if (!entity || typeof entity.state !== 'string' || !entity.state.trim() || entity.state === 'unavailable')
       fail('entity_unavailable');
     capabilities(checked, entity);
     if (checked.domain === 'script')

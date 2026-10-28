@@ -457,4 +457,5 @@ export const en: Record<string, string> = {
   'No se pudo verificar esta acción.': 'This action could not be verified.',
   'Ejecutar acción': 'Run action',
   'Versión {version}': 'Version {version}',
+  '{value} · según Home Assistant': '{value} · as reported by Home Assistant',
 };

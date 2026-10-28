@@ -1,10 +1,9 @@
-// End-to-end check against a REAL, disposable Home Assistant instance running
-// the HomeManager integration. Never point it at a real installation: it
-// creates a home, saves dashboards and toggles the `light.e2e_lamp` entity.
+// End-to-end check against a REAL, DISPOSABLE Home Assistant running the
+// HomeManager integration. Never point it at a real installation: it creates a
+// home, saves dashboards and switches the `light.e2e_*` test entities.
 //
-// Usage: HM_E2E_CREDENTIALS=path/to/TEST_CREDENTIALS.local.json node tests/e2e/local-ha.e2e.mjs
-// The credentials file holds {hassUrl, clientId, tokens} of a TEST account
-// (see docs/handoff-agent4.md for how the instance is prepared).
+// Prepare the instance with tests/e2e/prepare_local_ha.py (see docs/testing.md),
+// then: HM_E2E_CREDENTIALS=path/to/TEST_CREDENTIALS.local.json node tests/e2e/local-ha.e2e.mjs
 import { chromium } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -12,19 +11,28 @@ import assert from 'node:assert/strict';
 const credentials = JSON.parse(readFileSync(process.env.HM_E2E_CREDENTIALS, 'utf8'));
 const base = credentials.hassUrl;
 assert.match(base, /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/, 'Only a local disposable instance is allowed');
+// Access tokens live 30 minutes: always start from a fresh one.
+{
+  const response = await fetch(`${base}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: credentials.tokens.refresh_token,
+      client_id: credentials.clientId,
+    }),
+  });
+  assert.ok(response.ok, `token refresh failed: ${response.status}`);
+  Object.assign(credentials.tokens, await response.json());
+}
 const out = process.env.HM_E2E_OUTPUT ?? '.work/e2e';
 mkdirSync(out, { recursive: true });
 const headers = { Authorization: `Bearer ${credentials.tokens.access_token}`, 'Content-Type': 'application/json' };
-const rest = async (path, body) => {
-  const response = await fetch(`${base}${path}`, {
-    method: body ? 'POST' : 'GET',
-    headers,
-    body: body && JSON.stringify(body),
-  });
+const rest = async path => {
+  const response = await fetch(`${base}${path}`, { headers });
   assert.ok(response.ok, `${path}: ${response.status}`);
   return response.json();
 };
-
 /** One websocket command with the test token (Node 22+ has a global WebSocket). */
 const ws = message =>
   new Promise((resolve, reject) => {
@@ -45,12 +53,19 @@ const ws = message =>
     socket.onerror = reject;
   });
 // Re-runnable: remove the test home left by a previous run.
-const previous = await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' });
-if (previous.success)
-  await ws({ type: 'homemanager/home/delete', home_id: 'e2e-casa', expected_revision: previous.result.revision });
+for (const homeId of ['e2e-casa', 'home']) {
+  const previous = await ws({ type: 'homemanager/home/get', home_id: homeId });
+  if (previous.success)
+    await ws({ type: 'homemanager/home/delete', home_id: homeId, expected_revision: previous.result.revision });
+}
+const stored = async () => (await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' })).result;
 
-const plan =
+const planA =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500"><rect id="room-salon" x="10" y="10" width="480" height="480" fill="#e7ece2" stroke="#3f5d50" stroke-width="4"><title>Salón</title></rect><rect id="room-cocina" x="500" y="10" width="290" height="480" fill="#efe6d3" stroke="#3f5d50" stroke-width="4"/></svg>';
+// The same drawing extended to the right: positions must stay on the same point.
+const planB = planA
+  .replace('viewBox="0 0 800 500"', 'viewBox="0 0 1100 500"')
+  .replace('</svg>', '<rect id="room-terraza" x="800" y="10" width="290" height="480" fill="#dfe9ef"/></svg>');
 const configuration = {
   schemaVersion: 2,
   rooms: [
@@ -72,7 +87,7 @@ const configuration = {
       },
     ],
   },
-  architecture: { format: 'svg', content: plan },
+  architecture: { format: 'svg', content: planA },
   actions: { 'lampara-toggle': { domain: 'light', service: 'toggle', target: { entity_id: 'light.e2e_lamp' } } },
   panels: {},
   stateSources: {},
@@ -93,15 +108,18 @@ await context.addInitScript(
   [credentials.tokens, base, credentials.clientId],
 );
 const page = await context.newPage();
-const errors = [];
 // Only errors raised by HomeManager's bundle fail the run; HA's own frontend may
 // log unrelated rejections on a minimal test instance (missing optional integrations).
-const foreign = [];
+const errors = [],
+  foreign = [];
 page.on('pageerror', error =>
   (String(error.stack).includes('/homemanager_files/') ? errors : foreign).push(
     `${error.message} @ ${String(error.stack).split('\n').slice(0, 3).join(' | ')}`,
   ),
 );
+const app = page.locator('homemanager-app');
+const card = app.locator('homemanager-card');
+const status = card.locator('.shell > .status');
 const step = async (name, fn) => {
   process.stdout.write(`- ${name} … `);
   try {
@@ -112,58 +130,135 @@ const step = async (name, fn) => {
       .allTextContents()
       .catch(() => []);
     await page.screenshot({ path: `${out}/failure.png` }).catch(() => {});
-    console.log(`FAILED
-  status messages: ${JSON.stringify(messages.filter(Boolean))}
-  page errors: ${JSON.stringify(errors)}`);
+    console.log(
+      `FAILED\n  status messages: ${JSON.stringify(messages.filter(Boolean))}\n  page errors: ${JSON.stringify(errors)}`,
+    );
     throw error;
   }
   console.log('ok');
 };
-
-const app = page.locator('homemanager-app');
-const card = app.locator('homemanager-card');
-const status = card.locator('.shell > .status');
+const settle = () => page.waitForTimeout(800); // HA view transitions
+async function applyImport() {
+  const apply = card.getByRole('button', { name: 'Aplicar importación al borrador', exact: true });
+  await apply.waitFor();
+  if (await apply.isDisabled()) {
+    // A changed viewBox requires a backup of the current version first.
+    const download = page.waitForEvent('download');
+    await card.getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
+    await download;
+  }
+  await apply.click();
+}
+async function importFile(name, content, type) {
+  await card
+    .getByLabel('Importar JSON o SVG', { exact: true })
+    .setInputFiles({ name, mimeType: type, buffer: Buffer.from(content) });
+  await applyImport();
+}
+async function save() {
+  await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
+}
+async function openImport() {
+  if (!(await card.locator('details#import-section').evaluate(node => node.open)))
+    await card.locator('summary').filter({ hasText: 'Importar y exportar' }).click();
+}
 
 await step('the sidebar panel is registered and served by the integration', async () => {
   await page.goto(`${base}/homemanager`);
   await app.getByText('Todavía no hay hogares').waitFor({ timeout: 30000 });
+  // HA 2026.10+ asks to confirm a non-default HTTP port on a fresh instance (its
+  // own dialog, reverted after 90 s if ignored). Confirm it on this test instance.
+  const httpConfirm = page.getByRole('button', { name: 'Confirmar', exact: true });
+  if (await httpConfirm.isVisible({ timeout: 4000 }).catch(() => false)) {
+    await httpConfirm.click();
+    await page.waitForTimeout(1500);
+    await page.goto(`${base}/homemanager`);
+    await app.getByText('Todavía no hay hogares').waitFor({ timeout: 30000 });
+  }
   await page.screenshot({ path: `${out}/01-empty-panel.png` });
 });
-await step('an administrator creates a home from the editor', async () => {
+await step('an administrator creates a home and imports a plan with its devices', async () => {
   await app.getByLabel('ID del hogar', { exact: true }).fill('e2e-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
   await status.filter({ hasText: 'todavía no existe' }).waitFor();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await status.filter({ hasText: 'se creará' }).waitFor();
-  await card.locator('summary').filter({ hasText: 'Importar y exportar' }).click();
-  await card.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
-    name: 'casa.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(configuration)),
-  });
-  const download = page.waitForEvent('download');
-  await card.getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
-  await download;
-  await card.getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
-  await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
-  await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
+  await openImport();
+  await importFile('casa.json', JSON.stringify(configuration), 'application/json');
+  await save();
+  assert.equal((await stored()).revision, 1);
 });
 await step('the home persists in HA storage and survives a reload', async () => {
   await page.reload();
   await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
   await card.getByRole('button', { name: 'Encuadrar Salón', exact: true }).waitFor();
-  await page.waitForTimeout(800); // let HA's view transition finish
+  await settle();
   await page.screenshot({ path: `${out}/02-home-in-panel.png` });
 });
-await step('the primary action calls the real HA service', async () => {
+await step('a tap runs the primary action on an assumed-state (unknown) entity', async () => {
   const before = (await rest('/api/states/light.e2e_lamp')).state;
   await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).click();
   for (let i = 0; i < 20 && (await rest('/api/states/light.e2e_lamp')).state === before; i++)
     await page.waitForTimeout(250);
   assert.notEqual((await rest('/api/states/light.e2e_lamp')).state, before);
 });
+await step('the native panel offers brightness and sends it to HA without claiming confirmation', async () => {
+  await card.getByRole('button', { name: 'Detalles de Lámpara E2E', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const brightness = dialog.getByRole('slider', { name: 'Brillo' });
+  await brightness.fill('60');
+  await brightness.dispatchEvent('change');
+  for (let i = 0; i < 20 && (await rest('/api/states/light.e2e_lamp')).attributes.brightness !== 153; i++)
+    await page.waitForTimeout(250);
+  assert.equal((await rest('/api/states/light.e2e_lamp')).attributes.brightness, 153);
+  // assumed_state:true can never be shown as confirmed.
+  assert.notEqual(await dialog.locator('.confidence').textContent(), 'Confirmado');
+  await page.screenshot({ path: `${out}/03-native-panel.png` });
+  await dialog.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
+});
+await step('a real entity is added by name and placed by tapping its space', async () => {
+  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  const quick = card.getByLabel('Agregar dispositivo desde Home Assistant', { exact: true });
+  await quick.click();
+  await quick.pressSequentially('spot');
+  await card.locator('.quick [role=option]', { hasText: 'E2E spot' }).click();
+  await card.locator('.placing-hint').filter({ hasText: 'Tocá el plano' }).waitFor();
+  const zone = await card.locator('#room-cocina').boundingBox();
+  await page.mouse.click(zone.x + zone.width * 0.5, zone.y + zone.height * 0.7);
+  await save();
+  const device = (await stored()).configuration.catalog.devices.find(
+    item => item.bindings.entityId === 'light.e2e_spot',
+  );
+  assert.equal(device.roomId, 'cocina');
+  assert.equal(device.bindings.primaryAction, 'e2e-spot-toggle');
+});
+await step(
+  'replacing the plan keeps devices on the same drawing point and a previous plan can be restored',
+  async () => {
+    await openImport();
+    await importFile('plano-b.svg', planB, 'image/svg+xml');
+    await save();
+    const replaced = (await stored()).configuration;
+    assert.match(replaced.architecture.content, /viewBox="0 0 1100 500"/);
+    assert.equal(
+      replaced.catalog.devices.find(d => d.id === 'lampara').position.x,
+      Math.round(((0.3 * 800) / 1100) * 1e6) / 1e6,
+    );
+    await openImport();
+    await card.getByRole('button', { name: 'Planos anteriores', exact: true }).click();
+    // Newest first: the last entry is the original plan.
+    await card.getByRole('button', { name: 'Restaurar', exact: true }).last().click();
+    await applyImport();
+    await save();
+    const restored = (await stored()).configuration;
+    assert.match(restored.architecture.content, /viewBox="0 0 800 500"/);
+    assert.ok(Math.abs(restored.catalog.devices.find(d => d.id === 'lampara').position.x - 0.3) < 1e-5);
+    await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  },
+);
 await step('a Lovelace card references the home without embedding the plan', async () => {
-  const ws = await page.evaluate(async () => {
+  const dashboard = await page.evaluate(async () => {
     const hass = document.querySelector('home-assistant').hass;
     const dashboards = await hass.callWS({ type: 'lovelace/dashboards/list' });
     if (!dashboards.some(item => item.url_path === 'e2e-plano'))
@@ -187,58 +282,71 @@ await step('a Lovelace card references the home without embedding the plan', asy
     });
     return JSON.stringify(await hass.callWS({ type: 'lovelace/config', url_path: 'e2e-plano' }));
   });
-  assert.ok(!ws.includes('<svg'), 'the dashboard must not contain the plan');
+  assert.ok(!dashboard.includes('<svg'), 'the dashboard must not contain the plan');
   await page.goto(`${base}/e2e-plano/0`);
   await page
     .locator('homemanager-card')
     .getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true })
     .waitFor({ timeout: 30000 });
-  await page.waitForTimeout(800); // let HA's view transition finish
-  await page.screenshot({ path: `${out}/03-lovelace-card.png` });
+  await settle();
+  await page.screenshot({ path: `${out}/04-lovelace-card.png` });
 });
-await step('a save with a stale revision is rejected by HA', async () => {
-  const result = await page.evaluate(async configuration => {
-    const hass = document.querySelector('home-assistant').hass;
-    try {
-      await hass.callWS({
+await step('HA rejects a stale revision and the open card follows the winning writer live', async () => {
+  const current = await stored();
+  const renamed = {
+    ...current.configuration,
+    rooms: current.configuration.rooms.map(room => (room.id === 'salon' ? { ...room, label: 'Estar' } : room)),
+  };
+  assert.equal(
+    (
+      await ws({
         type: 'homemanager/home/save',
         home_id: 'e2e-casa',
-        expected_revision: 1,
-        configuration: { ...configuration, rooms: [{ id: 'salon', label: 'Pisado' }] },
-      });
-      return 'saved';
-    } catch (error) {
-      return error.code;
-    }
-  }, configuration);
-  // Revision 1 was the creation; nothing else saved, so this must succeed once…
-  assert.equal(result, 'saved');
-  const again = await page.evaluate(async configuration => {
-    const hass = document.querySelector('home-assistant').hass;
-    try {
-      await hass.callWS({ type: 'homemanager/home/save', home_id: 'e2e-casa', expected_revision: 1, configuration });
-      return 'saved';
-    } catch (error) {
-      return error.code;
-    }
-  }, configuration);
-  // …and the second writer with the same base revision must lose.
-  assert.equal(again, 'revision_conflict');
-});
-await step('the open card follows the other writer without reloading the page', async () => {
+        expected_revision: current.revision,
+        configuration: renamed,
+      })
+    ).success,
+    true,
+  );
+  const stale = await ws({
+    type: 'homemanager/home/save',
+    home_id: 'e2e-casa',
+    expected_revision: current.revision,
+    configuration: current.configuration,
+  });
+  assert.equal(stale.error?.code, 'revision_conflict');
   await page
     .locator('homemanager-card')
-    .getByRole('button', { name: 'Encuadrar Pisado', exact: true })
+    .getByRole('button', { name: 'Encuadrar Estar', exact: true })
     .waitFor({ timeout: 15000 });
 });
-await step('the bundle is public software; plans are only reachable over the authenticated websocket', async () => {
-  const bundle = await fetch(`${base}/homemanager_files/homemanager.js`);
-  assert.equal(bundle.status, 200);
-  const anonymous = await fetch(`${base}/api/states`);
-  assert.equal(anonymous.status, 401);
+await step(
+  'the bundle is public; plans travel only over the authenticated websocket; active content is refused',
+  async () => {
+    assert.equal((await fetch(`${base}/homemanager_files/homemanager.js`)).status, 200);
+    assert.equal((await fetch(`${base}/api/states`)).status, 401);
+    const unsafe = await ws({
+      type: 'homemanager/home/save',
+      home_id: 'e2e-unsafe',
+      expected_revision: null,
+      configuration: {
+        ...configuration,
+        architecture: { format: 'svg', content: '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>' },
+      },
+    });
+    assert.equal(unsafe.error?.code, 'unsafe_plan');
+  },
+);
+await step('the phone layout keeps the plan usable without horizontal scrolling', async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${base}/homemanager`);
+  await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  await settle();
+  await page.screenshot({ path: `${out}/05-mobile.png` });
 });
 assert.deepEqual(errors, [], `page errors: ${errors.join('; ')}`);
 await browser.close();
 console.log(
-  `All end-to-end checks passed. Screenshots in ${out}.${foreign.length ? ` Ignored ${foreign.length} page error(s) outside HomeManager: ${foreign.map(item => item.slice(0, 160)).join(' || ')}` : ''}`,
+  `All end-to-end checks passed. Screenshots in ${out}.${foreign.length ? ` Ignored ${foreign.length} page error(s) outside HomeManager.` : ''}`,
 );
