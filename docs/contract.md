@@ -1,0 +1,98 @@
+# Contrato compartido V1
+
+Este contrato coordina arquitectura SVG, frontend e integración de HomeManager. Define estructuras y criterios de aceptación; todavía no implementa la tarjeta ni conecta dispositivos reales. Los esquemas son JSON Schema 2020-12 y sus referencias son archivos locales estables dentro de `schemas/`.
+
+## Catálogo y coordenadas
+
+`schemas/catalog.schema.json` conserva la forma compartida exacta: raíz con `schemaVersion: 1` y `devices: []`. Cada dispositivo requiere `id`, `roomId`, `kind`, `position`, `mobility`, `display`, `bindings` y `state`, sin campos adicionales. Los identificadores son kebab-case únicos y permanecen iguales al cambiar de posición, habitación o etiqueta.
+
+Los espacios admitidos son `living`, `dining`, `kitchen`, `office`, `master-bedroom`, `bath-2`, `master-bath`, `balcony`, `entry`, `hallway`, `dbst` y `ac-ledge`. Cada zona SVG se identifica como `room-${roomId}`. Los nombres visibles y agrupaciones pertenecen a la configuración de cada instancia; no se deducen del domicilio del desarrollador ni se fijan en el software público.
+
+`position.x` y `position.y` son números finitos entre 0 y 1 respecto al **viewBox global**, incluyendo su origen:
+
+```text
+svgX = viewBox.minX + position.x * viewBox.width
+svgY = viewBox.minY + position.y * viewBox.height
+```
+
+No son coordenadas de habitación ni de pantalla. Cambiar el viewBox exige revisar o migrar explícitamente posiciones con copia previa. Una zona ausente se informa; no se sustituye silenciosamente por otra habitación. Los aliases geométricos solo se aceptan tras verificar la geometría.
+
+`kind` admite `light`, `fan`, `curtain`, `ac`, `sensor`, `switch`, `robot`, `purifier`, `plant`, `infra` y `energy`. `mobility` admite `fixed`, `editable` y `portable`. Un dispositivo `fixed` no se desplaza con el arrastre habitual: una corrección de su ubicación requiere una acción separada y explícita de reubicación. Esa acción conserva su ID y sus asociaciones. Mover un icono no cambia áreas HA, rutas RF, scripts ni automatizaciones.
+
+`display` contiene exactamente `label` e `icon`. `bindings` contiene exactamente `entityId`, `primaryAction` y `advancedPopupId`, cada uno string o null. `primaryAction` es una clave lógica, no un objeto de servicio. `advancedPopupId` identifica un panel **nativo de HomeManager**. No contiene un ID Browser Mod, una ruta de dashboard externo ni código ejecutable.
+
+## Configuración persistente y estado efímero
+
+`schemas/configuration.schema.json` define el documento persistente, separado del catálogo estricto:
+
+| Campo | Contenido |
+| --- | --- |
+| `schemaVersion` | `1`, con migraciones explícitas ante cambios incompatibles. |
+| `catalog` | Catálogo V1; todo `state` persistido es `unknown/unknown`. |
+| `architecture` | `{format: "svg", content: "…"}`; SVG inline sanitizado, máximo 1 MiB UTF-8. |
+| `actions` | Mapa de acciones lógicas a llamadas HA permitidas y destinos explícitos. |
+| `panels` | Mapa de paneles nativos `device-controls` o `rf-fan`; controles con `id`, `label` y `actionId`. |
+| `stateSources` | Mapa por ID de dispositivo con `entityId`, `attribute` y `feedback`. |
+| `commandTtlSeconds` | Entero opcional de 1 a 300; valor efectivo predeterminado 30 segundos. |
+
+`stateSources.feedback` admite `measured`, `optimistic` y `transmitter`. Su elección requiere comprobar la integración real. Nombrar una fuente `measured` no convierte una lectura supuesta en medida. La configuración no almacena lecturas, comandos pendientes, credenciales ni estados físicos inferidos.
+
+`schemas/runtime-state.schema.json` define la capa efímera: `states` por ID, con valor, confianza, fecha de observación, fuente y comando pendiente opcional. Se reconstruye desde la sesión HA después de reconectar. No se guarda en Git, Lovelace, exportaciones de configuración ni archivos del build. Pan/zoom momentáneo, suscripciones y borradores también permanecen fuera del documento persistente.
+
+El catálogo mantiene `state` para compatibilidad de intercambio, pero la configuración duradera obliga a `{"value":"unknown","confidence":"unknown"}`. El runtime se superpone por ID sin reescribir el catálogo. La aplicación no importa estados anteriores como verdad al abrir un archivo.
+
+## Editor visual autenticado
+
+El editor propio permite seleccionar un icono, elegir una entidad accesible de HA, elegir o configurar una acción lógica/script permitido, declarar una fuente de estado y seleccionar un panel nativo. Debe mostrar referencias inexistentes y permitir conservarlas como pendientes sin ejecutarlas. Agregar o editar un binding no dispara acciones físicas.
+
+La persistencia predeterminada utiliza el dashboard Lovelace en modo `storage` y la sesión HA existente. Guardar exige autorización administradora comprobada por HA; el frontend refleja esa autorización y conserva su borrador si HA rechaza la operación. Un dashboard YAML se trata como solo lectura para este editor. `localStorage` no satisface el guardado autenticado compartido y no se usa como sustituto silencioso.
+
+La vía de menor alcance es el editor de tarjeta Lovelace con `config-changed` y guardado explícito del dashboard. Una escritura directa de configuración debe leer el dashboard actual, identificar una única tarjeta, detectar cambios observados y verificar la lectura posterior. La API Lovelace guarda el documento completo y no ofrece una revisión CAS para este flujo: una doble lectura reduce conflictos detectables, pero no garantiza ausencia de carreras entre clientes. Mientras se use esa API, admitir un único editor activo, informar cambios remotos, conservar borradores y no sobrescribir ni reintentar automáticamente ante conflicto. Si se exige concurrencia transaccional o escritura delegada a no administradores, se revisará la arquitectura antes de añadir un backend.
+
+Solo anunciar «guardado en Home Assistant» tras la confirmación y lectura posterior. Un error de sesión, validación, escritura o desconexión mantiene la edición pendiente. Importar una configuración muestra un resumen de cambios antes de aplicar y nunca ejecuta las acciones importadas.
+
+## Acciones y paneles nativos
+
+Cada acción tiene `domain`, `service`, `target` y `data` opcional. El destino es exclusivamente `target.entity_id`, individual o una lista explícita de hasta 20 entidades. No se admiten destinos globales, `all`, áreas, dispositivos completos ni destinos introducidos dentro de `data`. La lista de dominios y servicios está acotada en el esquema: `light`, `fan`, `cover`, `climate`, `switch`, `button` y `script`; `script` admite únicamente `turn_on`.
+
+Los datos son JSON acotado, nunca JavaScript, plantillas ejecutables, código RF/IR, MQTT, comandos ESPHome o código cargado desde una URL. El consumidor valida datos según la firma real de la acción o script, con profundidad máxima 10 y hasta 8192 bytes UTF-8 serializados por `data`. Rechaza claves inseguras, datos no finitos y cadenas que pretendan introducir código/plantillas en campos no destinados a texto literal. Ninguna cadena se evalúa ni se interpreta como código. El permiso real para ejecutar la acción lo decide HA mediante la sesión actual; la allowlist frontend es una defensa adicional y no reemplaza la autorización de HA.
+
+Los controles de `panels` referencian únicamente IDs de acciones existentes. Un panel `rf-fan` referencia exclusivamente acciones `script.turn_on` con destinos `script.*` explícitos, existentes y con firma verificada. Los valores de velocidad, dirección, temporización o iluminación se expresan mediante esos scripts y parámetros declarados; no mediante códigos de radio en el navegador. C01 y toda la lógica RF centralizada siguen en HA.
+
+Todos los paneles, incluido RF fan, se dibujan localmente en el frontend de HomeManager y se cierran en ese navegador. Browser Mod queda totalmente descartado como dependencia, evento, adaptador, fallback o compatibilidad transitoria. Esta decisión no autoriza borrar o modificar los popups existentes en el HA del usuario.
+
+## Confianza y ciclo del comando
+
+| `confidence` | Evidencia mínima y límite |
+| --- | --- |
+| `confirmed` | Lectura válida de una fuente independiente verificada como `measured`, con `assumed_state` distinto de true. Tras un comando, debe ser posterior a `issuedAt` y distinta de `baselineLastUpdated`. No demuestra causalidad. |
+| `estimated` | Lectura válida de una fuente optimista o sin confirmación independiente verificada. |
+| `sent` | HA aceptó la solicitud de servicio. No acredita emisión RF, recepción ni efecto físico. |
+| `unknown` | Falta de fuente válida, desconexión, entidad ausente/unknown/unavailable o acuse expirado sin feedback posterior. |
+| `error` | Falló la llamada o el procesamiento; no describe por sí mismo el estado físico del equipo. |
+
+Al iniciar un comando se captura la fecha de la última lectura como baseline. `expiresAt` se calcula con el TTL efectivo, por defecto 30 segundos y como máximo 300. Ningún acuse `sent/error` se conserva indefinidamente como estado físico. En un equipo sin feedback, al expirar se muestra `unknown`; una lectura antigua no confirma el resultado. Una fuente `transmitter` puede acreditar actividad del transmisor, pero nunca confirmar el ventilador receptor. No se infiere un toggle RF ni estado de luz por el botón pulsado.
+
+## Validación semántica obligatoria
+
+Validar contra JSON Schema es necesario y no suficiente. Antes de persistir, importar o ejecutar, el consumidor también debe comprobar:
+
+1. Unicidad de IDs de dispositivos y controles; rechazo de claves `__proto__`, `prototype` y `constructor` en cualquier estructura, además de números no finitos y límites de bytes/profundidad.
+2. Existencia de cada `primaryAction` y `advancedPopupId`; existencia de cada `actionId`; claves `stateSources` presentes en el catálogo. Las referencias pendientes quedan claramente deshabilitadas.
+3. Formato/existencia de entidades, coherencia entre dominio de acción y destinos, rechazo de `.all` y validez de servicio/capacidad/datos según HA. Ninguna selección de UI amplía permisos de la sesión.
+4. Paneles RF exclusivamente sobre scripts HA verificados; no copiar ni interpretar capturas RF en el frontend.
+5. SVG XML válido, un solo elemento raíz SVG, viewBox finito de tamaño positivo, IDs únicos, regiones `room-${roomId}` esperadas y sanitización tanto al importar como antes de renderizar. Eliminar/rechazar scripts, eventos `on*`, `foreignObject`, HTML incrustado, DTD/entidades, animación ejecutable y referencias externas. Solo referencias internas `#id` resueltas; no ejecutar CSS arbitrario ni conservar URLs externas o `data:`. Mantener un perfil permitido explícito de elementos, atributos y estilos.
+6. Runtime con IDs conocidos, timestamps válidos, baseline y TTL coherentes y feedback suficientemente reciente. Nunca degradar un error o conflicto de guardado a una copia local anunciada como compartida.
+7. Estado persistido siempre `unknown/unknown`; ausencia de tokens, credenciales, URLs internas, plano real o datos de vivienda en el repositorio público, artefactos CI y `dist/`.
+
+El esquema V1 conserva la forma acordada, pero no garantiza por sí solo seguridad, autorización ni resultados físicos. Las pruebas con HA y hardware son una fase separada del integrador 4; ninguna base de repositorio constituye una versión funcional ya verificada.
+
+## Fuentes técnicas
+
+- [Objeto hass y llamadas de servicio](https://contributors.home-assistant.io/frontend/reference/hass-object/).
+- [Tarjetas personalizadas](https://contributors.home-assistant.io/frontend/custom-ui/card/).
+- [API WebSocket autenticada](https://contributors.home-assistant.io/core/internals/websocket-api/).
+- [Implementación Lovelace de Home Assistant Core](https://github.com/home-assistant/core/tree/dev/homeassistant/components/lovelace).
+- [Recursos frontend y archivos de /local](https://contributors.home-assistant.io/frontend/custom-ui/resources/).
+
+Las rutas de API concretas y sus permisos deben comprobarse contra la versión HA instalada antes de integrar. Los archivos bajo `/local` no son el lugar para un plano privado o configuración sensible: el almacenamiento autenticado debe conservar también la arquitectura de la instancia.

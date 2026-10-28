@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device catalog V1",
+  "description": "Shared catalog shape. Persisted configuration constrains state to unknown; live state uses a separate schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "devices"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "devices": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": { "$ref": "#/$defs/device" }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S" },
+    "nullableText": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
+    "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "roomId": {
+      "enum": ["living", "dining", "kitchen", "office", "master-bedroom", "bath-2", "master-bath", "balcony", "entry", "hallway", "dbst", "ac-ledge"]
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "confidence"],
+      "properties": {
+        "value": { "$ref": "#/$defs/text" },
+        "confidence": { "enum": ["confirmed", "estimated", "sent", "unknown", "error"] }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "roomId", "kind", "position", "mobility", "display", "bindings", "state"],
+      "properties": {
+        "id": { "$ref": "#/$defs/deviceId" },
+        "roomId": { "$ref": "#/$defs/roomId" },
+        "kind": { "enum": ["light", "fan", "curtain", "ac", "sensor", "switch", "robot", "purifier", "plant", "infra", "energy"] },
+        "position": { "$ref": "#/$defs/position" },
+        "mobility": { "enum": ["fixed", "editable", "portable"] },
+        "display": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "icon"],
+          "properties": {
+            "label": { "$ref": "#/$defs/text" },
+            "icon": { "$ref": "#/$defs/text" }
+          }
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entityId", "primaryAction", "advancedPopupId"],
+          "properties": {
+            "entityId": { "$ref": "#/$defs/nullableText" },
+            "primaryAction": { "$ref": "#/$defs/nullableText" },
+            "advancedPopupId": { "$ref": "#/$defs/nullableText" }
+          }
+        },
+        "state": { "$ref": "#/$defs/state" }
+      }
+    }
+  },
+  "$comment": "Semantic validation must additionally reject duplicate device IDs, non-finite numbers in in-memory input, unsafe object keys, invalid or unresolved HA references and unsafe icon content. No real household data belongs in the public repository."
+}

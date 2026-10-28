@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Persistent configuration V1",
+  "description": "Authenticated persistent configuration. Runtime HA state, command acknowledgements and session credentials are excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "catalog", "architecture", "actions", "panels", "stateSources"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "catalog": {
+      "allOf": [
+        { "$ref": "catalog.schema.json" },
+        {
+          "properties": {
+            "devices": {
+              "items": {
+                "properties": {
+                  "state": {
+                    "properties": {
+                      "value": { "const": "unknown" },
+                      "confidence": { "const": "unknown" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "content"],
+      "properties": {
+        "format": { "const": "svg" },
+        "content": { "type": "string", "minLength": 1, "maxLength": 1048576 }
+      },
+      "$comment": "The content must pass the SVG sanitizer before persistence and before rendering. The application additionally enforces a 1 MiB UTF-8 byte limit; maxLength alone counts characters."
+    },
+    "actions": {
+      "type": "object",
+      "maxProperties": 2000,
+      "propertyNames": { "$ref": "#/$defs/mapKey" },
+      "additionalProperties": { "$ref": "#/$defs/action" }
+    },
+    "panels": {
+      "type": "object",
+      "maxProperties": 2000,
+      "propertyNames": { "$ref": "#/$defs/mapKey" },
+      "additionalProperties": { "$ref": "#/$defs/panel" }
+    },
+    "stateSources": {
+      "type": "object",
+      "maxProperties": 2000,
+      "propertyNames": { "$ref": "#/$defs/mapKey" },
+      "additionalProperties": { "$ref": "#/$defs/stateSource" }
+    },
+    "commandTtlSeconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
+  },
+  "$defs": {
+    "mapKey": {
+      "allOf": [
+        { "$ref": "catalog.schema.json#/$defs/deviceId" },
+        { "not": { "enum": ["__proto__", "prototype", "constructor"] } }
+      ]
+    },
+    "entityId": { "type": "string", "minLength": 3, "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+$" },
+    "dataKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "not": {
+        "anyOf": [
+          { "enum": ["__proto__", "prototype", "constructor", "entity_id", "device_id", "area_id"] },
+          { "pattern": "^(?:[Rr][Ff]_[Cc][Oo][Dd][Ee][Ss]?|[Ii][Rr]_[Cc][Oo][Dd][Ee][Ss]?|[Cc][Oo][Dd][Ee][Ss]?|[Pp][Rr][Oo][Tt][Oo][Cc][Oo][Ll]|[Pp][Uu][Ll][Ss][Ee]_[Ll][Ee][Nn][Gg][Tt][Hh]|[Rr][Aa][Ww](?:_[Dd][Aa][Tt][Aa])?|[Rr][Cc]_[Ss][Ww][Ii][Tt][Cc][Hh]|[Cc][Oo][Mm][Mm][Aa][Nn][Dd][Ss]?|[Cc][Oo][Mm][Mm][Aa][Nn][Dd]_[Tt][Yy][Pp][Ee])$" }
+        ]
+      }
+    },
+    "jsonData": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number" },
+        { "type": "string", "maxLength": 1024 },
+        { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/jsonData" } },
+        {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": { "$ref": "#/$defs/dataKey" },
+          "additionalProperties": { "$ref": "#/$defs/jsonData" }
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "service", "target"],
+      "properties": {
+        "domain": { "enum": ["light", "fan", "cover", "climate", "switch", "button", "script"] },
+        "service": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 80 },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entity_id"],
+          "properties": {
+            "entity_id": {
+              "anyOf": [
+                { "$ref": "#/$defs/entityId" },
+                { "type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": { "$ref": "#/$defs/entityId" } }
+              ]
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": { "$ref": "#/$defs/dataKey" },
+          "additionalProperties": { "$ref": "#/$defs/jsonData" }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "domain": { "const": "light" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle"] } } } },
+        { "if": { "properties": { "domain": { "const": "fan" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle", "set_percentage", "set_preset_mode", "set_direction", "oscillate"] } } } },
+        { "if": { "properties": { "domain": { "const": "cover" } } }, "then": { "properties": { "service": { "enum": ["open_cover", "close_cover", "stop_cover", "set_cover_position"] } } } },
+        { "if": { "properties": { "domain": { "const": "climate" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "set_temperature", "set_hvac_mode", "set_fan_mode", "set_preset_mode", "set_swing_mode"] } } } },
+        { "if": { "properties": { "domain": { "const": "switch" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle"] } } } },
+        { "if": { "properties": { "domain": { "const": "button" } } }, "then": { "properties": { "service": { "const": "press" } } } },
+        { "if": { "properties": { "domain": { "const": "script" } } }, "then": { "properties": { "service": { "const": "turn_on" } } } }
+      ]
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "title", "controls"],
+      "properties": {
+        "kind": { "enum": ["device-controls", "rf-fan"] },
+        "title": { "$ref": "catalog.schema.json#/$defs/text" },
+        "controls": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "actionId"],
+            "properties": {
+              "id": { "$ref": "#/$defs/mapKey" },
+              "label": { "$ref": "catalog.schema.json#/$defs/text" },
+              "actionId": { "$ref": "#/$defs/mapKey" }
+            }
+          }
+        }
+      },
+      "$comment": "Panels are native frontend controls. Each rf-fan control must resolve to an explicit existing HA script.turn_on action; this cross-reference rule is semantic validation."
+    },
+    "stateSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entityId", "attribute", "feedback"],
+      "properties": {
+        "entityId": { "$ref": "#/$defs/entityId" },
+        "attribute": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/dataKey" }] },
+        "feedback": { "enum": ["measured", "optimistic", "transmitter"] }
+      }
+    }
+  },
+  "$comment": "Schema validation is necessary but insufficient. Enforce SVG sanitization, UTF-8 byte/depth limits, unique IDs, catalog and action/panel references, allowed entity domains, compatible target domains, no all targets, service-specific typed data, verified script signatures, and rejection of executable templates/code. JSON data is never evaluated."
+}

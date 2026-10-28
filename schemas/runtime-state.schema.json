@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ephemeral runtime state V1",
+  "description": "In-memory session state only. Never persist this document in configuration, Git, static assets or public build output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "states"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "states": {
+      "type": "object",
+      "maxProperties": 2000,
+      "propertyNames": { "$ref": "catalog.schema.json#/$defs/deviceId" },
+      "additionalProperties": { "$ref": "#/$defs/runtimeState" }
+    }
+  },
+  "$defs": {
+    "timestamp": { "type": "string", "format": "date-time", "maxLength": 40 },
+    "nullableTimestamp": { "anyOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }] },
+    "runtimeState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "confidence", "observedAt", "sourceEntityId", "command"],
+      "properties": {
+        "value": { "$ref": "catalog.schema.json#/$defs/text" },
+        "confidence": { "enum": ["confirmed", "estimated", "sent", "unknown", "error"] },
+        "observedAt": { "$ref": "#/$defs/nullableTimestamp" },
+        "sourceEntityId": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+$" }
+          ]
+        },
+        "command": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "actionId", "issuedAt", "expiresAt", "baselineLastUpdated", "status"],
+              "properties": {
+                "id": { "$ref": "catalog.schema.json#/$defs/text" },
+                "actionId": { "$ref": "catalog.schema.json#/$defs/deviceId" },
+                "issuedAt": { "$ref": "#/$defs/timestamp" },
+                "expiresAt": { "$ref": "#/$defs/timestamp" },
+                "baselineLastUpdated": { "$ref": "#/$defs/nullableTimestamp" },
+                "status": { "enum": ["sent", "error"] }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$comment": "Semantic checks enforce catalog IDs, real timestamps, expiresAt > issuedAt within configured TTL, valid measured feedback and freshness after command baseline. An accepted service call proves API acceptance only. RF emission never proves physical device state. Runtime state is cleared/rebuilt on reconnect and never merged into persisted catalog state."
+}
