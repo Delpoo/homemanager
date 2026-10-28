@@ -1,0 +1,14 @@
+{
+  "name": "homemanager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HomeManager product foundation and shared contracts",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "check": "node scripts/check-public-boundary.mjs && node scripts/validate-foundation.mjs && node --test tests/foundation.test.mjs",
+    "test": "node --test tests/foundation.test.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": { "ajv": "8.20.0", "ajv-formats": "3.0.1" }
+}
