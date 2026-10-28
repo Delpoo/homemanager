@@ -19,6 +19,7 @@ async function setX(page,x){
   await page.getByRole('button',{name:'Aplicar dispositivo',exact:true}).click();
 }
 async function drag(page,locator,dx=35,dy=25){
+  await locator.hover();
   const bounds=await locator.boundingBox();
   expect(bounds).not.toBeNull();
   await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);

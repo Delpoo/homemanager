@@ -104,7 +104,8 @@ export class HomeManagerCard extends HTMLElement {
   private renderMarkers(){
     const overlay=this.root.querySelector('.overlay');if(!overlay||!this.draft)return;
     overlay.innerHTML=this.draft.catalog.devices.filter(d=>this.editing||this.enabledLayers.has(layer(d))).map(d=>`<div class="marker ${d.id===this.selected?'selected':''} ${this.editing&&(d.mobility!=='fixed'||this.fixedPermit===d.id)?'editable':''}" data-id="${e(d.id)}"><button type="button" class="primary" aria-label="Acción principal de ${e(d.display.label)}" title="${e(d.display.label)}">${customElements.get('ha-icon')?`<ha-icon icon="${e(d.display.icon)}"></ha-icon>`:KIND_ICONS[d.kind]??'◉'}</button><span class="state-dot" aria-hidden="true"></span><button class="detail" type="button" aria-label="Detalles de ${e(d.display.label)}" title="Detalles de ${e(d.display.label)}">⋯</button></div>`).join('');
-    this.refreshState();this.queuePosition();this.updateSelection();
+    // New buttons must receive their current position before becoming interactive.
+    this.refreshState();this.positionMarkers();this.updateSelection();
   }
   private queuePosition(){cancelAnimationFrame(this.frame);this.frame=requestAnimationFrame(()=>this.positionMarkers());}
   private positionMarkers(){
