@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.work/
+custom_components/homemanager/frontend/
+playwright-report/
+test-results/
+*.json
+*.md
