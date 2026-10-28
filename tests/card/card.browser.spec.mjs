@@ -1,138 +1,161 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-const fixture='/tests/browser/fixtures/card.html';
-const lightLabel='Luz de prueba';
-const fanLabel='Ventilador de prueba';
-const action=(page,label)=>page.getByRole('button',{name:`Acción principal de ${label}`,exact:true});
-const detail=(page,label)=>page.getByRole('button',{name:`Detalles de ${label}`,exact:true});
-const save=page=>page.getByRole('button',{name:'Guardar cambios',exact:true});
-async function draft(page){return page.evaluate(()=>window.testHarness.card.getDraftConfiguration());}
-async function backend(page){return page.evaluate(()=>window.testHarness.config.configuration);}
-async function begin(page){
-  await page.getByRole('button',{name:'Editar plano',exact:true}).click();
+const fixture = '/tests/browser/fixtures/card.html';
+const lightLabel = 'Luz de prueba';
+const fanLabel = 'Ventilador de prueba';
+const action = (page, label) => page.getByRole('button', { name: `Acción principal de ${label}`, exact: true });
+const detail = (page, label) => page.getByRole('button', { name: `Detalles de ${label}`, exact: true });
+const save = page => page.getByRole('button', { name: 'Guardar cambios', exact: true });
+async function draft(page) {
+  return page.evaluate(() => window.testHarness.card.getDraftConfiguration());
+}
+async function backend(page) {
+  return page.evaluate(() => window.testHarness.config.configuration);
+}
+async function begin(page) {
+  await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(save(page)).toBeVisible();
 }
-async function select(page,label=lightLabel){await detail(page,label).click();}
-async function setX(page,x){
-  await page.getByLabel('Posición X',{exact:true}).fill(String(x));
-  await page.getByRole('button',{name:'Aplicar dispositivo',exact:true}).click();
+async function select(page, label = lightLabel) {
+  await detail(page, label).click();
 }
-async function drag(page,locator,dx=35,dy=25){
+async function setX(page, x) {
+  await page.getByLabel('Posición X', { exact: true }).fill(String(x));
+  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+}
+async function drag(page, locator, dx = 35, dy = 25) {
   await locator.hover();
-  const bounds=await locator.boundingBox();
+  const bounds = await locator.boundingBox();
   expect(bounds).not.toBeNull();
-  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
-  await page.mouse.move(bounds.x+bounds.width/2+dx,bounds.y+bounds.height/2+dy,{steps:8});
+  await page.mouse.move(bounds.x + bounds.width / 2 + dx, bounds.y + bounds.height / 2 + dy, { steps: 8 });
   await page.mouse.up();
 }
-test.beforeEach(async({page})=>{
-  await page.addInitScript(()=>{
-    if(!sessionStorage.getItem('homemanager-synthetic-started')){
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('homemanager-synthetic-started')) {
       localStorage.removeItem('homemanager-synthetic-dashboard');
-      sessionStorage.setItem('homemanager-synthetic-started','yes');
+      sessionStorage.setItem('homemanager-synthetic-started', 'yes');
     }
   });
   await page.goto(fixture);
-  await page.waitForFunction(()=>window.testHarnessReady===true);
+  await page.waitForFunction(() => window.testHarnessReady === true);
 });
 
-test('primary action and native detail are separate and accepted commands do not confirm physical state',async({page})=>{
-  await action(page,lightLabel).click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(1);
-  await detail(page,lightLabel).click();
+test('primary action and native detail are separate and accepted commands do not confirm physical state', async ({
+  page,
+}) => {
+  await action(page, lightLabel).click();
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
+  await detail(page, lightLabel).click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByRole('heading',{name:'Control sintético'})).toBeVisible();
-  expect(await page.evaluate(()=>window.testHarness.calls.length)).toBe(1);
-  await page.getByRole('button',{name:'Alternar luz de prueba',exact:true}).click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(2);
-  expect((await backend(page)).catalog.devices[0].state).toEqual({value:'unknown',confidence:'unknown'});
+  await expect(page.getByRole('heading', { name: 'Control sintético' })).toBeVisible();
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(1);
+  await page.getByRole('button', { name: 'Alternar luz de prueba', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(2);
+  expect((await backend(page)).catalog.devices[0].state).toEqual({ value: 'unknown', confidence: 'unknown' });
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
-test('RF fan opens a native local panel and invokes only an explicit HA script',async({page})=>{
-  await detail(page,fanLabel).click();
-  await expect(page.getByRole('heading',{name:'Ventilador sintético'})).toBeVisible();
-  await page.getByRole('button',{name:'Ejecutar script de prueba',exact:true}).click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(1);
-  const call=await page.evaluate(()=>window.testHarness.calls[0]);
-  expect(call.domain).toBe('script');expect(call.service).toBe('turn_on');
-  expect(call.target?.entity_id??call.data.entity_id).toEqual('script.synthetic_fan');
+test('RF fan opens a native local panel and invokes only an explicit HA script', async ({ page }) => {
+  await detail(page, fanLabel).click();
+  await expect(page.getByRole('heading', { name: 'Ventilador sintético' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ejecutar script de prueba', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
+  const call = await page.evaluate(() => window.testHarness.calls[0]);
+  expect(call.domain).toBe('script');
+  expect(call.service).toBe('turn_on');
+  expect(call.target?.entity_id ?? call.data.entity_id).toEqual('script.synthetic_fan');
   expect((await backend(page)).catalog.devices[1].state.confidence).toBe('unknown');
 });
 
-test('dragging an editable marker highlights Save and persists a shared unknown-state document',async({page})=>{
+test('dragging an editable marker highlights Save and persists a shared unknown-state document', async ({ page }) => {
   await begin(page);
-  const before=(await draft(page)).catalog.devices[0];
-  await drag(page,action(page,lightLabel));
-  await expect(save(page)).toHaveAttribute('data-dirty','true');
+  const before = (await draft(page)).catalog.devices[0];
+  await drag(page, action(page, lightLabel));
+  await expect(save(page)).toHaveAttribute('data-dirty', 'true');
   await expect(save(page)).toBeEnabled();
-  const after=(await draft(page)).catalog.devices[0];
+  const after = (await draft(page)).catalog.devices[0];
   expect(after.position).not.toEqual(before.position);
   expect(after.bindings).toEqual(before.bindings);
   await save(page).click();
-  await expect(save(page)).toHaveAttribute('data-dirty','false');
+  await expect(save(page)).toHaveAttribute('data-dirty', 'false');
   expect((await backend(page)).catalog.devices[0].position).toEqual(after.position);
-  expect((await backend(page)).catalog.devices.every(d=>d.state.value==='unknown'&&d.state.confidence==='unknown')).toBe(true);
-  expect(await page.evaluate(()=>window.testHarness.dashboard.views[0].cards[1])).toEqual({type:'markdown',content:'Synthetic unrelated card'});
+  expect(
+    (await backend(page)).catalog.devices.every(d => d.state.value === 'unknown' && d.state.confidence === 'unknown'),
+  ).toBe(true);
+  expect(await page.evaluate(() => window.testHarness.dashboard.views[0].cards[1])).toEqual({
+    type: 'markdown',
+    content: 'Synthetic unrelated card',
+  });
   await page.reload();
-  await page.waitForFunction(()=>window.testHarnessReady===true);
-  expect((await page.evaluate(()=>window.testHarness.card.getConfiguration())).catalog.devices[0].position).toEqual(after.position);
+  await page.waitForFunction(() => window.testHarnessReady === true);
+  expect((await page.evaluate(() => window.testHarness.card.getConfiguration())).catalog.devices[0].position).toEqual(
+    after.position,
+  );
 });
 
-test('fixed devices require the explicit correction action before dragging',async({page})=>{
-  await begin(page);await select(page,fanLabel);
-  const before=(await draft(page)).catalog.devices[1];
-  await drag(page,action(page,fanLabel),25,15);
+test('fixed devices require the explicit correction action before dragging', async ({ page }) => {
+  await begin(page);
+  await select(page, fanLabel);
+  const before = (await draft(page)).catalog.devices[1];
+  await drag(page, action(page, fanLabel), 25, 15);
   expect((await draft(page)).catalog.devices[1].position).toEqual(before.position);
-  await page.getByRole('button',{name:'Reubicar dispositivo fijo',exact:true}).click();
-  await drag(page,action(page,fanLabel),25,15);
-  const after=(await draft(page)).catalog.devices[1];
+  await page.getByRole('button', { name: 'Reubicar dispositivo fijo', exact: true }).click();
+  await drag(page, action(page, fanLabel), 25, 15);
+  const after = (await draft(page)).catalog.devices[1];
   expect(after.position).not.toEqual(before.position);
-  expect(after.id).toBe(before.id);expect(after.bindings).toEqual(before.bindings);expect(after.mobility).toBe('fixed');
+  expect(after.id).toBe(before.id);
+  expect(after.bindings).toEqual(before.bindings);
+  expect(after.mobility).toBe('fixed');
 });
 
-test('numeric edits, undo, redo and discard preserve associations',async({page})=>{
-  await begin(page);await select(page);
-  const before=(await draft(page)).catalog.devices[0];
-  await setX(page,.39);
-  expect((await draft(page)).catalog.devices[0].position.x).toBe(.39);
-  await page.getByRole('button',{name:'Deshacer',exact:true}).click();
+test('numeric edits, undo, redo and discard preserve associations', async ({ page }) => {
+  await begin(page);
+  await select(page);
+  const before = (await draft(page)).catalog.devices[0];
+  await setX(page, 0.39);
+  expect((await draft(page)).catalog.devices[0].position.x).toBe(0.39);
+  await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
   expect((await draft(page)).catalog.devices[0].position.x).toBe(before.position.x);
-  await page.getByRole('button',{name:'Rehacer',exact:true}).click();
-  expect((await draft(page)).catalog.devices[0].position.x).toBe(.39);
-  await page.getByRole('button',{name:'Descartar cambios',exact:true}).click();
+  await page.getByRole('button', { name: 'Rehacer', exact: true }).click();
+  expect((await draft(page)).catalog.devices[0].position.x).toBe(0.39);
+  await page.getByRole('button', { name: 'Descartar cambios', exact: true }).click();
   expect((await draft(page)).catalog.devices[0]).toEqual(before);
-  expect(await page.evaluate(()=>window.testHarness.calls.length)).toBe(0);
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
-test('entity, action, source and native panel bindings are edited as drafts without physical calls',async({page})=>{
-  await begin(page);await select(page);
-  await page.getByText('Acciones lógicas',{exact:true}).click();
-  await page.getByLabel('ID de acción',{exact:true}).fill('synthetic-spare-toggle');
-  await page.getByLabel('Dominio',{exact:true}).selectOption('light');
-  await page.getByLabel('Servicio',{exact:true}).selectOption('toggle');
-  await page.getByLabel('Destinos de la acción',{exact:true}).fill('light.synthetic_spare');
-  await page.getByRole('button',{name:'Aplicar acción',exact:true}).click();
-  await page.getByText('Paneles nativos',{exact:true}).click();
-  await page.getByRole('button',{name:'Agregar control',exact:true}).click();
-  await page.getByLabel('ID de panel',{exact:true}).fill('synthetic-spare-panel');
-  await page.getByLabel('Título del panel',{exact:true}).fill('Panel de prueba adicional');
-  await page.getByLabel('ID de control 1',{exact:true}).fill('spare-toggle');
-  await page.getByLabel('Nombre de control 1',{exact:true}).fill('Alternar adicional');
-  await page.getByLabel('Acción de control 1',{exact:true}).selectOption('synthetic-spare-toggle');
-  await page.getByRole('button',{name:'Aplicar panel',exact:true}).click();
-  await page.getByLabel('Entidad del dispositivo',{exact:true}).fill('light.synthetic_spare');
-  await page.getByLabel('Acción principal',{exact:true}).selectOption('synthetic-spare-toggle');
-  await page.getByLabel('Panel nativo',{exact:true}).selectOption('synthetic-spare-panel');
-  await page.getByRole('button',{name:'Aplicar dispositivo',exact:true}).click();
-  await page.getByText('Fuente de estado',{exact:true}).click();
-  await page.getByLabel('Entidad de estado',{exact:true}).fill('light.synthetic_spare');
-  await page.getByLabel('Tipo de feedback',{exact:true}).selectOption('optimistic');
-  await page.getByRole('button',{name:'Aplicar fuente',exact:true}).click();
-  const d=(await draft(page)).catalog.devices[0];
+test('entity, action, source and native panel bindings are edited as drafts without physical calls', async ({
+  page,
+}) => {
+  await begin(page);
+  await select(page);
+  await page.getByText('Acciones lógicas', { exact: true }).click();
+  await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
+  await page.getByLabel('Dominio', { exact: true }).selectOption('light');
+  await page.getByLabel('Servicio', { exact: true }).selectOption('toggle');
+  await page.getByLabel('Destinos de la acción', { exact: true }).fill('light.synthetic_spare');
+  await page.getByRole('button', { name: 'Aplicar acción', exact: true }).click();
+  await page.getByText('Paneles nativos', { exact: true }).click();
+  await page.getByRole('button', { name: 'Agregar control', exact: true }).click();
+  await page.getByLabel('ID de panel', { exact: true }).fill('synthetic-spare-panel');
+  await page.getByLabel('Título del panel', { exact: true }).fill('Panel de prueba adicional');
+  await page.getByLabel('ID de control 1', { exact: true }).fill('spare-toggle');
+  await page.getByLabel('Nombre de control 1', { exact: true }).fill('Alternar adicional');
+  await page.getByLabel('Acción de control 1', { exact: true }).selectOption('synthetic-spare-toggle');
+  await page.getByRole('button', { name: 'Aplicar panel', exact: true }).click();
+  await page.getByLabel('Entidad del dispositivo', { exact: true }).fill('light.synthetic_spare');
+  await page.getByLabel('Acción principal', { exact: true }).selectOption('synthetic-spare-toggle');
+  await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
+  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await page.getByText('Fuente de estado', { exact: true }).click();
+  await page.getByLabel('Entidad de estado', { exact: true }).fill('light.synthetic_spare');
+  await page.getByLabel('Tipo de feedback', { exact: true }).selectOption('optimistic');
+  await page.getByRole('button', { name: 'Aplicar fuente', exact: true }).click();
+  const d = (await draft(page)).catalog.devices[0];
   expect(d.bindings.entityId).toBe('light.synthetic_spare');
   expect(d.bindings.primaryAction).toBe('synthetic-spare-toggle');
   expect(d.bindings.advancedPopupId).toBe('synthetic-spare-panel');
@@ -140,197 +163,251 @@ test('entity, action, source and native panel bindings are edited as drafts with
   expect((await draft(page)).stateSources[d.id].entityId).toBe('light.synthetic_spare');
   // Defining another action does not silently retarget the reusable original.
   expect((await draft(page)).actions['synthetic-light-toggle'].target.entity_id).toBe('light.synthetic_light');
-  expect(await page.evaluate(()=>window.testHarness.calls.length)).toBe(0);
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
   await save(page).click();
-  await expect(save(page)).toHaveAttribute('data-dirty','false');
+  await expect(save(page)).toHaveAttribute('data-dirty', 'false');
 });
 
-test('new unbound icons can be added and removed entirely through the editor',async({page})=>{
+test('new unbound icons can be added and removed entirely through the editor', async ({ page }) => {
   await begin(page);
-  await page.getByRole('button',{name:'Agregar icono',exact:true}).click();
-  await page.getByLabel('Nombre del dispositivo',{exact:true}).fill('Icono sintético adicional');
-  await page.getByLabel('ID del dispositivo',{exact:true}).fill('synthetic-added');
-  await page.getByRole('button',{name:'Aplicar dispositivo',exact:true}).click();
-  await expect.poll(async()=>Boolean((await draft(page)).catalog.devices.find(d=>d.id==='synthetic-added'))).toBe(true);
-  const added=(await draft(page)).catalog.devices.find(d=>d.id==='synthetic-added');
-  expect(added.bindings).toEqual({entityId:null,primaryAction:null,advancedPopupId:null});
-  expect(added.state).toEqual({value:'unknown',confidence:'unknown'});
-  await page.getByRole('button',{name:'Eliminar icono',exact:true}).click();
-  await page.getByRole('button',{name:'Confirmar eliminación',exact:true}).click();
-  expect((await draft(page)).catalog.devices.some(d=>d.id==='synthetic-added')).toBe(false);
-  expect(await page.evaluate(()=>window.testHarness.calls.length)).toBe(0);
+  await page.getByRole('button', { name: 'Agregar icono', exact: true }).click();
+  await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
+  await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
+  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await expect
+    .poll(async () => Boolean((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added')))
+    .toBe(true);
+  const added = (await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added');
+  expect(added.bindings).toEqual({ entityId: null, primaryAction: null, advancedPopupId: null });
+  expect(added.state).toEqual({ value: 'unknown', confidence: 'unknown' });
+  await page.getByRole('button', { name: 'Eliminar icono', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar eliminación', exact: true }).click();
+  expect((await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
-test('a rejected HA save keeps the draft and does not report a shared success',async({page})=>{
-  await begin(page);await select(page);await setX(page,.37);
-  await page.evaluate(()=>window.testHarness.flags.failSave=true);
+test('a rejected HA save keeps the draft and does not report a shared success', async ({ page }) => {
+  await begin(page);
+  await select(page);
+  await setX(page, 0.37);
+  await page.evaluate(() => (window.testHarness.flags.failSave = true));
   await save(page).click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.wsCalls.filter(m=>m.type==='lovelace/config/save').length)).toBe(1);
-  await expect(save(page)).toHaveAttribute('data-dirty','true');
-  expect((await draft(page)).catalog.devices[0].position.x).toBe(.37);
-  expect((await backend(page)).catalog.devices[0].position.x).toBe(.25);
+  await expect
+    .poll(() => page.evaluate(() => window.testHarness.wsCalls.filter(m => m.type === 'lovelace/config/save').length))
+    .toBe(1);
+  await expect(save(page)).toHaveAttribute('data-dirty', 'true');
+  expect((await draft(page)).catalog.devices[0].position.x).toBe(0.37);
+  expect((await backend(page)).catalog.devices[0].position.x).toBe(0.25);
 });
 
-test('remote changes are not overwritten or retried automatically',async({page})=>{
-  await begin(page);await select(page);await setX(page,.38);
-  await page.evaluate(()=>window.testHarness.mutateRemote(d=>{d.views[0].cards[0].configuration.catalog.devices[0].position.x=.28;}));
+test('remote changes are not overwritten or retried automatically', async ({ page }) => {
+  await begin(page);
+  await select(page);
+  await setX(page, 0.38);
+  await page.evaluate(() =>
+    window.testHarness.mutateRemote(d => {
+      d.views[0].cards[0].configuration.catalog.devices[0].position.x = 0.28;
+    }),
+  );
   await save(page).click();
-  await expect(save(page)).toHaveAttribute('data-dirty','true');
-  expect((await draft(page)).catalog.devices[0].position.x).toBe(.38);
-  expect((await backend(page)).catalog.devices[0].position.x).toBe(.28);
-  expect(await page.evaluate(()=>window.testHarness.wsCalls.filter(m=>m.type==='lovelace/config/save').length)).toBe(0);
+  await expect(save(page)).toHaveAttribute('data-dirty', 'true');
+  expect((await draft(page)).catalog.devices[0].position.x).toBe(0.38);
+  expect((await backend(page)).catalog.devices[0].position.x).toBe(0.28);
+  expect(
+    await page.evaluate(() => window.testHarness.wsCalls.filter(m => m.type === 'lovelace/config/save').length),
+  ).toBe(0);
 });
 
-test('nonadministrators cannot save through a local fallback',async({page})=>{
-  await page.evaluate(()=>window.testHarness.setAdmin(false));
-  const edit=page.getByRole('button',{name:'Editar plano',exact:true});
-  if(await edit.isEnabled()){
+test('nonadministrators cannot save through a local fallback', async ({ page }) => {
+  await page.evaluate(() => window.testHarness.setAdmin(false));
+  const edit = page.getByRole('button', { name: 'Editar plano', exact: true });
+  if (await edit.isEnabled()) {
     await edit.click();
     await expect(save(page)).toBeHidden();
     await expect(page.getByRole('status')).toContainText(/administradora/i);
-  }else await expect(edit).toBeDisabled();
-  expect(await page.evaluate(()=>window.testHarness.wsCalls.filter(m=>m.type==='lovelace/config/save').length)).toBe(0);
-  expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k!=='homemanager-synthetic-dashboard'))).toEqual([]);
+  } else await expect(edit).toBeDisabled();
+  expect(
+    await page.evaluate(() => window.testHarness.wsCalls.filter(m => m.type === 'lovelace/config/save').length),
+  ).toBe(0);
+  expect(
+    await page.evaluate(() => Object.keys(localStorage).filter(k => k !== 'homemanager-synthetic-dashboard')),
+  ).toEqual([]);
 });
 
-test('YAML dashboards remain read only',async({page})=>{
-  await page.evaluate(()=>window.testHarness.setMode('yaml'));
-  const edit=page.getByRole('button',{name:'Editar plano',exact:true});
-  if(await edit.isEnabled()){
+test('YAML dashboards remain read only', async ({ page }) => {
+  await page.evaluate(() => window.testHarness.setMode('yaml'));
+  const edit = page.getByRole('button', { name: 'Editar plano', exact: true });
+  if (await edit.isEnabled()) {
     await edit.click();
     await expect(save(page)).toBeHidden();
     await expect(page.getByRole('status')).toContainText(/YAML/);
-  }else await expect(edit).toBeDisabled();
-  expect(await page.evaluate(()=>window.testHarness.wsCalls.filter(m=>m.type==='lovelace/config/save').length)).toBe(0);
+  } else await expect(edit).toBeDisabled();
+  expect(
+    await page.evaluate(() => window.testHarness.wsCalls.filter(m => m.type === 'lovelace/config/save').length),
+  ).toBe(0);
 });
 
-test('room framing and layers work with a nonzero global viewBox',async({page})=>{
-  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  const before=await action(page,fanLabel).boundingBox();
-  await page.getByRole('button',{name:'Encuadrar Espacio B',exact:true}).click();
-  await expect.poll(async()=>{
-    const after=await action(page,fanLabel).boundingBox();
-    return after?Math.hypot(after.x-before.x,after.y-before.y):0;
-  }).toBeGreaterThan(1);
-  await page.getByRole('button',{name:'Encuadrar todo',exact:true}).click();
-  const sensors=page.getByRole('button',{name:'Sensores',exact:true});
+test('room framing and layers work with a nonzero global viewBox', async ({ page }) => {
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const before = await action(page, fanLabel).boundingBox();
+  await page.getByRole('button', { name: 'Encuadrar Espacio B', exact: true }).click();
+  await expect
+    .poll(async () => {
+      const after = await action(page, fanLabel).boundingBox();
+      return after ? Math.hypot(after.x - before.x, after.y - before.y) : 0;
+    })
+    .toBeGreaterThan(1);
+  await page.getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
+  const sensors = page.getByRole('button', { name: 'Sensores', exact: true });
   await sensors.click();
-  await expect(action(page,'Temperatura de prueba')).not.toBeVisible();
+  await expect(action(page, 'Temperatura de prueba')).not.toBeVisible();
   await sensors.click();
-  await expect(action(page,'Temperatura de prueba')).toBeVisible();
+  await expect(action(page, 'Temperatura de prueba')).toBeVisible();
 });
 
-test('native panels support keyboard opening, Escape and return focus',async({page})=>{
-  const button=detail(page,lightLabel);
-  await button.focus();await page.keyboard.press('Enter');
+test('native panels support keyboard opening, Escape and return focus', async ({ page }) => {
+  const button = detail(page, lightLabel);
+  await button.focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(button).toBeFocused();
 });
 
-test('a pending reference is disabled without making unrelated configured controls unusable',async({page})=>{
-  await page.evaluate(()=>{
-    const config=window.testHarness.config;
-    config.configuration.catalog.devices[1].bindings.primaryAction='pending-action';
+test('a pending reference is disabled without making unrelated configured controls unusable', async ({ page }) => {
+  await page.evaluate(() => {
+    const config = window.testHarness.config;
+    config.configuration.catalog.devices[1].bindings.primaryAction = 'pending-action';
     window.testHarness.card.setConfig(config);
-    window.testHarness.card.hass=window.testHarness.hass;
+    window.testHarness.card.hass = window.testHarness.hass;
   });
-  await expect(action(page,fanLabel)).toBeDisabled();
-  await expect(action(page,lightLabel)).toBeEnabled();
-  await action(page,lightLabel).click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(1);
+  await expect(action(page, fanLabel)).toBeDisabled();
+  await expect(action(page, lightLabel)).toBeEnabled();
+  await action(page, lightLabel).click();
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
 });
 
-test('runtime source labels alone do not confirm feedback and commands expire without mutating configuration',async({page})=>{
-  await page.evaluate(()=>{
-    const c=window.testHarness.config;
-    c.configuration.stateSources['synthetic-light'].feedback='measured';
-    window.testHarness.card.setConfig(c);window.testHarness.card.hass=window.testHarness.hass;
+test('runtime source labels alone do not confirm feedback and commands expire without mutating configuration', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const c = window.testHarness.config;
+    c.configuration.stateSources['synthetic-light'].feedback = 'measured';
+    window.testHarness.card.setConfig(c);
+    window.testHarness.card.hass = window.testHarness.hass;
   });
-  const marker=page.locator('homemanager-card').locator('[data-id="synthetic-light"]');
-  await expect(marker).toHaveAttribute('data-confidence','estimated');
-  await action(page,lightLabel).click();
-  await expect(marker).toHaveAttribute('data-confidence','sent');
-  await expect(marker).toHaveAttribute('data-confidence','unknown',{timeout:5000});
-  const configuration=await page.evaluate(()=>window.testHarness.card.getConfiguration());
-  expect(configuration.catalog.devices[0].state).toEqual({value:'unknown',confidence:'unknown'});
+  const marker = page.locator('homemanager-card').locator('[data-id="synthetic-light"]');
+  await expect(marker).toHaveAttribute('data-confidence', 'estimated');
+  await action(page, lightLabel).click();
+  await expect(marker).toHaveAttribute('data-confidence', 'sent');
+  await expect(marker).toHaveAttribute('data-confidence', 'unknown', { timeout: 5000 });
+  const configuration = await page.evaluate(() => window.testHarness.card.getConfiguration());
+  expect(configuration.catalog.devices[0].state).toEqual({ value: 'unknown', confidence: 'unknown' });
   expect(Object.keys(configuration)).not.toContain('runtime');
   expect(JSON.stringify(configuration)).not.toContain('issuedAt');
   expect(JSON.stringify(configuration)).not.toContain('baselineLastUpdated');
 });
 
-test('keyboard movement stays normalized and undo restores the previous persistent draft',async({page})=>{
+test('keyboard movement stays normalized and undo restores the previous persistent draft', async ({ page }) => {
   await begin(page);
-  const before=(await draft(page)).catalog.devices[0];
-  await action(page,lightLabel).focus();await page.keyboard.press('ArrowRight');
-  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x+.002,5);
+  const before = (await draft(page)).catalog.devices[0];
+  await action(page, lightLabel).focus();
+  await page.keyboard.press('ArrowRight');
+  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x + 0.002, 5);
   expect((await draft(page)).catalog.devices[0].bindings).toEqual(before.bindings);
   await page.keyboard.press('Control+z');
   expect((await draft(page)).catalog.devices[0].position).toEqual(before.position);
 });
 
-test('editor export contains durable configuration only and import waits for a review',async({page})=>{
+test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
-  await page.getByText('Importar y exportar',{exact:true}).click();
-  const downloading=page.waitForEvent('download');
-  await page.getByRole('button',{name:'Exportar JSON',exact:true}).click();
-  const download=await downloading;
-  const content=JSON.parse(await readFile(await download.path(),'utf8'));
-  expect(content.catalog.devices.every(d=>d.state.value==='unknown'&&d.state.confidence==='unknown')).toBe(true);
-  expect(Object.keys(content)).toEqual(expect.arrayContaining(['schemaVersion','catalog','architecture','actions','panels','stateSources']));
-  expect(Object.hasOwn(content,'runtime')).toBe(false);
-  content.catalog.devices[0].display.label='Etiqueta importada sintética';
-  await page.getByLabel('Importar JSON o SVG',{exact:true}).setInputFiles({name:'synthetic-import.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(content))});
-  await expect(page.getByRole('heading',{name:'Resumen de importación'})).toBeVisible();
+  await page.getByText('Importar y exportar', { exact: true }).click();
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar JSON', exact: true }).click();
+  const download = await downloading;
+  const content = JSON.parse(await readFile(await download.path(), 'utf8'));
+  expect(content.catalog.devices.every(d => d.state.value === 'unknown' && d.state.confidence === 'unknown')).toBe(
+    true,
+  );
+  expect(Object.keys(content)).toEqual(
+    expect.arrayContaining(['schemaVersion', 'catalog', 'architecture', 'actions', 'panels', 'stateSources']),
+  );
+  expect(Object.hasOwn(content, 'runtime')).toBe(false);
+  content.catalog.devices[0].display.label = 'Etiqueta importada sintética';
+  await page
+    .getByLabel('Importar JSON o SVG', { exact: true })
+    .setInputFiles({
+      name: 'synthetic-import.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(content)),
+    });
+  await expect(page.getByRole('heading', { name: 'Resumen de importación' })).toBeVisible();
   expect((await draft(page)).catalog.devices[0].display.label).toBe(lightLabel);
-  await page.getByRole('button',{name:'Aplicar importación al borrador',exact:true}).click();
+  await page.getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
   expect((await draft(page)).catalog.devices[0].display.label).toBe('Etiqueta importada sintética');
   expect((await backend(page)).catalog.devices[0].display.label).toBe(lightLabel);
-  expect(await page.evaluate(()=>window.testHarness.calls.length)).toBe(0);
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
-test('normal and editing layouts fit the viewport without horizontal page overflow',async({page})=>{
-  const fits=()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1);
+test('normal and editing layouts fit the viewport without horizontal page overflow', async ({ page }) => {
+  const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   expect(await fits()).toBe(true);
-  for(const control of [action(page,lightLabel),detail(page,lightLabel)]){
-    const bounds=await control.boundingBox();
+  for (const control of [action(page, lightLabel), detail(page, lightLabel)]) {
+    const bounds = await control.boundingBox();
     expect(bounds.width).toBeGreaterThanOrEqual(44);
     expect(bounds.height).toBeGreaterThanOrEqual(44);
   }
-  await begin(page);await select(page);
-  await page.getByRole('button',{name:'Aplicar dispositivo',exact:true}).scrollIntoViewIfNeeded();
+  await begin(page);
+  await select(page);
+  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).scrollIntoViewIfNeeded();
   expect(await fits()).toBe(true);
-  const field=await page.getByLabel('Entidad del dispositivo',{exact:true}).boundingBox();
+  const field = await page.getByLabel('Entidad del dispositivo', { exact: true }).boundingBox();
   expect(field.width).toBeGreaterThan(100);
   expect(field.x).toBeGreaterThanOrEqual(0);
-  expect(field.x+field.width).toBeLessThanOrEqual(await page.evaluate(()=>window.innerWidth+1));
+  expect(field.x + field.width).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth + 1));
 });
 
-test('an accepted service releases its action button without waiting for command expiry',async({page})=>{
-  await page.evaluate(()=>{
-    const c=window.testHarness.config;c.configuration.commandTtlSeconds=30;
-    window.testHarness.card.setConfig(c);window.testHarness.card.hass=window.testHarness.hass;
+test('an accepted service releases its action button without waiting for command expiry', async ({ page }) => {
+  await page.evaluate(() => {
+    const c = window.testHarness.config;
+    c.configuration.commandTtlSeconds = 30;
+    window.testHarness.card.setConfig(c);
+    window.testHarness.card.hass = window.testHarness.hass;
   });
-  const button=action(page,lightLabel);
+  const button = action(page, lightLabel);
   await button.click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(1);
-  await expect(button).toBeEnabled({timeout:2000});
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
+  await expect(button).toBeEnabled({ timeout: 2000 });
   await button.click();
-  await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(2);
 });
 
-test('space navigation comes from the instance configuration with unique monograms',async({page})=>{
-  await page.goto(fixture);await page.waitForFunction(()=>window.testHarnessReady);
+test('space navigation comes from the instance configuration with unique monograms', async ({ page }) => {
+  await page.goto(fixture);
+  await page.waitForFunction(() => window.testHarnessReady);
   // The harness ships a V1 document; its legacy room_labels become V2 space names.
-  await expect(page.getByRole('button',{name:'Encuadrar Espacio A',exact:true})).toHaveText('EA');
-  await page.evaluate(()=>{
-    const config=structuredClone(window.testHarness.config);
-    const v2={...config.configuration,schemaVersion:2,rooms:[{id:'living',label:'Comedor'},{id:'kitchen',label:'Cocina'},{id:'office',label:'Garage'}],catalog:{...config.configuration.catalog,schemaVersion:2}};
-    delete config.room_labels;window.testHarness.card.setConfig({...config,configuration:v2});
+  await expect(page.getByRole('button', { name: 'Encuadrar Espacio A', exact: true })).toHaveText('EA');
+  await page.evaluate(() => {
+    const config = structuredClone(window.testHarness.config);
+    const v2 = {
+      ...config.configuration,
+      schemaVersion: 2,
+      rooms: [
+        { id: 'living', label: 'Comedor' },
+        { id: 'kitchen', label: 'Cocina' },
+        { id: 'office', label: 'Garage' },
+      ],
+      catalog: { ...config.configuration.catalog, schemaVersion: 2 },
+    };
+    delete config.room_labels;
+    window.testHarness.card.setConfig({ ...config, configuration: v2 });
   });
-  const nav=page.getByRole('navigation',{name:'Espacios'});
-  await expect(nav.getByRole('button')).toHaveText(['▦','Com','Coc','Ga']);
-  await page.getByRole('button',{name:'Encuadrar Garage',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Encuadrar Garage',exact:true})).toHaveAttribute('aria-pressed','true');
+  const nav = page.getByRole('navigation', { name: 'Espacios' });
+  await expect(nav.getByRole('button')).toHaveText(['▦', 'Com', 'Coc', 'Ga']);
+  await page.getByRole('button', { name: 'Encuadrar Garage', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Encuadrar Garage', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 });

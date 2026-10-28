@@ -13,10 +13,23 @@
 export const CURRENT_SCHEMA_VERSION = 2;
 
 /** The V1 vocabulary, kept ONLY to migrate V1 documents. Never used for validation. */
-export const LEGACY_V1_ROOM_IDS = Object.freeze(['living','dining','kitchen','office','master-bedroom','bath-2','master-bath','balcony','entry','hallway','dbst','ac-ledge']);
+export const LEGACY_V1_ROOM_IDS = Object.freeze([
+  'living',
+  'dining',
+  'kitchen',
+  'office',
+  'master-bedroom',
+  'bath-2',
+  'master-bath',
+  'balcony',
+  'entry',
+  'hallway',
+  'dbst',
+  'ac-ledge',
+]);
 
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const UNSAFE = new Set(['__proto__','prototype','constructor']);
+const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
 
 /** "master-bedroom" -> "Master bedroom". Only a neutral default; instances rename. */
 export function humanizeRoomId(id) {
@@ -30,12 +43,18 @@ export function humanizeRoomId(id) {
 export function zoneIdsInSvgText(content) {
   const ids = [];
   if (typeof content !== 'string') return ids;
-  for (const match of content.matchAll(/\sid\s*=\s*(["'])room-([a-z0-9]+(?:-[a-z0-9]+)*)\1/g)) if (!ids.includes(match[2]) && !UNSAFE.has(match[2])) ids.push(match[2]);
+  for (const match of content.matchAll(/\sid\s*=\s*(["'])room-([a-z0-9]+(?:-[a-z0-9]+)*)\1/g))
+    if (!ids.includes(match[2]) && !UNSAFE.has(match[2])) ids.push(match[2]);
   return ids;
 }
 
 function plainRecord(value) {
-  return !!value && typeof value === 'object' && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value));
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(value))
+  );
 }
 
 /** Returns a V2 clone. V2 input is returned as a clone; unknown versions are
@@ -46,14 +65,20 @@ export function migrateConfiguration(input, { roomLabels } = {}) {
   const next = structuredClone(input);
   const labels = plainRecord(roomLabels) ? roomLabels : {};
   const devices = plainRecord(next.catalog) && Array.isArray(next.catalog.devices) ? next.catalog.devices : [];
-  const used = devices.map(device => plainRecord(device) ? device.roomId : undefined).filter(id => typeof id === 'string');
+  const used = devices
+    .map(device => (plainRecord(device) ? device.roomId : undefined))
+    .filter(id => typeof id === 'string');
   const zones = zoneIdsInSvgText(plainRecord(next.architecture) ? next.architecture.content : '');
   // Legacy order first (it was the V1 navigation order), then anything else in use.
-  const order = [...LEGACY_V1_ROOM_IDS.filter(id => used.includes(id) || zones.includes(id)), ...used.filter(id => !LEGACY_V1_ROOM_IDS.includes(id))];
+  const order = [
+    ...LEGACY_V1_ROOM_IDS.filter(id => used.includes(id) || zones.includes(id)),
+    ...used.filter(id => !LEGACY_V1_ROOM_IDS.includes(id)),
+  ];
   const rooms = [];
   for (const id of order) {
     if (rooms.some(room => room.id === id) || !ID.test(id) || UNSAFE.has(id)) continue;
-    const label = typeof labels[id] === 'string' && labels[id].trim() ? labels[id].trim().slice(0, 240) : humanizeRoomId(id);
+    const label =
+      typeof labels[id] === 'string' && labels[id].trim() ? labels[id].trim().slice(0, 240) : humanizeRoomId(id);
     rooms.push({ id, label });
   }
   next.schemaVersion = 2;

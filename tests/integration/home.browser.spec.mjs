@@ -8,14 +8,41 @@ async function setup(page) {
   await page.waitForFunction(() => window.testHarnessReady);
   await page.evaluate(() => {
     const { hass, original } = window.testHarness;
-    const homes = new Map(), listeners = new Map(), calls = [];
-    const v2 = configuration => ({ ...structuredClone(configuration), schemaVersion: 2, rooms: [{ id: 'living', label: 'Espacio A' }, { id: 'kitchen', label: 'Espacio B' }, { id: 'office', label: 'Espacio C' }], catalog: { ...structuredClone(configuration.catalog), schemaVersion: 2 } });
-    const summary = (id, home) => ({ home_id: id, title: home.title, revision: home.revision, updated_at: '2026-10-29T00:00:00+00:00', plan_sha256: 'x', rooms: home.configuration.rooms.length, devices: home.configuration.catalog.devices.length });
+    const homes = new Map(),
+      listeners = new Map(),
+      calls = [];
+    const v2 = configuration => ({
+      ...structuredClone(configuration),
+      schemaVersion: 2,
+      rooms: [
+        { id: 'living', label: 'Espacio A' },
+        { id: 'kitchen', label: 'Espacio B' },
+        { id: 'office', label: 'Espacio C' },
+      ],
+      catalog: { ...structuredClone(configuration.catalog), schemaVersion: 2 },
+    });
+    const summary = (id, home) => ({
+      home_id: id,
+      title: home.title,
+      revision: home.revision,
+      updated_at: '2026-10-29T00:00:00+00:00',
+      plan_sha256: 'x',
+      rooms: home.configuration.rooms.length,
+      devices: home.configuration.catalog.devices.length,
+    });
     const fail = (code, message) => Object.assign(new Error(message), { code, message });
-    const notify = (id, revision) => (listeners.get(id) ?? []).forEach(listener => listener({ home_id: id, revision, deleted: revision === null }));
+    const notify = (id, revision) =>
+      (listeners.get(id) ?? []).forEach(listener => listener({ home_id: id, revision, deleted: revision === null }));
     const server = {
-      homes, calls, base: v2(original.configuration),
-      put(id, configuration, title = null) { const revision = (homes.get(id)?.revision ?? 0) + 1; homes.set(id, { configuration: structuredClone(configuration), title, revision }); notify(id, revision); return revision; },
+      homes,
+      calls,
+      base: v2(original.configuration),
+      put(id, configuration, title = null) {
+        const revision = (homes.get(id)?.revision ?? 0) + 1;
+        homes.set(id, { configuration: structuredClone(configuration), title, revision });
+        notify(id, revision);
+        return revision;
+      },
     };
     const lovelace = hass.callWS.bind(hass);
     hass.config = { components: ['homemanager', 'lovelace'] };
@@ -24,11 +51,15 @@ async function setup(page) {
       calls.push(structuredClone(message));
       const home = homes.get(message.home_id);
       switch (message.type) {
-        case 'homemanager/homes': return { homes: [...homes].map(([id, item]) => summary(id, item)) };
-        case 'homemanager/home/get': if (!home) throw fail('home_not_found', 'unknown home'); return { ...summary(message.home_id, home), configuration: structuredClone(home.configuration) };
+        case 'homemanager/homes':
+          return { homes: [...homes].map(([id, item]) => summary(id, item)) };
+        case 'homemanager/home/get':
+          if (!home) throw fail('home_not_found', 'unknown home');
+          return { ...summary(message.home_id, home), configuration: structuredClone(home.configuration) };
         case 'homemanager/home/save': {
           if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
-          if ((home?.revision ?? null) !== message.expected_revision) throw fail('revision_conflict', `revision:${home?.revision ?? null}`);
+          if ((home?.revision ?? null) !== message.expected_revision)
+            throw fail('revision_conflict', `revision:${home?.revision ?? null}`);
           server.put(message.home_id, message.configuration, message.title ?? home?.title ?? null);
           return summary(message.home_id, homes.get(message.home_id));
         }
@@ -36,7 +67,9 @@ async function setup(page) {
       throw fail('unknown_command', message.type);
     };
     hass.connection.subscribeMessage = async (callback, message) => {
-      const set = listeners.get(message.home_id) ?? new Set(); set.add(callback); listeners.set(message.home_id, set);
+      const set = listeners.get(message.home_id) ?? new Set();
+      set.add(callback);
+      listeners.set(message.home_id, set);
       return () => set.delete(callback);
     };
     window.homeServer = server;
@@ -44,67 +77,113 @@ async function setup(page) {
 }
 const card = page => page.locator('homemanager-card').first();
 
-test('an integration-backed card loads its home and follows other editors\' revisions', async ({ page }) => {
+test("an integration-backed card loads its home and follows other editors' revisions", async ({ page }) => {
   await setup(page);
-  await page.evaluate(() => { window.homeServer.put('casa', window.homeServer.base, 'Casa'); window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' }); });
-  await expect(card(page).getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base, 'Casa');
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
+  });
+  await expect(
+    card(page).getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true }),
+  ).toBeVisible();
   await expect(card(page).getByRole('button', { name: 'Encuadrar Espacio B', exact: true })).toBeVisible();
-  await page.evaluate(() => { const next = structuredClone(window.homeServer.base); next.catalog.devices[0].display.label = 'Luz renombrada'; window.homeServer.put('casa', next); });
-  await expect(card(page).getByRole('button', { name: 'Acción principal de Luz renombrada', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const next = structuredClone(window.homeServer.base);
+    next.catalog.devices[0].display.label = 'Luz renombrada';
+    window.homeServer.put('casa', next);
+  });
+  await expect(
+    card(page).getByRole('button', { name: 'Acción principal de Luz renombrada', exact: true }),
+  ).toBeVisible();
   // The dashboard never receives the plan: only the reference lives in Lovelace.
-  expect(await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length)).toBe(0);
+  expect(
+    await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length),
+  ).toBe(0);
 });
 
 test('saving goes through the revision check and a conflict keeps the draft', async ({ page }) => {
   await setup(page);
-  await page.evaluate(() => { window.homeServer.put('casa', window.homeServer.base); window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' }); });
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base);
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
+  });
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Detalles de Luz de prueba', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz guardada');
   await card(page).getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
-  const saved = await page.evaluate(() => ({ revision: window.homeServer.homes.get('casa').revision, label: window.homeServer.homes.get('casa').configuration.catalog.devices[0].display.label, expected: window.homeServer.calls.filter(call => call.type === 'homemanager/home/save').map(call => call.expected_revision) }));
+  const saved = await page.evaluate(() => ({
+    revision: window.homeServer.homes.get('casa').revision,
+    label: window.homeServer.homes.get('casa').configuration.catalog.devices[0].display.label,
+    expected: window.homeServer.calls
+      .filter(call => call.type === 'homemanager/home/save')
+      .map(call => call.expected_revision),
+  }));
   expect(saved).toEqual({ revision: 2, label: 'Luz guardada', expected: [1] });
 
   // Another editor saves while this draft is open.
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Mi versión');
   await card(page).getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
-  await page.evaluate(() => { const other = structuredClone(window.homeServer.homes.get('casa').configuration); other.catalog.devices[0].display.label = 'Versión remota'; window.homeServer.put('casa', other); });
+  await page.evaluate(() => {
+    const other = structuredClone(window.homeServer.homes.get('casa').configuration);
+    other.catalog.devices[0].display.label = 'Versión remota';
+    window.homeServer.put('casa', other);
+  });
   await expect(card(page).locator('.shell > .status')).toContainText('Otro editor guardó cambios');
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('revisión 3');
-  expect(await page.evaluate(() => window.homeServer.homes.get('casa').configuration.catalog.devices[0].display.label)).toBe('Versión remota');
-  expect(await page.evaluate(() => window.testHarness.card.getDraftConfiguration().catalog.devices[0].display.label)).toBe('Mi versión');
+  expect(
+    await page.evaluate(() => window.homeServer.homes.get('casa').configuration.catalog.devices[0].display.label),
+  ).toBe('Versión remota');
+  expect(
+    await page.evaluate(() => window.testHarness.card.getDraftConfiguration().catalog.devices[0].display.label),
+  ).toBe('Mi versión');
 });
 
 test('a missing home is created by the first administrator save', async ({ page }) => {
   await setup(page);
-  await page.evaluate(() => window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'nueva' }));
+  await page.evaluate(() =>
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'nueva' }),
+  );
   await expect(card(page).locator('.shell > .status')).toContainText('todavía no existe');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
   await page.evaluate(async () => {
     const editor = window.testHarness.card.shadowRoot.querySelector('homemanager-editor');
-    const input = editor.shadowRoot.querySelector('#import-file'), file = new File([JSON.stringify(window.homeServer.base)], 'casa.json', { type: 'application/json' });
-    const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true }));
+    const input = editor.shadowRoot.querySelector('#import-file'),
+      file = new File([JSON.stringify(window.homeServer.base)], 'casa.json', { type: 'application/json' });
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   // The empty document's viewBox differs from the imported one: a backup comes first.
-  const download = page.waitForEvent('download'); await card(page).getByRole('button', { name: 'Exportar copia actual', exact: true }).click(); await download;
+  const download = page.waitForEvent('download');
+  await card(page).getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
+  await download;
   await card(page).getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
-  expect(await page.evaluate(() => ({ revision: window.homeServer.homes.get('nueva').revision, expected: window.homeServer.calls.find(call => call.type === 'homemanager/home/save').expected_revision }))).toEqual({ revision: 1, expected: null });
+  expect(
+    await page.evaluate(() => ({
+      revision: window.homeServer.homes.get('nueva').revision,
+      expected: window.homeServer.calls.find(call => call.type === 'homemanager/home/save').expected_revision,
+    })),
+  ).toEqual({ revision: 1, expected: null });
 });
 
 test('the card editor moves an inline plan into the integration and keeps only the reference', async ({ page }) => {
   await setup(page);
   const events = await page.evaluate(async () => {
     await import('/.work/editor/index.js');
-    const editor = document.createElement('homemanager-editor'), events = [];
-    editor.setConfig(structuredClone(window.testHarness.original)); editor.hass = window.testHarness.hass;
+    const editor = document.createElement('homemanager-editor'),
+      events = [];
+    editor.setConfig(structuredClone(window.testHarness.original));
+    editor.hass = window.testHarness.hass;
     editor.addEventListener('config-changed', event => events.push(structuredClone(event.detail.config)));
-    document.querySelector('#mount').replaceChildren(editor); window.migrationEvents = events;
+    document.querySelector('#mount').replaceChildren(editor);
+    window.migrationEvents = events;
     return events.length;
   });
   expect(events).toBe(0);
@@ -113,15 +192,26 @@ test('the card editor moves an inline plan into the integration and keeps only t
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText('Pulsá Guardar');
-  const result = await page.evaluate(() => ({ events: window.migrationEvents, home: window.homeServer.homes.get('casa') }));
-  expect(result.events.at(-1)).toEqual({ type: 'custom:homemanager-card', card_id: 'synthetic-card', home_id: 'casa', title: 'HomeManager' });
+  const result = await page.evaluate(() => ({
+    events: window.migrationEvents,
+    home: window.homeServer.homes.get('casa'),
+  }));
+  expect(result.events.at(-1)).toEqual({
+    type: 'custom:homemanager-card',
+    card_id: 'synthetic-card',
+    home_id: 'casa',
+    title: 'HomeManager',
+  });
   expect(result.home.revision).toBe(1);
   expect(result.home.configuration.schemaVersion).toBe(2);
   expect(result.home.configuration.rooms[0]).toEqual({ id: 'living', label: 'Espacio A' });
   // The compact editor now shows the reference, not the plan.
   await expect(editor.getByLabel('Hogar', { exact: true })).toHaveValue('casa');
   // An existing home is never overwritten by a migration.
-  await page.evaluate(() => { const editor = document.querySelector('homemanager-editor'); editor.setConfig(structuredClone(window.testHarness.original)); });
+  await page.evaluate(() => {
+    const editor = document.querySelector('homemanager-editor');
+    editor.setConfig(structuredClone(window.testHarness.original));
+  });
   // The section stays open across re-renders.
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
@@ -133,21 +223,38 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   await setup(page);
   await page.evaluate(async () => {
     await customElements.whenDefined('homemanager-app');
-    const app = document.createElement('homemanager-app'); app.narrow = true;
-    document.querySelector('#mount').replaceChildren(app); app.hass = window.testHarness.hass; window.app = app;
+    const app = document.createElement('homemanager-app');
+    app.narrow = true;
+    document.querySelector('#mount').replaceChildren(app);
+    app.hass = window.testHarness.hass;
+    window.app = app;
   });
   const app = page.locator('homemanager-app');
   await expect(app.getByText('Todavía no hay hogares')).toBeVisible();
   await app.getByLabel('ID del hogar', { exact: true }).fill('mi-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
-  await expect(app.locator('homemanager-card').locator('.shell > .status')).toContainText('«mi-casa» todavía no existe');
+  await expect(app.locator('homemanager-card').locator('.shell > .status')).toContainText(
+    '«mi-casa» todavía no existe',
+  );
   // A home created elsewhere appears after a refresh, with the remembered choice.
-  await page.evaluate(() => { window.homeServer.put('mi-casa', window.homeServer.base, 'Mi casa'); window.homeServer.put('otra', window.homeServer.base, 'Otra'); const app = document.createElement('homemanager-app'); document.querySelector('#mount').replaceChildren(app); app.hass = window.testHarness.hass; });
+  await page.evaluate(() => {
+    window.homeServer.put('mi-casa', window.homeServer.base, 'Mi casa');
+    window.homeServer.put('otra', window.homeServer.base, 'Otra');
+    const app = document.createElement('homemanager-app');
+    document.querySelector('#mount').replaceChildren(app);
+    app.hass = window.testHarness.hass;
+  });
   await expect(app.getByRole('heading', { name: 'Mi casa' })).toBeVisible();
   await expect(app.getByLabel('Hogar', { exact: true })).toHaveValue('mi-casa');
-  await expect(app.locator('homemanager-card').getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true })).toBeVisible();
-  const toggled = page.evaluate(() => new Promise(resolve => document.addEventListener('hass-toggle-menu', () => resolve(true), { once: true })));
-  await page.evaluate(() => { document.querySelector('homemanager-app').narrow = true; });
+  await expect(
+    app.locator('homemanager-card').getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true }),
+  ).toBeVisible();
+  const toggled = page.evaluate(
+    () => new Promise(resolve => document.addEventListener('hass-toggle-menu', () => resolve(true), { once: true })),
+  );
+  await page.evaluate(() => {
+    document.querySelector('homemanager-app').narrow = true;
+  });
   await app.getByRole('button', { name: 'Menú', exact: true }).click();
   expect(await toggled).toBe(true);
 });
