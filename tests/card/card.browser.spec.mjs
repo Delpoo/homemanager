@@ -319,3 +319,18 @@ test('an accepted service releases its action button without waiting for command
   await button.click();
   await expect.poll(()=>page.evaluate(()=>window.testHarness.calls.length)).toBe(2);
 });
+
+test('space navigation comes from the instance configuration with unique monograms',async({page})=>{
+  await page.goto(fixture);await page.waitForFunction(()=>window.testHarnessReady);
+  // The harness ships a V1 document; its legacy room_labels become V2 space names.
+  await expect(page.getByRole('button',{name:'Encuadrar Espacio A',exact:true})).toHaveText('EA');
+  await page.evaluate(()=>{
+    const config=structuredClone(window.testHarness.config);
+    const v2={...config.configuration,schemaVersion:2,rooms:[{id:'living',label:'Comedor'},{id:'kitchen',label:'Cocina'},{id:'office',label:'Garage'}],catalog:{...config.configuration.catalog,schemaVersion:2}};
+    delete config.room_labels;window.testHarness.card.setConfig({...config,configuration:v2});
+  });
+  const nav=page.getByRole('navigation',{name:'Espacios'});
+  await expect(nav.getByRole('button')).toHaveText(['▦','Com','Coc','Ga']);
+  await page.getByRole('button',{name:'Encuadrar Garage',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Encuadrar Garage',exact:true})).toHaveAttribute('aria-pressed','true');
+});

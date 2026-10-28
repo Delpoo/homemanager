@@ -61,8 +61,18 @@ function uniqueCard(dashboard: unknown, cardId: string): JsonRecord {
   return matches[0];
 }
 
+/** Where the shared configuration lives. The card depends only on this
+ * interface, so a backend store (see docs/decisions.md D11) can replace the
+ * Lovelace one without touching the card or the editor. */
+export interface ConfigurationStore {
+  readonly label: string;
+  load(): Promise<Configuration>;
+  /** Must verify the write (readback or revision) before resolving. */
+  save(configuration: Configuration): Promise<void>;
+}
+
 /** Authenticated shared storage. Never writes localStorage or falls back to it. */
-export class LovelaceConfigurationStore {
+export class LovelaceConfigurationStore implements ConfigurationStore {
   readonly label = 'Home Assistant · dashboard';
   private baseline: string | undefined;
   private writing = false;
