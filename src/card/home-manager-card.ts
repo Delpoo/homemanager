@@ -1,13 +1,19 @@
 import { HomeAssistantAdapter } from '../ha/index.js';
-import { HomeManagerEditor, LovelaceConfigurationStore } from '../editor/index.js';
+import { HomeManagerEditor, LovelaceConfigurationStore, type ConfigurationStore } from '../editor/index.js';
 import { openPanel } from '../panels/native-panel.js';
 import { validateCardConfig, validateConfiguration, emptyConfiguration } from './configuration.js';
 import { sanitizeArchitecture, fitCamera, zoomCamera, roomBounds, roomAt, type Camera, type ViewBox } from './geometry.js';
 import { clone, escapeHTML as e, type Configuration, type CardConfig, type Device, type Hass, type RuntimeState, type RoomId } from './types.js';
 import { styles } from './styles.js';
 
-/** Short monogram for a space button; the full label stays in title/aria-label. */
-const monogram=(label:string)=>{const words=label.trim().split(/\s+/).filter(Boolean);const text=words.length>1?words[0][0]+words[1][0]:label.trim().slice(0,2);return text.charAt(0).toUpperCase()+text.slice(1);};
+/** Short monograms for space buttons, unique within the plan ("Co" for both
+ * Comedor and Cocina becomes "Com"/"Coc"). The full label stays in title/aria-label. */
+function monograms(labels:string[]):string[] {
+  const base=(label:string,length:number)=>{const words=label.trim().split(/\s+/).filter(Boolean);const text=words.length>1&&length===2?words[0][0]+words[1][0]:label.trim().replace(/\s+/g,'').slice(0,length);return text.charAt(0).toUpperCase()+text.slice(1);};
+  const result=labels.map(label=>base(label,2));
+  for(let length=3;length<=4;length++){const seen=new Map<string,number>();result.forEach(text=>seen.set(text,(seen.get(text)??0)+1));result.forEach((text,index)=>{if(seen.get(text)!>1)result[index]=base(labels[index],length);});}
+  return result;
+}
 const KIND_ICONS:Record<string,string>={light:'☼',fan:'✣',curtain:'▥',ac:'❄',sensor:'◌',switch:'⏻',robot:'◉',purifier:'≋',plant:'♧',infra:'⚙',energy:'ϟ'};
 const CONFIDENCE:Record<string,string>={confirmed:'Confirmado',estimated:'Estimado',sent:'Comando aceptado',unknown:'Desconocido',error:'Error'};
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
@@ -34,7 +40,7 @@ export class HomeManagerCard extends HTMLElement {
   private unsubscribe?:()=>void;
   private runtime:RuntimeState={schemaVersion:1,states:{}};
   private editor?:HomeManagerEditor;
-  private store?:LovelaceConfigurationStore;
+  private store?:ConfigurationStore;
   private editing=false;private loading=false;private saving=false;
   private selected:string|null=null;private fixedPermit:string|null=null;
   private history:Configuration[]=[];private future:Configuration[]=[];
@@ -98,9 +104,10 @@ export class HomeManagerCard extends HTMLElement {
     const inner=document.createElement('div');inner.attachShadow({mode:'open'}).append(this.svg);host.replaceChildren(inner);
     this.svg.setAttribute('width',String(this.box.width));this.svg.setAttribute('height',String(this.box.height));
     const nav=this.root.querySelector('.rooms')!;nav.querySelectorAll('[data-room]').forEach(n=>n.remove());
-    for(const room of this.draft.rooms){
-      const has=!!this.svg.querySelector(`[id="room-${room.id}"]`);if(!has&&!this.draft.catalog.devices.some(d=>d.roomId===room.id))continue;
-      const b=document.createElement('button');b.className='icon room';b.type='button';b.dataset.room=room.id;b.title=`Encuadrar ${room.label}`;b.setAttribute('aria-label',`Encuadrar ${room.label}`);b.textContent=monogram(room.label);nav.append(b);
+    const shown=this.draft.rooms.filter(room=>!!this.svg!.querySelector(`[id="room-${room.id}"]`)||this.draft!.catalog.devices.some(d=>d.roomId===room.id));
+    const marks=monograms(shown.map(room=>room.label));
+    for(const [index,room] of shown.entries()){
+      const b=document.createElement('button');b.className='icon room';b.type='button';b.dataset.room=room.id;b.title=`Encuadrar ${room.label}`;b.setAttribute('aria-label',`Encuadrar ${room.label}`);b.textContent=marks[index];nav.append(b);
     }
     (this.root.querySelector('.empty') as HTMLElement).hidden=this.svg.children.length>0;
   }
