@@ -61,6 +61,22 @@ test('action-data size is bounded by UTF-8 bytes, not character count',()=>{
   assert.throws(()=>assertActionDefinition(action('script','turn_on',{variables:{note:'a'.repeat(1025)}})),error=>error.code==='unsafe_data');
 });
 
+test('array accessors and custom iterators are rejected before their code executes',()=>{
+  let invoked=0;
+  const dataValues=['literal'];Object.defineProperty(dataValues,0,{enumerable:true,get(){invoked++;return 'literal';}});
+  assert.throws(()=>assertActionDefinition(action('script','turn_on',{variables:{values:dataValues}})));
+  const definition=action();const targets=['light.contract_control'];
+  Object.defineProperty(targets,0,{enumerable:true,get(){invoked++;return 'light.contract_control';}});
+  definition.target.entity_id=targets;assert.throws(()=>assertActionDefinition(definition));
+  class CustomArray extends Array { *[Symbol.iterator](){invoked++;yield 'literal';} }
+  assert.throws(()=>assertActionDefinition(action('script','turn_on',{variables:{values:new CustomArray('literal')}})));
+  const {hass}=scriptSession(),options=['quiet'];
+  Object.defineProperty(options,0,{enumerable:true,get(){invoked++;return 'quiet';}});
+  hass.services.script.contract_control.fields.mode.selector.select.options=options;
+  assert.deepEqual(Object.keys(discoverScriptSignatures(hass)),[]);
+  assert.equal(invoked,0);
+});
+
 test('HA service registry, connection and accessible valid target state are required',()=>{
   const definition=action(),hass=hassFor(definition);
   assert.deepEqual(getActionAvailability(definition,hass),{available:true});
@@ -134,6 +150,20 @@ test('script signatures cannot be invented or reused after registry schema chang
 test('unsupported script selectors and missing field selectors remain disabled',()=>{
   for(const field of [{required:true},{selector:{entity:{}}},{selector:{select:{options:['quiet'],multiple:true}}},{selector:{select:{options:['quiet'],custom_value:true}}}]) {
     const {definition,hass}=scriptSession();hass.services.script.contract_control.fields.mode=field;
+    assert.equal(reason(definition,hass),'script_signature_unverified');
+  }
+});
+
+test('missing script fields means no parameters; explicit null or undefined metadata is invalid',()=>{
+  const definition=action('script','turn_on'),hass=hassFor(definition);
+  hass.services.script.contract_control={};
+  assert.equal(getActionAvailability(definition,hass).available,true);
+  for(const fields of [null,undefined,[],false]) {
+    hass.services.script.contract_control={fields};
+    assert.equal(reason(definition,hass),'script_signature_unverified');
+  }
+  for(const option of [null,undefined]) {
+    hass.services.script.contract_control={fields:{enabled:{selector:{boolean:option}}}};
     assert.equal(reason(definition,hass),'script_signature_unverified');
   }
 });
