@@ -2,7 +2,7 @@
 
 Generic HomeManager code lives in `src/ha/`; household configuration belongs in a separate private instance repository. This module contains no plan, device inventory, entity bindings, credentials, radio captures or deployment configuration. It neither opens a connection nor installs a backend.
 
-The implementation follows [contract V1](contract.md) and the three committed JSON Schemas. Browser Mod is excluded from HomeManager. Native panels invoke logical actions through this adapter. Existing popups, scripts and radio logic in HA are outside this module and remain untouched.
+The implementation follows [contract V2](contract.md) and the three committed JSON Schemas. Browser Mod is excluded from HomeManager. Native panels invoke logical actions through this adapter. Existing popups, scripts and radio logic in HA are outside this module and remain untouched.
 
 ## Frontend API
 
@@ -26,13 +26,13 @@ adapter.dispose();
 
 `consumeRuntime` is the frontend's callback, not a provided renderer. Runtime is exactly `{schemaVersion:1,states:{[deviceId]:{value,confidence,observedAt,sourceEntityId,command}}}`. The card overlays these states by ID and retains its separate editing draft. It must not call `setConfig` for every state update or merge runtime into durable configuration. `subscribe` emits immediately and returns cleanup. Observer exceptions are isolated from service outcomes.
 
-`setHass` consumes HA's existing session object; ordinary replacements of that object do not invalidate an in-flight request if the connection/user are unchanged. Disconnect, reconnect, account change, `configure` and `dispose` invalidate old responses and clear pending command evidence. Connection listeners and expiry timers are removed when no longer needed. HA sends subsequent state through its normal card setter; there is no polling or separate REST client.
+`setHass` consumes HA's existing session object and republishes only when something the configuration reads changes (bound entities, state sources, action targets, services, user, connection); unrelated HA state churn is a cheap fingerprint comparison. Snapshots and availability are always computed on demand; ordinary replacements of that object do not invalidate an in-flight request if the connection/user are unchanged. Disconnect, reconnect, account change, `configure` and `dispose` invalidate old responses and clear pending command evidence. Connection listeners and expiry timers are removed when no longer needed. HA sends subsequent state through its normal card setter; there is no polling or separate REST client.
 
 `executeAction` returns `{ok:true,status:'sent'}` when HA accepts a service request, or `{ok:false,reason}`. Reason codes are bounded safe identifiers; raw service errors are not copied to runtime or persisted configuration. A double click or another action on the same device cannot start a concurrent command. An explicit `deviceId` must actually bind that action, either as primary action or via its native panel.
 
 ## Configuration validation and pending bindings
 
-`assertConfiguration` validates the durable envelope, strict catalog V1, types, normalized coordinates, unknown-only persisted state, action definitions, panel/control rules, source IDs and bounds. It rejects duplicate IDs, accessors, hidden fields, unsafe keys, cycles, sparse arrays and nonfinite numbers. The whole input is limited to 8 MiB; inline SVG is separately limited to 1 MiB UTF-8.
+`assertConfiguration` accepts V1 or V2 input, migrates V1 in memory (`src/ha/migration.mjs`) and returns a validated V2 clone: durable envelope, declared spaces (`rooms`) and device membership, strict catalog, types, normalized coordinates, unknown-only persisted state, action definitions, panel/control rules, source IDs and bounds. It rejects duplicate IDs, accessors, hidden fields, unsafe keys, cycles, sparse arrays and nonfinite numbers. The whole document is limited to 3 MiB (HA websocket frames are 4 MiB and Lovelace saves the whole dashboard); inline SVG is separately limited to 1 MiB UTF-8.
 
 `inspectConfiguration` returns structured errors and pending references. Missing action/panel/control references may be retained as explicitly disabled pending items, as the editor contract requires. `assertConfiguration(value,{allowPending:false})` rejects them for a strict completed-configuration review. JSON Schema alone cannot enforce these cross references.
 

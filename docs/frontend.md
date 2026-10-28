@@ -15,13 +15,16 @@ dashboard_mode: storage
 title: HomeManager
 # dashboard_path: nombre-del-dashboard
 configuration:
-  schemaVersion: 1
+  schemaVersion: 2
+  rooms:
+    - id: living
+      label: Espacio A
   architecture:
     format: svg
     content: >-
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><rect id="room-living" x="20" y="30" width="980" height="680" fill="#e5eadd"/></svg>
   catalog:
-    schemaVersion: 1
+    schemaVersion: 2
     devices: []
   actions: {}
   panels: {}
@@ -31,7 +34,9 @@ configuration:
 
 El rectángulo del ejemplo es geometría sintética. El integrador importa el SVG de su propia instancia mediante el editor; HomeManager no reconstruye la arquitectura. `card_id` debe ser único entre las tarjetas HomeManager del dashboard. `dashboard_path` identifica un dashboard distinto del principal cuando corresponde. No es una URL de HA ni contiene credenciales.
 
-Los nombres visibles se pueden definir en `room_labels`, fuera del documento V1, con claves del contrato, por ejemplo `living: Espacio A`. El software público no fija agrupaciones o nombres propios de una vivienda. Cada zona del plano conserva su ID `room-${roomId}`. Las zonas ausentes se comunican; una habitación no adopta silenciosamente la geometría de otra.
+Los espacios y sus nombres se definen en `configuration.rooms` desde la sección **Espacios** del editor: detectar zonas `room-*` del plano, agregarlas con un clic, crear espacios propios, renombrar, reordenar o quitar (los dispositivos quedan sin espacio, nunca se eliminan). `room_labels` de la tarjeta sólo se usa para nombrar los espacios al migrar un documento V1. Las zonas ausentes se comunican; una habitación no adopta silenciosamente la geometría de otra.
+
+`dashboard_path` es opcional: si falta, la tarjeta usa el dashboard de la URL actual cuando es un panel Lovelace y, en su defecto, el principal.
 
 ## Uso y edición
 
@@ -78,6 +83,6 @@ Para una integración que ya haya verificado sus fuentes independientes, la tarj
 
 ## Importación, exportación y validación
 
-La importación presenta un resumen antes de aplicar. Aplicarla modifica un borrador y nunca ejecuta acciones importadas. La exportación contiene la configuración V1, sin runtime ni credenciales. El SVG se sanitiza antes de persistir y antes de renderizar: se rechazan XML inválido, DTD/entidades, IDs duplicados, referencias externas y elementos ejecutables; se usa un perfil permitido de elementos, atributos y estilos vectoriales. El límite es 1 MiB UTF-8.
+La importación presenta un resumen antes de aplicar. Aplicarla modifica un borrador y nunca ejecuta acciones importadas. La exportación contiene la configuración V2, sin runtime ni credenciales. El SVG se sanitiza antes de persistir y antes de renderizar: se rechazan XML inválido, DTD/entidades, IDs duplicados, referencias externas y elementos ejecutables; se usa un perfil permitido de elementos, atributos y estilos vectoriales. El límite es 1 MiB UTF-8 para el SVG y 3 MiB para el documento. Si el viewBox cambia, el editor exige una copia y ofrece conservar cada dispositivo en el mismo punto del dibujo o en la misma proporción; informa además espacios sin zona y zonas nuevas.
 
 Antes de publicar o instalar, ejecutar los controles de contrato, pruebas y build del repositorio. Las pruebas de navegador usan únicamente geometría, entidades y una sesión HA sintéticas; su almacenamiento local simula el servidor de pruebas. No son una conexión con HA real ni una validación física de hardware. La instalación y verificación en HA real corresponden al integrador.

@@ -7,6 +7,7 @@ Frontend Lovelace para visualizar espacios, vincular iconos a entidades de Home 
 ## Arquitectura
 
 - Una tarjeta propia y su editor visual usan la sesión existente de Home Assistant.
+- Los espacios (habitaciones) son datos de cada instalación: se detectan en el SVG y se nombran en el editor, sin modificar código.
 - El administrador selecciona un icono, una entidad, acciones/scripts y un panel avanzado; guarda desde el editor Lovelace en un dashboard de tipo `storage`.
 - El SVG se importa como dato, se valida/sanitiza y se guarda dentro de la configuración autenticada del dashboard. El acceso alcanza a las sesiones HA que pueden leer ese dashboard; no es un almacén de secretos ni aislamiento por usuario.
 - Los estados y comandos pendientes viven en memoria. La configuración persiste por separado.
@@ -38,7 +39,7 @@ Requiere Node.js 24. Usar `npm ci --ignore-scripts`, `npm run check` y `npm run 
 
 Para registrar la tarjeta, importar la arquitectura y configurar el guardado administrador en Lovelace `storage`, ver [la guía del frontend](docs/frontend.md). El editor permite modificar iconos, entidades, acciones/scripts, fuentes de estado y paneles sin recompilar el recurso. Las lecturas y confirmaciones de comandos permanecen en memoria.
 
-Comenzar por [contrato V1](docs/contract.md), [colaboración](docs/contributing.md) y [decisiones](docs/decisions.md). La distribución prevista está en [HACS](docs/hacs.md); los controles obligatorios están en [seguridad](docs/security.md).
+Estado y próximos pasos: [auditoría del 29 de octubre de 2026](docs/audit-2026-10-29.md) y [handoff del integrador](docs/handoff-agent4.md). Comenzar por [contrato V2](docs/contract.md), [colaboración](docs/contributing.md) y [decisiones](docs/decisions.md). La distribución prevista está en [HACS](docs/hacs.md); los controles obligatorios están en [seguridad](docs/security.md).
 
 Versionado SemVer mediante tags y releases; los nombres del producto, archivos y ramas de trabajo no incluyen versiones. Ningún commit instala ni despliega automáticamente en Home Assistant.
 

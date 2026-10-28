@@ -1,10 +1,10 @@
 # Continuación para el integrador 4
 
-La fundación ofrece contrato y controles de repositorio. Aún no existe una tarjeta funcional. Revisar primero `contract.md`, `decisions.md` y `security.md`, y el estado real de GitHub que informe Agente 0.
+**Actualizado el 29 de octubre de 2026:** el plan vigente y su contexto están en [handoff-agent4.md](handoff-agent4.md); esta lista conserva los criterios de aceptación originales. Revisar primero `contract.md`, `decisions.md` y `security.md`, y el estado real de GitHub que informe Agente 0.
 
 ## Orden de integración
 
-1. Revisar PR del plano privado. Confirmar SVG con IDs `room-${roomId}`, geometría y viewBox global. No trasladar el archivo al público.
+1. Revisar PR del plano privado. Confirmar zonas `room-${roomId}` de los espacios declarados por la instancia, geometría y viewBox global. No trasladar el archivo al público.
 2. Revisar PR del frontend genérico. Retirar transporte, mappings y eventos de Browser Mod de cualquier código previo antes de incorporarlo. Los paneles nativos deben vivir dentro de la tarjeta y ser locales al navegador que los abre.
 3. Revisar PR del adaptador HA. Una sola sesión existente, acciones con destinos explícitos y lista permitida, RF exclusivamente por scripts HA. Reconciliar `mobility` y un solo resolver de estado.
 4. Probar editor propio en dashboard `storage`: elegir entidad, acción y panel, validar, guardar con botón Lovelace, recargar, comprobar persistencia; cancelar debe descartar. Probar no administrador, YAML, conflicto y sesión caducada. No introducir backend solo para persistir posiciones.

@@ -1,12 +1,16 @@
-# Contrato compartido V1
+# Contrato compartido V2
 
 Este contrato coordina arquitectura SVG, frontend e integración de HomeManager. Define estructuras y criterios de aceptación; todavía no implementa la tarjeta ni conecta dispositivos reales. Los esquemas son JSON Schema 2020-12 y sus referencias son archivos locales estables dentro de `schemas/`.
 
 ## Catálogo y coordenadas
 
-`schemas/catalog.schema.json` conserva la forma compartida exacta: raíz con `schemaVersion: 1` y `devices: []`. Cada dispositivo requiere `id`, `roomId`, `kind`, `position`, `mobility`, `display`, `bindings` y `state`, sin campos adicionales. Los identificadores son kebab-case únicos y permanecen iguales al cambiar de posición, habitación o etiqueta.
+`schemas/catalog.schema.json` define el catálogo V2: raíz con `schemaVersion: 2` y `devices: []`. Cada dispositivo requiere `id`, `roomId`, `kind`, `position`, `mobility`, `display`, `bindings` y `state`, sin campos adicionales. Los identificadores son kebab-case únicos y permanecen iguales al cambiar de posición, habitación o etiqueta.
 
-Los espacios admitidos son `living`, `dining`, `kitchen`, `office`, `master-bedroom`, `bath-2`, `master-bath`, `balcony`, `entry`, `hallway`, `dbst` y `ac-ledge`. Cada zona SVG se identifica como `room-${roomId}`. Los nombres visibles y agrupaciones pertenecen a la configuración de cada instancia; no se deducen del domicilio del desarrollador ni se fijan en el software público.
+**Los espacios son datos de cada instancia, no del software.** La configuración declara `rooms`, una lista ordenada de `{id, label}` (máximo 200). `id` es kebab-case, único e inmutable; `label` es texto libre que se puede renombrar. El `roomId` de cada dispositivo referencia un espacio declarado o es `null` mientras su ubicación no se conozca. Cada zona SVG se identifica como `room-${roomId}`; el editor detecta esas zonas en el plano y las propone como espacios, pero sólo los espacios declarados participan en la navegación y en la detección de habitación al arrastrar. Un espacio sin zona se informa y conserva sus dispositivos.
+
+### Migración desde V1
+
+V1 fijaba doce IDs de la primera instalación real (`living`, `dining`, …, `dbst`, `ac-ledge`). Un documento V1 sigue siendo válido como **entrada**: cada frontera (tarjeta, editor, almacenamiento, adaptador HA) lo migra en memoria con `migrateConfiguration` (`src/ha/migration.mjs`). Los espacios se derivan de los IDs usados por dispositivos y de las zonas `room-*` del SVG que pertenecían al vocabulario V1, en el orden V1; los nombres provienen del antiguo `room_labels` de la tarjeta o se generan a partir del ID. La migración no escribe nada: el documento V2 se persiste sólo con el siguiente guardado explícito. Los esquemas V1 se conservan en `schemas/v1/` y una prueba demuestra que un V1 válido migra a un V2 válido sin perder dispositivos ni bindings.
 
 `position.x` y `position.y` son números finitos entre 0 y 1 respecto al **viewBox global**, incluyendo su origen:
 
@@ -17,7 +21,7 @@ svgY = viewBox.minY + position.y * viewBox.height
 
 No son coordenadas de habitación ni de pantalla. Cambiar el viewBox exige revisar o migrar explícitamente posiciones con copia previa. Una zona ausente se informa; no se sustituye silenciosamente por otra habitación. Los aliases geométricos solo se aceptan tras verificar la geometría.
 
-`kind` admite `light`, `fan`, `curtain`, `ac`, `sensor`, `switch`, `robot`, `purifier`, `plant`, `infra` y `energy`. `mobility` admite `fixed`, `editable` y `portable`. Un dispositivo `fixed` no se desplaza con el arrastre habitual: una corrección de su ubicación requiere una acción separada y explícita de reubicación. Esa acción conserva su ID y sus asociaciones. Mover un icono no cambia áreas HA, rutas RF, scripts ni automatizaciones.
+`kind` admite `light`, `fan`, `curtain`, `ac`, `sensor`, `switch`, `robot`, `purifier`, `plant`, `infra`, `energy`, `media`, `lock`, `camera`, `appliance` y `other`. Sólo determina la capa y el glifo de respaldo; nunca permisos ni acciones. `mobility` admite `fixed`, `editable` y `portable`. Un dispositivo `fixed` no se desplaza con el arrastre habitual: una corrección de su ubicación requiere una acción separada y explícita de reubicación. Esa acción conserva su ID y sus asociaciones. Mover un icono no cambia áreas HA, rutas RF, scripts ni automatizaciones.
 
 `display` contiene exactamente `label` e `icon`. `bindings` contiene exactamente `entityId`, `primaryAction` y `advancedPopupId`, cada uno string o null. `primaryAction` es una clave lógica, no un objeto de servicio. `advancedPopupId` identifica un panel **nativo de HomeManager**. No contiene un ID Browser Mod, una ruta de dashboard externo ni código ejecutable.
 
@@ -27,8 +31,9 @@ No son coordenadas de habitación ni de pantalla. Cambiar el viewBox exige revis
 
 | Campo | Contenido |
 | --- | --- |
-| `schemaVersion` | `1`, con migraciones explícitas ante cambios incompatibles. |
-| `catalog` | Catálogo V1; todo `state` persistido es `unknown/unknown`. |
+| `schemaVersion` | `2`. V1 se migra en memoria; cambios incompatibles futuros requieren otra migración explícita. |
+| `rooms` | Lista ordenada de espacios `{id, label}` de la instancia. |
+| `catalog` | Catálogo V2; todo `state` persistido es `unknown/unknown`. |
 | `architecture` | `{format: "svg", content: "…"}`; SVG inline sanitizado, máximo 1 MiB UTF-8. |
 | `actions` | Mapa de acciones lógicas a llamadas HA permitidas y destinos explícitos. |
 | `panels` | Mapa de paneles nativos `device-controls` o `rf-fan`; controles con `id`, `label` y `actionId`. |
@@ -81,11 +86,11 @@ Validar contra JSON Schema es necesario y no suficiente. Antes de persistir, imp
 2. Existencia de cada `primaryAction` y `advancedPopupId`; existencia de cada `actionId`; claves `stateSources` presentes en el catálogo. Las referencias pendientes quedan claramente deshabilitadas.
 3. Formato/existencia de entidades, coherencia entre dominio de acción y destinos, rechazo de `.all` y validez de servicio/capacidad/datos según HA. Ninguna selección de UI amplía permisos de la sesión.
 4. Paneles RF exclusivamente sobre scripts HA verificados; no copiar ni interpretar capturas RF en el frontend.
-5. SVG XML válido, un solo elemento raíz SVG, viewBox finito de tamaño positivo, IDs únicos, regiones `room-${roomId}` esperadas y sanitización tanto al importar como antes de renderizar. Eliminar/rechazar scripts, eventos `on*`, `foreignObject`, HTML incrustado, DTD/entidades, animación ejecutable y referencias externas. Solo referencias internas `#id` resueltas; no ejecutar CSS arbitrario ni conservar URLs externas o `data:`. Mantener un perfil permitido explícito de elementos, atributos y estilos.
+5. SVG XML válido, un solo elemento raíz SVG, viewBox finito de tamaño positivo, IDs únicos, zonas `room-${roomId}` de los espacios declarados (las ausentes se informan) y sanitización tanto al importar como antes de renderizar. Eliminar/rechazar scripts, eventos `on*`, `foreignObject`, HTML incrustado, DTD/entidades, animación ejecutable y referencias externas. Solo referencias internas `#id` resueltas; no ejecutar CSS arbitrario ni conservar URLs externas o `data:`. Mantener un perfil permitido explícito de elementos, atributos y estilos.
 6. Runtime con IDs conocidos, timestamps válidos, baseline y TTL coherentes y feedback suficientemente reciente. Nunca degradar un error o conflicto de guardado a una copia local anunciada como compartida.
 7. Estado persistido siempre `unknown/unknown`; ausencia de tokens, credenciales, URLs internas, plano real o datos de vivienda en el repositorio público, artefactos CI y `dist/`.
 
-El esquema V1 conserva la forma acordada, pero no garantiza por sí solo seguridad, autorización ni resultados físicos. Las pruebas con HA y hardware son una fase separada del integrador 4; ninguna base de repositorio constituye una versión funcional ya verificada.
+El documento serializado no supera 3 MiB: el WebSocket de HA admite 4 MiB por mensaje y un guardado Lovelace envía el dashboard completo; el almacén rechaza antes de enviar un dashboard que no cabría. El esquema V2 conserva la forma acordada, pero no garantiza por sí solo seguridad, autorización ni resultados físicos. Las pruebas con HA y hardware son una fase separada del integrador 4; ninguna base de repositorio constituye una versión funcional ya verificada.
 
 ## Fuentes técnicas
 

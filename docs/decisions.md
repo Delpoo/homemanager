@@ -1,6 +1,6 @@
 # Decisiones de arquitectura
 
-Estado del producto: **FUNDACIÓN; frontend, editor e integración operativa todavía pendientes**. Estas decisiones orientan el trabajo de los agentes y la revisión del futuro integrador. No afirman que los controles descritos estén implementados.
+Estado del producto: **frontend, editor y adaptador implementados y probados con sesiones HA sintéticas; sin validar todavía en Home Assistant real** (29 de octubre de 2026). Estas decisiones orientan el trabajo de los agentes y la revisión del futuro integrador. No afirman que los controles descritos estén implementados.
 
 ## D01 — Dos repositorios con finalidades permanentes
 
@@ -34,11 +34,11 @@ El documento duradero contiene IDs, habitación, posición, movilidad, presentac
 
 Si el contrato serializado incluye un bloque `state`, su estado persistido/exportado será `unknown`, sin valores vivos ni timestamps que aparenten vigencia. La confianza efectiva se calcula en ejecución a partir de la evidencia disponible; guardar configuración no confirma una observación ni valida el comportamiento físico.
 
-## D07 — Contrato espacial V1
+## D07 — Contrato espacial (V2 desde el 29 de octubre de 2026)
 
-Se conserva `schemaVersion: 1` y el catálogo `devices: [...]`, con ID estable, `roomId`, tipo, posición normalizada `x/y`, movilidad, presentación, bindings y tratamiento explícito de confianza de estado. El contrato común y sus esquemas son la fuente normativa; cambios requieren un PR coordinado, sin divergencias silenciosas entre agentes.
+El catálogo conserva ID estable, `roomId`, tipo, posición normalizada `x/y` respecto al viewBox global, movilidad, presentación, bindings y tratamiento explícito de confianza. El contrato común y sus esquemas son la fuente normativa; cambios requieren un PR coordinado, sin divergencias silenciosas.
 
-El SVG identifica habitaciones mediante `room-${roomId}`. Los identificadores compartidos son `living`, `dining`, `kitchen`, `office`, `master-bedroom`, `bath-2`, `master-bath`, `balcony`, `entry`, `hallway`, `dbst` y `ac-ledge`. Su geometría, posiciones de dispositivos, asociaciones y nombres personalizados pertenecen a la instancia privada.
+**Revisión V2.** V1 incluía en el software público los doce espacios de la primera vivienda, en el esquema, tres validadores, el editor, la tarjeta y la detección geométrica. Configurar otra vivienda exigía modificar código. V2 convierte los espacios en datos de la instancia (`rooms: [{id,label}]`, `roomId` nulo mientras no se conozca), mantiene la convención `room-${roomId}` del SVG y migra V1 en memoria sin escribir. Ver [contrato](contract.md#migración-desde-v1).
 
 Los dispositivos de movilidad `fixed` no se desplazan mediante el arrastre normal. Si se añade reubicación, exige un modo administrativo explícito, validación y guardado deliberado; no se confunde con uso cotidiano.
 
@@ -57,3 +57,20 @@ Fuentes en `src/`, compilación en `dist/`, entrada estable `homemanager.js`, ve
 El propietario autorizó MIT para el código público el 28 de octubre de 2026. Las dependencias y recursos incorporados deben admitir esa distribución y conservar sus avisos. El plano privado tiene derechos independientes.
 
 Los requisitos de sanitización SVG, validación de bindings, permisos, guardado y ejecución segura corresponden a las implementaciones de frontend y conexión. Esta fundación no los sustituye con documentación o un escáner de expresiones regulares. La revisión del integrador debe comprobarlos con evidencia. Véase [security.md](security.md).
+
+## D11 — Almacenamiento del plano y la configuración (recomendación pendiente de decisión)
+
+Estado: **la V1 sigue usando Lovelace `storage`, ahora acotada y detrás de una interfaz `ConfigurationStore`. Se recomienda una integración compañera para la versión distribuible.** Evaluación completa en [audit-2026-10-29.md](audit-2026-10-29.md#3-almacenamiento-del-plano).
+
+| Opción | Autenticación | Concurrencia | Rendimiento | Versionado del plano | Veredicto |
+| --- | --- | --- | --- | --- | --- |
+| SVG inline en la tarjeta Lovelace (actual) | Lectura: todo usuario HA; escritura: admin | Sin CAS; doble lectura | El plano viaja con el dashboard completo en cada carga; tope 4 MiB por mensaje | No | Válido para V1 y una vivienda; no escala a producto |
+| `/local` (`www/`) | **Ninguna** | — | Bueno | Manual | Descartado (D08) |
+| `image_upload` de HA | Servido sin autenticación; no acepta SVG | — | Bueno | No | Descartado |
+| Integración `homemanager` con `Store` propio + WebSocket | Lectura: usuario autenticado; escritura: admin | Revisión atómica en el bucle de eventos de HA | El plano se carga una vez, cacheable por hash, separado del dashboard | Sí (historial y restauración) | **Recomendado** |
+
+La integración compañera (dominio `homemanager`, sin dependencias externas) guardaría en `.storage/homemanager` los hogares, sus espacios, dispositivos, acciones, paneles y un historial acotado de planos, y expondría `homemanager/home/get`, `homemanager/home/save` (con `revision` esperada, `require_admin`) y `homemanager/plan/get|history|restore`. Permitiría además registrar un panel lateral propio (la "aplicación" de HomeManager) y servir el bundle, de modo que HACS instale un único paquete de categoría Integración. La tarjeta pasaría a referenciar `home_id`; la migración importaría la `configuration` de la tarjeta existente y dejaría la tarjeta con una referencia. Esta opción contradice la preferencia inicial de "no añadir backend Python" (D02/D05), cambia la categoría HACS y amplía el alcance, por lo que **requiere decisión del propietario** antes de implementarse.
+
+## D12 — Reemplazo del plano sin perder configuración
+
+Los dispositivos, bindings, acciones y paneles no dependen del SVG; sólo `position` y la detección de espacio dependen de su geometría. Al importar un plano nuevo el editor informa espacios sin zona y zonas nuevas, exige exportar una copia si cambia el viewBox y ofrece dos migraciones de posiciones: **mismo punto del dibujo** (predeterminada: recortes o ampliaciones del mismo dibujo) o **misma proporción** (reescalado completo). Un dispositivo que quede fuera del nuevo viewBox se lleva al borde y se informa; nunca se elimina.
