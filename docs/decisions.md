@@ -58,9 +58,9 @@ El propietario autorizó MIT para el código público el 28 de octubre de 2026. 
 
 Los requisitos de sanitización SVG, validación de bindings, permisos, guardado y ejecución segura corresponden a las implementaciones de frontend y conexión. Esta fundación no los sustituye con documentación o un escáner de expresiones regulares. La revisión del integrador debe comprobarlos con evidencia. Véase [security.md](security.md).
 
-## D11 — Almacenamiento del plano y la configuración (recomendación pendiente de decisión)
+## D11 — Almacenamiento del plano y la configuración
 
-Estado: **la V1 sigue usando Lovelace `storage`, ahora acotada y detrás de una interfaz `ConfigurationStore`. Se recomienda una integración compañera para la versión distribuible.** Evaluación completa en [audit-2026-10-29.md](audit-2026-10-29.md#3-almacenamiento-del-plano).
+Estado: **aceptada por el propietario el 29 de octubre de 2026 e implementada** en `custom_components/homemanager` ([integration.md](integration.md)). Lovelace `storage` sigue soportado para tarjetas existentes, detrás de la misma interfaz `ConfigurationStore`, y el editor ofrece migrar. Esta decisión sustituye la preferencia de D02/D05 de no añadir backend Python: el backend se limita a almacenamiento, permisos y servir el frontend; la ejecución sigue en la sesión HA del usuario. Evaluación completa en [audit-2026-10-29.md](audit-2026-10-29.md#3-almacenamiento-del-plano).
 
 | Opción | Autenticación | Concurrencia | Rendimiento | Versionado del plano | Veredicto |
 | --- | --- | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ Estado: **la V1 sigue usando Lovelace `storage`, ahora acotada y detrás de una 
 | `image_upload` de HA | Servido sin autenticación; no acepta SVG | — | Bueno | No | Descartado |
 | Integración `homemanager` con `Store` propio + WebSocket | Lectura: usuario autenticado; escritura: admin | Revisión atómica en el bucle de eventos de HA | El plano se carga una vez, cacheable por hash, separado del dashboard | Sí (historial y restauración) | **Recomendado** |
 
-La integración compañera (dominio `homemanager`, sin dependencias externas) guardaría en `.storage/homemanager` los hogares, sus espacios, dispositivos, acciones, paneles y un historial acotado de planos, y expondría `homemanager/home/get`, `homemanager/home/save` (con `revision` esperada, `require_admin`) y `homemanager/plan/get|history|restore`. Permitiría además registrar un panel lateral propio (la "aplicación" de HomeManager) y servir el bundle, de modo que HACS instale un único paquete de categoría Integración. La tarjeta pasaría a referenciar `home_id`; la migración importaría la `configuration` de la tarjeta existente y dejaría la tarjeta con una referencia. Esta opción contradice la preferencia inicial de "no añadir backend Python" (D02/D05), cambia la categoría HACS y amplía el alcance, por lo que **requiere decisión del propietario** antes de implementarse.
+La integración compañera (dominio `homemanager`, sin dependencias externas) guardaría en `.storage/homemanager` los hogares, sus espacios, dispositivos, acciones, paneles y un historial acotado de planos, y expondría `homemanager/home/get`, `homemanager/home/save` (con `revision` esperada, `require_admin`) y `homemanager/plan/get|history|restore`. Permitiría además registrar un panel lateral propio (la "aplicación" de HomeManager) y servir el bundle, de modo que HACS instale un único paquete de categoría Integración. La tarjeta pasaría a referenciar `home_id`; la migración importaría la `configuration` de la tarjeta existente y dejaría la tarjeta con una referencia. La categoría HACS pasa a **Integración** con un único paquete (`homemanager.zip`) que incluye el bundle; ver [hacs.md](hacs.md).
 
 ## D12 — Reemplazo del plano sin perder configuración
 

@@ -25,7 +25,11 @@ export interface Configuration {
   commandTtlSeconds?:number;
 }
 export interface CardConfig {
-  type:'custom:homemanager-card'; card_id:string; configuration:Configuration;
+  type:'custom:homemanager-card'; card_id:string;
+  /** Inline (Lovelace) storage. Absent when home_id is used. */
+  configuration:Configuration;
+  /** Storage in the HomeManager integration; the card loads the home by ID. */
+  home_id?:string;
   dashboard_path?:string; dashboard_mode?:'storage'|'yaml'; title?:string;
   /** @deprecated V1 only: labels are migrated into configuration.rooms. */
   room_labels?:Record<string,string>;
@@ -37,7 +41,8 @@ export interface Hass {
   services?:Record<string,Record<string,{fields?:Record<string,unknown>;[key:string]:unknown}>>;
   user?:{id?:string;is_admin?:boolean};
   panels?:Record<string,{component_name?:string;config?:{mode?:string}}>;
-  connection?:{connected?:boolean};
+  connection?:{connected?:boolean;subscribeMessage?(callback:(message:unknown)=>void,subscription:Record<string,unknown>):Promise<()=>void>};
+  config?:{components?:string[]};
   callWS?<T=unknown>(message:Record<string,unknown>):Promise<T>;
   callService?(domain:string,service:string,data?:Record<string,unknown>,target?:{entity_id:string|string[]}):Promise<unknown>;
 }

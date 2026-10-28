@@ -14,7 +14,9 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test:browser": "npm run build && playwright test",
-    "dev": "node scripts/test-server.mjs"
+    "dev": "node scripts/test-server.mjs",
+    "test:integration": "python -m pytest -q",
+    "package": "npm run build && python scripts/package_integration.py"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

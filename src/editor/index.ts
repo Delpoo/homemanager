@@ -1,5 +1,6 @@
 import { validateConfiguration } from '../card/configuration.js';
 import { migrateConfiguration } from '../ha/migration.mjs';
+import { IntegrationConfigurationStore, describeError, integrationAvailable, listHomes, type HomeSummary } from '../integration/store.js';
 import { detectZones, sanitizeArchitecture } from '../card/geometry.js';
 import { KINDS, SERVICES, clone, escapeHTML as esc, type Action, type CardConfig, type Configuration, type Device, type Hass, type NativePanel } from '../card/types.js';
 import { moveRoom, newDeviceId, pendingReferences, persistentConfiguration, remapPositions, removeDevice, removeRoom, summarizeImport, upsertAction, upsertDevice, upsertPanel, upsertRoom, upsertStateSource, type PositionMode } from './model.js';
@@ -28,6 +29,12 @@ export class HomeManagerEditor extends HTMLElement {
   private importGeneration = 0;
   private imported?: { configuration: Configuration; summary: ReturnType<typeof summarizeImport>; viewBoxChanged: boolean; backedUp: boolean; from: Box; to: Box; missingZones: string[]; newZones: string[]; positionMode: PositionMode };
   private openSections = new Set<string>();
+  /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
+  private homeConfig?: { type: string; card_id: string; home_id: string; title?: string };
+  private homes?: HomeSummary[];
+  private migrating = false;
+  /** Survives the asynchronous re-render that follows the homes list refresh. */
+  private homeMessage = '';
   constructor() {
     super();
     this.root.addEventListener('click', this.onClick);
@@ -36,6 +43,13 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('toggle', event => { const target = event.target as HTMLDetailsElement; if (target.id) target.open ? this.openSections.add(target.id) : this.openSections.delete(target.id); }, true);
   }
   setConfig(config: CardConfig): void {
+    if (config.home_id && config.configuration === undefined) {
+      // HA's card editor dialog for an integration-backed card: the plan is edited
+      // in the card or the HomeManager panel, never copied into the dashboard.
+      this.homeConfig = { type: config.type, card_id: config.card_id, home_id: config.home_id, ...(config.title ? { title: config.title } : {}) };
+      this.config = undefined; this.render(); void this.refreshHomes(); return;
+    }
+    this.homeConfig = undefined; this.homeMessage = '';
     // A V1 document is upgraded in the draft; its legacy card-level room_labels seed the space names.
     const next = { ...clone(config), configuration: validateConfiguration(persistentConfiguration(migrateConfiguration<Configuration>(config.configuration, { roomLabels: config.room_labels })), { allowPending: true }) };
     if (this.config && JSON.stringify(this.config) === JSON.stringify(next)) return;
@@ -46,7 +60,7 @@ export class HomeManagerEditor extends HTMLElement {
   // Rebuilding a datalist with every HA entity on each state change is the
   // editor's most expensive path; only rebuild when the set of entities changes.
   private entityKey = '';
-  set hass(hass: Hass) { this._hass = hass; const key = Object.keys(hass?.states ?? {}).join(' '); if (key !== this.entityKey) { this.entityKey = key; this.updateEntityOptions(); } }
+  set hass(hass: Hass) { const first = !this._hass; this._hass = hass; if (first && (this.homeConfig || integrationAvailable(hass))) { void this.refreshHomes(); if (this.config && !this._embedded) this.render(); } const key = Object.keys(hass?.states ?? {}).join(' '); if (key !== this.entityKey) { this.entityKey = key; this.updateEntityOptions(); } }
   get hass(): Hass | undefined { return this._hass; }
   set selectedDeviceId(id: string | null) { if (id === this._selectedDeviceId) return; this._selectedDeviceId = id; this.adding = false; this.allowFixedPosition = false; this.confirmDelete = false; this.render(); }
   get selectedDeviceId(): string | null { return this._selectedDeviceId; }
@@ -64,7 +78,42 @@ export class HomeManagerEditor extends HTMLElement {
     this.notice('Borrador actualizado. Usá el guardado explícito de la tarjeta o del dashboard.');
   }
   private section(id: string, title: string, body: string): string { return `<details class="section" id="${id}"${this.openSections.has(id) ? ' open' : ''}><summary>${title}</summary><div class="section-body">${body}</div></details>`; }
+  private async refreshHomes(): Promise<void> {
+    if (!this._hass || !integrationAvailable(this._hass)) return;
+    try { this.homes = await listHomes(this._hass); } catch { this.homes = undefined; }
+    if (this.homeConfig) this.render();
+  }
+  private emitCard(config: Record<string, unknown>): void {
+    this.dispatchEvent(new CustomEvent('config-changed', { bubbles: true, composed: true, detail: { config } }));
+  }
+  private homeForm(): string {
+    const home = this.homeConfig!, homes = this.homes ?? [];
+    const options = [...homes.map(item => option(item.home_id, item.title ? `${item.title} (${item.home_id})` : item.home_id, home.home_id)), ...(homes.some(item => item.home_id === home.home_id) ? [] : [option(home.home_id, `${home.home_id} · todavía no existe`, home.home_id)])].join('');
+    return `<style>${css}</style><div class="editor"><h2>HomeManager</h2><p class="note">Esta tarjeta muestra un hogar guardado en la integración HomeManager. El plano, los espacios y los dispositivos se editan con <strong>Editar plano</strong> en la tarjeta o desde el panel HomeManager; el dashboard sólo guarda la referencia.</p><form id="home-card-form"><div class="grid"><label class="field">Hogar<select name="home_id" aria-label="Hogar">${options}</select></label>${input('title', 'Título de la tarjeta', home.title ?? '', 'maxlength="240" placeholder="HomeManager"')}</div><div class="actions"><button type="submit" class="primary">Aplicar</button></div></form><div class="status" role="status" aria-live="polite">${esc(this.homeMessage)}</div></div>`;
+  }
+  private migrationForm(): string {
+    if (this._embedded || !integrationAvailable(this._hass) || !this.config) return '';
+    const suggested = this.config.card_id.slice(0, 64).replace(/-+$/, '') || 'home';
+    return this.section('migrate-section', 'Mover a la integración HomeManager', `<p class="note">Guarda este plano en la integración (fuera del dashboard, con control de versiones e historial de planos) y deja en la tarjeta sólo la referencia. Después pulsá <strong>Guardar</strong> en el editor de Home Assistant.</p><form id="migrate-form"><div class="grid">${input('homeId', 'ID del hogar', suggested, 'required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*"')}</div><div class="actions"><button type="submit" class="primary"${this.migrating ? ' disabled' : ''}>Mover a la integración</button></div></form>`);
+  }
+  private async migrate(homeId: string): Promise<void> {
+    if (!this.config || this.migrating) return;
+    this.migrating = true;
+    try {
+      const store = new IntegrationConfigurationStore(() => this._hass, homeId);
+      await store.load();
+      if (store.revision !== null) throw new Error(`Ya existe un hogar «${homeId}». Elegí otro ID; para mostrar ese hogar, cambiá la tarjeta a home_id: ${homeId}.`);
+      // Pending references move as they are: the draft keeps the same semantics.
+      await store.save(persistentConfiguration(this.config.configuration), { allowPending: true });
+      const card: Record<string, unknown> = { type: this.config.type, card_id: this.config.card_id, home_id: homeId };
+      if (this.config.title) card.title = this.config.title;
+      this.migrating = false;
+      this.homeMessage = 'Plano guardado en la integración. Pulsá Guardar en el editor de Home Assistant para que la tarjeta use el hogar.';
+      this.emitCard(card); this.setConfig(card as unknown as CardConfig);
+    } catch (error) { this.migrating = false; this.render(); this.notice(error instanceof Error ? error.message : describeError(error)); }
+  }
   private render(): void {
+    if (this.homeConfig) { this.root.innerHTML = this.homeForm(); return; }
     if (!this.config) { this.root.innerHTML = `<style>${css}</style><div class="editor">Configuración pendiente.</div>`; return; }
     const configuration = this.configuration, selected = this.adding ? undefined : this.device();
     const pending = pendingReferences(configuration, this._hass?.states);
@@ -77,6 +126,7 @@ export class HomeManagerEditor extends HTMLElement {
       ${this.section('panels-section', 'Paneles nativos', this.panelForm())}
       ${pending.length ? this.section('pending-section', `Referencias pendientes (${pending.length})`, `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul><p class="note">No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.</p>`) : ''}
       ${this.section('import-section', 'Importar y exportar', this.importForm())}
+      ${this.migrationForm()}
       <div class="status" role="status" aria-live="polite"></div><datalist id="entity-options"></datalist></div>`;
     this.updateEntityOptions();
   }
@@ -172,11 +222,18 @@ export class HomeManagerEditor extends HTMLElement {
     else if (target.getAttribute('name') === 'position-mode' && this.imported) this.imported.positionMode = target.value === 'relative' ? 'relative' : 'drawing';
   };
   private onSubmit = (event: Event): void => {
-    event.preventDefault(); const form = event.target as HTMLFormElement; if (!this.config) return;
+    event.preventDefault(); const form = event.target as HTMLFormElement; if (!this.config && !this.homeConfig) return;
     try {
       const data = new FormData(form);
       // Named inputs such as name="id" clobber HTMLFormElement.id in browsers.
       const formId = form.getAttribute('id');
+      if (formId === 'home-card-form' && this.homeConfig) {
+        const title = value(data, 'title'), card: Record<string, unknown> = { type: this.homeConfig.type, card_id: this.homeConfig.card_id, home_id: value(data, 'home_id') };
+        if (title) card.title = title;
+        this.homeConfig = card as typeof this.homeConfig; this.emitCard(card); this.notice('Referencia actualizada. Guardá en el editor de Home Assistant.');
+        return;
+      }
+      if (formId === 'migrate-form') { void this.migrate(value(data, 'homeId')); return; }
       if (formId === 'device-form') {
         const previous = this.adding ? undefined : this.device(), label = value(data, 'label');
         const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;

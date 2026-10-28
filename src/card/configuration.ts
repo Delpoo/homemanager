@@ -41,7 +41,14 @@ export function validateConfiguration(input:unknown,options:{allowPending?:boole
   return {...c,architecture:{format:'svg',content:clean.content}};
 }
 export function validateCardConfig(value:unknown):CardConfig {
-  safeTree(value);const c=obj(value,'Tarjeta');exact(c,['type','card_id','configuration'],['dashboard_path','dashboard_mode','title','room_labels']);
+  safeTree(value);const c=obj(value,'Tarjeta');
+  if(c.home_id!==undefined){
+    // Integration storage: the document lives in HA's .storage, not in the dashboard.
+    exact(c,['type','card_id','home_id'],['title']);if(c.type!=='custom:homemanager-card')fail('Tipo de tarjeta no válido.');key(c.card_id,'card_id');key(c.home_id,'home_id');if((c.home_id as string).length>64)fail('home_id: máximo 64 caracteres.');
+    if(c.title!==undefined)text(c.title,'Título');
+    return {...structuredClone(c),configuration:emptyConfiguration()} as unknown as CardConfig;
+  }
+  exact(c,['type','card_id','configuration'],['dashboard_path','dashboard_mode','title','room_labels']);
   if(c.type!=='custom:homemanager-card')fail('Tipo de tarjeta no válido.');key(c.card_id,'card_id');
   if(c.dashboard_path!==undefined&&(typeof c.dashboard_path!=='string'||!/^[a-z0-9][a-z0-9_-]{0,239}$/.test(c.dashboard_path)))fail('Ruta de dashboard no válida.');
   if(c.dashboard_mode!==undefined)member(c.dashboard_mode,['storage','yaml'],'Modo de dashboard');

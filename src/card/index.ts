@@ -1,5 +1,7 @@
 import { HomeManagerCard } from './home-manager-card.js';
 import '../editor/index.js';
+// The sidebar panel registered by the HomeManager integration shares this bundle.
+import '../app/index.js';
 if(!customElements.get('homemanager-card'))customElements.define('homemanager-card',HomeManagerCard);
 const target=window as unknown as {customCards?:{type:string;name:string;description:string;preview:boolean}[]};
 target.customCards??=[];
