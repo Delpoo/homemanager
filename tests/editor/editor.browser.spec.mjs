@@ -82,8 +82,64 @@ test('live hass updates preserve unsubmitted form values and expose actual entit
     };
   });
   await expect(field(page, 'Nombre del dispositivo')).toHaveValue('Unsubmitted label');
-  expect(await editor(page).locator('#entity-options option[value="light.new_actual_entity"]').count()).toBe(1);
+  // The entity selector searches the live session by friendly name; no ID typing needed.
+  const entity = field(page, 'Entidad del dispositivo');
+  await entity.click();
+  await entity.pressSequentially('new actual');
+  await editor(page)
+    .getByRole('option', { name: /New actual entity/ })
+    .click();
+  await expect(entity).toHaveValue('light.new_actual_entity');
   expect(await page.evaluate(() => window.editorTest.events.length)).toBe(0);
+});
+test('adding a device from a real entity derives its name, icon, room and primary action', async ({ page }) => {
+  const placed = page.evaluate(
+    () =>
+      new Promise(resolve =>
+        document.addEventListener('homemanager-place', event => resolve(event.detail), { once: true }),
+      ),
+  );
+  await page.evaluate(() => {
+    const e = window.editorTest.editor;
+    e.hass = {
+      ...e.hass,
+      states: {
+        ...e.hass.states,
+        'light.reading_lamp': { state: 'off', attributes: { friendly_name: 'Lámpara de lectura' } },
+      },
+      entities: { 'light.reading_lamp': { area_id: 'area-b' } },
+      areas: { 'area-b': { name: 'Espacio B' } },
+    };
+  });
+  const quick = field(page, 'Agregar dispositivo desde Home Assistant');
+  await quick.click();
+  await quick.pressSequentially('lectura');
+  await editor(page).locator('.quick [role=option]', { hasText: 'Lámpara de lectura' }).click();
+  const config = await current(page);
+  const device = config.catalog.devices.find(item => item.bindings.entityId === 'light.reading_lamp');
+  expect(device).toMatchObject({
+    id: 'lampara-de-lectura',
+    roomId: 'kitchen',
+    kind: 'light',
+    display: { label: 'Lámpara de lectura', icon: 'mdi:lightbulb' },
+    bindings: { primaryAction: 'lampara-de-lectura-toggle' },
+  });
+  expect(config.actions['lampara-de-lectura-toggle']).toEqual({
+    domain: 'light',
+    service: 'toggle',
+    target: { entity_id: 'light.reading_lamp' },
+  });
+  expect(await placed).toEqual({ deviceId: 'lampara-de-lectura' });
+  // Adding the same entity again selects the existing device instead of duplicating it.
+  await quick.click();
+  await quick.fill('');
+  await quick.pressSequentially('lectura');
+  await editor(page).locator('.quick [role=option]', { hasText: 'Lámpara de lectura' }).click();
+  await expect(editor(page).getByRole('status')).toContainText('ya está en el plano');
+  expect(
+    (await current(page)).catalog.devices.filter(item => item.bindings.entityId === 'light.reading_lamp'),
+  ).toHaveLength(1);
+  expect(await page.evaluate(() => window.editorTest.calls)).toEqual([]);
 });
 test('fixed location stays locked until explicit correction and bindings survive room correction', async ({ page }) => {
   await field(page, 'Dispositivo').selectOption('synthetic-fan');

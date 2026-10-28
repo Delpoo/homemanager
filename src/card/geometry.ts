@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 import { type RoomId } from './types.js';
 
 export interface ViewBox {
@@ -235,7 +236,7 @@ export function parseViewBox(value: string | null): ViewBox {
     !Number.isFinite(numbers[0] + numbers[2]) ||
     !Number.isFinite(numbers[1] + numbers[3])
   )
-    throw new Error('El SVG requiere un viewBox finito con dimensiones positivas.');
+    throw new Error(t('El SVG requiere un viewBox finito con dimensiones positivas.'));
   return { x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3] };
 }
 export function fitCamera(bounds: ViewBox, viewport: { width: number; height: number }, padding = 32): Camera {
@@ -249,7 +250,7 @@ export function fitCamera(bounds: ViewBox, viewport: { width: number; height: nu
     viewport.height <= 0 ||
     padding < 0
   )
-    throw new Error('No se puede encuadrar una región sin dimensiones válidas.');
+    throw new Error(t('No se puede encuadrar una región sin dimensiones válidas.'));
   const scale = Math.min(
     Math.max(1, viewport.width - padding * 2) / bounds.width,
     Math.max(1, viewport.height - padding * 2) / bounds.height,
@@ -260,7 +261,7 @@ export function fitCamera(bounds: ViewBox, viewport: { width: number; height: nu
     y: viewport.height / 2 - (bounds.y + bounds.height / 2) * scale,
   };
   if (![camera.x, camera.y, camera.scale].every(Number.isFinite) || camera.scale <= 0)
-    throw new Error('Las dimensiones exceden el rango de encuadre.');
+    throw new Error(t('Las dimensiones exceden el rango de encuadre.'));
   return camera;
 }
 export function zoomCamera(camera: Camera, factor: number, point: Point, min: number, max: number): Camera {
@@ -271,11 +272,12 @@ export function zoomCamera(camera: Camera, factor: number, point: Point, min: nu
     min <= 0 ||
     max < min
   )
-    throw new Error('Zoom no válido.');
+    throw new Error(t('Zoom no válido.'));
   const scale = Math.max(min, Math.min(max, camera.scale * factor)),
     ratio = scale / camera.scale;
   const next = { scale, x: point.x - (point.x - camera.x) * ratio, y: point.y - (point.y - camera.y) * ratio };
-  if (![next.x, next.y, next.scale].every(Number.isFinite)) throw new Error('El zoom excede el rango de coordenadas.');
+  if (![next.x, next.y, next.scale].every(Number.isFinite))
+    throw new Error(t('El zoom excede el rango de coordenadas.'));
   return next;
 }
 /** Camera maps SVG global coordinates into viewport pixels, including viewBox
@@ -287,7 +289,7 @@ export function normalizedPoint(point: Point, camera: Camera, box: ViewBox): Poi
     box.width <= 0 ||
     box.height <= 0
   )
-    throw new Error('Coordenadas no válidas.');
+    throw new Error(t('Coordenadas no válidas.'));
   return {
     x: Math.min(1, Math.max(0, ((point.x - camera.x) / camera.scale - box.x) / box.width)),
     y: Math.min(1, Math.max(0, ((point.y - camera.y) / camera.scale - box.y) / box.height)),
@@ -341,7 +343,7 @@ function flattenStyles(root: SVGSVGElement): number {
   const budget = { rules: 0, selectors: 0, applications: 0, visits: 0 },
     nodeCount = 1 + root.querySelectorAll('*').length;
   const exceed = () => {
-    throw new StyleBudgetError('El SVG excede el presupuesto seguro de estilos.');
+    throw new StyleBudgetError(t('El SVG excede el presupuesto seguro de estilos.'));
   };
   const charge = (key: keyof typeof STYLE_LIMITS, count: number) => {
     budget[key] += count;
@@ -455,7 +457,7 @@ function checkReferences(root: SVGSVGElement, ids: Map<string, Element>): void {
   const active = new Set<string>(),
     done = new Set<string>();
   const visit = (id: string) => {
-    if (active.has(id)) throw new Error('El SVG contiene referencias internas cíclicas.');
+    if (active.has(id)) throw new Error(t('El SVG contiene referencias internas cíclicas.'));
     if (done.has(id)) return;
     active.add(id);
     for (const ref of edges.get(id) ?? []) visit(ref);
@@ -502,27 +504,28 @@ export function sanitizeArchitecture(source: string): SanitizedArchitecture {
 }
 function sanitizeUncached(source: string): { content: string; root: SVGSVGElement; box: ViewBox; warnings: string[] } {
   if (typeof source !== 'string' || new TextEncoder().encode(source).byteLength > ARCHITECTURE_MAX_BYTES)
-    throw new Error('El SVG supera el máximo de 1 MiB UTF-8.');
-  if (/<!DOCTYPE|<!ENTITY/i.test(source)) throw new Error('No se permiten DTD ni entidades en el SVG.');
+    throw new Error(t('El SVG supera el máximo de 1 MiB UTF-8.'));
+  if (/<!DOCTYPE|<!ENTITY/i.test(source)) throw new Error(t('No se permiten DTD ni entidades en el SVG.'));
   const documentXML = new DOMParser().parseFromString(source, 'image/svg+xml');
   if (
     documentXML.querySelector('parsererror') ||
     documentXML.documentElement.localName !== 'svg' ||
     documentXML.documentElement.namespaceURI !== SVG_NS
   )
-    throw new Error('Se requiere un único documento SVG XML válido.');
+    throw new Error(t('Se requiere un único documento SVG XML válido.'));
   const root = documentXML.documentElement as unknown as SVGSVGElement,
     box = parseViewBox(root.getAttribute('viewBox'));
   const elements = [root, ...root.querySelectorAll('*')];
-  if (elements.length > 20000) throw new Error('SVG demasiado complejo: máximo 20000 elementos.');
+  if (elements.length > 20000) throw new Error(t('SVG demasiado complejo: máximo 20000 elementos.'));
   const originalIds = new Set<string>();
   let removed = 0;
   for (const element of elements) {
     let depth = 0;
     for (let parent = element.parentElement; parent; parent = parent.parentElement)
-      if (++depth > 64) throw new Error('SVG demasiado profundo.');
+      if (++depth > 64) throw new Error(t('SVG demasiado profundo.'));
     const id = element.getAttribute('id');
-    if (id !== null && (!ID.test(id) || originalIds.has(id))) throw new Error('El SVG requiere IDs válidos y únicos.');
+    if (id !== null && (!ID.test(id) || originalIds.has(id)))
+      throw new Error(t('El SVG requiere IDs válidos y únicos.'));
     if (id) originalIds.add(id);
     if (element.namespaceURI !== SVG_NS || !ELEMENTS.has(element.localName)) {
       element.remove();
@@ -555,15 +558,15 @@ function sanitizeUncached(source: string): { content: string; root: SVGSVGElemen
         continue;
       }
       if (NUMBERS.has(name) && (!NUMERIC_LIST.test(value) || !finiteNumbers(value)))
-        throw new Error(`Atributo geométrico SVG no válido: ${name}.`);
+        throw new Error(t('Atributo geométrico SVG no válido: {name}.', { name }));
       if (
         ['d', 'points'].includes(name) &&
         (!/^[MmZzLlHhVvCcSsQqTtAaEe0-9+.,\s-]*$/.test(value) || !finiteNumbers(value))
       )
-        throw new Error('Trazado SVG no válido.');
+        throw new Error(t('Trazado SVG no válido.'));
       if (/^(?:transform|gradientTransform|patternTransform)$/.test(name) && !validTransform(value))
-        throw new Error('Transformación SVG no válida.');
-      if (PRESENTATION.has(name) && !finitePresentation(name, value)) throw new Error('Presentación SVG no finita.');
+        throw new Error(t('Transformación SVG no válida.'));
+      if (PRESENTATION.has(name) && !finitePresentation(name, value)) throw new Error(t('Presentación SVG no finita.'));
     }
   }
   removed += flattenStyles(root);
@@ -581,7 +584,7 @@ function sanitizeUncached(source: string): { content: string; root: SVGSVGElemen
   root.setAttribute('aria-hidden', 'true');
   root.setAttribute('focusable', 'false');
   if (new TextEncoder().encode(content).byteLength > ARCHITECTURE_MAX_BYTES)
-    throw new Error('El SVG sanitizado supera 1 MiB.');
+    throw new Error(t('El SVG sanitizado supera 1 MiB.'));
   return {
     content,
     root,

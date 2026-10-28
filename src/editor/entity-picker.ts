@@ -1,0 +1,144 @@
+import { t } from '../i18n/index.js';
+import { escapeHTML, type Hass } from '../card/types.js';
+
+/** Searchable entity selector. It enhances a plain text input (so typing an ID
+ * still works and forms keep their values) with a listbox of the session's
+ * entities, matched by friendly name, entity ID and area, accents ignored. */
+
+export interface EntityMatch {
+  entityId: string;
+  name: string;
+  area: string | null;
+  state: string;
+}
+const fold = (value: string) => value.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+export function areaOf(hass: Hass | undefined, entityId: string): string | null {
+  const entry = hass?.entities?.[entityId];
+  const areaId = entry?.area_id ?? (entry?.device_id ? hass?.devices?.[entry.device_id]?.area_id : null);
+  return (areaId && hass?.areas?.[areaId]?.name) || null;
+}
+export function friendlyName(hass: Hass | undefined, entityId: string): string {
+  const name = hass?.states[entityId]?.attributes?.friendly_name;
+  return typeof name === 'string' && name.trim() ? name.trim() : entityId;
+}
+
+export function searchEntities(
+  hass: Hass | undefined,
+  query: string,
+  domains: string[] = [],
+  limit = 40,
+): EntityMatch[] {
+  if (!hass?.states) return [];
+  const tokens = fold(query).split(/\s+/).filter(Boolean);
+  const results: (EntityMatch & { score: number })[] = [];
+  for (const entityId of Object.keys(hass.states)) {
+    if (domains.length && !domains.includes(entityId.split('.')[0])) continue;
+    const name = friendlyName(hass, entityId),
+      area = areaOf(hass, entityId);
+    const haystack = fold(`${name} ${entityId} ${area ?? ''}`);
+    if (!tokens.every(token => haystack.includes(token))) continue;
+    const folded = fold(name);
+    const score = !tokens.length ? 3 : fold(entityId) === tokens.join(' ') ? 0 : folded.startsWith(tokens[0]) ? 1 : 2;
+    results.push({ entityId, name, area, state: hass.states[entityId].state, score });
+  }
+  return results
+    .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))
+    .slice(0, limit)
+    .map(({ score: _score, ...match }) => match);
+}
+
+export const pickerStyles = `.picker-host{position:relative}
+.picker{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:20;max-height:280px;overflow:auto;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:12px;box-shadow:var(--hm-shadow);padding:4px}
+.picker [role=option]{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:8px;cursor:pointer}
+.picker [role=option][aria-selected=true],.picker [role=option]:hover{background:var(--hm-surface)}
+.picker .name{font-size:14px;color:var(--hm-text)}
+.picker .meta{grid-column:1/-1;font-size:12px;color:var(--hm-muted);overflow-wrap:anywhere}
+.picker .state{font-size:12px;color:var(--hm-muted)}
+.picker .none{padding:10px;font-size:13px;color:var(--hm-muted)}`;
+
+let sequence = 0;
+/** Turns `<input data-entity-picker="light,switch">` into a combobox. Selecting an
+ * option sets the entity ID and fires input/change, exactly like typing it. */
+export function enhanceEntityInput(input: HTMLInputElement, getHass: () => Hass | undefined): void {
+  if (input.dataset.pickerReady) return;
+  input.dataset.pickerReady = 'true';
+  const domains = (input.dataset.entityPicker ?? '').split(',').filter(Boolean);
+  const host = input.parentElement!;
+  host.classList.add('picker-host');
+  const list = document.createElement('div');
+  list.className = 'picker';
+  list.id = `hm-picker-${++sequence}`;
+  list.setAttribute('role', 'listbox');
+  list.hidden = true;
+  host.append(list);
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', list.id);
+  input.setAttribute('aria-expanded', 'false');
+  input.autocomplete = 'off';
+  let matches: EntityMatch[] = [],
+    active = -1;
+  const close = () => {
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  };
+  const choose = (match: EntityMatch) => {
+    input.value = match.entityId;
+    close();
+    input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  };
+  const paint = () => {
+    list.innerHTML = matches.length
+      ? matches
+          .map(
+            (match, index) =>
+              `<div role="option" id="${list.id}-${index}" aria-selected="${index === active}" data-index="${index}"><span class="name">${escapeHTML(match.name)}</span><span class="state">${escapeHTML(match.state)}</span><span class="meta">${escapeHTML(match.entityId)}${match.area ? ` · ${escapeHTML(match.area)}` : ''}</span></div>`,
+          )
+          .join('')
+      : `<div class="none">${escapeHTML(t('No hay entidades que coincidan.'))}</div>`;
+    if (active >= 0) input.setAttribute('aria-activedescendant', `${list.id}-${active}`);
+    else input.removeAttribute('aria-activedescendant');
+  };
+  const open = () => {
+    matches = searchEntities(getHass(), input.value, domains);
+    active = -1;
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    paint();
+  };
+  input.addEventListener('focus', () => {
+    // Typing replaces the current entity instead of appending to its ID.
+    input.select();
+    open();
+  });
+  input.addEventListener('input', event => {
+    if (event.isTrusted) open();
+  });
+  input.addEventListener('blur', () => setTimeout(close, 120));
+  input.addEventListener('keydown', event => {
+    if (list.hidden && event.key === 'ArrowDown') return open();
+    if (list.hidden) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      active = Math.max(0, Math.min(matches.length - 1, active + (event.key === 'ArrowDown' ? 1 : -1)));
+      paint();
+      list.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'Enter' && active >= 0) {
+      event.preventDefault();
+      choose(matches[active]);
+    } else if (event.key === 'Escape') {
+      event.stopPropagation();
+      close();
+    }
+  });
+  // mousedown (not click) so the input does not blur before the choice lands.
+  list.addEventListener('mousedown', event => {
+    const option = (event.target as Element).closest<HTMLElement>('[role=option]');
+    if (!option) return;
+    event.preventDefault();
+    choose(matches[Number(option.dataset.index)]);
+  });
+}

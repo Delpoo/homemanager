@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 import { validateConfiguration } from '../card/configuration.js';
 import { clone, type Configuration, type Hass } from '../card/types.js';
 
@@ -22,25 +23,25 @@ function record(value: unknown): value is JsonRecord {
 function fingerprint(value: unknown): string {
   const seen = new Set<object>();
   function sorted(input: unknown, depth: number): unknown {
-    if (depth > 80) throw new Error('El dashboard excede la profundidad admitida.');
+    if (depth > 80) throw new Error(t('El dashboard excede la profundidad admitida.'));
     if (input === null || typeof input === 'string' || typeof input === 'boolean') return input;
     if (typeof input === 'number' && Number.isFinite(input)) return input;
     if (Array.isArray(input)) {
-      if (seen.has(input)) throw new Error('El dashboard contiene referencias circulares.');
+      if (seen.has(input)) throw new Error(t('El dashboard contiene referencias circulares.'));
       seen.add(input);
       const output = input.map(value => sorted(value, depth + 1));
       seen.delete(input);
       return output;
     }
     if (record(input)) {
-      if (seen.has(input)) throw new Error('El dashboard contiene referencias circulares.');
+      if (seen.has(input)) throw new Error(t('El dashboard contiene referencias circulares.'));
       seen.add(input);
       const output = Object.create(null) as JsonRecord;
       for (const key of Object.keys(input).sort()) output[key] = sorted(input[key], depth + 1);
       seen.delete(input);
       return output;
     }
-    throw new Error('El dashboard no es un documento JSON válido.');
+    throw new Error(t('El dashboard no es un documento JSON válido.'));
   }
   return JSON.stringify(sorted(value, 0));
 }
@@ -48,12 +49,12 @@ function fingerprint(value: unknown): string {
 /** Inspect UI card containers only; a catalog or arbitrary nested data is never a card. */
 function matchingCards(dashboard: unknown, cardId: string): JsonRecord[] {
   if (!record(dashboard) || !Array.isArray(dashboard.views))
-    throw new Error('Este dashboard no tiene vistas editables explícitas.');
+    throw new Error(t('Este dashboard no tiene vistas editables explícitas.'));
   const matches: JsonRecord[] = [];
   let visited = 0;
   function visitCard(node: unknown, depth: number): void {
     if (!record(node)) return;
-    if (++visited > 20000 || depth > 40) throw new Error('La estructura de tarjetas es demasiado compleja.');
+    if (++visited > 20000 || depth > 40) throw new Error(t('La estructura de tarjetas es demasiado compleja.'));
     if (node.type === 'custom:homemanager-card' && node.card_id === cardId) matches.push(node);
     if (Array.isArray(node.cards)) node.cards.forEach(value => visitCard(value, depth + 1));
     if (record(node.card)) visitCard(node.card, depth + 1);
@@ -72,8 +73,8 @@ function uniqueCard(dashboard: unknown, cardId: string): JsonRecord {
   if (matches.length !== 1)
     throw new Error(
       matches.length
-        ? 'Hay varias tarjetas con el mismo card_id; no se guardó.'
-        : 'No se encontró una tarjeta única con ese card_id.',
+        ? t('Hay varias tarjetas con el mismo card_id; no se guardó.')
+        : t('No se encontró una tarjeta única con ese card_id.'),
     );
   return matches[0];
 }
@@ -90,7 +91,7 @@ export interface ConfigurationStore {
 
 /** Authenticated shared storage. Never writes localStorage or falls back to it. */
 export class LovelaceConfigurationStore implements ConfigurationStore {
-  readonly label = 'Home Assistant · dashboard';
+  readonly label = t('Home Assistant · dashboard');
   private baseline: string | undefined;
   private writing = false;
   private loading = false;
@@ -102,23 +103,23 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
     private readonly options: LovelaceStoreOptions,
   ) {
     if (!options.cardId || options.cardId.length > 240 || !/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(options.cardId))
-      throw new Error('Definí un card_id estable y válido.');
+      throw new Error(t('Definí un card_id estable y válido.'));
     if (options.dashboardPath !== undefined && (!options.dashboardPath || /[/?#\s]/.test(options.dashboardPath)))
-      throw new Error('El dashboard_path debe ser un identificador de dashboard.');
+      throw new Error(t('El dashboard_path debe ser un identificador de dashboard.'));
     this.path = options.dashboardPath ?? null;
   }
   private session(write = false): Hass & { callWS: NonNullable<Hass['callWS']> } {
     const hass = this.getHass();
     if (!hass?.callWS || hass.connected === false || hass.connection?.connected === false)
-      throw new Error('La sesión de Home Assistant no está conectada. El borrador se conserva.');
+      throw new Error(t('La sesión de Home Assistant no está conectada. El borrador se conserva.'));
     if (write) {
       if (hass.user?.is_admin !== true)
-        throw new Error('Guardar requiere una sesión administradora de Home Assistant.');
+        throw new Error(t('Guardar requiere una sesión administradora de Home Assistant.'));
       const panelMode = hass.panels?.[this.path ?? 'lovelace']?.config?.mode;
       if (this.options.dashboardMode === 'yaml' || panelMode === 'yaml')
-        throw new Error('Un dashboard YAML es de solo lectura para este editor.');
+        throw new Error(t('Un dashboard YAML es de solo lectura para este editor.'));
       if (panelMode !== 'storage' && this.options.dashboardMode !== 'storage')
-        throw new Error('No se pudo comprobar que el dashboard use modo storage.');
+        throw new Error(t('No se pudo comprobar que el dashboard use modo storage.'));
     }
     return hass as Hass & { callWS: NonNullable<Hass['callWS']> };
   }
@@ -132,7 +133,7 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
       current.user?.id !== expected.userId ||
       current.connection !== expected.connection
     )
-      throw new Error('La sesión cambió durante la operación. Volvé a cargar antes de guardar.');
+      throw new Error(t('La sesión cambió durante la operación. Volvé a cargar antes de guardar.'));
   }
   private async read(expected?: SessionIdentity): Promise<JsonRecord> {
     if (expected) this.sameSession(expected);
@@ -142,11 +143,11 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
       force: true,
     });
     if (expected) this.sameSession(expected);
-    if (!record(dashboard)) throw new Error('Home Assistant devolvió un dashboard inválido.');
+    if (!record(dashboard)) throw new Error(t('Home Assistant devolvió un dashboard inválido.'));
     return clone(dashboard);
   }
   async load(): Promise<Configuration> {
-    if (this.writing || this.loading) throw new Error('Hay una operación en curso; esperá a que termine.');
+    if (this.writing || this.loading) throw new Error(t('Hay una operación en curso; esperá a que termine.'));
     this.loading = true;
     try {
       const session = this.identity(this.session());
@@ -161,8 +162,9 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
     }
   }
   async save(configuration: Configuration): Promise<void> {
-    if (this.writing || this.loading) throw new Error('Hay una operación en curso; no se inició otra.');
-    if (this.baseline === undefined) throw new Error('Cargá primero la configuración del dashboard antes de guardar.');
+    if (this.writing || this.loading) throw new Error(t('Hay una operación en curso; no se inició otra.'));
+    if (this.baseline === undefined)
+      throw new Error(t('Cargá primero la configuración del dashboard antes de guardar.'));
     // Strict validation here is intentional: pending references remain editable, not savable.
     const clean = validateConfiguration(configuration);
     const session = this.identity(this.session(true));
@@ -172,11 +174,11 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
       const current = await this.read(session);
       if (fingerprint(uniqueCard(current, this.options.cardId).configuration) !== this.baseline)
         throw new Error(
-          'La configuración cambió en otro editor. Recargá y revisá los cambios; el borrador se conserva.',
+          t('La configuración cambió en otro editor. Recargá y revisá los cambios; el borrador se conserva.'),
         );
       const latest = await this.read(session);
       if (fingerprint(latest) !== fingerprint(current))
-        throw new Error('El dashboard cambió mientras se preparaba el guardado. No se sobrescribió.');
+        throw new Error(t('El dashboard cambió mientras se preparaba el guardado. No se sobrescribió.'));
       // Replace only our persistent document; preserve all other cards and dashboard fields.
       uniqueCard(latest, this.options.cardId).configuration = clone(clean);
       // HA rejects websocket messages above 4 MiB (aiohttp default) and the save
@@ -186,14 +188,17 @@ export class LovelaceConfigurationStore implements ConfigurationStore {
       ).byteLength;
       if (bytes > MAX_SAVE_BYTES)
         throw new Error(
-          `El dashboard ocuparía ${(bytes / 1048576).toFixed(1)} MiB y Home Assistant admite hasta 4 MiB por mensaje. Reducí el plano o mové otras tarjetas a otro dashboard; el borrador se conserva.`,
+          t(
+            'El dashboard ocuparía {size} MiB y Home Assistant admite hasta 4 MiB por mensaje. Reducí el plano o mové otras tarjetas a otro dashboard; el borrador se conserva.',
+            { size: (bytes / 1048576).toFixed(1) },
+          ),
         );
       this.sameSession(session);
       await this.session(true).callWS({ type: 'lovelace/config/save', url_path: this.path, config: latest });
       const readback = await this.read(session);
       const saved = validateConfiguration(uniqueCard(readback, this.options.cardId).configuration);
       if (fingerprint(saved) !== fingerprint(clean))
-        throw new Error('Home Assistant no confirmó la configuración esperada. El borrador se conserva.');
+        throw new Error(t('Home Assistant no confirmó la configuración esperada. El borrador se conserva.'));
       this.baseline = fingerprint(uniqueCard(readback, this.options.cardId).configuration);
     } finally {
       this.writing = false;

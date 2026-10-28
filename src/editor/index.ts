@@ -1,3 +1,4 @@
+import { t, getLanguage, setLanguage, languageFromHass } from '../i18n/index.js';
 import { validateConfiguration } from '../card/configuration.js';
 import { migrateConfiguration } from '../ha/migration.mjs';
 import {
@@ -38,16 +39,21 @@ import {
 } from './model.js';
 type Box = { x: number; y: number; width: number; height: number };
 export { LovelaceConfigurationStore, type ConfigurationStore } from './storage.js';
+import { enhanceEntityInput, friendlyName, areaOf, pickerStyles } from './entity-picker.js';
+import { defaultPrimaryCommand, domainOf, suggestPresentation } from '../panels/controls.js';
+import { tokens } from '../ui/theme.js';
 export * from './model.js';
 
-const css = `:host{display:block;font:14px system-ui,sans-serif;color:var(--primary-text-color,#243c34)}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--card-background-color,#fff);border:1px solid #c9d4cc;border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:#edf3ed}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid #c9d4cc;border-radius:8px;background:var(--card-background-color,#fff);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #4384b1;outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:#276b52;color:white;border-color:#276b52}.danger{color:#a43b31}.section{margin-top:15px;border:1px solid #dce4dd;border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:#64766a}.pending{color:#946722}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:#f8eedc;border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:#f2f5ef;border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:#f2f5ef;border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid #c9d4cc;border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid #b8cbb9;border-radius:9px;background:#f1f6ed}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:#6d7b72}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
+const css = `${tokens}${pickerStyles}
+.quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
+:host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
   `<label class="field">${label}<input name="${name}" aria-label="${label}" value="${esc(value)}" ${extra}></label>`;
 function value(form: FormData, name: string): string {
   const item = form.get(name);
-  if (item !== null && typeof item !== 'string') throw new Error('El formulario debe contener texto.');
+  if (item !== null && typeof item !== 'string') throw new Error(t('El formulario debe contener texto.'));
   return (item ?? '').trim();
 }
 
@@ -83,6 +89,9 @@ export class HomeManagerEditor extends HTMLElement {
   private migrating = false;
   /** Survives the asynchronous re-render that follows the homes list refresh. */
   private homeMessage = '';
+  /** Integration home this editor belongs to (set by the card): enables plan history. */
+  homeId?: string;
+  private plans?: { plan_id: string; created_at: string; bytes: number; revision: number }[];
   constructor() {
     super();
     this.root.addEventListener('click', this.onClick);
@@ -133,20 +142,13 @@ export class HomeManagerEditor extends HTMLElement {
       this._selectedDeviceId = next.configuration.catalog.devices[0]?.id ?? null;
     this.render();
   }
-  // Rebuilding a datalist with every HA entity on each state change is the
-  // editor's most expensive path; only rebuild when the set of entities changes.
-  private entityKey = '';
   set hass(hass: Hass) {
+    setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
     if (first && (this.homeConfig || integrationAvailable(hass))) {
       void this.refreshHomes();
       if (this.config && !this._embedded) this.render();
-    }
-    const key = Object.keys(hass?.states ?? {}).join(' ');
-    if (key !== this.entityKey) {
-      this.entityKey = key;
-      this.updateEntityOptions();
     }
   }
   get hass(): Hass | undefined {
@@ -175,7 +177,7 @@ export class HomeManagerEditor extends HTMLElement {
     return this.config ? persistentConfiguration(this.config.configuration) : undefined;
   }
   private get configuration(): Configuration {
-    if (!this.config) throw new Error('Falta la configuración de HomeManager.');
+    if (!this.config) throw new Error(t('Falta la configuración de HomeManager.'));
     return this.config.configuration;
   }
   private device(): Device | undefined {
@@ -192,7 +194,7 @@ export class HomeManagerEditor extends HTMLElement {
       new CustomEvent('config-changed', { bubbles: true, composed: true, detail: { config: clone(this.config) } }),
     );
     this.render();
-    this.notice('Borrador actualizado. Usá el guardado explícito de la tarjeta o del dashboard.');
+    this.notice(t('Borrador actualizado. Usá el guardado explícito de la tarjeta o del dashboard.'));
   }
   private section(id: string, title: string, body: string): string {
     return `<details class="section" id="${id}"${this.openSections.has(id) ? ' open' : ''}><summary>${title}</summary><div class="section-body">${body}</div></details>`;
@@ -218,17 +220,17 @@ export class HomeManagerEditor extends HTMLElement {
       ),
       ...(homes.some(item => item.home_id === home.home_id)
         ? []
-        : [option(home.home_id, `${home.home_id} · todavía no existe`, home.home_id)]),
+        : [option(home.home_id, t('{id} · todavía no existe', { id: home.home_id }), home.home_id)]),
     ].join('');
-    return `<style>${css}</style><div class="editor"><h2>HomeManager</h2><p class="note">Esta tarjeta muestra un hogar guardado en la integración HomeManager. El plano, los espacios y los dispositivos se editan con <strong>Editar plano</strong> en la tarjeta o desde el panel HomeManager; el dashboard sólo guarda la referencia.</p><form id="home-card-form"><div class="grid"><label class="field">Hogar<select name="home_id" aria-label="Hogar">${options}</select></label>${input('title', 'Título de la tarjeta', home.title ?? '', 'maxlength="240" placeholder="HomeManager"')}</div><div class="actions"><button type="submit" class="primary">Aplicar</button></div></form><div class="status" role="status" aria-live="polite">${esc(this.homeMessage)}</div></div>`;
+    return `<style>${css}</style><div class="editor"><h2>HomeManager</h2><p class="note">${esc(t('Esta tarjeta muestra un hogar guardado en la integración HomeManager. El plano, los espacios y los dispositivos se editan con'))} <strong>${esc(t('Editar plano'))}</strong> ${esc(t('en la tarjeta o desde el panel HomeManager; el dashboard sólo guarda la referencia.'))}</p><form id="home-card-form"><div class="grid"><label class="field">${esc(t('Hogar'))}<select name="home_id" aria-label="${esc(t('Hogar'))}">${options}</select></label>${input('title', t('Título de la tarjeta'), home.title ?? '', `maxlength="240" placeholder="${esc(t('HomeManager'))}"`)}</div><div class="actions"><button type="submit" class="primary">${esc(t('Aplicar'))}</button></div></form><div class="status" role="status" aria-live="polite">${esc(this.homeMessage)}</div></div>`;
   }
   private migrationForm(): string {
     if (this._embedded || !integrationAvailable(this._hass) || !this.config) return '';
     const suggested = this.config.card_id.slice(0, 64).replace(/-+$/, '') || 'home';
     return this.section(
       'migrate-section',
-      'Mover a la integración HomeManager',
-      `<p class="note">Guarda este plano en la integración (fuera del dashboard, con control de versiones e historial de planos) y deja en la tarjeta sólo la referencia. Después pulsá <strong>Guardar</strong> en el editor de Home Assistant.</p><form id="migrate-form"><div class="grid">${input('homeId', 'ID del hogar', suggested, 'required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*"')}</div><div class="actions"><button type="submit" class="primary"${this.migrating ? ' disabled' : ''}>Mover a la integración</button></div></form>`,
+      t('Mover a la integración HomeManager'),
+      `<p class="note">${esc(t('Guarda este plano en la integración (fuera del dashboard, con control de versiones e historial de planos) y deja en la tarjeta sólo la referencia. Después pulsá'))} <strong>${esc(t('Guardar'))}</strong> ${esc(t('en el editor de Home Assistant.'))}</p><form id="migrate-form"><div class="grid">${input('homeId', t('ID del hogar'), suggested, 'required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*"')}</div><div class="actions"><button type="submit" class="primary"${this.migrating ? ' disabled' : ''}>${esc(t('Mover a la integración'))}</button></div></form>`,
     );
   }
   private async migrate(homeId: string): Promise<void> {
@@ -239,15 +241,18 @@ export class HomeManagerEditor extends HTMLElement {
       await store.load();
       if (store.revision !== null)
         throw new Error(
-          `Ya existe un hogar «${homeId}». Elegí otro ID; para mostrar ese hogar, cambiá la tarjeta a home_id: ${homeId}.`,
+          t('Ya existe un hogar «{id}». Elegí otro ID; para mostrar ese hogar, cambiá la tarjeta a home_id: {id}.', {
+            id: homeId,
+          }),
         );
       // Pending references move as they are: the draft keeps the same semantics.
       await store.save(persistentConfiguration(this.config.configuration), { allowPending: true });
       const card: Record<string, unknown> = { type: this.config.type, card_id: this.config.card_id, home_id: homeId };
       if (this.config.title) card.title = this.config.title;
       this.migrating = false;
-      this.homeMessage =
-        'Plano guardado en la integración. Pulsá Guardar en el editor de Home Assistant para que la tarjeta use el hogar.';
+      this.homeMessage = t(
+        'Plano guardado en la integración. Pulsá Guardar en el editor de Home Assistant para que la tarjeta use el hogar.',
+      );
       this.emitCard(card);
       this.setConfig(card as unknown as CardConfig);
     } catch (error) {
@@ -262,28 +267,30 @@ export class HomeManagerEditor extends HTMLElement {
       return;
     }
     if (!this.config) {
-      this.root.innerHTML = `<style>${css}</style><div class="editor">Configuración pendiente.</div>`;
+      this.root.innerHTML = `<style>${css}</style><div class="editor">${esc(t('Configuración pendiente.'))}</div>`;
       return;
     }
     const configuration = this.configuration,
       selected = this.adding ? undefined : this.device();
     const pending = pendingReferences(configuration, this._hass?.states);
-    this.root.innerHTML = `<style>${css}</style><div class="editor">${this._embedded ? '' : '<h2>HomeManager · configuración</h2>'}<div class="toolbar"><label class="sr" for="device-select">Dispositivo</label><select id="device-select" aria-label="Dispositivo"><option value="">Seleccionar icono</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select><button type="button" data-command="add">Agregar icono</button>${selected ? '<button type="button" class="danger" data-command="delete">Eliminar icono</button>' : ''}</div>
-      ${this.confirmDelete && selected ? `<div class="preview"><p class="note">Se elimina sólo el icono y su fuente de estado en este plano. Las entidades, acciones y paneles reutilizables permanecen.</p><button type="button" class="danger" data-command="confirm-delete">Confirmar eliminación</button><button type="button" data-command="cancel-delete">Cancelar</button></div>` : ''}
-      ${selected || this.adding || !configuration.catalog.devices.length ? this.deviceForm(selected) : '<p class="note">Seleccioná un icono o agregá uno.</p>'}
-      ${this.section('rooms-section', `Espacios (${configuration.rooms.length})`, this.roomsForm())}
-      ${this.section('state-section', 'Fuente de estado', this.stateForm(selected))}
-      ${this.section('actions-section', 'Acciones lógicas', this.actionForm())}
-      ${this.section('panels-section', 'Paneles nativos', this.panelForm())}
-      ${pending.length ? this.section('pending-section', `Referencias pendientes (${pending.length})`, `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul><p class="note">No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.</p>`) : ''}
-      ${this.section('import-section', 'Importar y exportar', this.importForm())}
+    this.root.innerHTML = `<style>${css}</style><div class="editor">${this._embedded ? '' : `<h2>${esc(t('HomeManager · configuración'))}</h2>`}<div class="toolbar"><label class="sr" for="device-select">${esc(t('Dispositivo'))}</label><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select><button type="button" data-command="add">${esc(t('Agregar icono'))}</button>${selected ? `<button type="button" class="danger" data-command="delete">${esc(t('Eliminar icono'))}</button>` : ''}</div>
+      <div class="quick"><label class="field">${esc(t('Agregar dispositivo desde Home Assistant'))}<input id="quick-add" aria-label="${esc(t('Agregar dispositivo desde Home Assistant'))}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></label><p class="note">${esc(t('Se crea con su nombre, icono y acción principal; después tocá el plano para ubicarlo.'))}</p></div>
+      ${this.confirmDelete && selected ? `<div class="preview"><p class="note">${esc(t('Se elimina sólo el icono y su fuente de estado en este plano. Las entidades, acciones y paneles reutilizables permanecen.'))}</p><button type="button" class="danger" data-command="confirm-delete">${esc(t('Confirmar eliminación'))}</button><button type="button" data-command="cancel-delete">${esc(t('Cancelar'))}</button></div>` : ''}
+      ${selected || this.adding || !configuration.catalog.devices.length ? this.deviceForm(selected) : `<p class="note">${esc(t('Seleccioná un icono o agregá uno.'))}</p>`}
+      ${this.section('rooms-section', t('Espacios ({count})', { count: configuration.rooms.length }), this.roomsForm())}
+      ${this.section('state-section', t('Fuente de estado'), this.stateForm(selected))}
+      ${this.section('actions-section', t('Acciones lógicas'), this.actionForm())}
+      ${this.section('panels-section', t('Paneles nativos'), this.panelForm())}
+      ${pending.length ? this.section('pending-section', `Referencias pendientes (${pending.length})`, `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul><p class="note">${esc(t('No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.'))}</p>`) : ''}
+      ${this.section('import-section', t('Importar y exportar'), this.importForm())}
       ${this.migrationForm()}
-      <div class="status" role="status" aria-live="polite"></div><datalist id="entity-options"></datalist></div>`;
-    this.updateEntityOptions();
+      <div class="status" role="status" aria-live="polite"></div></div>`;
+    for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
+      enhanceEntityInput(field, () => this._hass);
   }
   private roomOptions(selected: string): string {
     return (
-      option('', 'Sin espacio asignado', selected) +
+      option('', t('Sin espacio asignado'), selected) +
       this.configuration.rooms.map(room => option(room.id, room.label, selected)).join('')
     );
   }
@@ -303,13 +310,13 @@ export class HomeManagerEditor extends HTMLElement {
     const rows = rooms
       .map(
         (room, index) =>
-          `<div class="room-row"><label class="field">Nombre de ${esc(room.id)}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ' · <strong>sin zona en el plano</strong>'}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}>↑</button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}">×</button></div>`,
+          `<div class="room-row"><label class="field">Nombre de ${esc(room.id)}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}>↑</button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}">×</button></div>`,
       )
       .join('');
-    return `<p class="note">Cada espacio corresponde a la zona <code>room-ID</code> del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.</p>
-      ${rooms.length ? `<form id="rooms-form">${rows}<div class="actions"><button type="submit" class="primary">Aplicar nombres</button></div></form>` : '<p class="note">Todavía no hay espacios.</p>'}
-      ${candidates.length ? `<h3>Zonas detectadas en el plano</h3><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">Agregar ${esc(zone.label ?? zone.id)}</button>`).join('')}<button type="button" data-command="room-add-all">Agregar todas (${candidates.length})</button></div>` : ''}
-      <form id="room-add-form"><div class="grid">${input('roomId', 'ID del nuevo espacio', '', 'placeholder="kebab-case, p. ej. estudio" pattern="[a-z0-9]+(-[a-z0-9]+)*"')}${input('roomLabel', 'Nombre del nuevo espacio', '', 'maxlength="240"')}</div><div class="actions"><button type="submit">Agregar espacio</button></div></form>`;
+    return `<p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
+      ${rooms.length ? `<form id="rooms-form">${rows}<div class="actions"><button type="submit" class="primary">${esc(t('Aplicar nombres'))}</button></div></form>` : `<p class="note">${esc(t('Todavía no hay espacios.'))}</p>`}
+      ${candidates.length ? `<h3>${esc(t('Zonas detectadas en el plano'))}</h3><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">Agregar ${esc(zone.label ?? zone.id)}</button>`).join('')}<button type="button" data-command="room-add-all">Agregar todas (${candidates.length})</button></div>` : ''}
+      <form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form>`;
   }
   private deviceForm(device?: Device): string {
     const fixed = device?.mobility === 'fixed' && !this.allowFixedPosition;
@@ -317,12 +324,12 @@ export class HomeManagerEditor extends HTMLElement {
       panels = Object.keys(this.configuration.panels);
     const actionId = device?.bindings.primaryAction ?? '',
       panelId = device?.bindings.advancedPopupId ?? '';
-    return `<form id="device-form"><div class="grid">${input('label', 'Nombre del dispositivo', device?.display.label ?? '', 'required maxlength="240"')}${input('id', 'ID del dispositivo', device?.id ?? '', device ? 'readonly' : 'placeholder="Automático si se deja vacío"')}${input('icon', 'Icono del dispositivo', device?.display.icon ?? 'mdi:lightbulb-outline', 'required')}<label class="field">Tipo de dispositivo<select name="kind" aria-label="Tipo de dispositivo">${KINDS.map(kind => option(kind, kind, device?.kind ?? 'light')).join('')}</select></label><label class="field">Movilidad del dispositivo<select name="mobility" aria-label="Movilidad del dispositivo">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></label><label class="field">Habitación del dispositivo<select name="roomId" aria-label="Habitación del dispositivo" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : (this.configuration.rooms[0]?.id ?? ''))}</select></label>${input('x', 'Posición X', device?.position.x ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', 'Posición Y', device?.position.y ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('entityId', 'Entidad del dispositivo', device?.bindings.entityId ?? '', 'list="entity-options" placeholder="Sin vincular"')}<label class="field">Acción principal<select name="primaryAction" aria-label="Acción principal">${option('', 'Sin acción', actionId)}${actionId && !actions.includes(actionId) ? option(actionId, `${actionId} · pendiente`, actionId) : ''}${actions.map(key => option(key, key, actionId)).join('')}</select></label><label class="field">Panel nativo<select name="panelId" aria-label="Panel nativo">${option('', 'Sin panel', panelId)}${panelId && !panels.includes(panelId) ? option(panelId, `${panelId} · pendiente`, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>${fixed ? '<button type="button" data-command="correct-fixed">Corregir ubicación fija</button>' : ''}<div class="actions"><button class="primary" type="submit">Aplicar dispositivo</button></div></form>`;
+    return `<form id="device-form"><div class="grid">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly' : `placeholder="${esc(t('Automático si se deja vacío'))}"`)}${input('icon', t('Icono del dispositivo'), device?.display.icon ?? 'mdi:lightbulb-outline', 'required')}<label class="field">${esc(t('Tipo de dispositivo'))}<select name="kind" aria-label="${esc(t('Tipo de dispositivo'))}">${KINDS.map(kind => option(kind, kind, device?.kind ?? 'light')).join('')}</select></label><label class="field">${esc(t('Movilidad del dispositivo'))}<select name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></label><label class="field">${esc(t('Habitación del dispositivo'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : (this.configuration.rooms[0]?.id ?? ''))}</select></label>${input('x', t('Posición X'), device?.position.x ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), device?.position.y ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('entityId', t('Entidad del dispositivo'), device?.bindings.entityId ?? '', `data-entity-picker="" placeholder="${esc(t('Sin vincular'))}"`)}<label class="field">${esc(t('Acción principal'))}<select name="primaryAction" aria-label="${esc(t('Acción principal'))}">${option('', t('Sin acción'), actionId)}${actionId && !actions.includes(actionId) ? option(actionId, `${actionId} · pendiente`, actionId) : ''}${actions.map(key => option(key, key, actionId)).join('')}</select></label><label class="field">${esc(t('Panel nativo'))}<select name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, `${panelId} · pendiente`, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}<div class="actions"><button class="primary" type="submit">${esc(t('Aplicar dispositivo'))}</button></div></form>`;
   }
   private stateForm(device?: Device): string {
-    if (!device) return '<p class="note">Seleccioná un icono para declarar su fuente.</p>';
+    if (!device) return `<p class="note">${esc(t('Seleccioná un icono para declarar su fuente.'))}</p>`;
     const source = this.configuration.stateSources[device.id];
-    return `<form id="state-form"><div class="grid">${input('entityId', 'Entidad de estado', source?.entityId ?? device.bindings.entityId ?? '', 'list="entity-options" placeholder="Sin fuente"')}${input('attribute', 'Atributo de estado', source?.attribute ?? '', 'placeholder="Estado principal si se deja vacío"')}<label class="field">Tipo de feedback<select name="feedback" aria-label="Tipo de feedback">${['optimistic', 'measured', 'transmitter'].map(kind => option(kind, kind, source?.feedback ?? 'optimistic')).join('')}</select></label></div><label class="check"><input type="checkbox" name="verified" aria-label="Revisé la fuente independiente"><span>Para measured: revisé que la fuente sea independiente. Esta elección no demuestra el estado físico ni sustituye la verificación de la integración.</span></label><div class="actions"><button type="submit" class="primary">Aplicar fuente</button></div></form>`;
+    return `<form id="state-form"><div class="grid">${input('entityId', t('Entidad de estado'), source?.entityId ?? device.bindings.entityId ?? '', `data-entity-picker="" placeholder="${esc(t('Sin fuente'))}"`)}${input('attribute', t('Atributo de estado'), source?.attribute ?? '', `placeholder="${esc(t('Estado principal si se deja vacío'))}"`)}<label class="field">${esc(t('Tipo de feedback'))}<select name="feedback" aria-label="${esc(t('Tipo de feedback'))}">${['optimistic', 'measured', 'transmitter'].map(kind => option(kind, kind, source?.feedback ?? 'optimistic')).join('')}</select></label></div><label class="check"><input type="checkbox" name="verified" aria-label="${esc(t('Revisé la fuente independiente'))}"><span>${esc(t('Para measured: revisé que la fuente sea independiente. Esta elección no demuestra el estado físico ni sustituye la verificación de la integración.'))}</span></label><div class="actions"><button type="submit" class="primary">${esc(t('Aplicar fuente'))}</button></div></form>`;
   }
   private actionForm(): string {
     const action = this.configuration.actions[this.actionId],
@@ -332,25 +339,25 @@ export class HomeManagerEditor extends HTMLElement {
         ? action.target.entity_id.join(', ')
         : action.target.entity_id
       : '';
-    return `<label class="field">Acción a editar<select aria-label="Acción a editar" id="action-select">${option('', 'Nueva acción', this.actionId)}${Object.keys(
+    return `<label class="field">${esc(t('Acción a editar'))}<select aria-label="${esc(t('Acción a editar'))}" id="action-select">${option('', t('Nueva acción'), this.actionId)}${Object.keys(
       this.configuration.actions,
     )
       .map(key => option(key, key, this.actionId))
       .join(
         '',
-      )}</select></label><form id="action-form"><div class="grid">${input('actionId', 'ID de acción', this.actionId, this.actionId ? 'required readonly' : 'required')}<label class="field">Dominio<select name="domain" aria-label="Dominio">${Object.keys(
+      )}</select></label><form id="action-form"><div class="grid">${input('actionId', t('ID de acción'), this.actionId, this.actionId ? 'required readonly' : 'required')}<label class="field">${esc(t('Dominio'))}<select name="domain" aria-label="${esc(t('Dominio'))}">${Object.keys(
       SERVICES,
     )
       .map(key => option(key, key, domain))
       .join(
         '',
-      )}</select></label><label class="field">Servicio<select name="service" aria-label="Servicio">${SERVICES[domain].map(service => option(service, service, action?.service ?? SERVICES[domain][0])).join('')}</select></label>${input('targets', 'Destinos de la acción', targets, 'required placeholder="dominio.entidad; separá varios con comas"')}<label class="field full">Datos de la acción<textarea name="data" aria-label="Datos de la acción" maxlength="8192">${esc(JSON.stringify(action?.data ?? {}, null, 2))}</textarea></label></div><p class="note">Destinos explícitos; sin códigos de radio ni plantillas. Los scripts requieren comprobar sus parámetros y firma en HA.</p><div class="actions"><button type="submit" class="primary">Aplicar acción</button></div></form>`;
+      )}</select></label><label class="field">${esc(t('Servicio'))}<select name="service" aria-label="${esc(t('Servicio'))}">${SERVICES[domain].map(service => option(service, service, action?.service ?? SERVICES[domain][0])).join('')}</select></label>${input('targets', t('Destinos de la acción'), targets, `required placeholder="${esc(t('dominio.entidad; separá varios con comas'))}"`)}<label class="field full">${esc(t('Datos de la acción'))}<textarea name="data" aria-label="${esc(t('Datos de la acción'))}" maxlength="8192">${esc(JSON.stringify(action?.data ?? {}, null, 2))}</textarea></label></div><p class="note">${esc(t('Destinos explícitos; sin códigos de radio ni plantillas. Los scripts requieren comprobar sus parámetros y firma en HA.'))}</p><div class="actions"><button type="submit" class="primary">${esc(t('Aplicar acción'))}</button></div></form>`;
   }
   private controlRows(): string {
     return this.panelRows
       .map(
         (control, index) =>
-          `<div class="control-row">${input(`control-id-${index}`, `ID de control ${index + 1}`, control.id, 'required')}${input(`control-label-${index}`, `Nombre de control ${index + 1}`, control.label, 'required')}<label class="field">Acción de control ${index + 1}<select name="control-action-${index}" aria-label="Acción de control ${index + 1}">${option('', 'Elegir acción', control.actionId)}${control.actionId && !Object.hasOwn(this.configuration.actions, control.actionId) ? option(control.actionId, `${control.actionId} · pendiente`, control.actionId) : ''}${Object.keys(
+          `<div class="control-row">${input(`control-id-${index}`, t('ID de control {n}', { n: index + 1 }), control.id, 'required')}${input(`control-label-${index}`, t('Nombre de control {n}', { n: index + 1 }), control.label, 'required')}<label class="field">Acción de control ${index + 1}<select name="control-action-${index}" aria-label="Acción de control ${index + 1}">${option('', t('Elegir acción'), control.actionId)}${control.actionId && !Object.hasOwn(this.configuration.actions, control.actionId) ? option(control.actionId, `${control.actionId} · pendiente`, control.actionId) : ''}${Object.keys(
             this.configuration.actions,
           )
             .map(key => option(key, key, control.actionId))
@@ -367,25 +374,21 @@ export class HomeManagerEditor extends HTMLElement {
   }
   private panelForm(): string {
     const panel = this.configuration.panels[this.panelId];
-    return `<label class="field">Panel a editar<select id="panel-select" aria-label="Panel a editar">${option('', 'Nuevo panel', this.panelId)}${Object.keys(
+    return `<label class="field">${esc(t('Panel a editar'))}<select id="panel-select" aria-label="${esc(t('Panel a editar'))}">${option('', t('Nuevo panel'), this.panelId)}${Object.keys(
       this.configuration.panels,
     )
       .map(key => option(key, key, this.panelId))
       .join(
         '',
-      )}</select></label><form id="panel-form"><div class="grid">${input('panelId', 'ID de panel', this.panelId, this.panelId ? 'required readonly' : 'required')}${input('title', 'Título del panel', panel?.title ?? '', 'required')}<label class="field">Tipo de panel<select name="kind" aria-label="Tipo de panel">${option('device-controls', 'Controles de dispositivo', panel?.kind ?? 'device-controls')}${option('rf-fan', 'Ventilador RF mediante scripts HA', panel?.kind ?? 'device-controls')}</select></label></div><div class="controls" role="group" aria-label="Controles del panel">${this.controlRows()}</div><button type="button" data-command="add-control">Agregar control</button><div class="actions"><button type="submit" class="primary">Aplicar panel</button></div></form>`;
+      )}</select></label><form id="panel-form"><div class="grid">${input('panelId', t('ID de panel'), this.panelId, this.panelId ? 'required readonly' : 'required')}${input('title', t('Título del panel'), panel?.title ?? '', 'required')}<label class="field">${esc(t('Tipo de panel'))}<select name="kind" aria-label="${esc(t('Tipo de panel'))}">${option('device-controls', t('Controles de dispositivo'), panel?.kind ?? 'device-controls')}${option('rf-fan', t('Ventilador RF mediante scripts HA'), panel?.kind ?? 'device-controls')}</select></label></div><div class="controls" role="group" aria-label="${esc(t('Controles del panel'))}">${this.controlRows()}</div><button type="button" data-command="add-control">${esc(t('Agregar control'))}</button><div class="actions"><button type="submit" class="primary">${esc(t('Aplicar panel'))}</button></div></form>`;
   }
   private importForm(): string {
     const imported = this.imported;
-    return `<div class="toolbar"><button type="button" data-command="export">Exportar JSON</button><label class="file">Importar JSON o SVG<input type="file" aria-label="Importar JSON o SVG" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>Resumen de importación</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>El viewBox cambió. ¿Cómo conservar las posiciones?</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>Mismo punto del dibujo (el plano se recortó o amplió)</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>Misma proporción (el plano completo se reescaló)</span></label></fieldset><p class="note pending">Exportá una copia actual antes de aplicar.</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">Cancelar importación</button><button type="button" data-command="backup">Exportar copia actual</button><button type="button" class="primary" data-command="apply-import"${imported.viewBoxChanged && !imported.backedUp ? ' disabled' : ''}>Aplicar importación al borrador</button></div></div>` : ''}`;
-  }
-  private updateEntityOptions(): void {
-    const list = this.root.querySelector('#entity-options');
-    if (list)
-      list.innerHTML = Object.keys(this._hass?.states ?? {})
-        .sort()
-        .map(id => `<option value="${esc(id)}">${esc(this._hass?.states[id].attributes.friendly_name ?? id)}</option>`)
-        .join('');
+    const history =
+      this.homeId && integrationAvailable(this._hass)
+        ? `<div class="plans-box">${this.plans ? (this.plans.length ? `<div class="plans">${this.plans.map(plan => `<div class="plan"><span>${esc(new Date(plan.created_at).toLocaleString(getLanguage()))} · ${esc(t('revisión {n}', { n: plan.revision }))} · ${Math.ceil(plan.bytes / 1024)} KiB</span><button type="button" data-command="restore-plan" data-plan="${esc(plan.plan_id)}">${esc(t('Restaurar'))}</button></div>`).join('')}</div>` : `<p class="note">${esc(t('Todavía no hay planos anteriores.'))}</p>`) : `<button type="button" data-command="plans">${esc(t('Planos anteriores'))}</button>`}</div>`
+        : '';
+    return `${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${imported.viewBoxChanged && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
   }
   private captureRows(): NativePanel['controls'] {
     const form = this.root.querySelector<HTMLFormElement>('#panel-form');
@@ -470,8 +473,14 @@ export class HomeManagerEditor extends HTMLElement {
             }
             this.imported = undefined;
             this.emit(next);
-            if (note) this.notice(`Importación aplicada al borrador.${note}`);
+            if (note) this.notice(t('Importación aplicada al borrador.') + note);
           }
+          break;
+        case 'plans':
+          void this.loadPlans();
+          break;
+        case 'restore-plan':
+          void this.restorePlan(button.dataset.plan!);
           break;
         case 'room-add-zone':
           this.emit(
@@ -528,6 +537,7 @@ export class HomeManagerEditor extends HTMLElement {
         services = SERVICES[target.value] ?? [];
       if (service) service.innerHTML = services.map(value => option(value, value, services[0])).join('');
     } else if (target.id === 'import-file') void this.importFile((target as HTMLInputElement).files?.[0]);
+    else if (target.id === 'quick-add') this.addFromEntity((target as HTMLInputElement).value.trim());
     else if (target.getAttribute('name') === 'position-mode' && this.imported)
       this.imported.positionMode = target.value === 'relative' ? 'relative' : 'drawing';
   };
@@ -549,7 +559,7 @@ export class HomeManagerEditor extends HTMLElement {
         if (title) card.title = title;
         this.homeConfig = card as typeof this.homeConfig;
         this.emitCard(card);
-        this.notice('Referencia actualizada. Guardá en el editor de Home Assistant.');
+        this.notice(t('Referencia actualizada. Guardá en el editor de Home Assistant.'));
         return;
       }
       if (formId === 'migrate-form') {
@@ -560,7 +570,7 @@ export class HomeManagerEditor extends HTMLElement {
         const previous = this.adding ? undefined : this.device(),
           label = value(data, 'label');
         const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;
-        if (!fixed && (!value(data, 'x') || !value(data, 'y'))) throw new Error('Completá las dos coordenadas.');
+        if (!fixed && (!value(data, 'x') || !value(data, 'y'))) throw new Error(t('Completá las dos coordenadas.'));
         const device: Device = {
           id: previous?.id ?? (value(data, 'id') || newDeviceId(label, this.configuration)),
           display: { label, icon: value(data, 'icon') },
@@ -597,11 +607,11 @@ export class HomeManagerEditor extends HTMLElement {
         this.actionId = value(data, 'actionId');
         this.emit(upsertAction(this.configuration, this.actionId, action));
       } else if (formId === 'state-form') {
-        if (!this._selectedDeviceId) throw new Error('Seleccioná un icono.');
+        if (!this._selectedDeviceId) throw new Error(t('Seleccioná un icono.'));
         const entityId = value(data, 'entityId'),
           feedback = value(data, 'feedback');
         if (entityId && feedback === 'measured' && data.get('verified') !== 'on')
-          throw new Error('Revisá y marcá la fuente independiente antes de declarar measured.');
+          throw new Error(t('Revisá y marcá la fuente independiente antes de declarar measured.'));
         this.emit(
           upsertStateSource(
             this.configuration,
@@ -645,11 +655,20 @@ export class HomeManagerEditor extends HTMLElement {
     const generation = ++this.importGeneration;
     if (!file || !this.config) return;
     try {
-      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo excede 5 MiB.');
+      if (file.size > 5 * 1024 * 1024) throw new Error(t('El archivo excede 5 MiB.'));
       const source = await file.text();
       if (generation !== this.importGeneration) return;
+      this.previewImport(source, /\.svg$/i.test(file.name) || file.type === 'image/svg+xml');
+    } catch (error) {
+      if (generation === this.importGeneration) this.notice(error instanceof Error ? error.message : String(error));
+    }
+  }
+  /** Same preview, zone report and position migration for a file, a JSON export
+   * or a plan restored from the integration's history. Nothing is applied yet. */
+  private previewImport(source: string, svg: boolean): void {
+    {
       let candidate: Configuration;
-      if (/\.svg$/i.test(file.name) || file.type === 'image/svg+xml') {
+      if (svg) {
         const safe = sanitizeArchitecture(source);
         candidate = {
           ...persistentConfiguration(this.configuration),
@@ -673,9 +692,106 @@ export class HomeManagerEditor extends HTMLElement {
       };
       this.openSections.add('import-section');
       this.render();
-    } catch (error) {
-      if (generation === this.importGeneration) this.notice(error instanceof Error ? error.message : String(error));
     }
+  }
+  private async loadPlans(): Promise<void> {
+    if (!this._hass?.callWS || !this.homeId) return;
+    try {
+      this.plans = (
+        await this._hass.callWS<{ plans: NonNullable<HomeManagerEditor['plans']> }>({
+          type: 'homemanager/plans',
+          home_id: this.homeId,
+        })
+      ).plans;
+      this.openSections.add('import-section');
+      this.render();
+    } catch (error) {
+      this.notice(describeError(error));
+    }
+  }
+  private async restorePlan(planId: string): Promise<void> {
+    if (!this._hass?.callWS || !this.homeId) return;
+    try {
+      const plan = await this._hass.callWS<{ content: string }>({
+        type: 'homemanager/plan/get',
+        home_id: this.homeId,
+        plan_id: planId,
+      });
+      this.previewImport(plan.content, true);
+      this.notice(t('Plano anterior cargado para revisar. Aplicalo al borrador y guardá para restaurarlo.'));
+    } catch (error) {
+      this.notice(describeError(error));
+    }
+  }
+  /** One step from a real entity to a working device: name, icon, kind, room by HA
+   * area, a primary action when the domain has an obvious one, then placement. */
+  private addFromEntity(entityId: string): void {
+    const hass = this._hass;
+    if (!entityId || !hass?.states[entityId]) return;
+    const configuration = this.configuration;
+    const existing = configuration.catalog.devices.find(device => device.bindings.entityId === entityId);
+    if (existing) {
+      this.selectedDeviceId = existing.id;
+      this.notice(t('«{label}» ya está en el plano.', { label: existing.display.label }));
+      return;
+    }
+    const entity = hass.states[entityId];
+    const label = friendlyName(hass, entityId).slice(0, 240);
+    const id = newDeviceId(label, configuration);
+    const presentation = suggestPresentation(entityId, entity);
+    const area = areaOf(hass, entityId);
+    const fold = (text: string) =>
+      text
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    const room = area
+      ? configuration.rooms.find(
+          item => fold(item.label) === fold(area) || item.id === fold(area).replace(/[^a-z0-9]+/g, '-'),
+        )
+      : undefined;
+    let next = configuration;
+    let primaryAction: string | null = null;
+    const command = defaultPrimaryCommand(entityId, entity);
+    const scriptFields =
+      domainOf(entityId) === 'script'
+        ? (
+            hass.services?.script?.[entityId.slice(7)] as
+              | { fields?: Record<string, { required?: boolean }> }
+              | undefined
+          )?.fields
+        : undefined;
+    const needsInput = !!scriptFields && Object.values(scriptFields).some(field => field?.required === true);
+    if (command && !needsInput) {
+      primaryAction = `${id}-${command.service.replace(/_/g, '-')}`.slice(0, 120);
+      next = upsertAction(next, primaryAction, {
+        domain: domainOf(entityId) as Action['domain'],
+        service: command.service,
+        target: { entity_id: entityId },
+      });
+    }
+    next = upsertDevice(next, {
+      id,
+      roomId: room?.id ?? null,
+      kind: (KINDS as readonly string[]).includes(presentation.kind) ? (presentation.kind as Device['kind']) : 'other',
+      position: { x: 0.5, y: 0.5 },
+      mobility: 'editable',
+      display: { label, icon: presentation.icon },
+      bindings: { entityId, primaryAction, advancedPopupId: null },
+      state: { value: 'unknown', confidence: 'unknown' },
+    });
+    this._selectedDeviceId = id;
+    this.adding = false;
+    this.emit(next);
+    this.notice(
+      this._embedded
+        ? t('«{label}» agregado. Tocá el plano para ubicarlo.', { label })
+        : t('«{label}» agregado en el centro del plano. Arrastralo a su lugar.', { label }),
+    );
+    this.dispatchEvent(
+      new CustomEvent('homemanager-place', { bubbles: true, composed: true, detail: { deviceId: id } }),
+    );
   }
   private download(): void {
     const content = validateConfiguration(persistentConfiguration(this.configuration), { allowPending: true });

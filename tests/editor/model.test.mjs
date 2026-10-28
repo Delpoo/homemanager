@@ -1,3 +1,5 @@
+// Messages are asserted in Spanish, the language of the first installation.
+globalThis.__homemanagerLanguage = 'es';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {

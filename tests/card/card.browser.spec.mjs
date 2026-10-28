@@ -335,13 +335,11 @@ test('editor export contains durable configuration only and import waits for a r
   );
   expect(Object.hasOwn(content, 'runtime')).toBe(false);
   content.catalog.devices[0].display.label = 'Etiqueta importada sintética';
-  await page
-    .getByLabel('Importar JSON o SVG', { exact: true })
-    .setInputFiles({
-      name: 'synthetic-import.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(content)),
-    });
+  await page.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
+    name: 'synthetic-import.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(content)),
+  });
   await expect(page.getByRole('heading', { name: 'Resumen de importación' })).toBeVisible();
   expect((await draft(page)).catalog.devices[0].display.label).toBe(lightLabel);
   await page.getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
@@ -353,10 +351,15 @@ test('editor export contains durable configuration only and import waits for a r
 test('normal and editing layouts fit the viewport without horizontal page overflow', async ({ page }) => {
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   expect(await fits()).toBe(true);
-  for (const control of [action(page, lightLabel), detail(page, lightLabel)]) {
+  // Primary targets are 44 px; the detail badge meets WCAG 2.2 AA (24 px) and the
+  // same panel also opens with a long press or a secondary click.
+  for (const [control, minimum] of [
+    [action(page, lightLabel), 44],
+    [detail(page, lightLabel), 24],
+  ]) {
     const bounds = await control.boundingBox();
-    expect(bounds.width).toBeGreaterThanOrEqual(44);
-    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.width).toBeGreaterThanOrEqual(minimum);
+    expect(bounds.height).toBeGreaterThanOrEqual(minimum);
   }
   await begin(page);
   await select(page);
@@ -383,11 +386,11 @@ test('an accepted service releases its action button without waiting for command
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(2);
 });
 
-test('space navigation comes from the instance configuration with unique monograms', async ({ page }) => {
+test('space navigation comes from the instance configuration', async ({ page }) => {
   await page.goto(fixture);
   await page.waitForFunction(() => window.testHarnessReady);
   // The harness ships a V1 document; its legacy room_labels become V2 space names.
-  await expect(page.getByRole('button', { name: 'Encuadrar Espacio A', exact: true })).toHaveText('EA');
+  await expect(page.getByRole('button', { name: 'Encuadrar Espacio A', exact: true })).toHaveText('Espacio A');
   await page.evaluate(() => {
     const config = structuredClone(window.testHarness.config);
     const v2 = {
@@ -404,7 +407,7 @@ test('space navigation comes from the instance configuration with unique monogra
     window.testHarness.card.setConfig({ ...config, configuration: v2 });
   });
   const nav = page.getByRole('navigation', { name: 'Espacios' });
-  await expect(nav.getByRole('button')).toHaveText(['▦', 'Com', 'Coc', 'Ga']);
+  await expect(nav.getByRole('button')).toHaveText(['Todo', 'Comedor', 'Cocina', 'Garage']);
   await page.getByRole('button', { name: 'Encuadrar Garage', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Encuadrar Garage', exact: true })).toHaveAttribute(
     'aria-pressed',

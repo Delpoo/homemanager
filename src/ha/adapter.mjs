@@ -349,6 +349,41 @@ export class HomeAssistantAdapter {
       if (!this._matches(device, actionId)) return { ok: false, reason: 'action-not-bound-to-device' };
       affected = [device];
     }
+    return this._run(actionId, actionId, this._configuration.actions[actionId], affected);
+  }
+
+  /** Command derived from the bound entity's capabilities (native panel controls).
+   * Same guarantees as configured actions: the target is the device's persisted
+   * binding, never user input; the static allowlist, live capabilities and script
+   * signatures are checked again here; the result is only `sent`, never confirmed. */
+  _entityAction(deviceId, command) {
+    const device = this._configuration.catalog.devices.find(item => item.id === deviceId);
+    if (!device) return { error: 'unknown-device' };
+    const entityId = device.bindings.entityId;
+    if (!entityId) return { error: 'unbound-entity' };
+    if (!command || typeof command.service !== 'string') return { error: 'invalid_action' };
+    const action = { domain: entityId.split('.')[0], service: command.service, target: { entity_id: entityId } };
+    if (command.data !== undefined) action.data = command.data;
+    return { device, action, key: `entity-${deviceId}` };
+  }
+
+  getEntityCommandAvailability(deviceId, command) {
+    if (this._disposed) return { available: false, reason: 'adapter-disposed' };
+    if (!this._online) return { available: false, reason: 'ha-unavailable' };
+    const resolved = this._entityAction(deviceId, command);
+    if (resolved.error) return { available: false, reason: resolved.error };
+    if (this._inFlight.has(resolved.key)) return { available: false, reason: 'action-in-flight' };
+    return actionAvailability(resolved.action, this._hass, this._verification());
+  }
+
+  async executeEntityCommand(deviceId, command) {
+    const availability = this.getEntityCommandAvailability(deviceId, command);
+    if (!availability.available) return { ok: false, reason: availability.reason ?? 'action-unavailable' };
+    const resolved = this._entityAction(deviceId, command);
+    return this._run(resolved.key, `entity-${command.service.replace(/_/g, '-')}`, resolved.action, [resolved.device]);
+  }
+
+  async _run(lockKey, actionId, action, affected) {
     const busy = new Set([...this._inFlight.values()].flatMap(item => item.deviceIds));
     if (affected.some(device => busy.has(device.id))) return { ok: false, reason: 'device-busy' };
     const context = this._context();
@@ -369,10 +404,10 @@ export class HomeAssistantAdapter {
       ];
     });
     const pending = { context, deviceIds: affected.map(device => device.id) };
-    this._inFlight.set(actionId, pending);
+    this._inFlight.set(lockKey, pending);
     let completed = false;
     try {
-      await executeService(this._configuration.actions[actionId], this._hass, this._verification());
+      await executeService(action, this._hass, this._verification());
       if (!this._contextValid(context)) return { ok: false, reason: 'stale-context' };
       for (const [id, command] of commands) this._commands.set(id, { ...command, status: 'sent' });
       this._scheduleExpiry();
@@ -388,8 +423,8 @@ export class HomeAssistantAdapter {
         reason: typeof error?.code === 'string' && REASON.test(error.code) ? error.code : 'service-error',
       };
     } finally {
-      if (this._inFlight.get(actionId) === pending) {
-        this._inFlight.delete(actionId);
+      if (this._inFlight.get(lockKey) === pending) {
+        this._inFlight.delete(lockKey);
         // A completion observer may immediately recompute button availability.
         // Notify only after releasing this call's lock, and never for old sessions.
         if (completed && this._contextValid(context)) this._publish();
