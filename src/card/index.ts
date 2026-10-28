@@ -1,4 +1,5 @@
 import { HomeManagerCard } from './home-manager-card.js';
+import { VERSION } from '../version.js';
 import '../editor/index.js';
 // The sidebar panel registered by the HomeManager integration shares this bundle.
 import '../app/index.js';
@@ -15,3 +16,9 @@ if (!target.customCards.some(c => c.type === 'homemanager-card'))
     preview: false,
   });
 export { HomeManagerCard };
+// One line in the browser console identifies the running version, as HA cards do.
+console.info(
+  `%c HomeManager %c ${VERSION} `,
+  'background:#2f7d5b;color:#fff;border-radius:3px 0 0 3px',
+  'background:#e8efe9;color:#1d2a23;border-radius:0 3px 3px 0',
+);

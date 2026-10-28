@@ -14,12 +14,23 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY, STORAGE_VERSION
+from .const import PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY, STORAGE_MINOR_VERSION, STORAGE_VERSION
 from .model import Home, Homes, ModelError, PlanVersion, record_plan, validate_home_id
 
 _LOGGER = logging.getLogger(__name__)
 
 Listener = Callable[[str, int | None], None]
+
+
+class _VersionedStore(Store[dict[str, Any]]):
+    """Storage schema upgrades. Data is never dropped: an unknown future major
+    version refuses to load (HA keeps the file) instead of being overwritten."""
+
+    async def _async_migrate_func(self, old_major_version: int, old_minor_version: int, old_data: dict[str, Any]) -> dict[str, Any]:
+        if old_major_version > STORAGE_VERSION:
+            raise NotImplementedError(f"HomeManager storage version {old_major_version} is newer than this release; update HomeManager")
+        # Minor versions only add optional fields; nothing to rewrite yet.
+        return old_data
 
 
 class HomeManagerStore:
@@ -28,7 +39,7 @@ class HomeManagerStore:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
-        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY, atomic_writes=True)
+        self._store: Store[dict[str, Any]] = _VersionedStore(hass, STORAGE_VERSION, STORAGE_KEY, minor_version=STORAGE_MINOR_VERSION, atomic_writes=True)
         self._plans: dict[str, Store[dict[str, Any]]] = {}
         self.state = Homes()
         self._listeners: dict[str, set[Listener]] = {}
@@ -44,7 +55,7 @@ class HomeManagerStore:
 
     def _plan_store(self, home_id: str) -> Store[dict[str, Any]]:
         if home_id not in self._plans:
-            self._plans[home_id] = Store(self.hass, STORAGE_VERSION, f"{PLAN_STORAGE_KEY_PREFIX}{home_id}", atomic_writes=True)
+            self._plans[home_id] = _VersionedStore(self.hass, STORAGE_VERSION, f"{PLAN_STORAGE_KEY_PREFIX}{home_id}", minor_version=STORAGE_MINOR_VERSION, atomic_writes=True)
         return self._plans[home_id]
 
     async def _persist(self) -> None:
