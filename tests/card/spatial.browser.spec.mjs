@@ -87,8 +87,8 @@ test('panels show controls for the real capabilities and only report commands as
   await expect(dialog.getByRole('switch', { name: 'Encendido' })).toHaveAttribute('aria-checked', 'true');
   const brightness = dialog.getByRole('slider', { name: 'Brillo' });
   await expect(brightness).toHaveValue('50');
+  // fill() on a range input fires input and change, like releasing the thumb.
   await brightness.fill('80');
-  await brightness.dispatchEvent('change');
   await expect
     .poll(() => page.evaluate(() => window.testHarness.calls.at(-1)))
     .toEqual({
