@@ -208,7 +208,6 @@ await step('the native panel offers brightness and sends it to HA without claimi
   const dialog = page.getByRole('dialog');
   const brightness = dialog.getByRole('slider', { name: 'Brillo' });
   await brightness.fill('60');
-  await brightness.dispatchEvent('change');
   for (let i = 0; i < 20 && (await rest('/api/states/light.e2e_lamp')).attributes.brightness !== 153; i++)
     await page.waitForTimeout(250);
   assert.equal((await rest('/api/states/light.e2e_lamp')).attributes.brightness, 153);
