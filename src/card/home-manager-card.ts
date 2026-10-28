@@ -53,7 +53,8 @@ const confidenceLabel = (confidence: string) =>
   )[confidence] ?? t('Desconocido');
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** Screen distance under which two markers would overlap: they are grouped instead. */
-const GROUP_DISTANCE = 46;
+// 44 px marker + its detail badge overhang (7 px) + a little air.
+const GROUP_DISTANCE = 54;
 const LONG_PRESS_MS = 480;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 /** The dashboard this card is shown in, from the URL, when it is a Lovelace panel.

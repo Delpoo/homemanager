@@ -60,6 +60,25 @@ export function clusterPoints(points: ScreenPoint[], distance: number): MarkerGr
       }
     }
   }
+  // A group's centre moves as it grows and can end up on top of a neighbour:
+  // merge any two groups still closer than the distance until none are.
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < groups.length && !merged; i++)
+      for (let j = i + 1; j < groups.length && !merged; j++) {
+        const a = groups[i],
+          b = groups[j];
+        if (Math.hypot(a.x - b.x, a.y - b.y) >= distance) continue;
+        a.ids.push(...b.ids);
+        a.sx += b.sx;
+        a.sy += b.sy;
+        a.x = a.sx / a.ids.length;
+        a.y = a.sy / a.ids.length;
+        groups.splice(j, 1);
+        merged = true;
+      }
+  }
   return groups.map(({ ids, x, y }) => ({ ids, x, y }));
 }
 
