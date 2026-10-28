@@ -40,7 +40,8 @@ function safeJson(value,path='configuration',depth=0,ancestors=new Set()) {
   if(typeof value!=='object')invalid(path,'JSON data required');
   if(ancestors.has(value))invalid(path,'cyclic input');
   if(Object.getOwnPropertySymbols(value).length)invalid(path,'symbol keys forbidden');
-  if(!Array.isArray(value))plain(value,path);
+  if(Array.isArray(value)){if(Object.getPrototypeOf(value)!==Array.prototype)invalid(path,'custom array prototype forbidden');}
+  else plain(value,path);
   ancestors.add(value);
   const descriptors=Object.getOwnPropertyDescriptors(value);
   for(const [key,descriptor]of Object.entries(descriptors)){

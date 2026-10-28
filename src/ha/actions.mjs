@@ -29,6 +29,16 @@ function exact(value, allowed, required = [], code = 'invalid_action') {
   plain(value, code);
   if (Object.keys(value).some(key => !allowed.includes(key)) || required.some(key => !OWN(value, key))) fail(code);
 }
+function denseArray(value, maximum, code) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || value.length > maximum || Reflect.ownKeys(value).length !== value.length + 1) fail(code);
+  const result = [];
+  for (let index = 0; index < value.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!descriptor?.enumerable || !OWN(descriptor, 'value')) fail(code);
+    result.push(descriptor.value);
+  }
+  return result;
+}
 function dataJson(value, depth = 0, parents = new Set()) {
   if (depth > 10) fail('unsafe_data');
   if (value === null || typeof value === 'boolean') return;
@@ -40,8 +50,7 @@ function dataJson(value, depth = 0, parents = new Set()) {
   if (parents.has(value)) fail('unsafe_data');
   parents.add(value);
   if (Array.isArray(value)) {
-    if (value.length > 100 || Reflect.ownKeys(value).some(key => key !== 'length' && !/^(?:0|[1-9][0-9]*)$/.test(String(key)))) fail('unsafe_data');
-    for (let i = 0; i < value.length; i++) { if (!OWN(value, i)) fail('unsafe_data'); dataJson(value[i], depth + 1, parents); }
+    for (const item of denseArray(value, 100, 'unsafe_data')) dataJson(item, depth + 1, parents);
   } else {
     plain(value, 'unsafe_data');
     const keys = Object.keys(value);
@@ -59,7 +68,7 @@ function numeric(value, minimum, maximum, integer = false) {
 function text(value) { if (typeof value !== 'string' || !value.trim() || value.length > 1024) fail('unsupported_data'); }
 function dataKeys(data, allowed, required = []) { exact(data, allowed, required, 'unsupported_data'); }
 function schemaData(action) {
-  const data = action.data ?? {};
+  const data = OWN(action, 'data') ? action.data : {};
   if (action.domain === 'script') {
     dataKeys(data, ['variables']);
     if (data.variables !== undefined) plain(data.variables, 'unsupported_data');
@@ -116,7 +125,7 @@ export function assertActionDefinition(action) {
   exact(action, ['domain', 'service', 'target', 'data'], ['domain', 'service', 'target']);
   if (typeof action.domain !== 'string' || typeof action.service !== 'string' || !OWN(SERVICES, action.domain) || !SERVICES[action.domain].includes(action.service)) fail('action_not_allowed');
   exact(action.target, ['entity_id'], ['entity_id']);
-  const targets = Array.isArray(action.target.entity_id) ? action.target.entity_id : [action.target.entity_id];
+  const targets = Array.isArray(action.target.entity_id) ? denseArray(action.target.entity_id, 20, 'invalid_target') : [action.target.entity_id];
   if (targets.length < 1 || targets.length > 20 || new Set(targets).size !== targets.length) fail('invalid_target');
   for (const target of targets) if (typeof target !== 'string' || target.length > 240 || !ENTITY.test(target) || !target.startsWith(`${action.domain}.`) || target.endsWith('.all')) fail('invalid_target');
   const data = OWN(action, 'data') ? action.data : {};
@@ -173,7 +182,7 @@ function selectorField(field) {
   plain(selector, 'script_signature_invalid');
   const names = Object.keys(selector);
   if (names.length !== 1) fail('script_signature_invalid');
-  const name = names[0], options = selector[name] ?? {};
+  const name = names[0], options = selector[name];
   plain(options, 'script_signature_invalid');
   const descriptor = { type: '', required: field.required === true };
   if (name === 'boolean') descriptor.type = 'boolean';
@@ -190,7 +199,7 @@ function selectorField(field) {
   } else if (name === 'select') {
     if (options.multiple === true || options.custom_value === true || !Array.isArray(options.options) || !options.options.length || options.options.length > 100) fail('script_signature_invalid');
     descriptor.type = 'string';
-    descriptor.enum = options.options.map(option => {
+    descriptor.enum = denseArray(options.options, 100, 'script_signature_invalid').map(option => {
       const value = typeof option === 'string' ? option : plain(option, 'script_signature_invalid').value;
       text(value); if (EXECUTABLE.test(value)) fail('script_signature_invalid'); return value;
     });
@@ -201,7 +210,7 @@ function selectorField(field) {
 }
 function inspectScriptEntry(entry) {
   plain(entry, 'script_signature_invalid');
-  const rawFields = entry.fields ?? {};
+  const rawFields = OWN(entry, 'fields') ? entry.fields : {};
   plain(rawFields, 'script_signature_invalid');
   if (Object.keys(rawFields).length > 100) fail('script_signature_invalid');
   const fields = Object.create(null), fingerprint = [];
