@@ -204,10 +204,13 @@ test('YAML dashboards remain read only',async({page})=>{
 });
 
 test('room framing and layers work with a nonzero global viewBox',async({page})=>{
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const before=await action(page,fanLabel).boundingBox();
   await page.getByRole('button',{name:'Encuadrar Espacio B',exact:true}).click();
-  const after=await action(page,fanLabel).boundingBox();
-  expect(after).not.toBeNull();expect(after.x!==before.x||after.y!==before.y).toBe(true);
+  await expect.poll(async()=>{
+    const after=await action(page,fanLabel).boundingBox();
+    return after?Math.hypot(after.x-before.x,after.y-before.y):0;
+  }).toBeGreaterThan(1);
   await page.getByRole('button',{name:'Encuadrar todo',exact:true}).click();
   const sensors=page.getByRole('button',{name:'Sensores',exact:true});
   await sensors.click();
