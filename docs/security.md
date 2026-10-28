@@ -1,6 +1,6 @@
 # Seguridad y separación de datos
 
-Estado: **FUNDACIÓN; controles de producto pendientes de implementación y validación**. Esta política documenta requisitos para los agentes de frontend y de conexión con Home Assistant. La presencia de documentación, esquemas o un escáner de patrones no certifica la seguridad del producto.
+Estado: **controles implementados y probados con datos sintéticos; validación en HA real pendiente** (29 de octubre de 2026). Esta política documenta requisitos para los agentes de frontend y de conexión con Home Assistant. La presencia de documentación, esquemas o un escáner de patrones no certifica la seguridad del producto.
 
 ## Fronteras de confianza
 
@@ -30,7 +30,7 @@ No se editarán directamente archivos internos de `.storage`. El repositorio pri
 El agente de frontend debe implementar y demostrar:
 
 - Validación completa del catálogo antes de renderizar o guardar: versión de esquema, IDs únicos, referencias a habitaciones, posiciones normalizadas, movilidad, bindings y paneles.
-- Importación SVG mediante un parser y una política explícita de elementos y atributos admitidos. Bloquear scripts, eventos `on*`, `foreignObject`, referencias externas, protocolos ejecutables, CSS que cargue recursos y construcciones que permitan ejecutar código o extraer información. Aplicar límites de tamaño y complejidad; conservar y validar `room-${roomId}`.
+- Importación SVG mediante un parser y una política explícita de elementos y atributos admitidos. Bloquear scripts, eventos `on*`, `foreignObject`, referencias externas, protocolos ejecutables, CSS que cargue recursos y construcciones que permitan ejecutar código o extraer información. Aplicar límites de tamaño y complejidad; conservar y validar las zonas `room-${roomId}` de los espacios declarados por la instancia.
 - Sanitización antes de insertar en el DOM y después de cualquier transformación que pueda alterar la seguridad. No confiar en que un SVG sea seguro por su extensión ni usar expresiones regulares como único sanitizador. Una biblioteca mantenida es una dependencia a revisar, no una garantía automática. [DOMPurify: efectos de modificar contenido saneado](https://github.com/cure53/DOMPurify#is-there-any-foot-gun-potential).
 - Textos y etiquetas tratados como datos, sin HTML arbitrario, `eval`, funciones JavaScript suministradas por el usuario ni plantillas ejecutables.
 - Popups avanzados propios, navegación por teclado, cierre accesible y separación entre edición y operación. Seleccionar o cambiar un binding no ejecuta una acción.
