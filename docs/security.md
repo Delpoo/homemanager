@@ -52,7 +52,7 @@ El agente de conexión debe implementar y demostrar:
 
 CI utilizará permisos mínimos, dependencias bloqueadas y acciones fijadas a revisiones verificadas. No ejecutar código de PR no confiables con secretos ni utilizar flujos privilegiados para construir contribuciones externas. Revisar también las acciones y sus dependencias. [Uso seguro de GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use).
 
-Las releases deberán identificar su commit, revisar los assets y demostrar la exclusión de datos privados. Revisar licencias y avisos de dependencias, fuentes, iconos y código incorporado antes de distribuir. La recomendación de licencia pública es MIT, **pendiente de autorización**; no se presupone permiso para relicenciar material de terceros ni las fuentes del plano privado.
+Las releases deberán identificar su commit, revisar los assets y demostrar la exclusión de datos privados. Revisar licencias y avisos de dependencias, fuentes, iconos y código incorporado antes de distribuir. El propietario autorizó MIT para el código público el 28 de octubre de 2026; no se presupone permiso para relicenciar material de terceros ni las fuentes del plano privado.
 
 El escáner de patrones de esta fundación es una ayuda limitada: no detecta todos los secretos, datos de vivienda, código malicioso o vías de ejecución SVG. No reemplaza revisión de cambios, sanitización, pruebas de seguridad ni inspección del artefacto final.
 
