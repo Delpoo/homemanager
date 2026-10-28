@@ -4,17 +4,23 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "HomeManager product foundation and shared contracts",
+  "description": "HomeManager vector Lovelace card, visual editor and native device panels",
   "engines": {
     "node": ">=24 <25"
   },
   "scripts": {
-    "check": "node scripts/check-public-boundary.mjs && node scripts/validate-foundation.mjs && node --test tests/foundation.test.mjs tests/ha/*.test.mjs",
-    "test": "node --test tests/foundation.test.mjs tests/ha/*.test.mjs",
-    "build": "node scripts/build.mjs"
+    "check": "node scripts/check-public-boundary.mjs && node scripts/validate-foundation.mjs && npm run typecheck && npm test",
+    "test": "npm run build && node --test tests/foundation.test.mjs tests/ha/*.test.mjs tests/editor/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:browser": "npm run build && playwright test",
+    "dev": "node scripts/test-server.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "ajv": "8.20.0",
-    "ajv-formats": "3.0.1"
+    "ajv-formats": "3.0.1",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
   }
 }

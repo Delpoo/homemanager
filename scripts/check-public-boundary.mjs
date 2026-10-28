@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const excluded = new Set(['.git', 'node_modules', '.work']);
+const excluded = new Set(['.git', 'node_modules', '.work', 'test-results', 'playwright-report', 'coverage']);
 const findings = [];
 const patterns = [
   ['private key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
