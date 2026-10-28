@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Device catalog V1",
-  "description": "Shared catalog shape. Persisted configuration constrains state to unknown; live state uses a separate schema.",
+  "title": "Device catalog V2",
+  "description": "Shared catalog shape. Spaces are instance data: roomId references configuration.rooms or is null while unassigned. Persisted configuration constrains state to unknown; live state uses a separate schema.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "devices"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "devices": {
       "type": "array",
       "maxItems": 2000,
@@ -17,9 +17,7 @@
     "text": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S" },
     "nullableText": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
     "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-    "roomId": {
-      "enum": ["living", "dining", "kitchen", "office", "master-bedroom", "bath-2", "master-bath", "balcony", "entry", "hallway", "dbst", "ac-ledge"]
-    },
+    "roomId": { "$ref": "#/$defs/deviceId", "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/." },
     "position": {
       "type": "object",
       "additionalProperties": false,
@@ -44,8 +42,8 @@
       "required": ["id", "roomId", "kind", "position", "mobility", "display", "bindings", "state"],
       "properties": {
         "id": { "$ref": "#/$defs/deviceId" },
-        "roomId": { "$ref": "#/$defs/roomId" },
-        "kind": { "enum": ["light", "fan", "curtain", "ac", "sensor", "switch", "robot", "purifier", "plant", "infra", "energy"] },
+        "roomId": { "anyOf": [{ "$ref": "#/$defs/roomId" }, { "type": "null" }] },
+        "kind": { "enum": ["light", "fan", "curtain", "ac", "sensor", "switch", "robot", "purifier", "plant", "infra", "energy", "media", "lock", "camera", "appliance", "other"] },
         "position": { "$ref": "#/$defs/position" },
         "mobility": { "enum": ["fixed", "editable", "portable"] },
         "display": {
@@ -71,5 +69,5 @@
       }
     }
   },
-  "$comment": "Semantic validation must additionally reject duplicate device IDs, non-finite numbers in in-memory input, unsafe object keys, invalid or unresolved HA references and unsafe icon content. No real household data belongs in the public repository."
+  "$comment": "Semantic validation must additionally reject duplicate device IDs, roomId values not declared in configuration.rooms, non-finite numbers in in-memory input, unsafe object keys, invalid or unresolved HA references and unsafe icon content. No real household data belongs in the public repository."
 }

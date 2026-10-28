@@ -3,14 +3,22 @@ import { HomeManagerEditor, LovelaceConfigurationStore } from '../editor/index.j
 import { openPanel } from '../panels/native-panel.js';
 import { validateCardConfig, validateConfiguration, emptyConfiguration } from './configuration.js';
 import { sanitizeArchitecture, fitCamera, zoomCamera, roomBounds, roomAt, type Camera, type ViewBox } from './geometry.js';
-import { ROOM_IDS, clone, escapeHTML as e, type Configuration, type CardConfig, type Device, type Hass, type RuntimeState, type RoomId } from './types.js';
+import { clone, escapeHTML as e, type Configuration, type CardConfig, type Device, type Hass, type RuntimeState, type RoomId } from './types.js';
 import { styles } from './styles.js';
 
-const LABELS:Record<RoomId,string>={living:'Sala',dining:'Comedor',kitchen:'Cocina',office:'Oficina','master-bedroom':'Dormitorio','bath-2':'Baño 2','master-bath':'Baño principal',balcony:'Balcón',entry:'Entrada',hallway:'Pasillo',dbst:'DBST','ac-ledge':'Zona técnica'};
-const ROOM_ICONS=['▣','◉','♨','▤','▱','◧','◨','☀','⇥','↔','▥','⚙'];
+/** Short monogram for a space button; the full label stays in title/aria-label. */
+const monogram=(label:string)=>{const words=label.trim().split(/\s+/).filter(Boolean);const text=words.length>1?words[0][0]+words[1][0]:label.trim().slice(0,2);return text.charAt(0).toUpperCase()+text.slice(1);};
 const KIND_ICONS:Record<string,string>={light:'☼',fan:'✣',curtain:'▥',ac:'❄',sensor:'◌',switch:'⏻',robot:'◉',purifier:'≋',plant:'♧',infra:'⚙',energy:'ϟ'};
 const CONFIDENCE:Record<string,string>={confirmed:'Confirmado',estimated:'Estimado',sent:'Comando aceptado',unknown:'Desconocido',error:'Error'};
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
+/** The dashboard this card is shown in, from the URL, when it is a Lovelace panel.
+ * An explicit dashboard_path still wins; undefined means the default dashboard. */
+function currentDashboardPath(hass:Hass):string|undefined {
+  const segment=location.pathname.split('/').filter(Boolean)[0];
+  if(!segment||segment==='lovelace')return undefined;
+  const panel=hass.panels?.[segment];
+  return panel&&(panel.component_name===undefined||panel.component_name==='lovelace')&&/^[a-z0-9][a-z0-9_-]{0,239}$/.test(segment)?segment:undefined;
+}
 const layer=(d:Device)=>d.kind==='infra'?'infrastructure':d.kind==='energy'?'energy':d.kind==='sensor'||d.kind==='plant'?'sensors':'controls';
 interface Adapter {
  configure(c:Configuration):void;setHass(h:Hass|null):void;subscribe(fn:(s:RuntimeState)=>void):()=>void;getSnapshot():RuntimeState;
@@ -48,7 +56,9 @@ export class HomeManagerCard extends HTMLElement {
   getDraftConfiguration():Configuration {return clone(this.draft??emptyConfiguration());}
   /** Integration/session evidence only. Never serialized or inferred from the configured feedback label. */
   setVerifiedFeedbackEntities(ids:Iterable<string>):void {this.verifiedFeedbackEntities=new Set(ids);if(this.saved)this.setupAdapter(this.saved);}
-  set hass(value:Hass){this._hass=value;this.adapter?.setHass(value);if(this.editor)this.editor.hass=value;this.refreshState();this.updateControls();}
+  // The adapter republishes (and thus refreshes markers) only when an entity this
+  // plan reads changes; unrelated HA churn costs a fingerprint comparison.
+  set hass(value:Hass){this._hass=value;this.adapter?.setHass(value);if(this.editor)this.editor.hass=value;if(!this.adapter)this.refreshState();this.updateControls();}
   get hass():Hass|undefined{return this._hass;}
   setConfig(value:unknown):void {
     const next=validateCardConfig(value);
@@ -88,9 +98,9 @@ export class HomeManagerCard extends HTMLElement {
     const inner=document.createElement('div');inner.attachShadow({mode:'open'}).append(this.svg);host.replaceChildren(inner);
     this.svg.setAttribute('width',String(this.box.width));this.svg.setAttribute('height',String(this.box.height));
     const nav=this.root.querySelector('.rooms')!;nav.querySelectorAll('[data-room]').forEach(n=>n.remove());
-    for(const [i,id]of ROOM_IDS.entries()){
-      const has=!!this.svg.querySelector(`[id="room-${id}"]`);if(!has&&!this.draft.catalog.devices.some(d=>d.roomId===id))continue;
-      const label=this.config?.room_labels?.[id]??LABELS[id];const b=document.createElement('button');b.className='icon';b.type='button';b.dataset.room=id;b.title=`Encuadrar ${label}`;b.setAttribute('aria-label',`Encuadrar ${label}`);b.innerHTML=ROOM_ICONS[i];nav.append(b);
+    for(const room of this.draft.rooms){
+      const has=!!this.svg.querySelector(`[id="room-${room.id}"]`);if(!has&&!this.draft.catalog.devices.some(d=>d.roomId===room.id))continue;
+      const b=document.createElement('button');b.className='icon room';b.type='button';b.dataset.room=room.id;b.title=`Encuadrar ${room.label}`;b.setAttribute('aria-label',`Encuadrar ${room.label}`);b.textContent=monogram(room.label);nav.append(b);
     }
     (this.root.querySelector('.empty') as HTMLElement).hidden=this.svg.children.length>0;
   }
@@ -143,11 +153,12 @@ export class HomeManagerCard extends HTMLElement {
   private async toggleEdit(){
     if(this.loading||this.saving)return;if(this.editing){if(this.dirty){this.status('Guardá o descartá los cambios antes de salir del editor.');return;}this.editing=false;this.updateControls();this.renderMarkers();return;}
     if(!this.config||this._hass?.user?.is_admin!==true){this.status('La edición compartida requiere una cuenta administradora de Home Assistant.');return;}
-    const mode=this._hass.panels?.[this.config.dashboard_path??'lovelace']?.config?.mode??this.config.dashboard_mode;
+    const dashboardPath=this.config.dashboard_path??currentDashboardPath(this._hass);
+    const mode=this._hass.panels?.[dashboardPath??'lovelace']?.config?.mode??this.config.dashboard_mode;
     if(mode!=='storage'){this.status(mode==='yaml'?'Este dashboard usa YAML y es de sólo lectura.':'No se pudo confirmar el modo storage del dashboard.');return;}
     this.loading=true;this.updateControls();const generation=this.generation;
     try{
-      this.store=new LovelaceConfigurationStore(()=>this._hass,{cardId:this.config.card_id,dashboardPath:this.config.dashboard_path,dashboardMode:this.config.dashboard_mode});
+      this.store=new LovelaceConfigurationStore(()=>this._hass,{cardId:this.config.card_id,dashboardPath,dashboardMode:this.config.dashboard_mode});
       const current=await this.store.load();if(generation!==this.generation||!this.isConnected)return;
       this.saved=clone(current);this.draft=clone(current);this.config.configuration=clone(current);this.editing=true;this.fixedPermit=null;this.history=[];this.future=[];
       this.mountEditor();this.mountArchitecture();this.fit(null);this.renderMarkers();this.status('');
@@ -214,7 +225,7 @@ export class HomeManagerCard extends HTMLElement {
   private pointerUp=(event:PointerEvent)=>{
     const g=this.gesture;this.pointers.delete(event.pointerId);if(this.viewport.hasPointerCapture(event.pointerId))this.viewport.releasePointerCapture(event.pointerId);
     if(g?.kind==='device'){
-      if(g.moved){this.history.push(g.before);if(this.history.length>40)this.history.shift();this.future=[];const d=this.draft!.catalog.devices.find(d=>d.id===g.id)!;const detected=this.svg?roomAt(this.svg,d.position,this.box):null;if(detected)d.roomId=detected;
+      if(g.moved){this.history.push(g.before);if(this.history.length>40)this.history.shift();this.future=[];const d=this.draft!.catalog.devices.find(d=>d.id===g.id)!;const detected=this.svg?roomAt(this.svg,d.position,this.box,this.draft!.rooms.map(room=>room.id)):null;if(detected)d.roomId=detected;
         if(this.editor){this.editor.setConfig({...this.config!,configuration:this.draft!});this.editor.selectedDeviceId=g.id;}this.fixedPermit=null;
       }this.renderMarkers();this.updateControls();
     }

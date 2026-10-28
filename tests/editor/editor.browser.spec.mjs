@@ -105,8 +105,8 @@ test('JSON import shows summary before mutation; export contains configuration a
   expect((await current(page)).catalog.devices[0].display.label).toBe('Imported test label');
   const downloading=page.waitForEvent('download');await button(page,'Exportar JSON').click();const download=await downloading;
   const output=JSON.parse(await readFile(await download.path(),'utf8'));
-  expect(output.schemaVersion).toBe(1);expect(output.catalog.devices.every(device=>device.state.value==='unknown'&&device.state.confidence==='unknown')).toBe(true);
-  expect(Object.keys(output).sort()).toEqual(['actions','architecture','catalog','commandTtlSeconds','panels','schemaVersion','stateSources'].sort());
+  expect(output.schemaVersion).toBe(2);expect(output.catalog.devices.every(device=>device.state.value==='unknown'&&device.state.confidence==='unknown')).toBe(true);
+  expect(Object.keys(output).sort()).toEqual(['actions','architecture','catalog','commandTtlSeconds','panels','rooms','schemaVersion','stateSources'].sort());
 });
 test('SVG import sanitizes dangerous content and changed viewBox requires a backup before apply',async({page})=>{
   await section(page,'Importar y exportar');
@@ -141,4 +141,39 @@ test('editor stays inside the mobile/desktop viewport and primary controls have 
   const result=await editor(page).evaluate(element=>{const root=element.shadowRoot;return {width:root.querySelector('.editor').getBoundingClientRect().width,viewport:innerWidth,scroll:document.documentElement.scrollWidth,buttons:[...root.querySelectorAll('button')].filter(button=>button.getBoundingClientRect().height>0).map(button=>button.getBoundingClientRect().height)};});
   expect(result.width).toBeLessThanOrEqual(result.viewport);expect(result.scroll).toBeLessThanOrEqual(result.viewport);
   expect(result.buttons.every(height=>height>=44)).toBe(true);
+});
+test('spaces come from the instance: legacy labels migrate, zones are detected and edits never delete devices',async({page})=>{
+  await section(page,'Espacios');
+  expect((await current(page)).rooms).toEqual([{id:'living',label:'Espacio A'},{id:'kitchen',label:'Espacio B'},{id:'office',label:'Espacio C'}]);
+  await field(page,'Nombre del espacio living').fill('Estar');await button(page,'Aplicar nombres').click();
+  expect((await current(page)).rooms[0]).toEqual({id:'living',label:'Estar'});
+  await field(page,'ID del nuevo espacio').fill('garage');await field(page,'Nombre del nuevo espacio').fill('Garage');await button(page,'Agregar espacio').click();
+  expect((await current(page)).rooms.map(room=>room.id)).toEqual(['living','kitchen','office','garage']);
+  await expect(editor(page).getByText('sin zona en el plano').first()).toBeVisible();
+  await button(page,'Quitar Espacio B').click();
+  const config=await current(page);
+  expect(config.rooms.map(room=>room.id)).toEqual(['living','office','garage']);
+  expect(config.catalog.devices.find(device=>device.id==='synthetic-fan')).toMatchObject({roomId:null,bindings:{primaryAction:'synthetic-fan-command'}});
+  await expect(editor(page).getByRole('status')).toContainText('sin espacio asignado');
+  // The device form offers exactly the instance spaces plus the explicit unassigned option.
+  await field(page,'Dispositivo').selectOption('synthetic-light');
+  expect(await field(page,'Habitación del dispositivo').locator('option').allTextContents()).toEqual(['Sin espacio asignado','Estar','Espacio C','Garage']);
+  expect(await page.evaluate(()=>window.editorTest.calls)).toEqual([]);
+});
+test('replacing the plan detects zones and keeps devices on the same drawing point',async({page})=>{
+  await section(page,'Importar y exportar');
+  // Same drawing extended 500 units to the right: viewBox origin is unchanged, width doubles.
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 2000 700"><rect id="room-living" x="30" y="40" width="440" height="620"/><g id="room-studio"><title>Estudio</title><rect x="1100" y="40" width="400" height="400"/></g></svg>';
+  await field(page,'Importar JSON o SVG').setInputFiles({name:'plan.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+  await expect(editor(page).getByText('Espacios sin zona en el nuevo plano: kitchen, office')).toBeVisible();
+  await expect(editor(page).getByText('Zonas nuevas detectadas: studio')).toBeVisible();
+  await expect(editor(page).getByLabel('Mismo punto del dibujo (el plano se recortó o amplió)')).toBeChecked();
+  const downloading=page.waitForEvent('download');await button(page,'Exportar copia actual').click();await downloading;
+  await button(page,'Aplicar importación al borrador').click();
+  const light=(await current(page)).catalog.devices.find(device=>device.id==='synthetic-light');
+  // Before: x=.25 of width 1000 -> SVG x=260. After: (260-10)/2000 = .125.
+  expect(light.position).toEqual({x:.125,y:.33});expect(light.bindings.entityId).toBe('light.synthetic_light');
+  await section(page,'Espacios');
+  await button(page,'Agregar Estudio').click();
+  expect((await current(page)).rooms.at(-1)).toEqual({id:'studio',label:'Estudio'});
 });

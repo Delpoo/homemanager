@@ -1,18 +1,20 @@
 /** Shared types mirror schemas/*.schema.json. No credentials or live values
  * belong in Configuration; callers sanitize inline SVG before persistence/render.
  */
-export type RoomId = 'living'|'dining'|'kitchen'|'office'|'master-bedroom'|'bath-2'|'master-bath'|'balcony'|'entry'|'hallway'|'dbst'|'ac-ledge';
-export type DeviceKind = 'light'|'fan'|'curtain'|'ac'|'sensor'|'switch'|'robot'|'purifier'|'plant'|'infra'|'energy';
+/** Instance-defined space ID (kebab-case). Since V2 there is no fixed vocabulary. */
+export type RoomId = string;
+export type DeviceKind = 'light'|'fan'|'curtain'|'ac'|'sensor'|'switch'|'robot'|'purifier'|'plant'|'infra'|'energy'|'media'|'lock'|'camera'|'appliance'|'other';
+export interface Room { id: RoomId; label: string }
 export type Confidence = 'confirmed'|'estimated'|'sent'|'unknown'|'error';
 export interface Position { x: number; y: number }
 export interface DeviceState { value: string; confidence: Confidence }
 export interface Device {
-  id: string; roomId: RoomId; kind: DeviceKind; position: Position;
+  id: string; roomId: RoomId|null; kind: DeviceKind; position: Position;
   mobility: 'fixed'|'editable'|'portable'; display: {label: string; icon: string};
   bindings: {entityId: string|null; primaryAction: string|null; advancedPopupId: string|null};
   state: DeviceState;
 }
-export interface Catalog { schemaVersion: 1; devices: Device[] }
+export interface Catalog { schemaVersion: 2; devices: Device[] }
 export type JsonValue = null|boolean|number|string|JsonValue[]|{[key: string]: JsonValue};
 export interface ActionDefinition {
   domain: 'light'|'fan'|'cover'|'climate'|'switch'|'button'|'script';
@@ -24,7 +26,7 @@ export interface NativePanel {
 }
 export interface StateSource { entityId: string; attribute: string|null; feedback: 'measured'|'optimistic'|'transmitter' }
 export interface Configuration {
-  schemaVersion: 1; catalog: Catalog; architecture: {format: 'svg'; content: string};
+  schemaVersion: 2; rooms: Room[]; catalog: Catalog; architecture: {format: 'svg'; content: string};
   actions: Record<string,ActionDefinition>; panels: Record<string,NativePanel>;
   stateSources: Record<string,StateSource>; commandTtlSeconds?: number;
 }

@@ -1,11 +1,13 @@
-/** Persistent V1 types. Live values never belong in Configuration. */
-export const ROOM_IDS = ['living','dining','kitchen','office','master-bedroom','bath-2','master-bath','balcony','entry','hallway','dbst','ac-ledge'] as const;
-export const KINDS = ['light','fan','curtain','ac','sensor','switch','robot','purifier','plant','infra','energy'] as const;
-export type RoomId = typeof ROOM_IDS[number];
-export type DeviceKind = typeof KINDS[number];
+/** Persistent V2 types. Live values never belong in Configuration.
+ * Spaces are instance data (`rooms`); the public code has no room vocabulary. */
+import { KINDS } from '../ha/validation.mjs';
+import type { DeviceKind, Room } from '../ha/types.ts';
+export { KINDS };
+export type { DeviceKind, Room };
+export type RoomId = string;
 export type Confidence = 'confirmed'|'estimated'|'sent'|'unknown'|'error';
 export interface Device {
-  id:string; roomId:RoomId; kind:DeviceKind; position:{x:number;y:number}; mobility:'fixed'|'editable'|'portable';
+  id:string; roomId:RoomId|null; kind:DeviceKind; position:{x:number;y:number}; mobility:'fixed'|'editable'|'portable';
   display:{label:string;icon:string};
   bindings:{entityId:string|null;primaryAction:string|null;advancedPopupId:string|null};
   state:{value:string;confidence:Confidence};
@@ -15,8 +17,9 @@ export interface Action { domain:'light'|'fan'|'cover'|'climate'|'switch'|'butto
 export interface NativePanel { kind:'device-controls'|'rf-fan'; title:string; controls:{id:string;label:string;actionId:string}[] }
 export interface StateSource { entityId:string; attribute:string|null; feedback:'measured'|'optimistic'|'transmitter' }
 export interface Configuration {
-  schemaVersion:1;
-  catalog:{schemaVersion:1;devices:Device[]};
+  schemaVersion:2;
+  rooms:Room[];
+  catalog:{schemaVersion:2;devices:Device[]};
   architecture:{format:'svg';content:string};
   actions:Record<string,Action>; panels:Record<string,NativePanel>; stateSources:Record<string,StateSource>;
   commandTtlSeconds?:number;
@@ -24,7 +27,8 @@ export interface Configuration {
 export interface CardConfig {
   type:'custom:homemanager-card'; card_id:string; configuration:Configuration;
   dashboard_path?:string; dashboard_mode?:'storage'|'yaml'; title?:string;
-  room_labels?:Partial<Record<RoomId,string>>;
+  /** @deprecated V1 only: labels are migrated into configuration.rooms. */
+  room_labels?:Record<string,string>;
 }
 export interface HassEntity {state:string;attributes:Record<string,unknown>;last_updated?:string;last_changed?:string}
 export interface Hass {
@@ -32,7 +36,7 @@ export interface Hass {
   connected?:boolean;
   services?:Record<string,Record<string,{fields?:Record<string,unknown>;[key:string]:unknown}>>;
   user?:{id?:string;is_admin?:boolean};
-  panels?:Record<string,{config?:{mode?:string}}>;
+  panels?:Record<string,{component_name?:string;config?:{mode?:string}}>;
   connection?:{connected?:boolean};
   callWS?<T=unknown>(message:Record<string,unknown>):Promise<T>;
   callService?(domain:string,service:string,data?:Record<string,unknown>,target?:{entity_id:string|string[]}):Promise<unknown>;

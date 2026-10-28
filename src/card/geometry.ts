@@ -1,4 +1,4 @@
-import { ROOM_IDS, type RoomId } from './types.js';
+import { type RoomId } from './types.js';
 
 export interface ViewBox { x:number; y:number; width:number; height:number }
 export interface Camera { x:number; y:number; scale:number }
@@ -131,7 +131,21 @@ function checkReferences(root:SVGSVGElement,ids:Map<string,Element>):void {
 }
 /** Explicit static-vector profile; sanitizes in the inert XML document BEFORE
  * importNode. Styles become permitted presentation attributes, never live CSS. */
-export function sanitizeArchitecture(source:string):{content:string;svg:SVGSVGElement;box:ViewBox;warnings:string[]} {
+export interface SanitizedArchitecture {content:string;svg:SVGSVGElement;box:ViewBox;warnings:string[]}
+// The same plan is validated on setConfig, adapter setup, render and save. Memoize
+// the inert sanitized root (keyed by source AND by its clean output, which is a
+// fixed point) and hand out a fresh imported copy each time, never the cached node.
+const SANITIZED=new Map<string,{root:SVGSVGElement;content:string;box:ViewBox;warnings:string[]}>();
+export function sanitizeArchitecture(source:string):SanitizedArchitecture {
+  const cached=typeof source==='string'?SANITIZED.get(source):undefined;
+  if(cached){SANITIZED.delete(source);SANITIZED.set(source,cached);return {content:cached.content,svg:document.importNode(cached.root,true),box:{...cached.box},warnings:[...cached.warnings]};}
+  const result=sanitizeUncached(source);
+  const entry={root:result.root,content:result.content,box:result.box,warnings:result.warnings};
+  SANITIZED.set(source,entry);SANITIZED.set(result.content,{...entry,warnings:[]});
+  while(SANITIZED.size>8)SANITIZED.delete(SANITIZED.keys().next().value!);
+  return {content:result.content,svg:document.importNode(result.root,true),box:{...result.box},warnings:[...result.warnings]};
+}
+function sanitizeUncached(source:string):{content:string;root:SVGSVGElement;box:ViewBox;warnings:string[]} {
   if(typeof source!=='string' || new TextEncoder().encode(source).byteLength>ARCHITECTURE_MAX_BYTES)throw new Error('El SVG supera el máximo de 1 MiB UTF-8.');
   if(/<!DOCTYPE|<!ENTITY/i.test(source))throw new Error('No se permiten DTD ni entidades en el SVG.');
   const documentXML=new DOMParser().parseFromString(source,'image/svg+xml');
@@ -159,23 +173,38 @@ export function sanitizeArchitecture(source:string):{content:string;svg:SVGSVGEl
   removed+=flattenStyles(root);
   const ids=new Map<string,Element>();for(const element of [root,...root.querySelectorAll('*')]){const id=element.getAttribute('id');if(id)ids.set(id,element);}
   checkReferences(root,ids);
-  root.setAttribute('width',String(box.width));root.setAttribute('height',String(box.height));root.setAttribute('aria-hidden','true');root.setAttribute('focusable','false');
-  const content=new XMLSerializer().serializeToString(root);if(new TextEncoder().encode(content).byteLength>ARCHITECTURE_MAX_BYTES)throw new Error('El SVG sanitizado supera 1 MiB.');
-  return {content,svg:document.importNode(root,true),box,warnings:removed?[`${removed} elementos, atributos o reglas fuera del perfil vectorial fueron eliminados.`]:[]};
+  root.setAttribute('width',String(box.width));root.setAttribute('height',String(box.height));
+  const content=new XMLSerializer().serializeToString(root);
+  // Presentation-only attributes for the live node; kept out of the persisted
+  // content so that re-sanitizing a saved plan is a silent fixed point.
+  root.setAttribute('aria-hidden','true');root.setAttribute('focusable','false');if(new TextEncoder().encode(content).byteLength>ARCHITECTURE_MAX_BYTES)throw new Error('El SVG sanitizado supera 1 MiB.');
+  return {content,root,box,warnings:removed?[`${removed} elementos, atributos o reglas fuera del perfil vectorial fueron eliminados.`]:[]};
 }
-function roomZone(svg:SVGSVGElement,roomId:RoomId):SVGGraphicsElement|null {if(!ROOM_IDS.includes(roomId))return null;return [...svg.querySelectorAll<SVGGraphicsElement>('[id]')].find(element=>element.id===`room-${roomId}`)??null;}
-/** Bounds are in the ORIGINAL SVG global coordinate system, including origin.
- * Missing/unmeasurable zones return null; no synthetic rectangle is invented. */
+const ZONE_PREFIX='room-';
+function roomZone(svg:SVGSVGElement,roomId:RoomId):SVGGraphicsElement|null {if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(roomId))return null;return [...svg.querySelectorAll<SVGGraphicsElement>('[id]')].find(element=>element.id===`${ZONE_PREFIX}${roomId}`)??null;}
+/** Candidate spaces found in a sanitized plan: every element whose ID follows the
+ * `room-${id}` convention, in document order, with its <title> as label hint.
+ * Detection only proposes; the instance decides which zones become spaces. */
+export function detectZones(svg:SVGSVGElement):{id:string;label:string|null}[] {
+  const zones:{id:string;label:string|null}[]=[];
+  for(const element of svg.querySelectorAll('[id]')){
+    if(!element.id.startsWith(ZONE_PREFIX))continue;const id=element.id.slice(ZONE_PREFIX.length);
+    if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)||['__proto__','prototype','constructor'].includes(id)||zones.some(zone=>zone.id===id))continue;
+    const title=[...element.children].find(child=>child.localName==='title')?.textContent?.trim();
+    zones.push({id,label:title?title.slice(0,240):null});
+  }
+  return zones;
+}
 export function roomBounds(svg:SVGSVGElement,roomId:RoomId):ViewBox|null {
   const zone=roomZone(svg,roomId);if(!zone)return null;
   try{const bounds=zone.getBBox(),matrix=zone.getCTM(),rootMatrix=svg.getCTM();if(!matrix || !rootMatrix || bounds.width<=0 || bounds.height<=0)return null;const transform=rootMatrix.inverse().multiply(matrix);const points=[[bounds.x,bounds.y],[bounds.x+bounds.width,bounds.y],[bounds.x,bounds.y+bounds.height],[bounds.x+bounds.width,bounds.y+bounds.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(transform));const x=Math.min(...points.map(point=>point.x)),y=Math.min(...points.map(point=>point.y)),right=Math.max(...points.map(point=>point.x)),bottom=Math.max(...points.map(point=>point.y)),width=right-x,height=bottom-y;return [x,y,width,height].every(Number.isFinite)&&width>0&&height>0?{x,y,width,height}:null;}catch{return null;}
 }
 /** Actual geometry hit-testing, including grouped/concave/transformed shapes.
  * Ambiguous overlaps, missing geometry and bounding-box-only evidence return null. */
-export function roomAt(svg:SVGSVGElement,normalized:Point,box:ViewBox):RoomId|null {
+export function roomAt(svg:SVGSVGElement,normalized:Point,box:ViewBox,roomIds:readonly RoomId[]):RoomId|null {
   if(![normalized.x,normalized.y].every(Number.isFinite) || normalized.x<0 || normalized.x>1 || normalized.y<0 || normalized.y>1)return null;
   const point=new DOMPoint(box.x+normalized.x*box.width,box.y+normalized.y*box.height),matches=new Set<RoomId>();
-  for(const id of ROOM_IDS){const zone=roomZone(svg,id);if(!zone)continue;const shapes=zone instanceof SVGGeometryElement?[zone]:[...zone.querySelectorAll('*')].filter((element):element is SVGGeometryElement=>element instanceof SVGGeometryElement);
+  for(const id of roomIds){const zone=roomZone(svg,id);if(!zone)continue;const shapes=zone instanceof SVGGeometryElement?[zone]:[...zone.querySelectorAll('*')].filter((element):element is SVGGeometryElement=>element instanceof SVGGeometryElement);
     for(const shape of shapes)try{const matrix=shape.getCTM(),rootMatrix=svg.getCTM();if(matrix && rootMatrix && shape.isPointInFill(point.matrixTransform(rootMatrix.inverse().multiply(matrix).inverse()))){matches.add(id);break;}}catch{/* No guess from a rectangle. */}
   }
   return matches.size===1?[...matches][0]:null;

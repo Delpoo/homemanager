@@ -40,6 +40,28 @@ function feedbackSet(values) {
   return result;
 }
 
+/** Entities whose state or attributes can change a snapshot or an availability:
+ * device bindings, state sources and action targets (scripts included). */
+function relevantEntities(configuration) {
+  const ids = new Set();
+  for (const device of configuration.catalog.devices) if (device.bindings.entityId) ids.add(device.bindings.entityId);
+  for (const source of Object.values(configuration.stateSources)) ids.add(source.entityId);
+  for (const action of Object.values(configuration.actions)) for (const id of [action.target.entity_id].flat()) ids.add(id);
+  return [...ids];
+}
+/** HA state objects are immutable and replaced on change, so identity is a
+ * sufficient and cheap change detector. Session-level values are compared by value. */
+function sessionFingerprint(hass, online, entityIds) {
+  return {
+    online, connection: hass?.connection, connected: hass?.connection?.connected, userId: hass?.user?.id, admin: hass?.user?.is_admin,
+    services: hass?.services, states: entityIds.map(id => hass?.states?.[id]),
+  };
+}
+function sameFingerprint(a, b) {
+  for (const key of ['online', 'connection', 'connected', 'userId', 'admin', 'services']) if (a[key] !== b[key]) return false;
+  return a.states.length === b.states.length && a.states.every((state, index) => state === b.states[index]);
+}
+
 /** An adapter for the current authenticated HA session. It has no independent
  * connection, credentials, renderer, persistence, or execution outside HA.
  */
@@ -62,6 +84,8 @@ export class HomeAssistantAdapter {
     this._disposed = false;
     this.lastObserverError = null;
     this._configuration = assertConfiguration(configuration, { allowPending: true });
+    this._relevant = relevantEntities(this._configuration);
+    this._fingerprint = null;
   }
 
   get configuration() { return clone(this._configuration); }
@@ -80,6 +104,7 @@ export class HomeAssistantAdapter {
     this._inFlight.clear();
     if (this._expiryTimer !== null) clearTimeout(this._expiryTimer);
     this._expiryTimer = null;
+    this._fingerprint = null;
   }
 
   _detachConnection() {
@@ -108,6 +133,8 @@ export class HomeAssistantAdapter {
     const validated = assertConfiguration(configuration, { allowPending: true });
     this._clearRuntime();
     this._configuration = validated;
+    this._relevant = relevantEntities(validated);
+    this._fingerprint = null;
     this._publish();
   }
 
@@ -121,6 +148,11 @@ export class HomeAssistantAdapter {
     if (connectionChanged) this._attachConnection(next?.connection);
     this._hass = next;
     this._online = online;
+    // HA replaces the hass object on EVERY state change in the installation. Only
+    // republish when something this configuration reads actually changed.
+    const fingerprint = sessionFingerprint(next, online, this._relevant);
+    if (this._fingerprint && sameFingerprint(fingerprint, this._fingerprint)) return;
+    this._fingerprint = fingerprint;
     this._publish();
   }
 

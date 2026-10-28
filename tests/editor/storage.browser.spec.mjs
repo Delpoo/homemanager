@@ -117,3 +117,14 @@ test('pending logical references can be loaded but cannot be saved',async({page}
   const result=await page.evaluate(async()=>{const h=window.editorStorage;h.config.catalog.devices[0].bindings.primaryAction='missing-action';const c=await h.store.load();let message;try{await h.store.save(c);}catch(error){message=error.message;}return {message,ref:c.catalog.devices[0].bindings.primaryAction,writes:h.calls.filter(call=>call.type==='lovelace/config/save').length};});
   expect(result.ref).toBe('missing-action');expect(result.message).toContain('pendiente');expect(result.writes).toBe(0);
 });
+test('a dashboard that would exceed the HA websocket frame is refused before sending',async({page})=>{
+  const result=await page.evaluate(async()=>{
+    const h=window.editorStorage;
+    // Unrelated content in the same dashboard counts: Lovelace saves the whole document.
+    h.dashboard.views[0].sections[0].cards[0].cards[1].content='x'.repeat(4*1024*1024);
+    const loaded=await h.store.load();loaded.catalog.devices[0].display.label='Too big to send';
+    let message='';try{await h.store.save(loaded);}catch(error){message=error.message;}
+    return {message,saves:h.calls.filter(call=>call.type==='lovelace/config/save').length,label:h.config.catalog.devices[0].display.label};
+  });
+  expect(result.message).toContain('4 MiB');expect(result.saves).toBe(0);expect(result.label).not.toBe('Too big to send');
+});

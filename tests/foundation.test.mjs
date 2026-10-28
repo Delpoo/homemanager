@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateFoundation } from '../scripts/validate-foundation.mjs';
+import { migrateConfiguration, LEGACY_V1_ROOM_IDS } from '../src/ha/migration.mjs';
 
 // Deliberately synthetic contract records; no dwelling inventory or RF payloads.
 const device = () => ({
@@ -10,8 +11,9 @@ const device = () => ({
   state: { value: 'unknown', confidence: 'unknown' }
 });
 const configuration = () => ({
-  schemaVersion: 1,
-  catalog: { schemaVersion: 1, devices: [device()] },
+  schemaVersion: 2,
+  rooms: [{ id: 'living', label: 'Contract space' }],
+  catalog: { schemaVersion: 2, devices: [device()] },
   architecture: { format: 'svg', content: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>' },
   actions: { 'light-toggle': { domain: 'light', service: 'toggle', target: { entity_id: 'light.contract_light' } } },
   panels: { 'light-controls': { kind: 'device-controls', title: 'Contract controls', controls: [{ id: 'toggle', label: 'Toggle', actionId: 'light-toggle' }] } },
@@ -20,29 +22,47 @@ const configuration = () => ({
 });
 function expectInvalid(kind, value) { assert.equal(validateFoundation(kind, value).valid, false); }
 
-test('a minimal catalog and configured native panel satisfy V1', () => {
-  assert.deepEqual(validateFoundation('catalog', { schemaVersion: 1, devices: [device()] }), { valid: true, errors: [] });
+test('a minimal catalog and configured native panel satisfy V2', () => {
+  assert.deepEqual(validateFoundation('catalog', { schemaVersion: 2, devices: [device()] }), { valid: true, errors: [] });
   assert.deepEqual(validateFoundation('configuration', configuration()), { valid: true, errors: [] });
 });
-test('room IDs preserve the shared V1 vocabulary', () => {
-  for (const roomId of ['living', 'dining', 'kitchen', 'office', 'master-bedroom', 'bath-2', 'master-bath', 'balcony', 'entry', 'hallway', 'dbst', 'ac-ledge']) {
-    assert.equal(validateFoundation('catalog', { schemaVersion: 1, devices: [{ ...device(), roomId }] }).valid, true, roomId);
+test('spaces are instance data: any declared kebab-case space is valid, undeclared ones are not', () => {
+  for (const roomId of ['attic', 'garage', 'kids-room-2', 'b1']) {
+    const value = configuration(); value.rooms.push({ id: roomId, label: 'Synthetic space' }); value.catalog.devices[0].roomId = roomId;
+    assert.deepEqual(validateFoundation('configuration', value), { valid: true, errors: [] }, roomId);
   }
-  expectInvalid('catalog', { schemaVersion: 1, devices: [{ ...device(), roomId: 'attic' }] });
+  const undeclared = configuration(); undeclared.catalog.devices[0].roomId = 'attic'; expectInvalid('configuration', undeclared);
+  const duplicate = configuration(); duplicate.rooms.push({ id: 'living', label: 'Again' }); expectInvalid('configuration', duplicate);
+  for (const roomId of ['Living', 'living room', '__proto__', '']) expectInvalid('catalog', { schemaVersion: 2, devices: [{ ...device(), roomId }] });
+  const unassigned = configuration(); unassigned.catalog.devices[0].roomId = null;
+  assert.equal(validateFoundation('configuration', unassigned).valid, true);
+});
+test('V1 documents migrate to schema-valid V2 without losing devices, bindings or labels', () => {
+  const v1 = { ...configuration(), schemaVersion: 1, catalog: { schemaVersion: 1, devices: [device(), { ...device(), id: 'second', roomId: 'ac-ledge' }] } };
+  delete v1.rooms;
+  v1.architecture.content = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect id="room-kitchen" width="1" height="1"/></svg>';
+  assert.deepEqual(validateFoundation('configuration-v1', v1), { valid: true, errors: [] });
+  const v2 = migrateConfiguration(v1, { roomLabels: { living: 'Sala' } });
+  assert.deepEqual(validateFoundation('configuration', v2), { valid: true, errors: [] });
+  assert.deepEqual(v2.rooms, [{ id: 'living', label: 'Sala' }, { id: 'kitchen', label: 'Kitchen' }, { id: 'ac-ledge', label: 'Ac ledge' }]);
+  assert.deepEqual(v2.catalog.devices, v1.catalog.devices);
+  assert.equal(v1.schemaVersion, 1, 'migration never mutates its input');
+  assert.deepEqual(migrateConfiguration(v2), v2, 'V2 is a fixed point');
+  assert.equal(LEGACY_V1_ROOM_IDS.length, 12);
 });
 test('coordinates are normalized against the complete SVG viewBox', () => {
   for (const coordinate of [-0.001, 1.001, Infinity, NaN, '0.5']) {
-    expectInvalid('catalog', { schemaVersion: 1, devices: [{ ...device(), position: { x: coordinate, y: 0.5 } }] });
-    expectInvalid('catalog', { schemaVersion: 1, devices: [{ ...device(), position: { x: 0.5, y: coordinate } }] });
+    expectInvalid('catalog', { schemaVersion: 2, devices: [{ ...device(), position: { x: coordinate, y: 0.5 } }] });
+    expectInvalid('catalog', { schemaVersion: 2, devices: [{ ...device(), position: { x: 0.5, y: coordinate } }] });
   }
 });
 test('unknown schema versions and additional catalog fields fail', () => {
-  expectInvalid('catalog', { schemaVersion: 2, devices: [] });
-  expectInvalid('catalog', { schemaVersion: 1, devices: [], token: 'not-a-token' });
-  expectInvalid('catalog', { schemaVersion: 1, devices: [{ ...device(), raw: 'payload' }] });
+  expectInvalid('catalog', { schemaVersion: 3, devices: [] });
+  expectInvalid('catalog', { schemaVersion: 2, devices: [], token: 'not-a-token' });
+  expectInvalid('catalog', { schemaVersion: 2, devices: [{ ...device(), raw: 'payload' }] });
 });
 test('stable device identifiers must be unique', () => {
-  expectInvalid('catalog', { schemaVersion: 1, devices: [device(), device()] });
+  expectInvalid('catalog', { schemaVersion: 2, devices: [device(), device()] });
 });
 test('persistent configuration cannot carry live or acknowledged state', () => {
   for (const confidence of ['confirmed', 'estimated', 'sent', 'error']) {
