@@ -1,0 +1,4 @@
+# Companion integration tests (custom_components/homemanager). Pinned to the HA
+# release they were verified against; bump together and re-run tests/integration.
+pytest-homeassistant-custom-component==0.13.316
+home-assistant-frontend==20260128.6

@@ -22,3 +22,8 @@ instance/
 household/
 .DS_Store
 Thumbs.db
+
+# Built by npm run build; shipped in the release package, not in Git.
+custom_components/homemanager/frontend/
+__pycache__/
+.pytest_cache/

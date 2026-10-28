@@ -2,14 +2,14 @@
 
 Frontend Lovelace para visualizar espacios, vincular iconos a entidades de Home Assistant y abrir controles avanzados nativos.
 
-**Estado: frontend implementado, validado con una sesión HA simulada.** El build genera `dist/homemanager.js` con la tarjeta, editor y paneles nativos. No está instalado ni verificado contra una instancia real de Home Assistant o hardware.
+**Estado: tarjeta, editor, paneles nativos e integración compañera implementados; probados con sesiones HA sintéticas, con el arnés oficial de HA 2026.2.3 y de extremo a extremo contra una instancia local desechable.** Falta validarlos en la instalación real y publicar una release.
 
 ## Arquitectura
 
 - Una tarjeta propia y su editor visual usan la sesión existente de Home Assistant.
 - Los espacios (habitaciones) son datos de cada instalación: se detectan en el SVG y se nombran en el editor, sin modificar código.
 - El administrador selecciona un icono, una entidad, acciones/scripts y un panel avanzado; guarda desde el editor Lovelace en un dashboard de tipo `storage`.
-- El SVG se importa como dato, se valida/sanitiza y se guarda dentro de la configuración autenticada del dashboard. El acceso alcanza a las sesiones HA que pueden leer ese dashboard; no es un almacén de secretos ni aislamiento por usuario.
+- La integración compañera (`custom_components/homemanager`) guarda los hogares y sus planos en el almacenamiento de HA, con revisiones atómicas e historial de planos, y añade el panel **HomeManager** a la barra lateral ([integración](docs/integration.md)). El SVG se valida/sanitiza al importar y al renderizar, y sólo viaja por el WebSocket autenticado. Las tarjetas con la configuración inline en Lovelace siguen funcionando y pueden migrarse desde su editor.
 - Los estados y comandos pendientes viven en memoria. La configuración persiste por separado.
 - Los paneles, incluido el del ventilador RF, son propios. Browser Mod está excluido, sin adaptadores ni compatibilidad transitoria.
 - RF permanece en Home Assistant. El navegador solo llama a entidades/scripts permitidos y nunca contiene códigos RF.
@@ -24,7 +24,8 @@ No copiar proyectos previos completos: cada archivo debe pasar revisión de priv
 
 | Ruta | Propósito |
 | --- | --- |
-| `src/` | Tarjeta, editor, paneles nativos y adaptador HA genéricos |
+| `src/` | Tarjeta, editor, paneles nativos, panel lateral y adaptador HA genéricos |
+| `custom_components/homemanager/` | Integración compañera: almacenamiento, WebSocket, panel y bundle |
 | `architecture/` | Diseño de software y límites entre componentes |
 | `assets/` | Recursos genéricos con licencia registrada |
 | `schemas/` | Contratos JSON, configuración persistente y estado efímero |

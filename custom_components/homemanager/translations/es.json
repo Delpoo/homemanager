@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HomeManager",
+        "description": "Guarda tus planos y la distribución de dispositivos en Home Assistant y agrega el panel HomeManager a la barra lateral. Editar requiere una cuenta administradora."
+      }
+    },
+    "abort": {
+      "already_configured": "HomeManager ya está configurado.",
+      "single_instance_allowed": "HomeManager ya está configurado."
+    }
+  }
+}

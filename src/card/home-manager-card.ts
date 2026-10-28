@@ -1,6 +1,7 @@
 import { HomeAssistantAdapter } from '../ha/index.js';
 import { HomeManagerEditor, LovelaceConfigurationStore, type ConfigurationStore } from '../editor/index.js';
 import { openPanel } from '../panels/native-panel.js';
+import { IntegrationConfigurationStore, integrationAvailable, subscribeHome } from '../integration/store.js';
 import { validateCardConfig, validateConfiguration, emptyConfiguration } from './configuration.js';
 import { sanitizeArchitecture, fitCamera, zoomCamera, roomBounds, roomAt, type Camera, type ViewBox } from './geometry.js';
 import { clone, escapeHTML as e, type Configuration, type CardConfig, type Device, type Hass, type RuntimeState, type RoomId } from './types.js';
@@ -41,6 +42,8 @@ export class HomeManagerCard extends HTMLElement {
   private runtime:RuntimeState={schemaVersion:1,states:{}};
   private editor?:HomeManagerEditor;
   private store?:ConfigurationStore;
+  // Integration storage (card config with home_id): loaded over the websocket.
+  private home?:IntegrationConfigurationStore;private homeState:'idle'|'loading'|'ready'|'missing'|'error'='idle';private homeUnsubscribe?:Promise<()=>void>;
   private editing=false;private loading=false;private saving=false;
   private selected:string|null=null;private fixedPermit:string|null=null;
   private history:Configuration[]=[];private future:Configuration[]=[];
@@ -55,7 +58,7 @@ export class HomeManagerCard extends HTMLElement {
   private verifiedFeedbackEntities=new Set<string>();
   private readonly root=this.attachShadow({mode:'open'});
   static getConfigElement():HTMLElement {return document.createElement('homemanager-editor');}
-  static getStubConfig():CardConfig {return {type:'custom:homemanager-card',card_id:typeof crypto.randomUUID==='function'?crypto.randomUUID():`map-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`,dashboard_mode:'storage',configuration:emptyConfiguration()};}
+  static getStubConfig(hass?:Hass):CardConfig {if(integrationAvailable(hass))return {type:'custom:homemanager-card',card_id:'plano',home_id:'home'} as CardConfig;return {type:'custom:homemanager-card',card_id:typeof crypto.randomUUID==='function'?crypto.randomUUID():`map-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`,dashboard_mode:'storage',configuration:emptyConfiguration()};}
   getCardSize():number {return 10;}
   getGridOptions(){return {columns:24,rows:12,min_columns:6,min_rows:6};}
   getConfiguration():Configuration {return clone(this.saved??emptyConfiguration());}
@@ -64,18 +67,49 @@ export class HomeManagerCard extends HTMLElement {
   setVerifiedFeedbackEntities(ids:Iterable<string>):void {this.verifiedFeedbackEntities=new Set(ids);if(this.saved)this.setupAdapter(this.saved);}
   // The adapter republishes (and thus refreshes markers) only when an entity this
   // plan reads changes; unrelated HA churn costs a fingerprint comparison.
-  set hass(value:Hass){this._hass=value;this.adapter?.setHass(value);if(this.editor)this.editor.hass=value;if(!this.adapter)this.refreshState();this.updateControls();}
+  set hass(value:Hass){this._hass=value;this.adapter?.setHass(value);if(this.editor)this.editor.hass=value;if(!this.adapter)this.refreshState();this.updateControls();if(this.home&&this.homeState==='idle'&&this.isConnected)void this.loadHome();}
   get hass():Hass|undefined{return this._hass;}
   setConfig(value:unknown):void {
     const next=validateCardConfig(value);
-    if(this.editing&&this.dirty){if(!same(next.configuration,this.saved))this.status('La configuración cambió fuera de esta edición. Tu borrador se conserva; exportalo antes de recargar.');return;}
-    this.generation++;this.config=next;this.saved=clone(next.configuration);this.draft=clone(next.configuration);
+    if(next.home_id){
+      // Same home already loaded: keep it (HA calls setConfig on every dashboard refresh).
+      if(this.home?.homeId===next.home_id&&this.config?.home_id===next.home_id){this.config={...next,configuration:this.config.configuration};return;}
+      this.detachHome();this.generation++;this.home=new IntegrationConfigurationStore(()=>this._hass,next.home_id);this.homeState='idle';
+    }else{
+      if(this.editing&&this.dirty){if(!same(next.configuration,this.saved))this.status('La configuración cambió fuera de esta edición. Tu borrador se conserva; exportalo antes de recargar.');return;}
+      this.detachHome();this.generation++;
+    }
+    this.config=next;this.saved=clone(next.configuration);this.draft=clone(next.configuration);
     this.editing=false;this.history=[];this.future=[];this.selected=null;this.fixedPermit=null;
     this.setupAdapter(next.configuration);this.render();
+    if(this.home){this.status('Cargando el hogar desde Home Assistant…');if(this._hass&&this.isConnected)void this.loadHome();}
   }
-  connectedCallback(){if(this.config){if(!this.adapter)this.setupAdapter(this.saved!);if(!this.root.childElementCount)this.render();else{this.observer?.observe(this.viewport);this.queuePosition();}}}
-  disconnectedCallback(){this.generation++;this.observer?.disconnect();this.unsubscribe?.();this.adapter?.dispose();this.adapter=undefined;this.panel?.close();cancelAnimationFrame(this.frame);this.pointers.clear();this.gesture=undefined;}
+  // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
+  connectedCallback(){if(this.home&&this.homeState!=='loading'&&!this.editing){this.homeState='idle';if(this._hass)void this.loadHome();}if(this.config){if(!this.adapter)this.setupAdapter(this.saved!);if(!this.root.childElementCount)this.render();else{this.observer?.observe(this.viewport);this.queuePosition();}}}
+  disconnectedCallback(){this.homeUnsubscribe?.then(unsubscribe=>unsubscribe()).catch(()=>{});this.homeUnsubscribe=undefined;this.generation++;this.observer?.disconnect();this.unsubscribe?.();this.adapter?.dispose();this.adapter=undefined;this.panel?.close();cancelAnimationFrame(this.frame);this.pointers.clear();this.gesture=undefined;}
   private get dirty(){return !same(this.draft,this.saved);}
+  private detachHome(){this.homeUnsubscribe?.then(unsubscribe=>unsubscribe()).catch(()=>{});this.homeUnsubscribe=undefined;this.home=undefined;this.homeState='idle';}
+  /** Loads the home and keeps it current: other editors' saves arrive as revisions. */
+  private async loadHome(){
+    const home=this.home;if(!home||!this._hass||this.homeState==='loading')return;
+    this.homeState='loading';const generation=this.generation;
+    try{
+      const configuration=await home.load();if(home!==this.home||generation!==this.generation)return;
+      this.homeState=home.revision===null?'missing':'ready';
+      if(!this.editing){this.saved=clone(configuration);this.draft=clone(configuration);this.config!.configuration=clone(configuration);this.setupAdapter(configuration);this.render();}
+      // Only replace our own loading/missing notices; never wipe e.g. "Guardado en Home Assistant".
+      if(home.revision===null)this.status(this._hass?.user?.is_admin?`El hogar «${home.homeId}» todavía no existe. Pulsá Editar plano para crearlo.`:`El hogar «${home.homeId}» todavía no existe. Pedile a un administrador que lo cree.`);
+      else if(/^Cargando el hogar|todavía no existe/.test(this.root.querySelector('.status')?.textContent??''))this.status('');
+      if(!this.homeUnsubscribe&&this._hass)this.homeUnsubscribe=subscribeHome(this._hass,home.homeId,event=>this.onHomeRevision(event.revision));
+    }catch(error){if(home===this.home){this.homeState='error';this.status(error instanceof Error?error.message:'No se pudo cargar el hogar.');}}
+  }
+  private onHomeRevision(revision:number|null){
+    // Our own save also produces an event; it may arrive before save() resolves.
+    if(!this.home||this.saving||revision===this.home.revision)return;
+    if(this.editing&&this.dirty){this.status('Otro editor guardó cambios en este hogar. Tu borrador se conserva; al guardar se detectará el conflicto.');return;}
+    if(this.editing){this.status('Otro editor guardó cambios: salí y volvé a entrar en edición para continuar sobre la versión nueva.');return;}
+    this.homeState='idle';void this.loadHome();
+  }
   private setupAdapter(configuration:Configuration){
     this.unsubscribe?.();this.adapter?.dispose();this.adapter=undefined;this.runtime={schemaVersion:1,states:{}};
     try{
@@ -161,14 +195,16 @@ export class HomeManagerCard extends HTMLElement {
     if(this.loading||this.saving)return;if(this.editing){if(this.dirty){this.status('Guardá o descartá los cambios antes de salir del editor.');return;}this.editing=false;this.updateControls();this.renderMarkers();return;}
     if(!this.config||this._hass?.user?.is_admin!==true){this.status('La edición compartida requiere una cuenta administradora de Home Assistant.');return;}
     const dashboardPath=this.config.dashboard_path??currentDashboardPath(this._hass);
-    const mode=this._hass.panels?.[dashboardPath??'lovelace']?.config?.mode??this.config.dashboard_mode;
-    if(mode!=='storage'){this.status(mode==='yaml'?'Este dashboard usa YAML y es de sólo lectura.':'No se pudo confirmar el modo storage del dashboard.');return;}
+    if(!this.home){
+      const mode=this._hass.panels?.[dashboardPath??'lovelace']?.config?.mode??this.config.dashboard_mode;
+      if(mode!=='storage'){this.status(mode==='yaml'?'Este dashboard usa YAML y es de sólo lectura.':'No se pudo confirmar el modo storage del dashboard.');return;}
+    }
     this.loading=true;this.updateControls();const generation=this.generation;
     try{
-      this.store=new LovelaceConfigurationStore(()=>this._hass,{cardId:this.config.card_id,dashboardPath,dashboardMode:this.config.dashboard_mode});
+      this.store=this.home??new LovelaceConfigurationStore(()=>this._hass,{cardId:this.config.card_id,dashboardPath,dashboardMode:this.config.dashboard_mode});
       const current=await this.store.load();if(generation!==this.generation||!this.isConnected)return;
       this.saved=clone(current);this.draft=clone(current);this.config.configuration=clone(current);this.editing=true;this.fixedPermit=null;this.history=[];this.future=[];
-      this.mountEditor();this.mountArchitecture();this.fit(null);this.renderMarkers();this.status('');
+      this.mountEditor();this.mountArchitecture();this.fit(null);this.renderMarkers();this.status(this.home?.revision===null?`Hogar nuevo: «${this.home.homeId}» se creará en la integración al guardar.`:'');
     }catch(error){this.status(error instanceof Error?error.message:'No se pudo cargar el editor.');}finally{this.loading=false;this.updateControls();}
   }
   private mountEditor(){
@@ -193,7 +229,7 @@ export class HomeManagerCard extends HTMLElement {
     if(changes.length&&!reviewed){this.dialog('Revisar cambios de habitación',`<p>${changes.map(d=>e(d.display.label)).join(', ')}</p><p>Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.</p>`,[{label:'Volver a editar',action:()=>{}},{label:'Guardar ubicación visual',action:()=>{void this.save(true);}}]);return;}
     try{
       const next=validateConfiguration(this.draft);this.saving=true;this.updateControls();const generation=this.generation;await this.store.save(next);if(generation!==this.generation||!this.isConnected)return;
-      this.saved=clone(next);this.draft=clone(next);this.config!.configuration=clone(next);this.history=[];this.future=[];this.fixedPermit=null;this.setupAdapter(next);this.status('Guardado en Home Assistant.');this.dispatchEvent(new CustomEvent('homemanager-saved',{detail:{configuration:clone(next)},bubbles:true,composed:true}));
+      this.saved=clone(next);this.draft=clone(next);this.config!.configuration=clone(next);this.history=[];this.future=[];this.fixedPermit=null;this.setupAdapter(next);if(this.home){this.homeState='ready';if(!this.homeUnsubscribe&&this._hass)this.homeUnsubscribe=subscribeHome(this._hass,this.home.homeId,event=>this.onHomeRevision(event.revision));}this.status('Guardado en Home Assistant.');this.dispatchEvent(new CustomEvent('homemanager-saved',{detail:{configuration:clone(next)},bubbles:true,composed:true}));
     }catch(error){this.status(`${error instanceof Error?error.message:'No se pudo guardar.'} El borrador sigue pendiente.`);}finally{this.saving=false;this.refreshState();this.updateControls();}
   }
   private updateControls(){

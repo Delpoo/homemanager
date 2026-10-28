@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HomeManager",
+        "description": "Stores your floor plans and device layout in Home Assistant and adds the HomeManager panel to the sidebar. Editing requires an administrator."
+      }
+    },
+    "abort": {
+      "already_configured": "HomeManager is already configured.",
+      "single_instance_allowed": "HomeManager is already configured."
+    }
+  }
+}

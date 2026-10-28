@@ -1,0 +1,76 @@
+"""Pure model rules: envelope, limits and compare-and-swap."""
+
+from datetime import UTC, datetime
+
+import pytest
+
+from custom_components.homemanager.const import MAX_PLAN_HISTORY
+from custom_components.homemanager.model import Homes, ModelError, RevisionConflict, record_plan, validate_configuration
+
+from .conftest import PLAN, configuration
+
+NOW = datetime(2026, 10, 29, tzinfo=UTC)
+
+
+def test_create_requires_null_revision_and_updates_require_the_current_one() -> None:
+    homes = Homes()
+    home, plan_changed = homes.save("home", None, configuration(), "Casa", "admin", NOW)
+    assert (home.revision, plan_changed, home.title) == (1, True, "Casa")
+    with pytest.raises(RevisionConflict) as conflict:
+        homes.save("home", None, configuration(), None, "admin", NOW)
+    assert conflict.value.current == 1
+    updated, plan_changed = homes.save("home", 1, configuration(label="Renamed"), None, "admin", NOW)
+    assert (updated.revision, plan_changed, updated.title) == (2, False, "Casa")
+    with pytest.raises(RevisionConflict):
+        homes.save("home", 1, configuration(), None, "admin", NOW)
+    assert homes.get("home").configuration["rooms"][0]["label"] == "Renamed"
+
+
+@pytest.mark.parametrize(
+    ("mutate", "code"),
+    [
+        (lambda c: c.update(schemaVersion=1), "unsupported_schema"),
+        (lambda c: c.update(token="x"), "invalid_configuration"),
+        (lambda c: c.pop("rooms"), "invalid_configuration"),
+        (lambda c: c["architecture"].update(format="png"), "invalid_configuration"),
+        (lambda c: c["architecture"].update(content="x" * (1024 * 1024 + 1)), "plan_too_large"),
+        (lambda c: c["actions"].update({"__proto__": {}}), "invalid_configuration"),
+        (lambda c: c["actions"].update({f"a{i}": {"data": "y" * 8000} for i in range(400)}), "configuration_too_large"),
+        (lambda c: c["catalog"].update(devices=[float("nan")]), "invalid_configuration"),
+    ],
+)
+def test_invalid_envelopes_are_rejected(mutate, code: str) -> None:
+    value = configuration()
+    mutate(value)
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == code
+
+
+@pytest.mark.parametrize("home_id", ["", "Home", "a b", "__proto__", "x" * 65, "-x"])
+def test_home_ids_are_kebab_case(home_id: str) -> None:
+    with pytest.raises(ModelError):
+        Homes().save(home_id, None, configuration(), None, None, NOW)
+
+
+def test_delete_checks_revision() -> None:
+    homes = Homes()
+    homes.save("home", None, configuration(), None, None, NOW)
+    with pytest.raises(RevisionConflict):
+        homes.delete("home", 7)
+    homes.delete("home", 1)
+    with pytest.raises(ModelError):
+        homes.get("home")
+
+
+def test_plan_history_skips_duplicates_and_keeps_the_newest() -> None:
+    homes = Homes()
+    history = []
+    for index in range(MAX_PLAN_HISTORY + 3):
+        plan = PLAN.replace("100", str(100 + index))
+        home, _ = homes.save("home", index or None, configuration(plan), None, "admin", NOW)
+        history = record_plan(history, home, NOW)
+        history = record_plan(history, home, NOW)  # same plan again: no new entry
+    assert len(history) == MAX_PLAN_HISTORY
+    assert history[-1].revision == MAX_PLAN_HISTORY + 3
+    assert len({plan.plan_id for plan in history}) == MAX_PLAN_HISTORY
