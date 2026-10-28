@@ -38,19 +38,21 @@ Para desarrollo: `npm run build` copia el bundle en `custom_components/homemanag
 | `homemanager/plans` `{home_id}` | **Administrador** | Historial de planos (sin contenido) |
 | `homemanager/plan/get` `{home_id, plan_id}` | **Administrador** | Contenido de un plano anterior |
 
-Errores estables: `revision_conflict` (mensaje `revision:N`), `home_not_found`, `invalid_home_id`, `invalid_configuration`, `unsupported_schema`, `plan_too_large`, `configuration_too_large`, `too_many_homes`, `unauthorized`. Restaurar un plano se hace cargándolo en un borrador y guardando con `home/save`, de modo que pasa por la misma validación y control de revisión.
+La interfaz de historial está en *Editar plano → Importar y exportar → Planos anteriores*.
+
+Errores estables: `unsafe_plan`, `not_loaded`, `revision_conflict` (mensaje `revision:N`), `home_not_found`, `invalid_home_id`, `invalid_configuration`, `unsupported_schema`, `plan_too_large`, `configuration_too_large`, `too_many_homes`, `unauthorized`. Restaurar un plano se hace cargándolo en un borrador y guardando con `home/save`, de modo que pasa por la misma validación y control de revisión.
 
 ## Seguridad
 
 - El plano **nunca** se sirve por una ruta estática ni sin autenticación: sólo viaja por el WebSocket de la sesión HA. La ruta estática `/homemanager_files/` contiene únicamente el bundle público MIT.
 - Lectura para cualquier usuario autenticado (igual que un dashboard); escritura e historial sólo para administradores, comprobado por HA (`require_admin`).
-- El servidor valida el sobre: versión 2, campos, tipos JSON, claves seguras, profundidad, 1 MiB de plano y 3 MiB de documento. La validación semántica y la sanitización SVG siguen en el frontend al guardar **y** antes de renderizar.
+- El servidor valida el sobre (versión 2, campos, tipos JSON, claves seguras, profundidad, 1 MiB de plano y 3 MiB de documento) y rechaza planos con contenido que ningún SVG sanitizado puede tener: scripts, manejadores de eventos, `foreignObject`, URLs externas o `data:`, y DTD (`unsafe_plan`). La validación semántica y la sanitización SVG siguen en el frontend al guardar **y** antes de renderizar.
 - La comprobación de revisión y la actualización ocurren sin ceder el bucle de eventos de HA, por lo que dos guardados con la misma revisión no pueden ganar ambos (probado con escrituras concurrentes). Si la escritura en disco falla, el estado en memoria se revierte.
 
 ## Verificación
 
 - `tests/integration/test_model.py` y `test_init.py`: 26 pruebas con el arnés oficial `pytest-homeassistant-custom-component` sobre Home Assistant 2026.2.3 (permisos, CAS concurrente, suscripción, historial, persistencia tras recarga, flujo de configuración, registro del panel). CI: job `integration`.
 - `tests/integration/home.browser.spec.mjs`: tarjeta, editor, migración y panel con un servidor simulado que sigue el mismo contrato.
-- `tests/e2e/local-ha.e2e.mjs`: 8 comprobaciones en Chrome contra una **instancia real y desechable** de HA 2026.2.3 con la integración instalada: panel, creación de hogar, persistencia tras recarga, llamada de servicio real, tarjeta Lovelace sin plano embebido, rechazo de revisión antigua, actualización en vivo de la tarjeta abierta y ausencia de rutas sin autenticación. Ver el handoff para preparar la instancia.
+- `tests/e2e/local-ha.e2e.mjs`: 11 comprobaciones en Chrome contra instancias **reales y desechables** de HA 2026.2.3 y 2026.10.4 (procedimiento en [testing.md](testing.md)).
 
-`hacs.json` declara `homeassistant: 2026.2.0`; sólo se probó 2026.2.3. Hay que validar la versión de la instalación real antes de publicar.
+`hacs.json` declara `homeassistant: 2026.2.0`; probado en 2026.2.3 y 2026.10.4. Hay que validar la versión de la instalación real antes de publicar.

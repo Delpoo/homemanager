@@ -1,13 +1,13 @@
 # Distribución mediante HACS
 
-Estado (29 de octubre de 2026): **empaquetado preparado y probado en una instancia local desechable de HA 2026.2.3; sin releases publicadas.** Tras la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-configuración), HomeManager se distribuye como **una sola integración** que incluye la tarjeta, el editor y el panel.
+Estado (29 de octubre de 2026): **versión 0.3.0 candidata, empaquetado y E2E probados en instancias desechables de HA 2026.2.3 y 2026.10.4; sin releases publicadas.** Instalación: [installation.md](installation.md). Tras la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-configuración), HomeManager se distribuye como **una sola integración** que incluye la tarjeta, el editor y el panel.
 
 ## Paquete público
 
 - Categoría HACS: **Integración**. El repositorio público contiene `custom_components/homemanager/` en la raíz, como exige HACS. [Requisitos de integraciones](https://hacs.dev/docs/publish/integration/).
 - `hacs.json` usa `zip_release: true` con `filename: homemanager.zip`: cada release adjunta ese asset, que contiene los archivos de la integración **y** el bundle `frontend/homemanager.js`. El bundle no se versiona en Git (`npm run build` lo genera). `hide_default_branch` impide instalar la rama de desarrollo.
 - La integración sirve el bundle en `/homemanager_files/homemanager.js?v=<hash>` y lo añade a todas las páginas del frontend (`add_extra_js_url`): **no hace falta registrar un recurso Lovelace**. El parámetro de versión invalida la caché al actualizar.
-- `homeassistant: 2026.2.0` en `hacs.json` es la mínima declarada; la única versión probada es 2026.2.3. Antes de publicar, probar también la versión de la instalación real y ajustar la mínima si hace falta.
+- `homeassistant: 2026.2.0` en `hacs.json` es la mínima declarada; probadas 2026.2.3 y 2026.10.4. Antes de publicar, probar también la versión de la instalación real y ajustar la mínima si hace falta.
 - Quien ya registró `homemanager.js` como recurso Lovelace puede quitarlo: si conviven, el segundo registro de los elementos se ignora sin errores.
 - `homemanager-instance` sigue siendo privado y nunca se distribuye.
 
