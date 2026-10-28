@@ -73,6 +73,12 @@ export interface Hass {
     subscribeMessage?(callback: (message: unknown) => void, subscription: Record<string, unknown>): Promise<() => void>;
   };
   config?: { components?: string[] };
+  /** Registries exposed by HA's frontend: used to show and match areas. */
+  entities?: Record<string, { area_id?: string | null; device_id?: string | null }>;
+  devices?: Record<string, { area_id?: string | null }>;
+  areas?: Record<string, { name?: string }>;
+  language?: string;
+  locale?: { language?: string };
   callWS?<T = unknown>(message: Record<string, unknown>): Promise<T>;
   callService?(
     domain: string,

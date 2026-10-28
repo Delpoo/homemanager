@@ -51,6 +51,8 @@ await build({
     'src/panels/native-panel.ts',
     'src/integration/store.ts',
     'src/app/index.ts',
+    'src/panels/controls.ts',
+    'src/card/markers.ts',
   ],
   outbase: 'src',
   outdir: '.work',

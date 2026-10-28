@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 import { validateConfiguration, emptyConfiguration } from '../card/configuration.js';
 import { clone, type Configuration, type Hass } from '../card/types.js';
 import type { ConfigurationStore } from '../editor/storage.js';
@@ -29,7 +30,7 @@ export function integrationAvailable(hass: Hass | undefined): boolean {
   return !!hass?.config?.components?.includes(INTEGRATION_DOMAIN);
 }
 export async function listHomes(hass: Hass): Promise<HomeSummary[]> {
-  if (!hass.callWS) throw new Error('La sesión de Home Assistant no está conectada.');
+  if (!hass.callWS) throw new Error(t('La sesión de Home Assistant no está conectada.'));
   return (await hass.callWS<{ homes: HomeSummary[] }>({ type: 'homemanager/homes' })).homes;
 }
 /** Revision numbers only; the listener reloads the document itself. */
@@ -46,21 +47,24 @@ export function subscribeHome(
 export function describeError(error: unknown): string {
   const { code, message } = (error ?? {}) as WsError;
   if (code === 'revision_conflict')
-    return `Otro editor guardó una versión más nueva (${message?.replace('revision:', 'revisión ') ?? 'revisión desconocida'}). Tu borrador se conserva: exportalo, recargá y volvé a aplicar los cambios.`;
-  if (code === 'unauthorized') return 'Guardar requiere una cuenta administradora de Home Assistant.';
-  if (code === 'unknown_command') return 'La integración HomeManager no está cargada en Home Assistant.';
-  if (code === 'home_not_found') return 'Ese hogar no existe en la integración HomeManager.';
+    return t(
+      'Otro editor guardó una versión más nueva (revisión {revision}). Tu borrador se conserva: exportalo, recargá y volvé a aplicar los cambios.',
+      { revision: message?.replace('revision:', '') ?? '?' },
+    );
+  if (code === 'unauthorized') return t('Guardar requiere una cuenta administradora de Home Assistant.');
+  if (code === 'unknown_command') return t('La integración HomeManager no está cargada en Home Assistant.');
+  if (code === 'home_not_found') return t('Ese hogar no existe en la integración HomeManager.');
   if (code === 'plan_too_large' || code === 'configuration_too_large')
-    return 'El plano o la configuración superan el tamaño admitido (1 MiB / 3 MiB).';
+    return t('El plano o la configuración superan el tamaño admitido (1 MiB / 3 MiB).');
   return message
-    ? `Home Assistant rechazó la operación: ${message}`
+    ? t('Home Assistant rechazó la operación: {message}', { message })
     : error instanceof Error
       ? error.message
-      : 'No se pudo completar la operación.';
+      : t('No se pudo completar la operación.');
 }
 
 export class IntegrationConfigurationStore implements ConfigurationStore {
-  readonly label = 'Home Assistant · integración HomeManager';
+  readonly label = t('Home Assistant · integración HomeManager');
   /** null: the home does not exist yet and the first save creates it. */
   revision: number | null | undefined;
   title: string | null = null;
@@ -76,7 +80,7 @@ export class IntegrationConfigurationStore implements ConfigurationStore {
   private session(): Hass & { callWS: NonNullable<Hass['callWS']> } {
     const hass = this.getHass();
     if (!hass?.callWS || hass.connected === false || hass.connection?.connected === false)
-      throw new Error('La sesión de Home Assistant no está conectada. El borrador se conserva.');
+      throw new Error(t('La sesión de Home Assistant no está conectada. El borrador se conserva.'));
     return hass as Hass & { callWS: NonNullable<Hass['callWS']> };
   }
   private async fetch(): Promise<HomeDocument | null> {
@@ -89,7 +93,7 @@ export class IntegrationConfigurationStore implements ConfigurationStore {
   }
   /** Returns an empty V2 document when the home does not exist yet. */
   async load(): Promise<Configuration> {
-    if (this.busy) throw new Error('Hay una operación en curso; esperá a que termine.');
+    if (this.busy) throw new Error(t('Hay una operación en curso; esperá a que termine.'));
     this.busy = true;
     try {
       const home = await this.fetch();
@@ -107,12 +111,13 @@ export class IntegrationConfigurationStore implements ConfigurationStore {
     }
   }
   async save(configuration: Configuration, options: { allowPending?: boolean } = {}): Promise<void> {
-    if (this.busy) throw new Error('Hay una operación en curso; no se inició otra.');
-    if (this.revision === undefined) throw new Error('Cargá primero el hogar antes de guardar.');
+    if (this.busy) throw new Error(t('Hay una operación en curso; no se inició otra.'));
+    if (this.revision === undefined) throw new Error(t('Cargá primero el hogar antes de guardar.'));
     // Strict by default, like the Lovelace store: pending references stay drafts.
     const clean = validateConfiguration(configuration, { allowPending: options.allowPending ?? false });
     const hass = this.session();
-    if (hass.user?.is_admin !== true) throw new Error('Guardar requiere una cuenta administradora de Home Assistant.');
+    if (hass.user?.is_admin !== true)
+      throw new Error(t('Guardar requiere una cuenta administradora de Home Assistant.'));
     this.busy = true;
     try {
       let saved: HomeSummary;
@@ -133,7 +138,7 @@ export class IntegrationConfigurationStore implements ConfigurationStore {
         readback.revision !== saved.revision ||
         JSON.stringify(validateConfiguration(readback.configuration, { allowPending: true })) !== JSON.stringify(clean)
       )
-        throw new Error('Home Assistant no confirmó la configuración esperada. El borrador se conserva.');
+        throw new Error(t('Home Assistant no confirmó la configuración esperada. El borrador se conserva.'));
       this.revision = saved.revision;
     } finally {
       this.busy = false;

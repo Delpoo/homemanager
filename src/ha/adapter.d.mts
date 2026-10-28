@@ -10,5 +10,13 @@ export class HomeAssistantAdapter {
   getActionAvailability(actionId: string): Availability;
   executeAction(actionId: string, deviceId?: string): Promise<ActionResult>;
   executePrimary(deviceId: string): Promise<ActionResult>;
+  getEntityCommandAvailability(
+    deviceId: string,
+    command: { service: string; data?: Record<string, unknown> },
+  ): Availability;
+  executeEntityCommand(
+    deviceId: string,
+    command: { service: string; data?: Record<string, unknown> },
+  ): Promise<ActionResult>;
   dispose(): void;
 }

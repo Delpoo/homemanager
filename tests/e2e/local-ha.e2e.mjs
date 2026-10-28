@@ -136,13 +136,11 @@ await step('an administrator creates a home from the editor', async () => {
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await status.filter({ hasText: 'se creará' }).waitFor();
   await card.locator('summary').filter({ hasText: 'Importar y exportar' }).click();
-  await card
-    .getByLabel('Importar JSON o SVG', { exact: true })
-    .setInputFiles({
-      name: 'casa.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(configuration)),
-    });
+  await card.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
+    name: 'casa.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(configuration)),
+  });
   const download = page.waitForEvent('download');
   await card.getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
   await download;

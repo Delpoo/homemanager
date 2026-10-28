@@ -1,3 +1,5 @@
+// Tests read in Spanish, as for a Home Assistant user whose language is es.
+globalThis.__homemanagerLanguage = 'es';
 import '../../../dist/homemanager.js';
 
 // This entire apartment, inventory and HA session are synthetic test data.
@@ -40,7 +42,7 @@ const calls=[],wsCalls=[],events=[];
 const flags={failSave:false,failRead:false,readbackMismatch:false};
 const stamp=new Date().toISOString();
 const hass={
-  user:{id:'synthetic-admin',is_admin:true},connection:{connected:true},panels:{lovelace:{config:{mode:'storage'}}},
+  language:'es',locale:{language:'es'},user:{id:'synthetic-admin',is_admin:true},connection:{connected:true},panels:{lovelace:{config:{mode:'storage'}}},
   states:{
     'light.synthetic_light':{state:'off',attributes:{friendly_name:'Synthetic light'},last_updated:stamp,last_changed:stamp},
     'script.synthetic_fan':{state:'off',attributes:{friendly_name:'Synthetic script'},last_updated:stamp,last_changed:stamp},
