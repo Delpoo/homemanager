@@ -27,10 +27,14 @@ import {
   type Configuration,
   type CardConfig,
   type Device,
+  type DeviceControl,
   type Hass,
   type RuntimeState,
   type RoomId,
 } from './types.js';
+import { controlsOf, cycleIndex, nextIndex, pinnedControls, stepLabel, tapControl } from './device-controls.js';
+import { ControlView, type ControlHost } from '../ui/control-view.js';
+import { airStamp, onAir } from '../integration/rf.js';
 import { styles } from './styles.js';
 import { iconButton } from '../ui/icon-button.js';
 import { fab } from '../ui/fab.js';
@@ -97,10 +101,12 @@ interface Adapter {
   getEntityCommandAvailability(
     deviceId: string,
     command: { service: string; data?: Record<string, unknown> },
+    entityId?: string,
   ): { available: boolean; reason?: string };
   executeEntityCommand(
     deviceId: string,
     command: { service: string; data?: Record<string, unknown> },
+    entityId?: string,
   ): Promise<unknown>;
   dispose(): void;
 }
@@ -154,8 +160,9 @@ export class HomeManagerCard extends HTMLElement {
   private groupsKey = '';
   private animation = 0;
   private longPress?: { timer: ReturnType<typeof setTimeout>; id: string; x: number; y: number };
-  private suppressClick: string | null = null;
-  private quick?: { element: HTMLElement; returnFocus: HTMLElement };
+  /** The click that ends a long press (which already opened the panel). Only
+   * that one: a later tap must never be swallowed if that click never came. */
+  private suppressClick: { id: string; until: number } | null = null;
   private lastTap?: { time: number; x: number; y: number };
   private language = '';
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -535,9 +542,10 @@ export class HomeManagerCard extends HTMLElement {
       .filter(d => this.editing || this.enabledLayers.has(layer(d)))
       .map(
         d =>
-          `<div class="marker ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}" data-kind="${e(d.kind)}"><button type="button" class="primary" aria-label="${e(t('Acción principal de {label}', { label: d.display.label }))}" title="${e(d.display.label)}">${customElements.get('ha-icon') ? `<ha-icon icon="${e(d.display.icon)}"></ha-icon>` : (KIND_ICONS[d.kind] ?? '◉')}</button><span class="state-dot" aria-hidden="true"></span><button class="detail" type="button" aria-label="${e(t('Detalles de {label}', { label: d.display.label }))}" title="${e(t('Detalles de {label}', { label: d.display.label }))}">⋯</button></div>`,
+          `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}" data-kind="${e(d.kind)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}">${customElements.get('ha-icon') ? `<ha-icon icon="${e(d.display.icon)}"></ha-icon>` : (KIND_ICONS[d.kind] ?? '◉')}</button><span class="state-dot" aria-hidden="true"></span>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,
       )
       .join('');
+    this.mountPins();
     this.groupsKey = '';
     // New buttons must receive their current position before becoming interactive.
     this.refreshState();
@@ -639,23 +647,27 @@ export class HomeManagerCard extends HTMLElement {
       m.dataset.confidence = confidence;
       m.dataset.active = String(isActiveValue(state?.value));
       const main = m.querySelector('button.primary')!;
-      const availability = d.bindings.primaryAction
-        ? this.adapter?.getActionAvailability(d.bindings.primaryAction)
-        : undefined;
-      // Without a primary action, a tap opens the device's panel instead.
-      const opensPanel =
-        !d.bindings.primaryAction &&
-        (!!d.bindings.entityId ||
-          !!d.bindings.advancedPopupId ||
-          !!d.bindings.remoteId ||
-          !!d.bindings.quickActions?.length);
+      const tap = tapControl(d);
+      const next = tap ? this.tapStep(d, tap) : -1;
+      const availability = tap ? this.adapter?.getActionAvailability(tap.steps[next]?.actionId ?? '') : undefined;
+      const action = tap ? stepLabel(tap, next, this.draft) : t('Abrir panel');
       main.setAttribute(
         'title',
-        `${d.display.label} · ${stateText(state?.value ?? 'unknown')} · ${confidenceLabel(confidence)}${!this.editing && !opensPanel && !availability?.available ? ` · ${t('Acción pendiente o no disponible')}` : ''}`,
+        `${d.display.label} · ${stateText(state?.value ?? 'unknown')} · ${confidenceLabel(confidence)}${this.editing ? '' : tap && !availability?.available ? ` · ${t('Acción pendiente o no disponible')}` : ` · ${t('Tocar: {action}', { action })}`}`,
       );
-      main.setAttribute('aria-description', `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}`);
-      // Keep selection reachable in edit mode; normal unavailable controls cannot dispatch.
-      (main as HTMLButtonElement).disabled = !this.editing && !opensPanel && !availability?.available;
+      main.setAttribute(
+        'aria-description',
+        `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}. ${t('Tocar: {action}. Mantener pulsado: panel.', { action })}`,
+      );
+      // A cycle shows the icon of the step it is in (for example on or off).
+      const current = tap?.type === 'cycle' ? this.cycleCurrent(d, tap) : -1;
+      const glyph = (current >= 0 && tap?.steps[current]?.icon) || d.display.icon;
+      const icon = main.querySelector('ha-icon');
+      if (icon && icon.getAttribute('icon') !== glyph) icon.setAttribute('icon', glyph);
+      (main as HTMLElement).dataset.icon = glyph;
+      // Keep selection reachable in edit mode; a tap that cannot run still opens the panel by holding.
+      (main as HTMLButtonElement).disabled = !this.editing && !!tap && !availability?.available;
+      for (const view of this.pins.get(d.id) ?? []) view.refresh();
     });
     const d = this.draft?.catalog.devices.find(d => d.id === this.selected);
     if (d && this.panel) {
@@ -673,7 +685,8 @@ export class HomeManagerCard extends HTMLElement {
     const marker = target.closest<HTMLElement>('.marker');
     if (marker) {
       const id = marker.dataset.id!;
-      if (this.suppressClick === id) {
+      const held = this.suppressClick;
+      if (held && held.id === id && Date.now() < held.until) {
         // The long press already opened the panel.
         this.suppressClick = null;
         return;
@@ -682,9 +695,12 @@ export class HomeManagerCard extends HTMLElement {
         this.select(id);
         return;
       }
+      if (target.closest('.pins')) return;
       const d = this.draft?.catalog.devices.find(item => item.id === id);
-      if (target.classList.contains('detail') || (d && !d.bindings.primaryAction)) this.showDetails(id, target);
-      else void this.act(id);
+      if (!d) return;
+      const tap = tapControl(d);
+      if (!tap) this.showDetails(id, target);
+      else void this.runStep(d, tap, this.tapStep(d, tap), target);
       return;
     }
     const room = target.dataset.room as RoomId | undefined;
@@ -767,80 +783,143 @@ export class HomeManagerCard extends HTMLElement {
     if (result && typeof result === 'object' && 'ok' in result && result.ok === false)
       throw new Error(reasonText(String('reason' in result ? result.reason : '')));
   }
-  private async act(id: string) {
-    const d = this.draft?.catalog.devices.find(d => d.id === id);
-    if (!d || this.editing || !this.adapter) return;
-    const action = d.bindings.primaryAction;
-    if (!action) return;
+  /** Remembered steps of cycles, selectors and stepped sliders, per device and
+   * control, in this browser (a cycle prefers the live state when it has one). */
+  private steps = new Map<string, number>();
+  private stepsLoaded = false;
+  private stepKey(d: Device, control: DeviceControl) {
+    return `${d.id}/${control.id}`;
+  }
+  private remembered(d: Device, control: DeviceControl): number | undefined {
+    if (!this.stepsLoaded) {
+      this.stepsLoaded = true;
+      try {
+        const saved = JSON.parse(localStorage.getItem(`homemanager-steps:${this.config?.card_id}`) ?? '{}');
+        for (const [key, value] of Object.entries(saved))
+          if (Number.isInteger(value)) this.steps.set(key, value as number);
+      } catch {
+        /* Storage may be unavailable: steps are then remembered for this page only. */
+      }
+    }
+    return this.steps.get(this.stepKey(d, control));
+  }
+  private remember(d: Device, control: DeviceControl, index: number) {
+    this.steps.set(this.stepKey(d, control), index);
     try {
-      await this.executeAction(action, id);
+      localStorage.setItem(`homemanager-steps:${this.config?.card_id}`, JSON.stringify(Object.fromEntries(this.steps)));
+    } catch {
+      /* Not persisted; still remembered for this page. */
+    }
+  }
+  private cycleCurrent(d: Device, control: DeviceControl): number {
+    return cycleIndex(control, this.draft!, this._hass, this.remembered(d, control));
+  }
+  /** Step a tap sends: the next one of a cycle, the only one of a button. */
+  private tapStep(d: Device, control: DeviceControl): number {
+    return control.type === 'cycle' ? nextIndex(control, this.cycleCurrent(d, control)) : 0;
+  }
+  /** Sends one step of a device control through the adapter and says what was
+   * sent next to the symbol. "Enviado" never claims the device changed. */
+  private async runStep(
+    d: Device,
+    control: DeviceControl,
+    index: number,
+    anchor?: HTMLElement,
+  ): Promise<string | null> {
+    const step = control.steps[index];
+    if (!step || this.editing || !this.adapter) return t('Salí del modo edición para controlar dispositivos.');
+    const label = stepLabel(control, index, this.draft);
+    const target = this.draft?.actions[step.actionId]?.target.entity_id;
+    const entityId = typeof target === 'string' ? target : undefined;
+    // The RF echo of this press is the one that replaces the stamp seen now.
+    const baseline = entityId ? airStamp(this._hass?.states[entityId]) : null;
+    try {
+      await this.executeAction(step.actionId, d.id);
+      if (control.type !== 'button' && control.type !== 'updown') this.remember(d, control, index);
+      this.sentNote(d, t('Enviado: {label}', { label }), entityId, baseline);
+      return null;
     } catch (error) {
-      this.status(error instanceof Error ? error.message : t('No se pudo ejecutar la acción.'));
+      const message = error instanceof Error ? error.message : t('No se pudo ejecutar la acción.');
+      this.status(message);
+      if (anchor) this.sentNote(d, t('No se envió: {label}', { label }), undefined, null, true);
+      return message;
     } finally {
       this.refreshState();
     }
   }
-  /** Holding an icon shows its quick actions when it has some, else its panel. */
-  private hold(id: string, anchor: HTMLElement) {
-    const d = this.draft?.catalog.devices.find(item => item.id === id);
-    if (d?.bindings.quickActions?.length) this.showQuick(d, anchor);
-    else this.showDetails(id, anchor);
-  }
-  private showQuick(d: Device, anchor: HTMLElement) {
-    this.closeQuick();
-    const menu = document.createElement('div');
-    menu.className = 'quick';
-    menu.setAttribute('role', 'group');
-    menu.setAttribute('aria-label', t('Accesos rápidos de {label}', { label: d.display.label }));
-    menu.innerHTML = `${(d.bindings.quickActions ?? [])
-      .map(item => {
-        const availability = this.adapter?.getActionAvailability(item.actionId);
-        return `<button type="button" data-quick="${e(item.actionId)}"${availability?.available ? '' : ` disabled title="${e(t('Acción pendiente o no disponible'))}"`}>${e(item.label)}</button>`;
-      })
-      .join(
-        '',
-      )}<button type="button" data-quick-more aria-label="${e(t('Más controles de {label}', { label: d.display.label }))}">⋯</button>`;
+  private notes = new Map<string, HTMLElement>();
+  /** A short note above the symbol. For an RF action it later adds whether the
+   * signal was heard on air by a receiver: evidence of emission, not of state. */
+  private sentNote(d: Device, text: string, entityId: string | undefined, baseline: string | null, failed = false) {
+    this.notes.get(d.id)?.remove();
+    const note = document.createElement('div');
+    note.className = `sent-note${failed ? ' failed' : ''}`;
+    note.setAttribute('role', 'status');
+    note.textContent = text;
     const point = this.screen(d.position);
-    menu.style.left = `${point.x}px`;
-    menu.style.top = `${point.y}px`;
-    this.viewport.append(menu);
-    // Keep the whole row inside the plan.
-    const box = menu.getBoundingClientRect(),
-      area = this.viewport.getBoundingClientRect();
-    const shift = Math.max(area.left + 8 - box.left, Math.min(0, area.right - 8 - box.right));
-    if (shift) menu.style.left = `${point.x + shift}px`;
-    if (box.top < area.top + 8) menu.classList.add('below');
-    this.quick = { element: menu, returnFocus: anchor };
-    menu.addEventListener('click', event => {
-      const button = (event.target as Element).closest<HTMLButtonElement>('button');
-      if (!button) return;
-      event.stopPropagation();
-      this.closeQuick(false);
-      if (button.hasAttribute('data-quick-more')) this.showDetails(d.id, anchor);
-      else void this.runQuick(button.dataset.quick!, d.id);
-    });
-    menu.addEventListener('keydown', event => {
-      if (event.key !== 'Escape') return;
-      event.stopPropagation();
-      this.closeQuick();
-    });
-    menu.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    note.style.left = `${point.x}px`;
+    note.style.top = `${point.y}px`;
+    this.viewport.append(note);
+    this.notes.set(d.id, note);
+    const echo = () => {
+      if (!note.isConnected || !entityId) return;
+      const air = onAir(this._hass?.states[entityId], baseline);
+      if (air === 'heard') note.textContent = `${text} · ${t('en el aire ✓')}`;
+      else if (air === 'not_heard') note.textContent = `${text} · ${t('sin eco')}`;
+      if (air) clearInterval(poll);
+    };
+    const poll = setInterval(echo, 400);
+    setTimeout(() => {
+      clearInterval(poll);
+      if (this.notes.get(d.id) === note) this.notes.delete(d.id);
+      note.remove();
+    }, 4000);
   }
-  private closeQuick(restoreFocus = true) {
-    const quick = this.quick;
-    if (!quick) return;
-    this.quick = undefined;
-    quick.element.remove();
-    if (restoreFocus && quick.returnFocus.isConnected) quick.returnFocus.focus();
-  }
-  private async runQuick(actionId: string, id: string) {
-    try {
-      await this.executeAction(actionId, id);
-    } catch (error) {
-      this.status(error instanceof Error ? error.message : t('No se pudo ejecutar la acción.'));
-    } finally {
-      this.refreshState();
+  /** Compact views of the controls pinned next to each symbol. */
+  private pins = new Map<string, ControlView[]>();
+  private mountPins() {
+    this.pins.clear();
+    if (!this.draft) return;
+    for (const d of this.draft.catalog.devices) {
+      const host = this.root.querySelector<HTMLElement>(`.marker[data-id="${CSS.escape(d.id)}"] .pins`);
+      if (!host) continue;
+      const views = pinnedControls(d).map(control => new ControlView(control, this.controlHost(d), true));
+      for (const view of views) host.append(view.element);
+      this.pins.set(d.id, views);
     }
+  }
+  private controlHost(d: Device): ControlHost {
+    return {
+      configuration: this.draft!,
+      device: d,
+      hass: () => this._hass,
+      availability: actionId =>
+        this.editing
+          ? { available: false, reason: t('Salí del modo edición para controlar dispositivos.') }
+          : (this.adapter?.getActionAvailability(actionId) ?? { available: false, reason: 'unbound-action' }),
+      run: (control, index) => this.runStep(d, control, index),
+      remembered: control => this.remembered(d, control),
+      sendValue: async (_control, entityId, command) => {
+        if (this.editing || !this.adapter) return t('Salí del modo edición para controlar dispositivos.');
+        const result = (await this.adapter.executeEntityCommand(d.id, command, entityId)) as
+          | { ok?: boolean; reason?: string }
+          | undefined;
+        if (result?.ok === false) {
+          this.status(reasonText(result.reason));
+          return reasonText(result.reason);
+        }
+        this.sentNote(d, t('Enviado'), undefined, null);
+        return null;
+      },
+      valueAvailability: (entityId, command) =>
+        this.editing
+          ? { available: false, reason: t('Salí del modo edición para controlar dispositivos.') }
+          : (this.adapter?.getEntityCommandAvailability(d.id, command, entityId) ?? {
+              available: false,
+              reason: 'ha-unavailable',
+            }),
+      reason: code => reasonText(code),
+    };
   }
   /** The RF remote to draw in a device's panel: chosen in the editor, or the
    * remote behind an RF entity of HomeManager. */
@@ -849,7 +928,7 @@ export class HomeManagerCard extends HTMLElement {
     const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
     return d.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
   }
-  private showDetails(id: string, returnFocus: HTMLElement) {
+  private showDetails(id: string, returnFocus: HTMLElement, held = false) {
     const d = this.draft?.catalog.devices.find(d => d.id === id);
     if (!d || !this.draft) return;
     this.selected = id;
@@ -857,7 +936,7 @@ export class HomeManagerCard extends HTMLElement {
     const panel = d.bindings.advancedPopupId ? this.draft.panels[d.bindings.advancedPopupId] : undefined;
     const entityId = d.bindings.entityId;
     const remoteId = this.remoteOf(d);
-    if (!panel && !entityId && !remoteId && !d.bindings.quickActions?.length) {
+    if (!panel && !entityId && !remoteId && !controlsOf(d).length) {
       this.dialog(
         t('Detalles del dispositivo'),
         `<p>${e(d.display.label)}</p><p>${e(confidenceLabel(this.runtime.states[id]?.confidence ?? 'unknown'))}</p><p>${d.bindings.advancedPopupId ? e(t('Panel nativo pendiente: {id}', { id: d.bindings.advancedPopupId })) : e(t('Vinculá una entidad o un panel en el editor para controlar este dispositivo.'))}</p>`,
@@ -913,7 +992,9 @@ export class HomeManagerCard extends HTMLElement {
                   : rf.press(this._hass!, remoteId, buttonId),
             }
           : undefined,
-      quickActions: d.bindings.quickActions,
+      controls: controlsOf(d),
+      controlHost: this.controlHost(d),
+      heldOpen: held,
       returnFocus,
     });
   }
@@ -1274,11 +1355,14 @@ export class HomeManagerCard extends HTMLElement {
     if (event.button !== 0 || this.saving) return;
     const target = event.target as Element;
     // Floating controls inside the plan keep their own clicks (no pan capture).
-    if (target.closest('.zoom, .layers, .cluster, .edit-add, .quick')) return;
-    this.closeQuick();
+    if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note')) return;
+    // Pinned controls keep their own gestures (a slider drags, not the plan).
+    if (!this.editing && target.closest('.pins')) return;
     const p = this.point(event);
     this.pointers.set(event.pointerId, p);
     const marker = target.closest<HTMLElement>('.marker');
+    // A new press: the click of an earlier long press can no longer arrive.
+    this.suppressClick = null;
     if (marker) {
       if (!this.editing) {
         this.pointers.delete(event.pointerId);
@@ -1290,8 +1374,8 @@ export class HomeManagerCard extends HTMLElement {
           y: event.clientY,
           timer: setTimeout(() => {
             this.longPress = undefined;
-            this.suppressClick = id;
-            this.hold(id, marker.querySelector('button.primary') ?? this.viewport);
+            this.suppressClick = { id, until: Date.now() + 1500 };
+            this.showDetails(id, marker.querySelector('button.primary') ?? this.viewport, true);
           }, LONG_PRESS_MS),
         };
         return;
@@ -1424,6 +1508,9 @@ export class HomeManagerCard extends HTMLElement {
     const marker = (event.target as Element).closest<HTMLElement>('.marker');
     if (!marker || this.editing) return;
     event.preventDefault();
+    // On touch screens the long press already opened it.
+    const held = this.suppressClick;
+    if (held && held.id === marker.dataset.id && Date.now() < held.until) return;
     this.showDetails(marker.dataset.id!, marker.querySelector('button.primary') ?? this.viewport);
   };
   /** Edit mode: the next tap on the plan positions a newly added device. */
@@ -1534,6 +1621,17 @@ export class HomeManagerCard extends HTMLElement {
     }
     const target = event.composedPath()[0] as HTMLElement;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+    const held = target.closest?.('.marker');
+    if (
+      held &&
+      !this.editing &&
+      target.classList.contains('primary') &&
+      ((event.key === 'Enter' && event.shiftKey) || event.key === 'ContextMenu')
+    ) {
+      event.preventDefault();
+      this.showDetails((held as HTMLElement).dataset.id!, target);
+      return;
+    }
     if (this.editing && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
       event.shiftKey ? this.redo() : this.undo();

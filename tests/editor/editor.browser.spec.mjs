@@ -52,13 +52,16 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await button(page, 'Agregar dispositivo').click();
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
   await field(page, 'Tipo de dispositivo').selectOption('purifier');
-  await field(page, 'Icono del dispositivo').fill('mdi:air-purifier');
+  // The icon chooser searches by Spanish words too.
+  await button(page, 'Icono del dispositivo').click();
+  await editor(page).getByRole('searchbox', { name: 'Buscar icono' }).fill('purificador');
+  await editor(page).getByRole('option', { name: 'mdi:air-purifier', exact: true }).click();
   await field(page, 'Habitación del dispositivo').selectOption('office');
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
   await field(page, 'Posición X').fill('0.61');
   await field(page, 'Posición Y').fill('0.73');
   await field(page, 'Entidad del dispositivo').fill('fan.not_configured_yet');
-  await button(page, 'Aplicar dispositivo').click();
+  await button(page, 'Guardar dispositivo').click();
   const first = (await current(page)).catalog.devices.find(device => device.id === 'test-portatil');
   expect(first).toMatchObject({
     roomId: 'office',
@@ -71,7 +74,7 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await expect(field(page, 'ID del dispositivo')).toHaveAttribute('readonly', '');
   await field(page, 'Habitación del dispositivo').selectOption('kitchen');
   await field(page, 'Nombre del dispositivo').fill('Test cambiado');
-  await button(page, 'Aplicar dispositivo').click();
+  await button(page, 'Guardar dispositivo').click();
   const result = await page.evaluate(() => ({ events: window.editorTest.events, calls: window.editorTest.calls }));
   expect(result.events).toHaveLength(2);
   expect(result.events.every(event => event.bubbles && event.composed)).toBe(true);
@@ -118,7 +121,7 @@ test('live hass updates preserve unsubmitted form values and expose actual entit
   await expect(entity).toHaveValue('light.new_actual_entity');
   expect(await page.evaluate(() => window.editorTest.events.length)).toBe(0);
 });
-test('adding a device from a real entity derives its name, icon, room and primary action', async ({ page }) => {
+test('adding a device from a real entity derives its name, icon, room and visible controls', async ({ page }) => {
   const placed = page.evaluate(
     () =>
       new Promise(resolve =>
@@ -143,16 +146,30 @@ test('adding a device from a real entity derives its name, icon, room and primar
   await editor(page).locator('.quick [role=option]', { hasText: 'Lámpara de lectura' }).click();
   const config = await current(page);
   const device = config.catalog.devices.find(item => item.bindings.entityId === 'light.reading_lamp');
+  // A tap runs an on/off cycle; its steps are ordinary plan actions the user sees.
   expect(device).toMatchObject({
     id: 'lampara-de-lectura',
     roomId: 'kitchen',
     kind: 'light',
     display: { label: 'Lámpara de lectura', icon: 'mdi:lightbulb' },
-    bindings: { primaryAction: 'lampara-de-lectura-toggle' },
+    bindings: {
+      primaryAction: null,
+      tap: 'power',
+      controls: [
+        {
+          id: 'power',
+          type: 'cycle',
+          steps: [
+            { actionId: 'lampara-de-lectura-turn-on', label: 'Encender', icon: 'mdi:lightbulb' },
+            { actionId: 'lampara-de-lectura-turn-off', label: 'Apagar', icon: 'mdi:lightbulb-off' },
+          ],
+        },
+      ],
+    },
   });
-  expect(config.actions['lampara-de-lectura-toggle']).toEqual({
+  expect(config.actions['lampara-de-lectura-turn-on']).toEqual({
     domain: 'light',
-    service: 'toggle',
+    service: 'turn_on',
     target: { entity_id: 'light.reading_lamp' },
   });
   expect(await placed).toEqual({ deviceId: 'lampara-de-lectura' });
@@ -176,14 +193,17 @@ test('fixed location stays locked until explicit correction and bindings survive
   await button(page, 'Corregir ubicación fija').click();
   await field(page, 'Habitación del dispositivo').selectOption('living');
   await field(page, 'Posición X').fill('0.45');
-  await button(page, 'Aplicar dispositivo').click();
+  await button(page, 'Guardar dispositivo').click();
   const device = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-fan');
   expect(device.roomId).toBe('living');
   expect(device.position.x).toBe(0.45);
+  // Its 0.5 primary action is kept, now also as the visible control a tap runs.
   expect(device.bindings).toEqual({
     entityId: null,
     primaryAction: 'synthetic-fan-command',
     advancedPopupId: 'synthetic-fan-panel',
+    controls: [{ id: 'tap', type: 'button', label: 'Ejecutar', steps: [{ actionId: 'synthetic-fan-command' }] }],
+    tap: 'tap',
   });
 });
 test('action editor defines explicit service targets and rejects raw command data', async ({ page }) => {
@@ -227,16 +247,14 @@ test('native panel rows preserve typed metadata when adding/removing controls', 
     controls: [{ id: 'control-1', label: 'Toggle test', actionId: 'synthetic-light-toggle' }],
   });
 });
-test('measured feedback requires explicit independent-source acknowledgment and stays configuration only', async ({
-  page,
-}) => {
+test('measured feedback is explained by its info button and stays configuration only', async ({ page }) => {
   await section(page, 'Fuente de estado');
+  // What "measured" means is one tap away, not a checkbox in the way.
+  await button(page, 'Ayuda: Tipo de lectura').click();
+  await expect(editor(page).getByText(/sensor que observa el equipo por su cuenta/)).toBeVisible();
+  await page.keyboard.press('Escape');
   await field(page, 'Entidad de estado').fill('sensor.test_feedback');
-  await field(page, 'Tipo de feedback').selectOption('measured');
-  await button(page, 'Aplicar fuente').click();
-  await expect(editor(page).getByRole('status')).toContainText('fuente independiente');
-  expect(await page.evaluate(() => window.editorTest.events.length)).toBe(0);
-  await field(page, 'Revisé la fuente independiente').check();
+  await field(page, 'Tipo de lectura').selectOption('measured');
   await button(page, 'Aplicar fuente').click();
   expect((await current(page)).stateSources['synthetic-light']).toEqual({
     entityId: 'sensor.test_feedback',

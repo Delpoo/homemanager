@@ -137,3 +137,63 @@ def test_quick_actions_and_rf_remote_are_optional_bindings() -> None:
         with pytest.raises(ModelError):
             validate_configuration(bad)
 
+
+
+def test_device_controls_tap_pins_and_size_are_optional_and_bounded() -> None:
+    valid = configuration()
+    step = {"actionId": "lamp-on"}
+    device = {
+        "id": "lamp",
+        "roomId": "studio",
+        "kind": "light",
+        "position": {"x": 0.5, "y": 0.5},
+        "mobility": "editable",
+        "display": {"label": "Lamp", "icon": "mdi:lightbulb", "size": "s", "pinned": ["level"]},
+        "bindings": {
+            "entityId": "light.lamp",
+            "primaryAction": None,
+            "advancedPopupId": None,
+            "controls": [
+                {"id": "power", "type": "cycle", "label": "On / off", "steps": [{**step, "label": "On", "icon": "mdi:lightbulb"}, {"actionId": "lamp-off"}]},
+                {"id": "level", "type": "slider", "label": "Level", "steps": [], "entityId": "light.lamp", "orientation": "horizontal"},
+            ],
+            "tap": "power",
+        },
+        "state": {"value": "unknown", "confidence": "unknown"},
+    }
+    valid["catalog"]["devices"] = [device]
+    validate_configuration(valid)
+
+    def control(kind: str, steps: list, **extra) -> dict:
+        return {"id": "c", "type": kind, "label": "C", "steps": steps, **extra}
+
+    for bindings, display in (
+        ({"controls": [control("button", [step, step])]}, {}),
+        ({"controls": [control("cycle", [step])]}, {}),
+        ({"controls": [control("cycle", [step] * 5)]}, {}),
+        ({"controls": [control("select", [step] * 9)]}, {}),
+        ({"controls": [control("slider", [step])]}, {}),
+        ({"controls": [control("slider", [step] * 13)]}, {}),
+        ({"controls": [control("dimmer", [])]}, {}),
+        ({"controls": [control(["button"], [step])]}, {}),
+        ({"controls": [control("button", [step], entityId="light.lamp")]}, {}),
+        ({"controls": [control("slider", [step, step], entityId="light.lamp")]}, {}),
+        ({"controls": [control("cycle", [step, step], orientation="vertical")]}, {}),
+        ({"controls": [control("button", [{**step, "code": "1010"}])]}, {}),
+        ({"controls": [control("button", [step]), control("button", [step])]}, {}),
+        ({"controls": [{**control("button", [step]), "id": f"c{index}"} for index in range(9)]}, {}),
+        ({"controls": [control("slider", [])], "tap": "c"}, {}),
+        ({"tap": "missing"}, {}),
+        ({"tap": {"id": "power"}}, {}),
+        ({"controls": [control("button", [step])]}, {"pinned": ["missing"]}),
+        ({"controls": [control("button", [step])]}, {"pinned": ["c", "c"]}),
+        ({"controls": [control("button", [step])]}, {"pinned": [["c"]]}),
+        ({}, {"size": "xl"}),
+    ):
+        bad = configuration()
+        changed = {**device["bindings"], **bindings}
+        if "controls" in bindings and "tap" not in bindings:
+            changed["tap"] = None
+        bad["catalog"]["devices"] = [{**device, "display": {"label": "Lamp", "icon": "mdi:lightbulb", **display}, "bindings": changed}]
+        with pytest.raises(ModelError):
+            validate_configuration(bad)

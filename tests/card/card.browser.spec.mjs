@@ -4,8 +4,9 @@ import { readFile } from 'node:fs/promises';
 const fixture = '/tests/browser/fixtures/card.html';
 const lightLabel = 'Luz de prueba';
 const fanLabel = 'Ventilador de prueba';
-const action = (page, label) => page.getByRole('button', { name: `Acción principal de ${label}`, exact: true });
-const detail = (page, label) => page.getByRole('button', { name: `Detalles de ${label}`, exact: true });
+const action = (page, label) => page.getByRole('button', { name: label, exact: true });
+// The panel opens with a long press, a secondary click or Shift+Enter on the symbol.
+const openPanel = (page, label) => action(page, label).click({ button: 'right' });
 const save = page => page.getByRole('button', { name: 'Guardar cambios', exact: true });
 async function draft(page) {
   return page.evaluate(() => window.testHarness.card.getDraftConfiguration());
@@ -18,7 +19,7 @@ async function begin(page) {
   await expect(save(page)).toBeVisible();
 }
 async function select(page, label = lightLabel) {
-  await detail(page, label).click();
+  await action(page, label).click();
 }
 async function setX(page, x) {
   if (
@@ -29,7 +30,9 @@ async function setX(page, x) {
   )
     await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Posición X', { exact: true }).fill(String(x));
-  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  // Saving closes the sheet.
+  await expect(page.getByRole('button', { name: 'Guardar dispositivo', exact: true })).toHaveCount(0);
 }
 async function drag(page, locator, dx = 35, dy = 25) {
   await locator.hover();
@@ -56,7 +59,7 @@ test('primary action and native detail are separate and accepted commands do not
 }) => {
   await action(page, lightLabel).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
-  await detail(page, lightLabel).click();
+  await openPanel(page, lightLabel);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Control sintético' })).toBeVisible();
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(1);
@@ -68,7 +71,7 @@ test('primary action and native detail are separate and accepted commands do not
 });
 
 test('RF fan opens a native local panel and invokes only an explicit HA script', async ({ page }) => {
-  await detail(page, fanLabel).click();
+  await openPanel(page, fanLabel);
   await expect(page.getByRole('heading', { name: 'Ventilador sintético' })).toBeVisible();
   await page.getByRole('button', { name: 'Ejecutar script de prueba', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
@@ -170,12 +173,17 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await select(page);
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Entidad del dispositivo', { exact: true }).fill('light.synthetic_spare');
-  await page.getByLabel('Acción principal', { exact: true }).selectOption('synthetic-spare-toggle');
+  const sheet = page.locator('homemanager-editor');
+  await sheet.getByRole('button', { name: 'Pulsador', exact: true }).click();
+  await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
+  await sheet.getByLabel('Al tocar el símbolo', { exact: true }).selectOption({ label: 'Pulsador' });
   await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
-  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  // Saving closed the sheet; "Más opciones" stays open when it is opened again.
+  await select(page);
   await page.getByText('Fuente de estado', { exact: true }).click();
   await page.getByLabel('Entidad de estado', { exact: true }).fill('light.synthetic_spare');
-  await page.getByLabel('Tipo de feedback', { exact: true }).selectOption('optimistic');
+  await page.getByLabel('Tipo de lectura', { exact: true }).selectOption('optimistic');
   await page.getByRole('button', { name: 'Aplicar fuente', exact: true }).click();
   const d = (await draft(page)).catalog.devices[0];
   expect(d.bindings.entityId).toBe('light.synthetic_spare');
@@ -197,15 +205,16 @@ test('new unbound icons can be added and removed entirely through the editor', a
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
   await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
-  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
   await expect
     .poll(async () => Boolean((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added')))
     .toBe(true);
   const added = (await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added');
-  expect(added.bindings).toEqual({ entityId: null, primaryAction: null, advancedPopupId: null });
+  // Without controls a tap opens its panel, said explicitly by tap: null.
+  expect(added.bindings).toEqual({ entityId: null, primaryAction: null, advancedPopupId: null, tap: null });
   expect(added.state).toEqual({ value: 'unknown', confidence: 'unknown' });
   await page.keyboard.press('Escape');
-  await detail(page, 'Icono sintético adicional').click();
+  await action(page, 'Icono sintético adicional').click();
   await page.getByRole('button', { name: 'Eliminar dispositivo', exact: true }).click();
   await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
   await expect.poll(async () => (await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
@@ -292,9 +301,9 @@ test('room framing and layers work with a nonzero global viewBox', async ({ page
 });
 
 test('native panels support keyboard opening, Escape and return focus', async ({ page }) => {
-  const button = detail(page, lightLabel);
+  const button = action(page, lightLabel);
   await button.focus();
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('Shift+Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
@@ -378,19 +387,14 @@ test('editor export contains durable configuration only and import waits for a r
 test('normal and editing layouts fit the viewport without horizontal page overflow', async ({ page }) => {
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   expect(await fits()).toBe(true);
-  // Primary targets are 44 px; the detail badge meets WCAG 2.2 AA (24 px) and the
-  // same panel also opens with a long press or a secondary click.
-  for (const [control, minimum] of [
-    [action(page, lightLabel), 44],
-    [detail(page, lightLabel), 24],
-  ]) {
-    const bounds = await control.boundingBox();
-    expect(bounds.width).toBeGreaterThanOrEqual(minimum);
-    expect(bounds.height).toBeGreaterThanOrEqual(minimum);
-  }
+  // Symbols are 44 px targets; their panel opens with a long press, a secondary
+  // click or Shift+Enter, so no smaller badge is needed.
+  const bounds = await action(page, lightLabel).boundingBox();
+  expect(bounds.width).toBeGreaterThanOrEqual(44);
+  expect(bounds.height).toBeGreaterThanOrEqual(44);
   await begin(page);
   await select(page);
-  await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).scrollIntoViewIfNeeded();
   expect(await fits()).toBe(true);
   const field = await page.getByLabel('Entidad del dispositivo', { exact: true }).boundingBox();
   expect(field.width).toBeGreaterThan(100);

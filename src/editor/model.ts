@@ -105,7 +105,12 @@ export function upsertDevice(
     kind: input.kind,
     position: { x: input.position.x, y: input.position.y },
     mobility: input.mobility,
-    display: { label: plainText(input.display.label, t('Nombre')), icon: input.display.icon },
+    display: {
+      label: plainText(input.display.label, t('Nombre')),
+      icon: input.display.icon,
+      ...(input.display.size && input.display.size !== 'm' ? { size: input.display.size } : {}),
+      ...(input.display.pinned?.length ? { pinned: [...input.display.pinned] } : {}),
+    },
     bindings: {
       entityId: input.bindings.entityId,
       primaryAction: input.bindings.primaryAction,
@@ -120,6 +125,8 @@ export function upsertDevice(
           }
         : {}),
       ...(input.bindings.remoteId ? { remoteId: input.bindings.remoteId } : {}),
+      ...(input.bindings.controls ? { controls: structuredClone(input.bindings.controls) } : {}),
+      ...(input.bindings.tap !== undefined ? { tap: input.bindings.tap } : {}),
     },
     state: { value: 'unknown', confidence: 'unknown' },
   };

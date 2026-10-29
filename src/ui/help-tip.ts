@@ -2,7 +2,7 @@ import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { tokens } from './theme.js';
 
-/** helpTip(label, text) renders a keyboard/touch help button. A native popover
+/** helpTip(label, text) renders an info button placed right after its label. A native popover
  * stays above scrolling sheets and dismisses on Esc or an outside tap. */
 export const helpTip = (label: string, text: string) =>
   `<homemanager-help-tip label="${e(label)}" text="${e(text)}"></homemanager-help-tip>`;
@@ -10,7 +10,7 @@ class HelpTip extends HTMLElement {
   connectedCallback(): void {
     if (this.shadowRoot) return;
     const root = this.attachShadow({ mode: 'open' });
-    root.innerHTML = `<style>${tokens}:host{display:inline-block;vertical-align:middle}button{border:0;border-radius:50%;width:44px;min-height:44px;padding:0;color:var(--hm-accent);font-weight:700}[popover]{position:fixed;margin:0;width:300px;max-height:calc(100dvh - 24px);overflow:auto;max-width:min(300px,calc(100vw - 24px));border:1px solid var(--hm-line);border-radius:12px;padding:16px;color:var(--hm-text);background:var(--hm-bg);box-shadow:var(--hm-shadow);font:14px/1.5 var(--hm-font)}</style><button type="button" aria-label="${e(t('Ayuda: {field}', { field: this.getAttribute('label') ?? '' }))}" popovertarget="help">?</button><div id="help" popover>${e(this.getAttribute('text') ?? '')}</div>`;
+    root.innerHTML = `<style>${tokens}:host{display:inline-block;vertical-align:middle}button{border:0;background:none;border-radius:50%;width:32px;height:32px;min-height:32px;padding:0;color:var(--hm-muted);display:grid;place-items:center;cursor:pointer}button:hover,button:focus-visible{color:var(--hm-accent)}button:focus-visible{outline:3px solid var(--hm-accent);outline-offset:1px}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}[popover]{position:fixed;margin:0;width:300px;max-height:calc(100dvh - 24px);overflow:auto;max-width:min(300px,calc(100vw - 24px));border:1px solid var(--hm-line);border-radius:12px;padding:16px;color:var(--hm-text);background:var(--hm-bg);box-shadow:var(--hm-shadow);font:14px/1.5 var(--hm-font)}</style><button type="button" aria-label="${e(t('Ayuda: {field}', { field: this.getAttribute('label') ?? '' }))}" popovertarget="help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></button><div id="help" popover>${e(this.getAttribute('text') ?? '')}</div>`;
     const trigger = root.querySelector<HTMLButtonElement>('button')!;
     const popover = root.querySelector<HTMLElement>('[popover]')!;
     popover.addEventListener('toggle', () => {

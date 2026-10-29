@@ -109,8 +109,6 @@ export const en: Record<string, string> = {
     'This space has no valid SVG zone. Check its ID in the plan editor.',
   'Dispositivos en este lugar': 'Devices at this spot',
   Cerrar: 'Close',
-  'Acción principal de {label}': 'Main action of {label}',
-  'Detalles de {label}': 'Details of {label}',
   '{count} dispositivos: {names}. Acercar para verlos.': '{count} devices: {names}. Zoom in to see them.',
   'Acción pendiente o no disponible': 'Action pending or unavailable',
   'El navegador no permite pantalla completa.': 'The browser does not allow full screen.',
@@ -228,22 +226,14 @@ export const en: Record<string, string> = {
   'Posición X': 'Position X',
   'Posición Y': 'Position Y',
   'Entidad del dispositivo': 'Device entity',
-  'Sin vincular': 'Not linked',
-  'Acción principal': 'Main action',
-  'Sin acción': 'No action',
   'Panel nativo': 'Native panel',
   'Sin panel': 'No panel',
   'Corregir ubicación fija': 'Correct fixed location',
-  'Aplicar dispositivo': 'Apply device',
   'Seleccioná un icono para declarar su fuente.': 'Select a device to declare its source.',
   'Entidad de estado': 'State entity',
   'Sin fuente': 'No source',
   'Atributo de estado': 'State attribute',
   'Estado principal si se deja vacío': 'Main state if left empty',
-  'Tipo de feedback': 'Feedback type',
-  'Revisé la fuente independiente': 'I checked the independent source',
-  'Para measured: revisé que la fuente sea independiente. Esta elección no demuestra el estado físico ni sustituye la verificación de la integración.':
-    'For measured: I checked that the source is independent. This choice does not prove the physical state nor replace verifying the integration.',
   'Aplicar fuente': 'Apply source',
   'Acción a editar': 'Action to edit',
   'Nueva acción': 'New action',
@@ -289,8 +279,6 @@ export const en: Record<string, string> = {
     'Reference updated. Save in the Home Assistant editor.',
   'Completá las dos coordenadas.': 'Fill in both coordinates.',
   'Seleccioná un icono.': 'Select a device.',
-  'Revisá y marcá la fuente independiente antes de declarar measured.':
-    'Check and tick the independent source before declaring measured.',
   'El archivo excede 5 MiB.': 'The file exceeds 5 MiB.',
   'Plano anterior cargado para revisar. Aplicalo al borrador y guardá para restaurarlo.':
     'Previous plan loaded for review. Apply it to the draft and save to restore it.',
@@ -529,7 +517,6 @@ export const en: Record<string, string> = {
   'Protocolo {protocol} · {bits} bits · pulso medido {pulse} µs':
     'Protocol {protocol} · {bits} bits · measured pulse {pulse} µs',
   'Nombre del botón': 'Button name',
-  'Qué hace': 'What it does',
   '¿El equipo reaccionó?': 'Did the device react?',
   'Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones':
     'Sent through {transmitter} · {pulse} µs · {repeats} repeats',
@@ -582,16 +569,8 @@ export const en: Record<string, string> = {
   'Más opciones': 'More options',
   'Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.':
     'Fixed locks the position. Editable can be moved; portable represents equipment that changes location.',
-  'Es lo que ocurre al tocar el icono. Vincular una entidad crea una acción si todavía no hay una.':
-    'What happens when you tap the icon. Linking an entity creates an action if there is none yet.',
-  'Controles avanzados que se abren al mantener pulsado el icono.': 'Advanced controls opened by holding the icon.',
-  'Elegí el equipo de Home Assistant que representa este icono.':
-    'Choose the Home Assistant entity represented by this icon.',
   'Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.':
     'Groups the device in a space on the plan. Its Home Assistant area stays the same.',
-  'Define de dónde viene la lectura del dispositivo y si representa una medición o una estimación.':
-    'Defines where the reading comes from and whether it represents a measurement or an estimate.',
-  Mover: 'Move',
   'Eliminar dispositivo': 'Delete device',
   '¿Eliminar «{name}»?': 'Delete “{name}”?',
   'Se quita del plano. La entidad de Home Assistant no se borra.':
@@ -605,23 +584,9 @@ export const en: Record<string, string> = {
   'Se recupera la última versión guardada.': 'Returns to the last saved version.',
   Eliminar: 'Delete',
   // Quick actions and the RF remote in device panels (0.5).
-  'Accesos rápidos de {label}': 'Quick actions of {label}',
-  'Más controles de {label}': 'More controls of {label}',
   Alternar: 'Toggle',
-  'Acceso {number}': 'Shortcut {number}',
-  'Nombre del acceso {number}': 'Name of shortcut {number}',
-  'Nombre (opcional)': 'Name (optional)',
-  'Acción del acceso {number}': 'Action of shortcut {number}',
-  Nada: 'Nothing',
-  Sugeridas: 'Suggested',
   'Acciones del plano': 'Plan actions',
   'Control RF en el panel': 'RF remote in the panel',
-  'El control diseñado en Controles RF que se muestra en el panel de este dispositivo. Automático usa el de su entidad.':
-    "The remote designed in RF remotes that this device's panel shows. Automatic uses the one of its entity.",
-  'Al mantener pulsado': 'On long press',
-  'Hasta 4 accesos rápidos aparecen sobre el icono al mantenerlo pulsado. Sin accesos, se abre el panel.':
-    'Up to 4 quick actions appear above the icon when it is held. Without them, the panel opens.',
   'Un dispositivo tiene como máximo 4 accesos rápidos.': 'A device has at most 4 quick actions.',
   'Control remoto': 'Remote',
-  'Accesos rápidos': 'Quick actions',
 };

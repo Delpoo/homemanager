@@ -294,6 +294,7 @@ export class HomeAssistantAdapter {
   _matches(device, actionId) {
     if (device.bindings.primaryAction === actionId) return true;
     if (device.bindings.quickActions?.some(item => item.actionId === actionId)) return true;
+    if (device.bindings.controls?.some(control => control.steps.some(step => step.actionId === actionId))) return true;
     const panelId = device.bindings.advancedPopupId;
     const panel = panelId && own(this._configuration.panels, panelId) ? this._configuration.panels[panelId] : null;
     return !!panel?.controls.some(control => control.actionId === actionId);
@@ -357,30 +358,35 @@ export class HomeAssistantAdapter {
    * Same guarantees as configured actions: the target is the device's persisted
    * binding, never user input; the static allowlist, live capabilities and script
    * signatures are checked again here; the result is only `sent`, never confirmed. */
-  _entityAction(deviceId, command) {
+  _entityAction(deviceId, command, target) {
     const device = this._configuration.catalog.devices.find(item => item.id === deviceId);
     if (!device) return { error: 'unknown-device' };
-    const entityId = device.bindings.entityId;
-    if (!entityId) return { error: 'unbound-entity' };
+    // Besides its own entity, a device may adjust the entity a slider of its
+    // persisted controls names; never one chosen at run time.
+    const allowed = new Set([device.bindings.entityId]);
+    for (const control of device.bindings.controls ?? [])
+      if (control.type === 'slider' && !control.steps.length) allowed.add(control.entityId ?? device.bindings.entityId);
+    const entityId = target ?? device.bindings.entityId;
+    if (!entityId || !allowed.has(entityId)) return { error: 'unbound-entity' };
     if (!command || typeof command.service !== 'string') return { error: 'invalid_action' };
     const action = { domain: entityId.split('.')[0], service: command.service, target: { entity_id: entityId } };
     if (command.data !== undefined) action.data = command.data;
-    return { device, action, key: `entity-${deviceId}` };
+    return { device, action, key: `entity-${deviceId}-${entityId}` };
   }
 
-  getEntityCommandAvailability(deviceId, command) {
+  getEntityCommandAvailability(deviceId, command, entityId) {
     if (this._disposed) return { available: false, reason: 'adapter-disposed' };
     if (!this._online) return { available: false, reason: 'ha-unavailable' };
-    const resolved = this._entityAction(deviceId, command);
+    const resolved = this._entityAction(deviceId, command, entityId);
     if (resolved.error) return { available: false, reason: resolved.error };
     if (this._inFlight.has(resolved.key)) return { available: false, reason: 'action-in-flight' };
     return actionAvailability(resolved.action, this._hass, this._verification());
   }
 
-  async executeEntityCommand(deviceId, command) {
-    const availability = this.getEntityCommandAvailability(deviceId, command);
+  async executeEntityCommand(deviceId, command, entityId) {
+    const availability = this.getEntityCommandAvailability(deviceId, command, entityId);
     if (!availability.available) return { ok: false, reason: availability.reason ?? 'action-unavailable' };
-    const resolved = this._entityAction(deviceId, command);
+    const resolved = this._entityAction(deviceId, command, entityId);
     return this._run(resolved.key, `entity-${command.service.replace(/_/g, '-')}`, resolved.action, [resolved.device]);
   }
 

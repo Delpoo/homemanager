@@ -1,9 +1,9 @@
 /** Persistent V2 types. Live values never belong in Configuration.
  * Spaces are instance data (`rooms`); the public code has no room vocabulary. */
 import { KINDS } from '../ha/validation.mjs';
-import type { DeviceKind, Room } from '../ha/types.ts';
+import type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize } from '../ha/types.ts';
 export { KINDS };
-export type { DeviceKind, Room };
+export type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize };
 export type RoomId = string;
 export type Confidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
 export interface QuickAction {
@@ -17,15 +17,26 @@ export interface Device {
   kind: DeviceKind;
   position: { x: number; y: number };
   mobility: 'fixed' | 'editable' | 'portable';
-  display: { label: string; icon: string };
+  display: {
+    label: string;
+    icon: string;
+    /** Symbol size on the plan; m when absent (V2, optional). */
+    size?: SymbolSize;
+    /** Up to 3 controls drawn next to the symbol (V2, optional). */
+    pinned?: string[];
+  };
   bindings: {
     entityId: string | null;
     primaryAction: string | null;
     advancedPopupId: string | null;
-    /** Up to 4 actions offered when the icon is held (V2, optional). */
+    /** @deprecated 0.5 hold menu; read as button controls, replaced on edit. */
     quickActions?: QuickAction[];
     /** RF remote drawn in the device panel (V2, optional). */
     remoteId?: string | null;
+    /** The device's controls, shown in its panel (V2, optional). */
+    controls?: DeviceControl[];
+    /** Control a tap runs; null opens the panel; absent keeps primaryAction (V2, optional). */
+    tap?: string | null;
   };
   state: { value: string; confidence: Confidence };
 }

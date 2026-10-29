@@ -110,7 +110,8 @@ export function searchEntities(
 }
 
 export const pickerStyles = `.picker-host{position:relative}
-.picker{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:20;max-height:280px;overflow:auto;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:12px;box-shadow:var(--hm-shadow);padding:4px}
+.picker{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;z-index:20;max-height:320px;overflow:auto;overscroll-behavior:contain;background:var(--hm-bg);color:var(--hm-text);border:1px solid var(--hm-line);border-radius:12px;box-shadow:var(--hm-shadow);padding:4px}
+.picker[popover]{position:fixed;inset:auto;margin:0}
 .picker [role=option]{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:8px;cursor:pointer}
 .picker [role=option][aria-selected=true],.picker [role=option]:hover{background:var(--hm-surface)}
 .picker .name{font-size:14px;color:var(--hm-text)}
@@ -132,6 +133,9 @@ export function enhanceEntityInput(input: HTMLInputElement, getHass: () => Hass 
   list.id = `hm-picker-${++sequence}`;
   list.setAttribute('role', 'listbox');
   list.hidden = true;
+  // In the top layer a scrolling sheet never clips the list.
+  const layered = typeof list.showPopover === 'function';
+  if (layered) list.setAttribute('popover', 'manual');
   host.append(list);
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-autocomplete', 'list');
@@ -141,6 +145,7 @@ export function enhanceEntityInput(input: HTMLInputElement, getHass: () => Hass 
   let matches: EntityMatch[] = [],
     active = -1;
   const close = () => {
+    if (layered && list.matches(':popover-open')) list.hidePopover();
     list.hidden = true;
     input.setAttribute('aria-expanded', 'false');
     input.removeAttribute('aria-activedescendant');
@@ -163,24 +168,58 @@ export function enhanceEntityInput(input: HTMLInputElement, getHass: () => Hass 
     if (active >= 0) input.setAttribute('aria-activedescendant', `${list.id}-${active}`);
     else input.removeAttribute('aria-activedescendant');
   };
-  const open = () => {
-    matches = searchEntities(getHass(), input.value, domains);
+  /** With nothing typed (or the current entity still shown) every entity is
+   * offered, the current one first; typing filters. The list scrolls. */
+  const open = (query: string) => {
+    const hass = getHass();
+    matches = searchEntities(hass, query, domains, 200);
+    const current = input.value.trim();
+    if (!query && current && hass?.states[current]) {
+      const index = matches.findIndex(match => match.entityId === current);
+      const [chosen] = index >= 0 ? matches.splice(index, 1) : searchEntities(hass, current, domains, 1);
+      if (chosen) matches.unshift(chosen);
+    }
     active = -1;
     list.hidden = false;
+    if (layered) {
+      if (!list.matches(':popover-open')) list.showPopover();
+      const box = input.getBoundingClientRect();
+      const below = innerHeight - box.bottom - 12,
+        above = box.top - 12;
+      const height = Math.min(320, Math.max(below, above));
+      list.style.left = `${box.left}px`;
+      list.style.width = `${box.width}px`;
+      list.style.maxHeight = `${Math.max(120, height)}px`;
+      list.style.top =
+        below >= 160 || below >= above
+          ? `${box.bottom + 4}px`
+          : `${Math.max(12, box.top - 4 - Math.min(320, height))}px`;
+    }
     input.setAttribute('aria-expanded', 'true');
     paint();
   };
   input.addEventListener('focus', () => {
     // Typing replaces the current entity instead of appending to its ID.
     input.select();
-    open();
+    open('');
+  });
+  input.addEventListener('click', () => {
+    if (list.hidden) open('');
   });
   input.addEventListener('input', event => {
-    if (event.isTrusted) open();
+    if (event.isTrusted) open(input.value);
   });
   input.addEventListener('blur', () => setTimeout(close, 120));
+  // A fixed list would drift away from the field if the sheet scrolled under it.
+  input.getRootNode().addEventListener(
+    'scroll',
+    event => {
+      if (!list.hidden && !list.contains(event.target as Node)) close();
+    },
+    true,
+  );
   input.addEventListener('keydown', event => {
-    if (list.hidden && event.key === 'ArrowDown') return open();
+    if (list.hidden && event.key === 'ArrowDown') return open('');
     if (list.hidden) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();

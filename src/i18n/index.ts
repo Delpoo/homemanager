@@ -1,5 +1,6 @@
 import { en } from './en.js';
 import { enRf } from './en-rf.js';
+import { enControls } from './en-controls.js';
 
 /** Gettext-style translations: the key is the Spanish source text, so code reads
  * naturally and a missing translation degrades to readable Spanish, never to a
@@ -22,7 +23,7 @@ export function languageFromHass(hass: unknown): string | undefined {
   return value?.locale?.language ?? value?.language;
 }
 export function t(source: string, vars?: Record<string, string | number>): string {
-  const template = getLanguage() === 'es' ? source : (en[source] ?? enRf[source] ?? source);
+  const template = getLanguage() === 'es' ? source : (en[source] ?? enRf[source] ?? enControls[source] ?? source);
   return vars
     ? template.replace(/\{(\w+)\}/g, (match: string, name: string) => (name in vars ? String(vars[name]) : match))
     : template;

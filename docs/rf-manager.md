@@ -86,6 +86,16 @@ Una parte llamada igual que el control toma el nombre del dispositivo.
 
 HomeManager no edita el YAML de ESPHome: ESPHome Builder es su dueño y ESPHome no ofrece una forma segura de hacerlo desde fuera.
 
+## Eco: ¿salió la señal?
+
+Un envío por RF no tiene respuesta: el equipo no avisa si lo recibió. Desde 0.6, alrededor de cada pulsación los receptores con el paquete (el propio transmisor incluido) abren una ventana de escucha de 3 s **antes** de transmitir; si en los 1,5 s siguientes alguno decodifica el mismo código, el envío se informa como **oído en el aire** (`homemanager_on_air` en las entidades del control: `{ "at", "result": "heard" | "not_heard" | "unverified", "by" }`, y *en el aire ✓* junto al símbolo).
+
+- Es evidencia de que la señal **se emitió**, no de que el equipo la recibió ni de su estado.
+- *Sin eco* (`not_heard`) no prueba un fallo: muchos módulos no se oyen a sí mismos mientras transmiten. Un segundo receptor con el paquete (por ejemplo otro Athom) lo hace más fiable.
+- *Sin verificar* (`unverified`): no hay ningún receptor con el paquete que pueda escuchar.
+- Un receptor que está aprendiendo conserva su ventana; uno que no responde a tiempo se omite. El eco nunca retrasa más de 1 s ni hace fallar un envío.
+- No necesita cambiar el firmware: usa la acción de captura del paquete de 0.4.
+
 ## Dónde se guarda
 
 `/config/.storage/homemanager.rf` (versión 2), en las copias de seguridad de HA:

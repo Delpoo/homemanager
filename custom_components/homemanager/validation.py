@@ -26,6 +26,12 @@ SERVICES = {
     "switch": {"turn_on", "turn_off", "toggle"}, "button": {"press"}, "script": {"turn_on"},
 }
 
+# Controls of a map device (contract V2, optional): steps each type takes, as
+# (minimum, maximum). A slider has none when it adjusts an entity's own value.
+CONTROL_STEPS = {"button": (1, 1), "cycle": (2, 4), "slider": (0, 12), "updown": (2, 2), "select": (2, 8)}
+MAX_CONTROLS = 8
+MAX_PINNED = 3
+
 
 def _fail() -> None:
     raise ModelError("invalid_configuration", "configuration does not satisfy the persistent V2 contract")
@@ -183,6 +189,44 @@ def _action(action: Any) -> None:
         _fail()
 
 
+def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
+    types: dict[str, str] = {}
+    if "controls" in bindings:
+        if not isinstance(bindings["controls"], list) or len(bindings["controls"]) > MAX_CONTROLS:
+            _fail()
+        for control in bindings["controls"]:
+            _fields(control, {"id", "type", "label", "steps"}, {"entityId", "orientation"})
+            _id(control["id"])
+            if control["id"] in types or not isinstance(control["type"], str) or control["type"] not in CONTROL_STEPS:
+                _fail()
+            types[control["id"]] = control["type"]
+            _text(control["label"], 80)
+            low, high = CONTROL_STEPS[control["type"]]
+            steps = control["steps"]
+            if not isinstance(steps, list) or not low <= len(steps) <= high or (control["type"] == "slider" and len(steps) == 1):
+                _fail()
+            for step in steps:
+                _fields(step, {"actionId"}, {"label", "icon"})
+                _id(step["actionId"])
+                if "label" in step:
+                    _text(step["label"], 80)
+                if "icon" in step:
+                    _text(step["icon"])
+            if "entityId" in control:
+                if control["type"] != "slider" or steps:
+                    _fail()
+                _entity(control["entityId"])
+            if "orientation" in control and (control["type"] != "slider" or control["orientation"] not in ("vertical", "horizontal")):
+                _fail()
+    tap = bindings.get("tap")
+    if tap is not None and (not isinstance(tap, str) or types.get(tap) not in ("button", "cycle")):
+        _fail()
+    if "pinned" in display:
+        pinned = display["pinned"]
+        if not isinstance(pinned, list) or len(pinned) > MAX_PINNED or len(set(map(str, pinned))) != len(pinned) or any(not isinstance(item, str) or item not in types for item in pinned):
+            _fail()
+
+
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
@@ -222,11 +266,14 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fields(device["position"], {"x", "y"})
         for value in device["position"].values():
             _number(value, 0, 1)
-        _fields(device["display"], {"label", "icon"})
-        for value in device["display"].values():
-            _text(value)
+        display = device["display"]
+        _fields(display, {"label", "icon"}, {"size", "pinned"})
+        _text(display["label"])
+        _text(display["icon"])
+        if "size" in display and display["size"] not in ("s", "m", "l"):
+            _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap"})
         for name in ("entityId", "primaryAction", "advancedPopupId", "remoteId"):
             if bindings.get(name) is not None:
                 (_entity if name == "entityId" else _id)(bindings[name])
@@ -243,6 +290,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 if item["id"] in quick_ids:
                     _fail()
                 quick_ids.add(item["id"])
+        _controls(bindings, display)
         _fields(device["state"], {"value", "confidence"})
         if device["state"] != {"value": "unknown", "confidence": "unknown"}:
             _fail()

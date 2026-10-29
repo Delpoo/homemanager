@@ -4,11 +4,13 @@ import {
   type Configuration,
   type Device,
   type HassEntity,
+  type DeviceControl,
   type NativePanel,
-  type QuickAction,
   type RuntimeDeviceState,
 } from '../card/types.js';
 import { tokens } from '../ui/theme.js';
+import { ControlView, controlViewStyles, type ControlHost } from '../ui/control-view.js';
+import { stepLabel } from '../card/device-controls.js';
 import { commandFor, entityControls, humanize, type Command, type Control } from './controls.js';
 import type { RfRemote } from '../integration/rf.js';
 import '../rf/remote-view.js';
@@ -38,8 +40,11 @@ export interface PanelOptions {
   onAssume?: (isOn: boolean) => Promise<unknown>;
   /** An RF remote drawn as designed in Controles RF; its keys send codes. */
   rfRemote?: { load: () => Promise<RfRemote | undefined>; press: (buttonId: string) => Promise<unknown> };
-  /** The device's quick actions (also offered when its icon is held). */
-  quickActions?: QuickAction[];
+  /** The device's own controls (pulsador, ciclo, deslizador…), drawn full size. */
+  controls?: DeviceControl[];
+  controlHost?: ControlHost;
+  /** Opened by holding the symbol: the click that ends that press is not a backdrop tap. */
+  heldOpen?: boolean;
 }
 export interface PanelHandle {
   element: HomeManagerPanel;
@@ -103,7 +108,7 @@ export function stateText(value: string): string {
   return STATE_WORDS()[value] ?? value;
 }
 
-const css = `${tokens}
+const css = `${tokens}${controlViewStyles}
 dialog{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:22px;padding:0;width:min(460px,calc(100vw - 24px));max-height:86dvh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.28)}
 dialog::backdrop{background:rgba(10,20,15,.42);backdrop-filter:blur(3px)}
 .head{display:flex;align-items:center;gap:12px;padding:18px 18px 6px}
@@ -147,6 +152,7 @@ h2{font-size:18px;line-height:1.3;font-weight:600;margin:0;overflow-wrap:anywher
 .controls .control-button{display:flex;align-items:center;justify-content:center;text-align:center;overflow-wrap:anywhere}
 .reading{font-size:20px;font-weight:600}
 .status{font-size:13px;color:var(--hm-error);line-height:1.5;margin:0}
+.status.ok{color:var(--hm-muted)}
 .status:empty{display:none}
 .empty{font-size:13px;color:var(--hm-muted);margin:0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
@@ -229,13 +235,21 @@ export class HomeManagerPanel extends HTMLElement {
     const glyph = customElements.get('ha-icon')
       ? `<ha-icon icon="${escapeHTML(this.device.display.icon)}"></ha-icon>`
       : '◉';
-    this.root.innerHTML = `<style>${css}</style><dialog aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="quick group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></dialog>`;
+    this.root.innerHTML = `<style>${css}</style><dialog aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="own group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></dialog>`;
     this.renderCustom();
     this.renderAuto(true);
     this.renderRemote();
-    this.renderQuick();
+    this.renderOwn();
     this.root.querySelector('.close')!.addEventListener('click', () => this.close());
+    // The press that opened the panel ends with a click on the backdrop: skip it,
+    // unless a new press started inside the open panel.
+    let pressEnding = !!this.options?.heldOpen;
+    this.dialog.addEventListener('pointerdown', () => (pressEnding = false), { capture: true });
     this.dialog.addEventListener('click', event => {
+      if (pressEnding) {
+        pressEnding = false;
+        return;
+      }
       // A tap on the backdrop (outside the sheet) closes it, like native sheets.
       if (event.target === this.dialog) {
         const r = this.dialog.getBoundingClientRect();
@@ -269,20 +283,37 @@ export class HomeManagerPanel extends HTMLElement {
       })
       .catch(() => undefined);
   }
-  private renderQuick(): void {
-    const host = this.root.querySelector<HTMLElement>('.quick');
-    const quick = this.options?.quickActions ?? [];
-    if (!host || !quick.length) return;
-    host.innerHTML = `<p class="group-title">${escapeHTML(t('Accesos rápidos'))}</p><div class="controls"></div>`;
-    const list = host.querySelector('.controls')!;
-    for (const item of quick) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'control-button';
-      button.dataset.actionId = item.actionId;
-      button.textContent = item.label;
-      button.addEventListener('click', () => void this.activate(item.actionId));
-      list.append(button);
+  private views: ControlView[] = [];
+  private renderOwn(): void {
+    const host = this.root.querySelector<HTMLElement>('.own');
+    const controls = this.options?.controls ?? [];
+    const source = this.options?.controlHost;
+    if (!host || !controls.length || !source) return;
+    host.innerHTML = `<p class="group-title">${escapeHTML(t('Controles'))}</p>`;
+    // What was sent (or why not) is said here: the plan behind the sheet is covered.
+    const say = (message: string | null, sent: string) => {
+      if (this.closed) return;
+      const status = this.root.querySelector<HTMLElement>('.status')!;
+      status.textContent = message ?? sent;
+      status.classList.toggle('ok', !message);
+    };
+    const wrapped: ControlHost = {
+      ...source,
+      run: async (control, index) => {
+        const message = await source.run(control, index);
+        say(message, t('Enviado: {label}', { label: stepLabel(control, index, source.configuration) }));
+        return message;
+      },
+      sendValue: async (control, entityId, command) => {
+        const message = await source.sendValue(control, entityId, command);
+        say(message, t('Enviado'));
+        return message;
+      },
+    };
+    this.views = controls.map(control => new ControlView(control, wrapped, false));
+    for (const view of this.views) {
+      view.element.classList.add('control');
+      host.append(view.element);
     }
     host.hidden = false;
   }
@@ -330,7 +361,9 @@ export class HomeManagerPanel extends HTMLElement {
     this.controls = next;
     host.hidden = !next.length;
     if (same) return this.updateAutoValues();
-    host.innerHTML = next.length ? `<p class="group-title">${escapeHTML(t('Controles'))}</p>` : '';
+    host.innerHTML = next.length
+      ? `<p class="group-title">${escapeHTML(this.options.controls?.length ? t('Desde Home Assistant') : t('Controles'))}</p>`
+      : '';
     for (const control of next) host.append(this.renderControl(control));
     if (this.options.onAssume && this.options.getEntity()?.attributes?.homemanager_remote)
       host.append(this.renderAssume());
@@ -598,11 +631,13 @@ export class HomeManagerPanel extends HTMLElement {
     this.runtime = state;
     this.renderAuto();
     this.refresh();
+    for (const view of this.views) view.refresh();
   }
   private async send(command: Command): Promise<void> {
     if (this.pending || this.closed || !this.options?.onEntityCommand) return;
     const status = this.root.querySelector('.status')!;
     status.textContent = '';
+    status.classList.remove('ok');
     this.pending = true;
     this.refresh();
     try {

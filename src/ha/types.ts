@@ -38,21 +38,50 @@ export interface QuickAction {
   label: string;
   actionId: string;
 }
+/** Named by how it is operated, never by what it controls (see CONTROL_STEPS). */
+export type ControlType = 'button' | 'cycle' | 'slider' | 'updown' | 'select';
+export interface ControlStep {
+  actionId: string;
+  label?: string;
+  /** Shown on the symbol once this step of a cycle was sent. */
+  icon?: string;
+}
+export interface DeviceControl {
+  id: string;
+  type: ControlType;
+  label: string;
+  steps: ControlStep[];
+  /** Slider without steps: the entity whose own value it adjusts (else the device's). */
+  entityId?: string;
+  orientation?: 'vertical' | 'horizontal';
+}
+export type SymbolSize = 's' | 'm' | 'l';
 export interface Device {
   id: string;
   roomId: RoomId | null;
   kind: DeviceKind;
   position: Position;
   mobility: 'fixed' | 'editable' | 'portable';
-  display: { label: string; icon: string };
+  display: {
+    label: string;
+    icon: string;
+    /** Symbol size on the plan; m when absent (V2, optional). */
+    size?: SymbolSize;
+    /** Up to 3 controls drawn next to the symbol (V2, optional). */
+    pinned?: string[];
+  };
   bindings: {
     entityId: string | null;
     primaryAction: string | null;
     advancedPopupId: string | null;
-    /** Up to 4 actions offered when the icon is held (V2, optional). */
+    /** @deprecated 0.5 hold menu; read as button controls, replaced on edit. */
     quickActions?: QuickAction[];
     /** RF remote drawn in the device panel (V2, optional). */
     remoteId?: string | null;
+    /** The device's controls, shown in its panel (V2, optional). */
+    controls?: DeviceControl[];
+    /** Control a tap runs; null opens the panel; absent keeps primaryAction (V2, optional). */
+    tap?: string | null;
   };
   state: DeviceState;
 }

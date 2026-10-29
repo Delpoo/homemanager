@@ -77,22 +77,22 @@ export function roleLabel(role: string): string {
 
 export function widgetLabel(type: WidgetType): string {
   const labels: Record<WidgetType, string> = {
-    button: t('Botón'),
-    toggle: t('Interruptor'),
-    updown: t('Menos / más'),
-    steps: t('Selector por pasos'),
-    modes: t('Selector de modos'),
+    button: t('Pulsador'),
+    toggle: t('Encender / apagar'),
+    updown: t('Subir / bajar'),
+    steps: t('Deslizador por pasos'),
+    modes: t('Selector'),
   };
   return labels[type];
 }
 
 export function widgetHelp(type: WidgetType): string {
   const help: Record<WidgetType, string> = {
-    button: t('Un botón que envía un código.'),
+    button: t('Un toque, un código.'),
     toggle: t('Dos botones (encender y apagar) o uno que alterna.'),
     updown: t('Dos botones juntos: bajar y subir.'),
-    steps: t('Números en fila, cada uno con su botón: velocidades.'),
-    modes: t('Opciones con nombre, cada una con su botón: tonos, modos.'),
+    steps: t('Una barra de 2 a 12 pasos, cada uno con su botón: velocidades, niveles.'),
+    modes: t('De 2 a 8 opciones con nombre, cada una con su botón: tonos, modos.'),
   };
   return help[type];
 }
