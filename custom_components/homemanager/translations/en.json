@@ -32,12 +32,5 @@
     "error": {
       "invalid_viewers": "Select active Home Assistant accounts."
     }
-  },
-  "entity": {
-    "light": {
-      "rf_light": {
-        "name": "Light"
-      }
-    }
   }
 }

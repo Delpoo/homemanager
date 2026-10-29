@@ -21,11 +21,16 @@ async def _call(client, message: dict) -> dict:
     return await client.receive_json()
 
 
-async def _remote(client, remote_id: str, buttons: list[tuple[str, str, str | None]], **settings) -> None:
-    assert (await _call(client, {"type": "homemanager/rf/remote/save", "remote_id": remote_id, "remote": {"name": remote_id.title(), "transmitter": "test_tx", **settings}}))["success"]
-    for name, code, function in buttons:
-        response = await _call(client, {"type": "homemanager/rf/button/save", "remote_id": remote_id, "button": {"name": name, "function": function}, "code": CODES[code]})
+async def _remote(client, remote_id: str, buttons: list[tuple[str, str]], parts: list[dict]) -> None:
+    """Buttons as (name, code key); parts with roles naming buttons by code key."""
+    assert (await _call(client, {"type": "homemanager/rf/remote/save", "remote_id": remote_id, "remote": {"name": remote_id.title(), "transmitter": "test_tx"}}))["success"]
+    ids = {}
+    for name, code in buttons:
+        response = await _call(client, {"type": "homemanager/rf/button/save", "remote_id": remote_id, "button": {"name": name}, "code": CODES[code]})
         assert response["success"], response
+        ids[code] = response["result"]["id"]
+    parts = [{**part, "roles": {role: ids[code] for role, code in part.get("roles", {}).items()}} for part in parts]
+    assert (await _call(client, {"type": "homemanager/rf/parts/save", "remote_id": remote_id, "parts": parts}))["success"]
 
 
 async def test_fan_light_and_buttons_follow_the_remote(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:
@@ -34,7 +39,11 @@ async def test_fan_light_and_buttons_follow_the_remote(hass: HomeAssistant, setu
     await _remote(
         client,
         "ventilador",
-        [("Off", "off", "off"), ("V1", "s1", "speed_1"), ("V2", "s2", "speed_2"), ("V3", "s3", "speed_3"), ("F/R", "dir", "direction"), ("Luz", "light", "light"), ("1H", "timer", "timer")],
+        [("Off", "off"), ("V1", "s1"), ("V2", "s2"), ("V3", "s3"), ("F/R", "dir"), ("Luz", "light"), ("1H", "timer")],
+        [
+            {"id": "fan", "name": "Ventilador", "kind": "fan", "roles": {"off": "off", "speed_1": "s1", "speed_2": "s2", "speed_3": "s3", "direction": "dir"}},
+            {"id": "light", "name": "Light", "kind": "light", "roles": {"toggle": "light"}},
+        ],
     )
     await hass.async_block_till_done()
 
@@ -44,6 +53,8 @@ async def test_fan_light_and_buttons_follow_the_remote(hass: HomeAssistant, setu
     assert fan.attributes["homemanager_remote"] == "ventilador"
     assert hass.states.get("light.ventilador_light") is not None
     assert hass.states.get("button.ventilador_1h") is not None
+    # A part named like the remote takes the device name; the light has its own.
+    assert hass.states.get("fan.ventilador").attributes["friendly_name"] == "Ventilador"
     # Speed, off and direction buttons live in the fan, the light button in the light.
     assert hass.states.get("button.ventilador_v2") is None
 
@@ -82,7 +93,7 @@ async def test_speed_by_steps_power_toggle_and_errors(hass: HomeAssistant, setup
     monkeypatch.setattr("custom_components.homemanager.rf_entity.STEP_DELAY_SECONDS", 0)
     sent = _transmitter(hass)
     client = await hass_ws_client(hass)
-    await _remote(client, "techo", [("Power", "power", "power"), ("Más", "up", "speed_up"), ("Menos", "down", "speed_down")], speeds=4)
+    await _remote(client, "techo", [("Power", "power"), ("Más", "up"), ("Menos", "down")], [{"name": "Techo", "kind": "fan", "speeds": 4, "roles": {"toggle": "power", "speed_up": "up", "speed_down": "down"}}])
     await hass.async_block_till_done()
 
     assert hass.states.get("fan.techo").attributes["percentage_step"] == 25
@@ -96,3 +107,27 @@ async def test_speed_by_steps_power_toggle_and_errors(hass: HomeAssistant, setup
     assert sent[5:] == ["power"]
 
     assert (await _call(client, {"type": "homemanager/rf/assume", "entity_id": "sensor.nope", "is_on": True}))["error"]["code"] == "entity_not_found"
+
+
+async def test_off_of_the_light_is_not_the_fan_off(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:
+    """Two parts, each with its own "off": the 0.4 wizard put the light's off on the fan."""
+    sent = _transmitter(hass)
+    client = await hass_ws_client(hass)
+    await _remote(
+        client,
+        "comedor",
+        [("Ventilador off", "off"), ("Luz off", "power"), ("Luz", "light"), ("V1", "s1")],
+        [
+            {"name": "Ventilador", "kind": "fan", "roles": {"off": "off", "speed_1": "s1"}},
+            {"name": "Luz", "kind": "light", "roles": {"toggle": "light", "off": "power"}},
+        ],
+    )
+    await hass.async_block_till_done()
+    await hass.services.async_call("light", "turn_off", {"entity_id": "light.comedor_luz"}, blocking=True)
+    await hass.services.async_call("fan", "turn_off", {"entity_id": "fan.comedor_ventilador"}, blocking=True)
+    assert sent == ["power", "off"]
+    # Removing a part removes its entity; its buttons become button entities.
+    assert (await _call(client, {"type": "homemanager/rf/parts/save", "remote_id": "comedor", "parts": [{"id": "ventilador", "name": "Ventilador", "kind": "fan", "roles": {"off": "ventilador-off", "speed_1": "v1"}}]}))["success"]
+    await hass.async_block_till_done()
+    assert hass.states.get("light.comedor_luz") is None
+    assert hass.states.get("button.comedor_luz_off") is not None

@@ -1,4 +1,4 @@
-"""Fans built from RF remotes (see rf_entity.py)."""
+"""Fans built from the fan parts of RF remotes (see rf_entity.py)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .rf_entity import Layout, RemoteEntity, async_setup_platform_entities, button_for, layout
+from .rf_entity import FanShape, PartEntity, async_setup_platform_entities, fan_shape, parts_of, role
 from .rf_websocket import DATA_RF
 
 
@@ -23,16 +23,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             hass,
             manager,
             "fan",
-            lambda remote, shape: ["fan"] if shape.fan else [],
+            lambda remote: parts_of(remote, "fan"),
             lambda remote_id, key: RemoteFan(manager, remote_id, key),
             async_add_entities,
         )
     )
 
 
-class RemoteFan(RemoteEntity, FanEntity, RestoreEntity):
-    _attr_name = None
-
+class RemoteFan(PartEntity, FanEntity, RestoreEntity):
     def __init__(self, *args: Any) -> None:
         super().__init__(*args)
         self._is_on: bool | None = None
@@ -41,22 +39,22 @@ class RemoteFan(RemoteEntity, FanEntity, RestoreEntity):
         self._direction: str | None = None
 
     @property
-    def _shape(self) -> Layout | None:
-        return layout(self.remote) if self.remote else None
+    def _shape(self) -> FanShape | None:
+        return fan_shape(self.part) if self.part else None
 
     @property
     def supported_features(self) -> FanEntityFeature:
-        shape, remote = self._shape, self.remote
+        shape, part = self._shape, self.part
         features = FanEntityFeature(0)
-        if not shape or not remote:
+        if not shape or not part:
             return features
         if shape.speed_count:
             features |= FanEntityFeature.SET_SPEED
-        if shape.speed_count or button_for(remote, "power"):
+        if shape.speed_count or role(part, "on", "toggle"):
             features |= FanEntityFeature.TURN_ON
-        if button_for(remote, "off", "power"):
+        if role(part, "off", "toggle"):
             features |= FanEntityFeature.TURN_OFF
-        if button_for(remote, "direction"):
+        if role(part, "direction"):
             features |= FanEntityFeature.DIRECTION
         return features
 
@@ -95,59 +93,61 @@ class RemoteFan(RemoteEntity, FanEntity, RestoreEntity):
         self._direction = direction if direction in ("forward", "reverse") else None
 
     async def async_set_percentage(self, percentage: int) -> None:
-        shape, remote = self._shape, self.remote
+        shape, part = self._shape, self.part
         if percentage <= 0:
             await self.async_turn_off()
             return
-        if not shape or not remote or not shape.speed_count:
+        if not shape or not part or not shape.speed_count:
             return
         level = max(1, min(shape.speed_count, math.ceil(percentage_to_ranged_value((1, shape.speed_count), percentage))))
         if shape.direct_speeds:
             # Sent even when it is the assumed level: re-sending is how a user
             # re-synchronizes a fan that someone changed with its own remote.
-            await self.press(button_for(remote, f"speed_{level}"))
+            await self.press(role(part, f"speed_{level}"))
         else:
             current = self._level if self._is_on else 0
             if level > current:
-                await self.step(button_for(remote, "speed_up"), level - current)
+                await self.step(role(part, "speed_up"), level - current)
             elif level < current:
-                await self.step(button_for(remote, "speed_down"), current - level)
+                await self.step(role(part, "speed_down"), current - level)
         self._is_on, self._level, self._last_level = True, level, level
         self.async_write_ha_state()
 
     async def async_turn_on(self, percentage: int | None = None, preset_mode: str | None = None, **kwargs: Any) -> None:
-        remote, shape = self.remote, self._shape
-        if not remote or not shape:
+        part, shape = self.part, self._shape
+        if not part or not shape:
             return
         if percentage is not None:
             await self.async_set_percentage(percentage)
             return
-        if shape.direct_speeds:
+        if (on := role(part, "on")) is not None:
+            await self.press(on)
+        elif shape.direct_speeds:
             level = self._last_level or 1
-            await self.press(button_for(remote, f"speed_{level}"))
+            await self.press(role(part, f"speed_{level}"))
             self._level = self._last_level = level
         elif self._is_on is not True:
-            await self.press(button_for(remote, "power"))
+            await self.press(role(part, "toggle"))
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        remote = self.remote
-        if not remote:
+        part = self.part
+        if not part:
             return
-        if (off := button_for(remote, "off")) is not None:
+        if (off := role(part, "off")) is not None:
             await self.press(off)
         elif self._is_on is not False:
-            # A power toggle is only sent when the fan is not already off by assumption.
-            await self.press(button_for(remote, "power"))
+            # A toggle is only sent when the fan is not already off by assumption.
+            await self.press(role(part, "toggle"))
         self._is_on, self._level = False, 0
         self.async_write_ha_state()
 
     async def async_set_direction(self, direction: str) -> None:
-        remote = self.remote
-        if not remote or direction == self._direction:
+        part = self.part
+        if not part or direction == self._direction:
             return
-        await self.press(button_for(remote, "direction"))
+        await self.press(role(part, "direction"))
         self._direction = direction
         self.async_write_ha_state()
 
