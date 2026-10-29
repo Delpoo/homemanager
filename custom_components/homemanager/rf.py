@@ -118,6 +118,10 @@ class RfManager:
             listener()
         return result
 
+    @property
+    def subscriber_count(self) -> int:
+        return len(self._listeners)
+
     @callback
     def async_subscribe(self, listener: Callable[[], None]) -> Callable[[], None]:
         self._listeners.add(listener)

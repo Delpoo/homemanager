@@ -7,6 +7,7 @@ import random
 
 from homeassistant.core import HomeAssistant, ServiceCall
 
+from custom_components.homemanager.const import CONF_VIEWER_USER_IDS
 from custom_components.homemanager.rf import RAW_EVENT
 from custom_components.homemanager.rf_codec import decode, encode_timings, summarize
 
@@ -120,7 +121,7 @@ async def test_capture_test_save_and_press_without_exposing_codes(hass: HomeAssi
     assert sent[-1] == {"code": CODE, "protocol": 1, "pulse_length": 400, "repeats": 8, "wait_us": 0}
 
 
-async def test_permissions_and_validation(hass: HomeAssistant, setup_integration, hass_ws_client, hass_read_only_access_token) -> None:
+async def test_permissions_and_validation(hass: HomeAssistant, setup_integration, hass_ws_client, hass_read_only_user, hass_read_only_access_token) -> None:
     sent = _transmitter(hass)
     admin = await hass_ws_client(hass)
     await _call(admin, {"type": "homemanager/rf/remote/save", "remote_id": "luz", "remote": {"name": "Luz", "transmitter": "test_tx"}})
@@ -128,9 +129,21 @@ async def test_permissions_and_validation(hass: HomeAssistant, setup_integration
     assert imported["success"]
 
     reader = await hass_ws_client(hass, hass_read_only_access_token)
-    # Operating a remote is open to every user; configuring it is not.
+    # Private by default, like the homes: a non-admin needs to be a selected viewer.
+    for message in (
+        {"type": "homemanager/rf/library"},
+        {"type": "homemanager/rf/subscribe"},
+        {"type": "homemanager/rf/press", "remote_id": "luz", "button_id": "on"},
+        {"type": "homemanager/rf/assume", "entity_id": "light.luz", "is_on": True},
+    ):
+        assert (await _call(reader, message))["error"]["code"] == "unauthorized"
+    assert sent == []
+    hass.config_entries.async_update_entry(setup_integration, options={CONF_VIEWER_USER_IDS: [hass_read_only_user.id]})
+    await hass.async_block_till_done()
+    # A viewer operates remotes; configuring them stays with administrators.
     assert (await _call(reader, {"type": "homemanager/rf/press", "remote_id": "luz", "button_id": "on"}))["success"]
     assert sent[-1]["code"] == CODE
+    assert (await _call(reader, {"type": "homemanager/rf/library"}))["success"]
     for message in (
         {"type": "homemanager/rf/transmitters"},
         {"type": "homemanager/rf/capture", "transmitter": "test_tx"},
