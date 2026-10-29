@@ -113,6 +113,8 @@ test('a device without a primary action opens its panel on tap', async ({ page }
 
 test('in edit mode a device added from an entity is placed by tapping the plan', async ({ page }) => {
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
   const quick = card(page).getByLabel('Agregar dispositivo desde Home Assistant', { exact: true });
   await quick.click();
   await quick.pressSequentially('spare');

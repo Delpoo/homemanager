@@ -8,6 +8,17 @@ async function current(page) {
   return page.evaluate(() => window.editorTest.editor.getConfiguration());
 }
 async function section(page, title) {
+  if (title === 'Fuente de estado') {
+    if (
+      !(await editor(page).locator('#device-options').getAttribute('open')) &&
+      !(await editor(page)
+        .locator('#device-options')
+        .evaluate(el => el.open))
+    )
+      await editor(page).locator('#device-options > summary').click();
+  } else if (!(await editor(page).getByRole('dialog', { name: 'Ajustes del plano' }).isVisible())) {
+    await button(page, 'Ajustes del plano').click();
+  }
   await editor(page).locator('summary').filter({ hasText: title }).click();
 }
 test.beforeEach(async ({ page }) => {
@@ -34,10 +45,11 @@ test.beforeEach(async ({ page }) => {
     );
     window.editorTest = { editor: component, events, calls, original: config };
   });
+  await editor(page).locator('#device-options > summary').click();
 });
 
 test('add/edit a complete device emits a persistent draft without calling HA', async ({ page }) => {
-  await button(page, 'Agregar icono').click();
+  await button(page, 'Agregar dispositivo').click();
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
   await field(page, 'Tipo de dispositivo').selectOption('purifier');
   await field(page, 'Icono del dispositivo').fill('mdi:air-purifier');
@@ -69,6 +81,20 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
       .entityId,
   ).toBe('fan.not_configured_yet');
 });
+test('a device change immediately after opening advanced options preserves the disclosure', async ({ page }) => {
+  await page.evaluate(() => {
+    const component = document.createElement('homemanager-editor');
+    component.setConfig(window.editorTest.original);
+    document.querySelector('#mount').replaceChildren(component);
+    window.editorTest.editor = component;
+    component.shadowRoot.querySelector('#device-options').open = true;
+    // The native toggle event has not yet run when this device change renders.
+    component.selectedDeviceId = 'synthetic-fan';
+  });
+  await expect(field(page, 'Movilidad del dispositivo')).toBeVisible();
+  await expect(field(page, 'Posición X')).toBeDisabled();
+});
+
 test('live hass updates preserve unsubmitted form values and expose actual entities', async ({ page }) => {
   await field(page, 'Nombre del dispositivo').fill('Unsubmitted label');
   await page.evaluate(() => {
@@ -220,9 +246,10 @@ test('measured feedback requires explicit independent-source acknowledgment and 
   expect((await current(page)).catalog.devices[0].state).toEqual({ value: 'unknown', confidence: 'unknown' });
 });
 test('deletion requires confirmation and keeps reusable panels/actions', async ({ page }) => {
-  await button(page, 'Eliminar icono').click();
+  await button(page, 'Eliminar dispositivo').click();
   expect((await current(page)).catalog.devices).toHaveLength(3);
-  await button(page, 'Confirmar eliminación').click();
+  await editor(page).getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
+  await expect.poll(async () => (await current(page)).catalog.devices.length).toBe(2);
   const config = await current(page);
   expect(config.catalog.devices).toHaveLength(2);
   expect(config.stateSources['synthetic-light']).toBeUndefined();
@@ -356,6 +383,13 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   expect((await current(page)).rooms.map(room => room.id)).toEqual(['living', 'kitchen', 'office', 'garage']);
   await expect(editor(page).getByText('sin zona en el plano').first()).toBeVisible();
   await button(page, 'Quitar Espacio B').click();
+  await editor(page)
+    .getByRole('dialog', { name: '¿Eliminar «Espacio B»?' })
+    .getByRole('button', { name: 'Eliminar', exact: true })
+    .click();
+  await expect
+    .poll(async () => (await current(page)).rooms.map(room => room.id))
+    .toEqual(['living', 'office', 'garage']);
   const config = await current(page);
   expect(config.rooms.map(room => room.id)).toEqual(['living', 'office', 'garage']);
   expect(config.catalog.devices.find(device => device.id === 'synthetic-fan')).toMatchObject({
@@ -364,6 +398,10 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   });
   await expect(editor(page).getByRole('status')).toContainText('sin espacio asignado');
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
+  await editor(page)
+    .getByRole('dialog', { name: 'Ajustes del plano' })
+    .getByRole('button', { name: 'Cerrar', exact: true })
+    .click();
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',

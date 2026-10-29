@@ -1,6 +1,8 @@
 import { tokens } from '../ui/theme.js';
+import { iconButtonStyles } from '../ui/icon-button.js';
+import { fabStyles } from '../ui/fab.js';
 
-export const styles = `${tokens}
+export const styles = `${tokens}${iconButtonStyles}${fabStyles}
 :host{display:block}
 .shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:flex;flex-direction:column}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
@@ -74,4 +76,8 @@ dt{font-weight:600}dd{margin:0}
   .status{font-size:13px}
 }
 @media (prefers-reduced-motion:no-preference){.marker .primary{transition:background .2s,border-color .2s,transform .1s}}
+.workspace > .editor{position:absolute;z-index:6;left:16px;top:16px;width:340px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);overflow:auto;border-radius:18px;overscroll-behavior:contain}
+.editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
+.is-editing .header [data-command=edit]{display:none}
+@media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
 `;

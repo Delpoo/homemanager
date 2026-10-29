@@ -42,9 +42,14 @@ export { LovelaceConfigurationStore, type ConfigurationStore } from './storage.j
 import { enhanceEntityInput, friendlyName, areaOf, pickerStyles } from './entity-picker.js';
 import { defaultPrimaryCommand, domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
+import { iconButton, iconButtonStyles } from '../ui/icon-button.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
+import { helpTip } from '../ui/help-tip.js';
 export * from './model.js';
 
-const css = `${tokens}${pickerStyles}
+const css = `${tokens}${pickerStyles}${iconButtonStyles}
+:host([embedded]){width:340px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:space-between}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
+
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
 const option = (value: string, text: string, selected: string) =>
@@ -69,7 +74,8 @@ export class HomeManagerEditor extends HTMLElement {
   private actionId = '';
   private panelId = '';
   private panelRows: NativePanel['controls'] = [];
-  private confirmDelete = false;
+  private surface: 'device' | 'add' | 'settings' | null = null;
+  private fromEntity = false;
   private importGeneration = 0;
   private imported?: {
     configuration: Configuration;
@@ -97,10 +103,25 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('click', this.onClick);
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
+    this.root.addEventListener('keydown', event => {
+      const helpOpen = [...this.root.querySelectorAll('homemanager-help-tip')].some(tip =>
+        tip.shadowRoot?.querySelector(':popover-open'),
+      );
+      if (
+        (event as KeyboardEvent).key === 'Escape' &&
+        !helpOpen &&
+        !this.root.querySelector('dialog[open]') &&
+        this.surface
+      ) {
+        event.stopPropagation();
+        this.closeSurface();
+      }
+    });
     this.root.addEventListener(
       'toggle',
       event => {
         const target = event.target as HTMLDetailsElement;
+        if (!target.isConnected) return;
         if (target.id) target.open ? this.openSections.add(target.id) : this.openSections.delete(target.id);
       },
       true,
@@ -136,8 +157,9 @@ export class HomeManagerEditor extends HTMLElement {
     if (this.config && JSON.stringify(this.config) === JSON.stringify(next)) return;
     this.config = next;
     if (
-      !this._selectedDeviceId ||
-      !next.configuration.catalog.devices.some(device => device.id === this._selectedDeviceId)
+      !this._embedded &&
+      (!this._selectedDeviceId ||
+        !next.configuration.catalog.devices.some(device => device.id === this._selectedDeviceId))
     )
       this._selectedDeviceId = next.configuration.catalog.devices[0]?.id ?? null;
     this.render();
@@ -155,11 +177,12 @@ export class HomeManagerEditor extends HTMLElement {
     return this._hass;
   }
   set selectedDeviceId(id: string | null) {
-    if (id === this._selectedDeviceId) return;
+    if (id === this._selectedDeviceId && (id === null || this.surface === 'device')) return;
+    this.surface = id ? 'device' : null;
     this._selectedDeviceId = id;
     this.adding = false;
     this.allowFixedPosition = false;
-    this.confirmDelete = false;
+
     this.render();
   }
   get selectedDeviceId(): string | null {
@@ -168,6 +191,7 @@ export class HomeManagerEditor extends HTMLElement {
   set embedded(value: boolean) {
     if (this._embedded === value) return;
     this._embedded = value;
+    this.toggleAttribute('embedded', value);
     this.render();
   }
   get embedded(): boolean {
@@ -194,7 +218,7 @@ export class HomeManagerEditor extends HTMLElement {
       new CustomEvent('config-changed', { bubbles: true, composed: true, detail: { config: clone(this.config) } }),
     );
     this.render();
-    this.notice(t('Borrador actualizado. Usá el guardado explícito de la tarjeta o del dashboard.'));
+    this.notice(t('Borrador actualizado. Guardá los cambios para conservarlo.'));
   }
   private section(id: string, title: string, body: string): string {
     return `<details class="section" id="${id}"${this.openSections.has(id) ? ' open' : ''}><summary>${title}</summary><div class="section-body">${body}</div></details>`;
@@ -261,7 +285,37 @@ export class HomeManagerEditor extends HTMLElement {
       this.notice(error instanceof Error ? error.message : describeError(error));
     }
   }
+  /** Called by the map toolbar; all surfaces edit the same draft. */
+  openAdd(): void {
+    this.surface = 'add';
+    this.fromEntity = false;
+    this.render();
+    this.root.querySelector<HTMLButtonElement>('[data-command=from-entity]')?.focus();
+  }
+  openSettings(): void {
+    this.surface = 'settings';
+    this.render();
+  }
+  closeSurface(): void {
+    this.surface = null;
+    this.render();
+    this.dispatchEvent(new CustomEvent('homemanager-editor-close', { bubbles: true, composed: true }));
+  }
+  private settingsForm(): string {
+    const pending = pendingReferences(this.configuration, this._hass?.states);
+    return `${this.section('rooms-section', t('Espacios ({count})', { count: this.configuration.rooms.length }), this.roomsForm())}
+      ${this.section('actions-section', t('Acciones lógicas'), this.actionForm())}
+      ${this.section('panels-section', t('Paneles nativos'), this.panelForm())}
+      ${this.section('pending-section', t('Referencias pendientes ({count})', { count: pending.length }), pending.length ? `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : `<p class="note">${esc(t('No hay referencias pendientes.'))}</p>`)}
+      ${this.section('import-section', t('Importar y exportar'), this.importForm())}${this.migrationForm()}`;
+  }
   private render(): void {
+    // Native toggle events can arrive after a change event has already repainted
+    // the editor. Read the current DOM before replacing it so disclosures keep
+    // their actual state even when a device is changed immediately after opening.
+    for (const section of this.root.querySelectorAll<HTMLDetailsElement>('details[id]'))
+      section.open ? this.openSections.add(section.id) : this.openSections.delete(section.id);
+    this.hidden = this._embedded && this.surface === null;
     if (this.homeConfig) {
       this.root.innerHTML = this.homeForm();
       return;
@@ -272,21 +326,33 @@ export class HomeManagerEditor extends HTMLElement {
     }
     const configuration = this.configuration,
       selected = this.adding ? undefined : this.device();
-    const pending = pendingReferences(configuration, this._hass?.states);
-    this.root.innerHTML = `<style>${css}</style><div class="editor">${this._embedded ? '' : `<h2>${esc(t('HomeManager · configuración'))}</h2>`}<div class="toolbar"><label class="sr" for="device-select">${esc(t('Dispositivo'))}</label><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select><button type="button" data-command="add">${esc(t('Agregar icono'))}</button>${selected ? `<button type="button" class="danger" data-command="delete">${esc(t('Eliminar icono'))}</button>` : ''}</div>
-      <div class="quick"><label class="field">${esc(t('Agregar dispositivo desde Home Assistant'))}<input id="quick-add" aria-label="${esc(t('Agregar dispositivo desde Home Assistant'))}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></label><p class="note">${esc(t('Se crea con su nombre, icono y acción principal; después tocá el plano para ubicarlo.'))}</p></div>
-      ${this.confirmDelete && selected ? `<div class="preview"><p class="note">${esc(t('Se elimina sólo el icono y su fuente de estado en este plano. Las entidades, acciones y paneles reutilizables permanecen.'))}</p><button type="button" class="danger" data-command="confirm-delete">${esc(t('Confirmar eliminación'))}</button><button type="button" data-command="cancel-delete">${esc(t('Cancelar'))}</button></div>` : ''}
-      ${selected || this.adding || !configuration.catalog.devices.length ? this.deviceForm(selected) : `<p class="note">${esc(t('Seleccioná un icono o agregá uno.'))}</p>`}
-      ${this.section('rooms-section', t('Espacios ({count})', { count: configuration.rooms.length }), this.roomsForm())}
-      ${this.section('state-section', t('Fuente de estado'), this.stateForm(selected))}
-      ${this.section('actions-section', t('Acciones lógicas'), this.actionForm())}
-      ${this.section('panels-section', t('Paneles nativos'), this.panelForm())}
-      ${pending.length ? this.section('pending-section', `Referencias pendientes (${pending.length})`, `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul><p class="note">${esc(t('No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.'))}</p>`) : ''}
-      ${this.section('import-section', t('Importar y exportar'), this.importForm())}
-      ${this.migrationForm()}
-      <div class="status" role="status" aria-live="polite"></div></div>`;
+    const quick = `<div class="quick"><label class="field">${esc(t('Agregar dispositivo desde Home Assistant'))}<input id="quick-add" aria-label="${esc(t('Agregar dispositivo desde Home Assistant'))}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></label></div>`;
+    const toolbar = this._embedded
+      ? ''
+      : `<div class="toolbar"><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select>${iconButton('add', t('Agregar dispositivo'), 'plus')}${iconButton('settings', t('Ajustes del plano'), 'settings')}</div>`;
+    const header = (title: string) =>
+      `<div class="sheet-header"><h2>${esc(title)}</h2>${iconButton('close', t('Cerrar'), 'close')}</div>`;
+    const device = `${header(selected?.display.label ?? t('Dispositivo vacío'))}${this.deviceForm(selected)}<div class="sheet-tools">${selected ? `${iconButton('move', t('Mover'), 'move')}${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}` : ''}<span class="spacer"></span><button class="primary" type="submit" form="device-form">${esc(t('Aplicar dispositivo'))}</button></div>`;
+    const add = `${header(t('Agregar dispositivo'))}<div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}`;
+    const settings =
+      this.surface === 'settings'
+        ? `<dialog class="settings-dialog" aria-label="${esc(t('Ajustes del plano'))}">${header(t('Ajustes del plano'))}${this.settingsForm()}<div class="status" role="status" aria-live="polite"></div></dialog>`
+        : '';
+    this.root.innerHTML = `<style>${css}</style><div class="editor">${toolbar}${this.surface === 'settings' ? '' : this.surface === 'add' ? add : (!this._embedded || this.surface === 'device') && (selected || this.adding || !configuration.catalog.devices.length) ? device : ''}${!this._embedded && this.surface !== 'add' && this.surface !== 'settings' ? quick : ''}${settings}${this.surface === 'settings' ? '' : '<div class="status" role="status" aria-live="polite"></div>'}</div>`;
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
+    const preview = this.root.querySelector('ha-icon[data-preview]');
+    this.root
+      .querySelector<HTMLInputElement>('[name=icon]')
+      ?.addEventListener('input', event => preview?.setAttribute('icon', (event.target as HTMLInputElement).value));
+    const dialog = this.root.querySelector<HTMLDialogElement>('.settings-dialog');
+    if (dialog) {
+      dialog.addEventListener('cancel', event => {
+        event.preventDefault();
+        this.closeSurface();
+      });
+      dialog.showModal();
+    }
   }
   private roomOptions(selected: string): string {
     return (
@@ -324,7 +390,19 @@ export class HomeManagerEditor extends HTMLElement {
       panels = Object.keys(this.configuration.panels);
     const actionId = device?.bindings.primaryAction ?? '',
       panelId = device?.bindings.advancedPopupId ?? '';
-    return `<form id="device-form"><div class="grid">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly' : `placeholder="${esc(t('Automático si se deja vacío'))}"`)}${input('icon', t('Icono del dispositivo'), device?.display.icon ?? 'mdi:lightbulb-outline', 'required')}<label class="field">${esc(t('Tipo de dispositivo'))}<select name="kind" aria-label="${esc(t('Tipo de dispositivo'))}">${KINDS.map(kind => option(kind, kind, device?.kind ?? 'light')).join('')}</select></label><label class="field">${esc(t('Movilidad del dispositivo'))}<select name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></label><label class="field">${esc(t('Habitación del dispositivo'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : (this.configuration.rooms[0]?.id ?? ''))}</select></label>${input('x', t('Posición X'), device?.position.x ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), device?.position.y ?? 0.5, `type="number" min="0" max="1" step="0.001" required data-location${fixed ? ' disabled' : ''}`)}${input('entityId', t('Entidad del dispositivo'), device?.bindings.entityId ?? '', `data-entity-picker="" placeholder="${esc(t('Sin vincular'))}"`)}<label class="field">${esc(t('Acción principal'))}<select name="primaryAction" aria-label="${esc(t('Acción principal'))}">${option('', t('Sin acción'), actionId)}${actionId && !actions.includes(actionId) ? option(actionId, `${actionId} · pendiente`, actionId) : ''}${actions.map(key => option(key, key, actionId)).join('')}</select></label><label class="field">${esc(t('Panel nativo'))}<select name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, `${panelId} · pendiente`, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}<div class="actions"><button class="primary" type="submit">${esc(t('Aplicar dispositivo'))}</button></div></form>`;
+    const help = (label: string, text: string) =>
+      `<span class="field-title">${esc(label)}${helpTip(label, text)}</span>`;
+    const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
+      <label class="field">${esc(t('Tipo de dispositivo'))}<select form="device-form" name="kind" aria-label="${esc(t('Tipo de dispositivo'))}">${KINDS.map(kind => option(kind, kind, device?.kind ?? 'light')).join('')}</select></label>
+      <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></div>
+      ${input('x', t('Posición X'), device?.position.x ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), device?.position.y ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}
+      <div class="field">${help(t('Acción principal'), t('Es lo que ocurre al tocar el icono. Vincular una entidad crea una acción si todavía no hay una.'))}<select form="device-form" name="primaryAction" aria-label="${esc(t('Acción principal'))}">${option('', t('Sin acción'), actionId)}${actionId && !actions.includes(actionId) ? option(actionId, actionId, actionId) : ''}${actions.map(key => option(key, key, actionId)).join('')}</select></div>
+      <div class="field">${help(t('Panel nativo'), t('Controles avanzados que se abren al mantener pulsado el icono.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
+    return `<form id="device-form"><div class="basic">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
+      <label class="field">${esc(t('Icono del dispositivo'))}<span class="icon-field"><ha-icon data-preview icon="${esc(device?.display.icon ?? 'mdi:lightbulb-outline')}"></ha-icon><input name="icon" aria-label="${esc(t('Icono del dispositivo'))}" value="${esc(device?.display.icon ?? 'mdi:lightbulb-outline')}" list="device-icons" required></span></label><datalist id="device-icons">${['lightbulb', 'lightbulb-outline', 'fan', 'air-conditioner', 'curtains', 'power-socket', 'thermometer', 'robot-vacuum', 'air-purifier', 'flower', 'remote', 'water'].map(icon => `<option value="mdi:${icon}"></option>`).join('')}</datalist>
+      <div class="field">${help(t('Entidad del dispositivo'), t('Elegí el equipo de Home Assistant que representa este icono.'))}<input name="entityId" aria-label="${esc(t('Entidad del dispositivo'))}" value="${esc(device?.bindings.entityId ?? '')}" data-entity-picker="" placeholder="${esc(t('Sin vincular'))}"></div>
+      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
+      <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), `${helpTip(t('Fuente de estado'), t('Define de dónde viene la lectura del dispositivo y si representa una medición o una estimación.'))}${this.stateForm(device)}`) : ''}</details>`;
   }
   private stateForm(device?: Device): string {
     if (!device) return `<p class="note">${esc(t('Seleccioná un icono para declarar su fuente.'))}</p>`;
@@ -405,34 +483,65 @@ export class HomeManagerEditor extends HTMLElement {
     if (!button || button.disabled || !this.config) return;
     try {
       switch (button.dataset.command) {
+        case 'settings':
+          this.openSettings();
+          break;
+        case 'close':
+          this.closeSurface();
+          break;
+        case 'from-entity':
+          this.fromEntity = true;
+          this.render();
+          this.root.querySelector<HTMLInputElement>('#quick-add')?.focus();
+          break;
         case 'add':
           this.adding = true;
+          this.surface = 'device';
           this._selectedDeviceId = null;
           this.allowFixedPosition = false;
-          this.confirmDelete = false;
           this.render();
+          this.root.querySelector<HTMLInputElement>('[name=label]')?.focus();
           break;
-        case 'delete':
-          this.confirmDelete = true;
-          this.render();
-          break;
-        case 'cancel-delete':
-          this.confirmDelete = false;
-          this.render();
-          break;
-        case 'confirm-delete':
+        case 'move':
           if (this._selectedDeviceId) {
-            const next = removeDevice(this.configuration, this._selectedDeviceId);
-            this._selectedDeviceId = next.catalog.devices[0]?.id ?? null;
-            this.confirmDelete = false;
-            this.emit(next);
+            this.dispatchEvent(
+              new CustomEvent('homemanager-place', {
+                bubbles: true,
+                composed: true,
+                detail: { deviceId: this._selectedDeviceId },
+              }),
+            );
+            this.closeSurface();
           }
           break;
+        case 'delete': {
+          const device = this.device();
+          if (!device) break;
+          void confirmDialog(this.root, {
+            title: t('¿Eliminar «{name}»?', { name: device.display.label }),
+            message: t('Se quita del plano. La entidad de Home Assistant no se borra.'),
+            trigger: button,
+          }).then(confirmed => {
+            if (!confirmed || !this.configuration.catalog.devices.some(item => item.id === device.id)) return;
+            const next = removeDevice(this.configuration, device.id);
+            this._selectedDeviceId = null;
+            this.emit(next);
+            this.closeSurface();
+          });
+          break;
+        }
         case 'correct-fixed':
           this.allowFixedPosition = true;
           for (const field of this.root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-location]'))
             field.disabled = false;
           button.disabled = true;
+          this.dispatchEvent(
+            new CustomEvent('homemanager-fixed', {
+              bubbles: true,
+              composed: true,
+              detail: { deviceId: this._selectedDeviceId },
+            }),
+          );
           this.root.querySelector<HTMLInputElement>('[name=x]')?.focus();
           break;
         case 'add-control': {
@@ -503,12 +612,19 @@ export class HomeManagerEditor extends HTMLElement {
           this.emit(moveRoom(this.configuration, button.dataset.room!, button.dataset.command === 'room-up' ? -1 : 1));
           break;
         case 'room-remove': {
-          const result = removeRoom(this.configuration, button.dataset.room!);
-          this.emit(result.configuration);
-          if (result.unassigned.length)
-            this.notice(
-              `Espacio quitado. ${result.unassigned.length} dispositivo(s) quedaron sin espacio asignado; siguen en el plano.`,
-            );
+          const roomId = button.dataset.room!;
+          const room = this.configuration.rooms.find(item => item.id === roomId);
+          if (!room) break;
+          void confirmDialog(this.root, {
+            title: t('¿Eliminar «{name}»?', { name: room.label }),
+            message: t('Sus dispositivos quedan en el plano sin espacio asignado.'),
+            trigger: button,
+          }).then(confirmed => {
+            if (!confirmed) return;
+            const result = removeRoom(this.configuration, roomId);
+            this.emit(result.configuration);
+            this.notice(t('Espacio eliminado. Los dispositivos siguen en el plano sin espacio asignado.'));
+          });
           break;
         }
       }
@@ -523,7 +639,7 @@ export class HomeManagerEditor extends HTMLElement {
       this._selectedDeviceId = target.value || null;
       this.adding = false;
       this.allowFixedPosition = false;
-      this.confirmDelete = false;
+
       this.render();
     } else if (target.id === 'action-select') {
       this.actionId = target.value;
@@ -585,14 +701,23 @@ export class HomeManagerEditor extends HTMLElement {
           },
           state: { value: 'unknown', confidence: 'unknown' },
         };
-        const next = upsertDevice(this.configuration, device, {
+        let next = upsertDevice(this.configuration, device, {
           previousId: previous?.id,
           allowFixedPosition: this.allowFixedPosition,
         });
+        if (device.bindings.entityId && !device.bindings.primaryAction) next = this.withPrimaryAction(next, device);
+        const newlyAdded = this.adding;
         this._selectedDeviceId = device.id;
+        this.surface = 'device';
         this.adding = false;
         this.allowFixedPosition = false;
         this.emit(next);
+        if (newlyAdded && this._embedded) {
+          this.dispatchEvent(
+            new CustomEvent('homemanager-place', { bubbles: true, composed: true, detail: { deviceId: device.id } }),
+          );
+          this.closeSurface();
+        }
       } else if (formId === 'action-form') {
         const targets = value(data, 'targets')
           .split(',')
@@ -727,6 +852,35 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** One step from a real entity to a working device: name, icon, kind, room by HA
    * area, a primary action when the domain has an obvious one, then placement. */
+  private withPrimaryAction(configuration: Configuration, device: Device): Configuration {
+    const entityId = device.bindings.entityId!;
+    const entity = this._hass?.states[entityId];
+    if (!entity) return configuration;
+    const command = defaultPrimaryCommand(entityId, entity);
+    const fields =
+      domainOf(entityId) === 'script'
+        ? (
+            this._hass?.services?.script?.[entityId.slice(7)] as
+              | { fields?: Record<string, { required?: boolean }> }
+              | undefined
+          )?.fields
+        : undefined;
+    if (!command || (fields && Object.values(fields).some(field => field?.required))) return configuration;
+    const base = `${device.id}-${command.service.replace(/_/g, '-')}`.slice(0, 110);
+    let id = base,
+      suffix = 2;
+    while (Object.hasOwn(configuration.actions, id)) id = `${base}-${suffix++}`;
+    const next = upsertAction(configuration, id, {
+      domain: domainOf(entityId) as Action['domain'],
+      service: command.service,
+      target: { entity_id: entityId },
+    });
+    return upsertDevice(
+      next,
+      { ...device, bindings: { ...device.bindings, primaryAction: id } },
+      { previousId: device.id },
+    );
+  }
   private addFromEntity(entityId: string): void {
     const hass = this._hass;
     if (!entityId || !hass?.states[entityId]) return;
@@ -784,6 +938,7 @@ export class HomeManagerEditor extends HTMLElement {
       state: { value: 'unknown', confidence: 'unknown' },
     });
     this._selectedDeviceId = id;
+    this.surface = 'device';
     this.adding = false;
     this.emit(next);
     this.notice(

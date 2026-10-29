@@ -21,6 +21,13 @@ async function select(page, label = lightLabel) {
   await detail(page, label).click();
 }
 async function setX(page, x) {
+  if (
+    !(await page
+      .locator('homemanager-editor')
+      .locator('#device-options')
+      .evaluate(el => el.open))
+  )
+    await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Posición X', { exact: true }).fill(String(x));
   await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
 }
@@ -102,9 +109,13 @@ test('fixed devices require the explicit correction action before dragging', asy
   await begin(page);
   await select(page, fanLabel);
   const before = (await draft(page)).catalog.devices[1];
+  await page.locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await drag(page, action(page, fanLabel), 25, 15);
   expect((await draft(page)).catalog.devices[1].position).toEqual(before.position);
-  await page.getByRole('button', { name: 'Reubicar dispositivo fijo', exact: true }).click();
+  await select(page, fanLabel);
+  await page.getByText('Más opciones', { exact: true }).click();
+  await page.getByRole('button', { name: 'Corregir ubicación fija', exact: true }).click();
+  await page.locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await drag(page, action(page, fanLabel), 25, 15);
   const after = (await draft(page)).catalog.devices[1];
   expect(after.position).not.toEqual(before.position);
@@ -124,7 +135,11 @@ test('numeric edits, undo, redo and discard preserve associations', async ({ pag
   await page.getByRole('button', { name: 'Rehacer', exact: true }).click();
   expect((await draft(page)).catalog.devices[0].position.x).toBe(0.39);
   await page.getByRole('button', { name: 'Descartar cambios', exact: true }).click();
-  expect((await draft(page)).catalog.devices[0]).toEqual(before);
+  await page
+    .getByRole('dialog', { name: '¿Descartar los cambios?' })
+    .getByRole('button', { name: 'Descartar cambios', exact: true })
+    .click();
+  await expect.poll(async () => (await draft(page)).catalog.devices[0]).toEqual(before);
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
@@ -133,6 +148,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
 }) => {
   await begin(page);
   await select(page);
+  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await page.getByText('Acciones lógicas', { exact: true }).click();
   await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
   await page.getByLabel('Dominio', { exact: true }).selectOption('light');
@@ -147,6 +163,12 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await page.getByLabel('Nombre de control 1', { exact: true }).fill('Alternar adicional');
   await page.getByLabel('Acción de control 1', { exact: true }).selectOption('synthetic-spare-toggle');
   await page.getByRole('button', { name: 'Aplicar panel', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Ajustes del plano' })
+    .getByRole('button', { name: 'Cerrar', exact: true })
+    .click();
+  await select(page);
+  await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Entidad del dispositivo', { exact: true }).fill('light.synthetic_spare');
   await page.getByLabel('Acción principal', { exact: true }).selectOption('synthetic-spare-toggle');
   await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
@@ -170,7 +192,9 @@ test('entity, action, source and native panel bindings are edited as drafts with
 
 test('new unbound icons can be added and removed entirely through the editor', async ({ page }) => {
   await begin(page);
-  await page.getByRole('button', { name: 'Agregar icono', exact: true }).click();
+  await page.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: 'Dispositivo vacío', exact: true }).click();
+  await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
   await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
   await page.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
@@ -180,9 +204,11 @@ test('new unbound icons can be added and removed entirely through the editor', a
   const added = (await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added');
   expect(added.bindings).toEqual({ entityId: null, primaryAction: null, advancedPopupId: null });
   expect(added.state).toEqual({ value: 'unknown', confidence: 'unknown' });
-  await page.getByRole('button', { name: 'Eliminar icono', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirmar eliminación', exact: true }).click();
-  expect((await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
+  await page.keyboard.press('Escape');
+  await detail(page, 'Icono sintético adicional').click();
+  await page.getByRole('button', { name: 'Eliminar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
+  await expect.poll(async () => (await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
@@ -322,6 +348,7 @@ test('keyboard movement stays normalized and undo restores the previous persiste
 
 test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
+  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await page.getByText('Importar y exportar', { exact: true }).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar JSON', exact: true }).click();

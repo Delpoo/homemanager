@@ -569,4 +569,39 @@ export const en: Record<string, string> = {
   'Cambios guardados.': 'Changes saved.',
   'Ajustes guardados. Probá un botón.': 'Settings saved. Test a button.',
   'Envía por {transmitter}': 'Sends through {transmitter}',
+
+  // Map editor surfaces (0.5).
+  'Agregar dispositivo': 'Add device',
+  'Ajustes del plano': 'Plan settings',
+  'Ayuda: {field}': 'Help: {field}',
+  'Borrador actualizado. Guardá los cambios para conservarlo.': 'Draft updated. Save your changes to keep them.',
+  'Referencias pendientes ({count})': 'Pending references ({count})',
+  'No hay referencias pendientes.': 'No pending references.',
+  'Dispositivo vacío': 'Empty device',
+  'Desde Home Assistant': 'From Home Assistant',
+  'Más opciones': 'More options',
+  'Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.':
+    'Fixed locks the position. Editable can be moved; portable represents equipment that changes location.',
+  'Es lo que ocurre al tocar el icono. Vincular una entidad crea una acción si todavía no hay una.':
+    'What happens when you tap the icon. Linking an entity creates an action if there is none yet.',
+  'Controles avanzados que se abren al mantener pulsado el icono.': 'Advanced controls opened by holding the icon.',
+  'Elegí el equipo de Home Assistant que representa este icono.':
+    'Choose the Home Assistant entity represented by this icon.',
+  'Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.':
+    'Groups the device in a space on the plan. Its Home Assistant area stays the same.',
+  'Define de dónde viene la lectura del dispositivo y si representa una medición o una estimación.':
+    'Defines where the reading comes from and whether it represents a measurement or an estimate.',
+  Mover: 'Move',
+  'Eliminar dispositivo': 'Delete device',
+  '¿Eliminar «{name}»?': 'Delete “{name}”?',
+  'Se quita del plano. La entidad de Home Assistant no se borra.':
+    'Removes it from the plan. The Home Assistant entity is kept.',
+  'Salir de edición': 'Exit editing',
+  'Sus dispositivos quedan en el plano sin espacio asignado.':
+    'Its devices remain on the plan without an assigned space.',
+  'Espacio eliminado. Los dispositivos siguen en el plano sin espacio asignado.':
+    'Space deleted. Its devices remain on the plan without an assigned space.',
+  '¿Descartar los cambios?': 'Discard changes?',
+  'Se recupera la última versión guardada.': 'Returns to the last saved version.',
+  Eliminar: 'Delete',
 };

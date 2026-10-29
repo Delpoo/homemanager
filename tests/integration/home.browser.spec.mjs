@@ -87,6 +87,47 @@ async function setup(page) {
 }
 const card = page => page.locator('homemanager-card').first();
 
+test('New home can be cancelled or left through Plan without losing the previous home or its draft', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base, 'Casa de prueba');
+    const app = document.createElement('homemanager-app');
+    document.querySelector('#mount').replaceChildren(app);
+    app.hass = window.testHarness.hass;
+  });
+  const app = page.locator('homemanager-app');
+  const homeCard = app.locator('homemanager-card');
+  await homeCard.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await homeCard.getByRole('button', { name: 'Detalles de Luz de prueba', exact: true }).click();
+  await homeCard.getByLabel('Nombre del dispositivo', { exact: true }).fill('Borrador conservado');
+  await homeCard.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await page.evaluate(() => {
+    window.previousHomeCard = document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card');
+  });
+  for (const exit of ['Cancelar', 'Plano']) {
+    await app.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
+    await expect(app.getByLabel('ID del hogar', { exact: true })).toBeVisible();
+    await app.getByLabel('ID del hogar', { exact: true }).fill('sin-crear');
+    await expect(homeCard).toBeHidden();
+    await app.getByRole('button', { name: exit, exact: true }).click();
+    await expect(app.getByLabel('ID del hogar', { exact: true })).toBeHidden();
+    await expect(homeCard).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card') ===
+          window.previousHomeCard,
+      ),
+    ).toBe(true);
+    expect(await homeCard.evaluate(el => el.getDraftConfiguration().catalog.devices[0].display.label)).toBe(
+      'Borrador conservado',
+    );
+  }
+  expect(await page.evaluate(() => window.homeServer.homes.has('sin-crear'))).toBe(false);
+});
+
 test("an integration-backed card loads its home and follows other editors' revisions", async ({ page }) => {
   await setup(page);
   await page.evaluate(() => {
@@ -159,6 +200,8 @@ test('a missing home is created by the first administrator save', async ({ page 
   await expect(card(page).locator('.shell > .status')).toContainText('todavía no existe');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
+  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await card(page).getByText('Importar y exportar', { exact: true }).click();
   await page.evaluate(async () => {
     const editor = window.testHarness.card.shadowRoot.querySelector('homemanager-editor');
     const input = editor.shadowRoot.querySelector('#import-file'),
@@ -173,6 +216,10 @@ test('a missing home is created by the first administrator save', async ({ page 
   await card(page).getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
   await download;
   await card(page).getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
+  await card(page)
+    .getByRole('dialog', { name: 'Ajustes del plano' })
+    .getByRole('button', { name: 'Cerrar', exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
   expect(
@@ -198,6 +245,7 @@ test('the card editor moves an inline plan into the integration and keeps only t
   });
   expect(events).toBe(0);
   const editor = page.locator('homemanager-editor');
+  await editor.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await editor.locator('summary').filter({ hasText: 'Mover a la integración HomeManager' }).click();
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
