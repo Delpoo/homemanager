@@ -2,8 +2,9 @@
 
 The integration stores homes (spaces, devices, bindings and the SVG plan) in
 .storage, exposes them over the authenticated websocket, serves the frontend
-bundle and registers the HomeManager sidebar panel. It never calls services,
-talks to devices or holds RF logic: execution stays in the user's HA session.
+bundle and registers the HomeManager sidebar panel. Entity commands run in the
+user's HA session. The optional RF remote manager (rf.py) is the only part that
+calls services itself: it sends stored codes through ESPHome transmitters.
 """
 
 from __future__ import annotations
@@ -18,6 +19,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .rf import RfManager
+from .rf_websocket import DATA_RF, async_register as async_register_rf
 from .store import HomeManagerStore
 from .websocket import async_register
 
@@ -31,7 +34,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await store.async_load()
     store.viewer_user_ids = set(entry.options.get(CONF_VIEWER_USER_IDS, []))
     hass.data[DOMAIN] = store
+    rf = RfManager(hass)
+    await rf.async_load()
+    hass.data[DATA_RF] = rf
     async_register(hass)
+    async_register_rf(hass)
     await _async_register_frontend(hass)
     await _async_update_options(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
@@ -44,6 +51,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         frontend.remove_extra_js_url(hass, url)
     if store := hass.data.pop(DOMAIN, None):
         store.async_close()
+    hass.data.pop(DATA_RF, None)
     # Websocket commands and the static route cannot be unregistered in HA; they
     # answer "not loaded" errors through the missing store until the next setup.
     return True
