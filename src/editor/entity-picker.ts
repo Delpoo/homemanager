@@ -11,6 +11,65 @@ export interface EntityMatch {
   area: string | null;
   state: string;
 }
+/** Domains that never represent a device on a plan. */
+const NOT_DEVICES = new Set([
+  'update',
+  'automation',
+  'zone',
+  'person',
+  'sun',
+  'tts',
+  'stt',
+  'conversation',
+  'event',
+  'todo',
+  'image',
+  'wake_word',
+  'assist_satellite',
+  'tag',
+  'calendar',
+  'weather',
+  'notify',
+  'ai_task',
+]);
+/** Things a person operates come first, then readings, then everything else. */
+const CONTROLLABLE = new Set([
+  'light',
+  'fan',
+  'climate',
+  'cover',
+  'switch',
+  'vacuum',
+  'media_player',
+  'lock',
+  'humidifier',
+  'water_heater',
+  'valve',
+  'lawn_mower',
+  'siren',
+  'alarm_control_panel',
+  'camera',
+  'remote',
+  'script',
+  'button',
+  'scene',
+  'input_boolean',
+  'input_button',
+  'input_select',
+  'select',
+  'number',
+  'input_number',
+]);
+const READINGS = new Set(['sensor', 'binary_sensor', 'device_tracker']);
+
+/** 0 = operable, 1 = reading, 2 = other, 3 = diagnostic/config/hidden. */
+export function relevanceOf(hass: Hass | undefined, entityId: string): number {
+  const entry = hass?.entities?.[entityId];
+  if (entry?.hidden || entry?.entity_category) return 3;
+  const domain = entityId.split('.')[0];
+  return CONTROLLABLE.has(domain) ? 0 : READINGS.has(domain) ? 1 : 2;
+}
+
 const fold = (value: string) => value.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function areaOf(hass: Hass | undefined, entityId: string): string | null {
@@ -31,21 +90,23 @@ export function searchEntities(
 ): EntityMatch[] {
   if (!hass?.states) return [];
   const tokens = fold(query).split(/\s+/).filter(Boolean);
-  const results: (EntityMatch & { score: number })[] = [];
+  const results: (EntityMatch & { score: number; relevance: number })[] = [];
   for (const entityId of Object.keys(hass.states)) {
-    if (domains.length && !domains.includes(entityId.split('.')[0])) continue;
+    const domain = entityId.split('.')[0];
+    if (domains.length ? !domains.includes(domain) : NOT_DEVICES.has(domain)) continue;
     const name = friendlyName(hass, entityId),
       area = areaOf(hass, entityId);
     const haystack = fold(`${name} ${entityId} ${area ?? ''}`);
     if (!tokens.every(token => haystack.includes(token))) continue;
     const folded = fold(name);
     const score = !tokens.length ? 3 : fold(entityId) === tokens.join(' ') ? 0 : folded.startsWith(tokens[0]) ? 1 : 2;
-    results.push({ entityId, name, area, state: hass.states[entityId].state, score });
+    const relevance = relevanceOf(hass, entityId);
+    results.push({ entityId, name, area, state: hass.states[entityId].state, score, relevance });
   }
   return results
-    .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))
+    .sort((a, b) => a.score - b.score || a.relevance - b.relevance || a.name.localeCompare(b.name))
     .slice(0, limit)
-    .map(({ score: _score, ...match }) => match);
+    .map(({ score: _score, relevance: _relevance, ...match }) => match);
 }
 
 export const pickerStyles = `.picker-host{position:relative}

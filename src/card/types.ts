@@ -74,7 +74,10 @@ export interface Hass {
   };
   config?: { components?: string[] };
   /** Registries exposed by HA's frontend: used to show and match areas. */
-  entities?: Record<string, { area_id?: string | null; device_id?: string | null }>;
+  entities?: Record<
+    string,
+    { area_id?: string | null; device_id?: string | null; entity_category?: string | null; hidden?: boolean }
+  >;
   devices?: Record<string, { area_id?: string | null }>;
   areas?: Record<string, { name?: string }>;
   language?: string;
