@@ -8,6 +8,7 @@ import pytest
 from custom_components.homemanager.const import MAX_PLAN_STORES, MAX_SUBSCRIPTIONS_PER_CONNECTION, MAX_SUBSCRIPTIONS_TOTAL, MAX_TOTAL_STORAGE_BYTES, STORAGE_KEY
 from custom_components.homemanager.model import ModelError, validate_configuration
 from custom_components.homemanager.store import HomeManagerStore
+from custom_components.homemanager.storage_policy import encoded_size
 
 from .conftest import PLAN, configuration
 
@@ -160,3 +161,11 @@ async def test_observer_failure_does_not_invalidate_a_committed_save(hass) -> No
     saved = await store.async_save("home", 1, configuration(label="Renamed"), None, None)
     assert saved.revision == 2
     assert events == [("home", 2)]
+
+
+def test_byte_quota_includes_the_actual_ha_envelope_and_indentation() -> None:
+    from homeassistant.helpers.json import prepare_save_json
+    data = {"homes": [{"configuration": {"devices": [{"position": {"x": 0.1, "y": 0.2}, "label": "Synthetic"} for _ in range(300)]}}]}
+    _, actual = prepare_save_json({"version": 1, "minor_version": 2, "key": STORAGE_KEY, "data": data})
+    size = len(actual.encode("utf-8")) if isinstance(actual, str) else len(actual)
+    assert encoded_size(data) >= size
