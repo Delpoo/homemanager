@@ -33,6 +33,8 @@ Fuentes: `PROMPT-CHATGPT-0.7.md` adjunto, plan de seis fases aprobado,
 6. Verificación: pruebas, capturas comparadas y entrega verificable, después del punto 10.
 7. Importación y espacios (punto 10 añadido por el propietario): modelo puro con revisión intermedia antes de su interfaz; revisión previa al importar y sobre el plano guardado; espacios editables desde el riel; fijo sólo bloquea posición. Commit propio antes de la verificación final de fase 6.
 
+Estado de continuación: las siete fases están implementadas. El PR permanece en borrador para revisión del propietario. Evidencia y diferencias respecto de la maqueta en [verification-0.7.md](verification-0.7.md). La publicación y la instalación no forman parte de esta ejecución.
+
 Un commit por fase. No se implementan columna Ahora, pantallas de dispositivo,
 `deviceId`, inspector nuevo, configuración de alertas ni pista B. No modificar
 `esphome/**`, `custom_components/homemanager/rf*.py`, versiones o CHANGELOG.

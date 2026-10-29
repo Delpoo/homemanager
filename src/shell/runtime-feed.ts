@@ -87,8 +87,10 @@ export class RuntimeFeed {
     if (!this.configuration || !hass) return;
     const alerts = this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now));
     const next = new Map(alerts.map(alert => [alert.id, alert]));
+    const alertChanged = new Set<string>();
     for (const alert of alerts)
       if (!this.active.has(alert.id)) {
+        alertChanged.add(alert.deviceId);
         const device = this.configuration.catalog.devices.find(item => item.id === alert.deviceId);
         this.log.record({
           type: 'alert',
@@ -101,7 +103,8 @@ export class RuntimeFeed {
         });
       }
     for (const alert of this.active.values())
-      if (!next.has(alert.id))
+      if (!next.has(alert.id)) {
+        alertChanged.add(alert.deviceId);
         this.log.record({
           type: 'resolved',
           alertId: alert.id,
@@ -109,6 +112,7 @@ export class RuntimeFeed {
           deviceId: alert.deviceId,
           message: 'Alerta resuelta',
         });
+      }
     this.active = next;
     for (const device of this.configuration.catalog.devices) {
       const state = runtime.states[device.id],
@@ -173,7 +177,7 @@ export class RuntimeFeed {
         entity = entityId ? hass.states[entityId] : undefined;
       if (entityId && entity) {
         const previous = this.previous.get(device.id);
-        if (previous !== undefined && previous !== entity.state && !command)
+        if (previous !== undefined && previous !== entity.state && !command && !alertChanged.has(device.id))
           this.log.record({
             type: 'state',
             entityId,

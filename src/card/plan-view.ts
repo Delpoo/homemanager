@@ -123,7 +123,7 @@ export function renderMarkers(this: HomeManagerCard) {
   const overlay = this.root.querySelector('.overlay');
   if (!overlay || !this.draft) return;
   overlay.innerHTML = this.draft.catalog.devices
-    .filter(d => this.editing || this.enabledLayers.has(layer(d)))
+    .filter(d => this.editing || this.enabledLayers.has(layer(d, this._hass)))
     .map(
       d =>
         `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}"></button>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,

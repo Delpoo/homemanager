@@ -16,3 +16,9 @@ Revisión de paquetes instalados de la fundación, 28 de octubre de 2026: cada u
 | require-from-string | 2.0.2 | MIT | [proyecto](https://github.com/floatdrop/require-from-string) |
 
 Los agentes registrarán aquí biblioteca, versión, licencia, URL de origen y archivos incorporados para cada dependencia de runtime, icono, fuente o recurso. No hay recursos de terceros de runtime incorporados en esta fundación. No extraer código o recursos de productos de domótica existentes sin verificar licencia.
+
+Las fixtures visuales 0.7 usan un subconjunto de los trazados de `@mdi/js` 7.4.47
+([MaterialDesign-JS](https://github.com/Templarian/MaterialDesign-JS/tree/v7.4.47)),
+iconos Apache-2.0 y código MIT, sólo en `tests/browser/fixtures/ha-icon.js`.
+El aviso original se conserva en `tests/browser/fixtures/MDI-LICENSE`.
+El producto utiliza `ha-icon` de Home Assistant; este recurso de prueba no entra en el bundle.

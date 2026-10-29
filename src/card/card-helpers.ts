@@ -30,7 +30,7 @@ export function currentDashboardPath(hass: Hass): string | undefined {
     ? segment
     : undefined;
 }
-export const layer = (d: Device) => presentationOf(d).layer;
+export const layer = (d: Device, hass?: Hass) => presentationOf(d, hass).layer;
 export interface Adapter {
   configure(c: Configuration): void;
   setHass(h: Hass | null): void;

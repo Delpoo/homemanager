@@ -1,3 +1,4 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 // Spatial interaction and capability-aware panels, on the synthetic harness.
@@ -112,6 +113,7 @@ test('a device without a primary action opens its panel on tap', async ({ page }
 });
 
 test('in edit mode a device added from an entity is placed by tapping the plan', async ({ page }) => {
+  await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();

@@ -85,6 +85,9 @@ def test_public_scanner_cannot_skip_tracked_files_in_ignored_directories(tmp_pat
     repo = tmp_path / "public"
     (repo / "scripts").mkdir(parents=True)
     shutil.copyfile(Path(__file__).parents[2] / "scripts/check-public-boundary.mjs", repo / "scripts/check-public-boundary.mjs")
+    shutil.copyfile(Path(__file__).parents[2] / "scripts/public-assets.mjs", repo / "scripts/public-assets.mjs")
+    (repo / "docs").mkdir()
+    (repo / "docs/public-assets.json").write_text('{"schemaVersion":1,"assets":[]}', encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True, capture_output=True)
     (repo / ".gitignore").write_text(".cache/\n", encoding="utf-8")
     (repo / ".cache").mkdir()
@@ -93,6 +96,7 @@ def test_public_scanner_cannot_skip_tracked_files_in_ignored_directories(tmp_pat
     subprocess.run(["git", "add", "-f", ".cache/token.txt"], cwd=repo, check=True, capture_output=True)
     result = subprocess.run(["node", "scripts/check-public-boundary.mjs"], cwd=repo, capture_output=True)
     assert result.returncode == 1
+    assert b"GitHub credential" in result.stderr
     assert sensitive not in result.stdout + result.stderr
     subprocess.run(["git", "rm", "--cached", "-f", ".cache/token.txt"], cwd=repo, check=True, capture_output=True)
     result = subprocess.run(["node", "scripts/check-public-boundary.mjs"], cwd=repo, capture_output=True)

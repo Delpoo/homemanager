@@ -5,9 +5,8 @@ import type { HomeManagerCard } from '../card/home-manager-card.js';
 
 export function activityText(entry: ActivityEntry | null, now = Date.now()): string {
   if (!entry) return t('Sin actividad reciente');
-  const text = [t(entry.message), entry.deviceLabel, entry.actionLabel, entry.value, entry.detail]
-    .filter(Boolean)
-    .join(' · ');
+  const parts = [t(entry.message), entry.deviceLabel, entry.actionLabel, entry.value, entry.detail].filter(Boolean);
+  const text = parts.filter((part, index) => !index || part !== parts[index - 1]).join(' · ');
   return activityIsRecent(entry, now) ? text : `${t('último:')} ${text}`;
 }
 export function showActivity(this: HomeManagerCard): void {

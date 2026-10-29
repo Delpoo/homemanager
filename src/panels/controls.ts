@@ -1,3 +1,4 @@
+import { presentationSuggestion } from '../model/archetype.js';
 import { t } from '../i18n/index.js';
 import type { HassEntity } from '../card/types.js';
 
@@ -419,50 +420,7 @@ export function defaultPrimaryCommand(entityId: string, entity: HassEntity | und
 
 /** Device kind and icon suggested by an entity, for one-step binding. */
 export function suggestPresentation(entityId: string, entity: HassEntity | undefined): { kind: string; icon: string } {
-  const domain = domainOf(entityId);
-  const icon =
-    typeof entity?.attributes?.icon === 'string' && /^mdi:[a-z0-9-]+$/.test(entity.attributes.icon)
-      ? entity.attributes.icon
-      : null;
-  const deviceClass = typeof entity?.attributes?.device_class === 'string' ? entity.attributes.device_class : '';
-  const byDomain: Record<string, [string, string]> = {
-    light: ['light', 'mdi:lightbulb'],
-    switch: ['switch', 'mdi:power-socket-eu'],
-    fan: ['fan', 'mdi:fan'],
-    cover: ['curtain', 'mdi:curtains'],
-    climate: ['ac', 'mdi:air-conditioner'],
-    vacuum: ['robot', 'mdi:robot-vacuum'],
-    media_player: ['media', 'mdi:television'],
-    lock: ['lock', 'mdi:lock'],
-    camera: ['camera', 'mdi:cctv'],
-    sensor: [
-      'sensor',
-      deviceClass === 'temperature'
-        ? 'mdi:thermometer'
-        : deviceClass === 'humidity'
-          ? 'mdi:water-percent'
-          : deviceClass === 'power' || deviceClass === 'energy'
-            ? 'mdi:flash'
-            : 'mdi:gauge',
-    ],
-    binary_sensor: [
-      'sensor',
-      deviceClass === 'door' || deviceClass === 'window' || deviceClass === 'opening'
-        ? 'mdi:door'
-        : deviceClass === 'moisture'
-          ? 'mdi:water-alert'
-          : deviceClass === 'motion'
-            ? 'mdi:motion-sensor'
-            : 'mdi:checkbox-blank-circle-outline',
-    ],
-    script: ['switch', 'mdi:script-text-play'],
-    button: ['switch', 'mdi:gesture-tap-button'],
-  };
-  const [kind, fallback] = byDomain[domain] ?? ['other', 'mdi:shape'];
-  return {
-    kind: kind === 'sensor' && (deviceClass === 'power' || deviceClass === 'energy') ? 'energy' : kind,
-    icon: icon ?? fallback,
-  };
+  return presentationSuggestion(entityId, entity);
 }
 
 /** Whether a runtime value means "on/active" for styling (never a confirmation). */

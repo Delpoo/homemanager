@@ -53,8 +53,9 @@ export function symbolSpec(
       : (entity?.state ?? 'unknown');
   const available = !!entity && entity.state !== 'unavailable';
   const unknown = !entity || entity.state === 'unknown';
-  const estimated =
-    entity?.attributes?.assumed_state === true || runtime?.confidence === 'estimated' || runtime?.confidence === 'sent';
+  // Ordinary HA readings are not a health problem merely because no independent
+  // confirmation source was configured. Assumed state and pending sends are.
+  const estimated = entity?.attributes?.assumed_state === true || runtime?.confidence === 'sent';
   const iconPair = archetype === 'sensor' ? SENSOR_ICONS[String(entity?.attributes?.device_class ?? '')] : undefined;
   const icon = iconPair && ['on', 'off'].includes(live) ? iconPair[live === 'on' ? 1 : 0] : device.display.icon;
   const fullValue = show !== 'icon' ? formattedValue(entity, hass) : null;
@@ -72,7 +73,7 @@ export function symbolSpec(
     ring: ringAllowed && active ? { active: true, level, tone: cool ? 'cool' : 'active' } : null,
     badge: alerts.length ? summarizeAlerts(alerts) : null,
     health,
-    tap: archetype === 'remote' ? 'remote' : archetype === 'actuator' && configuredControl ? 'control' : 'panel',
+    tap: archetype === 'remote' ? 'remote' : configuredControl ? 'control' : 'panel',
     hold: ['actuator', 'equipment', 'remote'].includes(archetype) ? 'panel' : null,
     label: device.display.label,
     tag: archetype === 'equipment' ? equipmentTag(entity, hass) : null,

@@ -92,6 +92,10 @@ dt{font-weight:600}dd{margin:0}
 
 .architecture>.room-highlight{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:none;overflow:visible}
 .marker.dim,.cluster.dim{opacity:.3}
+.viewport{background:color-mix(in srgb,var(--hm-ink) 3%,var(--hm-bg))}
+.cluster{background:var(--hm-surface);color:var(--hm-ink)}
+.marker .primary:has(.symbol-ring[data-tone=cool]) ha-icon{color:var(--hm-cool)}
+.activity-history{padding-left:20px;line-height:1.6}.activity-history li{margin:8px 0}.activity-history li[data-tone=alert]{color:var(--hm-alert)}.activity-history li[data-tone=ok]{color:var(--hm-ok)}
 .marker .primary{position:relative;overflow:visible;background:var(--hm-surface)}
 .symbol-body{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--hm-ink)}
 .symbol-ring{position:absolute;inset:-4px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--hm-active) calc(var(--level)*1turn),transparent 0);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0)}

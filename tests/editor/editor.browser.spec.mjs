@@ -328,6 +328,10 @@ test('SVG import sanitizes dangerous content and changed viewBox requires a back
   await downloading;
   await expect(button(page, 'Aplicar importación al borrador')).toBeEnabled();
   await button(page, 'Aplicar importación al borrador').click();
+  await page
+    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('button', { name: 'Importar sólo el plano', exact: true })
+    .click();
   const content = (await current(page)).architecture.content;
   expect(content).not.toContain('<script');
   expect(content).not.toContain('onclick');
@@ -446,6 +450,10 @@ test('replacing the plan detects zones and keeps devices on the same drawing poi
   await button(page, 'Exportar copia actual').click();
   await downloading;
   await button(page, 'Aplicar importación al borrador').click();
+  await page
+    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('button', { name: 'Importar sólo el plano', exact: true })
+    .click();
   const light = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-light');
   // Before: x=.25 of width 1000 -> SVG x=260. After: (260-10)/2000 = .125.
   expect(light.position).toEqual({ x: 0.125, y: 0.33 });

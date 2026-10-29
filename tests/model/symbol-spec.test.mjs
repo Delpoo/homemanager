@@ -76,12 +76,18 @@ test('all archetypes emit their own interaction and body grammar', () => {
   for (const archetype of ['actuator', 'equipment', 'sensor', 'meter', 'remote', 'infrastructure']) {
     const { device, hass } = fixture('other', 'sensor.test_value', '23.4');
     device.display.archetype = archetype;
-    device.bindings.primaryAction = 'test-action';
+    device.bindings.primaryAction = archetype === 'actuator' ? 'test-action' : null;
     const spec = symbolSpec(device, hass, now);
     assert.equal(spec.archetype, archetype);
     assert.equal(spec.hold, ['actuator', 'equipment', 'remote'].includes(archetype) ? 'panel' : null);
     assert.equal(spec.tap, archetype === 'actuator' ? 'control' : archetype === 'remote' ? 'remote' : 'panel');
   }
+});
+
+test('an explicit D18 tap keeps working on a legacy sensor after linking an actuator entity', () => {
+  const { device, hass } = fixture('sensor', 'light.test_light', 'off');
+  device.bindings.tap = 'power';
+  assert.equal(symbolSpec(device, hass, now).tap, 'control');
 });
 
 test('inputs and runtime remain unchanged by rendering decisions', () => {
@@ -97,6 +103,7 @@ test('a normal entity needs no health mark merely because a feedback source is u
   const spec = symbolSpec(device, hass, now, { value: 'unknown', confidence: 'unknown' });
   assert.equal(spec.health, null);
   assert.equal(spec.ring.active, true);
+  assert.equal(symbolSpec(device, hass, now, { value: 'on', confidence: 'estimated' }).health, null);
   device.bindings.entityId = null;
   assert.equal(symbolSpec(device, hass, now).health, 'unknown');
   assert.notEqual(symbolSpec(device, hass, now).health, 'unavailable');

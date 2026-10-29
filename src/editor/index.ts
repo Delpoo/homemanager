@@ -199,6 +199,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.render();
   }
   set hass(hass: Hass) {
+    if (typeof hass.themes?.darkMode === 'boolean') this.dataset.theme = hass.themes.darkMode ? 'dark' : 'light';
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;

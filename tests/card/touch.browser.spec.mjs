@@ -1,3 +1,4 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -45,6 +46,7 @@ test('a real touch drag in edit mode creates a saveable draft without executing 
   isMobile,
 }) => {
   test.skip(!isMobile, 'Requires the touch viewport.');
+  await openCardMenu(page);
   await page.getByRole('button', { name: 'Editar plano', exact: true }).tap();
   const marker = page.getByRole('button', { name: 'Luz de prueba', exact: true });
   await marker.scrollIntoViewIfNeeded();

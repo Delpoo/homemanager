@@ -22,7 +22,7 @@ import {
 
 import { iconButtonMarkup, layerItems, renderLayers } from '../shell/layers.js';
 import { symbolSpec } from '../model/symbol-spec.js';
-import { ActivityLog } from '../model/activity.js';
+import { ActivityLog, activityIsRecent } from '../model/activity.js';
 import { RuntimeFeed } from '../shell/runtime-feed.js';
 import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
 import { updateRoomRail } from '../shell/room-rail.js';
@@ -63,7 +63,10 @@ export class HomeManagerCard extends HTMLElement {
       admin: this._hass?.user?.is_admin === true,
       app: this.shellContext,
       activityText: activityText(this.activity.latest),
-      activityTone: this.activity.latest?.tone,
+      activityTone:
+        this.activity.latest && activityIsRecent(this.activity.latest, Date.now())
+          ? this.activity.latest.tone
+          : 'neutral',
       alertCount: this.feed.alerts.length,
     });
     if (this.draft)
@@ -288,7 +291,7 @@ export class HomeManagerCard extends HTMLElement {
     this.observer?.disconnect();
     this.panel?.close();
     this.shellUnsubscribe?.();
-    const layers = layerItems().filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d) === id));
+    const layers = layerItems().filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
     this.root.innerHTML = `<style>${styles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}

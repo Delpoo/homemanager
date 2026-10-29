@@ -15,7 +15,10 @@ http
   .createServer(async (req, res) => {
     try {
       const name = decodeURIComponent(new URL(req.url, origin).pathname);
-      if (!/^\/(?:dist\/|tests\/browser\/fixtures\/|\.work\/(?:card|editor|panels)\/)/.test(name))
+      if (
+        name !== '/docs/vision-mockup.html' &&
+        !/^\/(?:dist\/|tests\/browser\/fixtures\/|\.work\/(?:card|editor|panels)\/)/.test(name)
+      )
         throw new Error('Unknown fixture');
       const file = path.resolve(root, '.' + name);
       if (!file.startsWith(root + path.sep)) throw new Error('Invalid path');

@@ -2,9 +2,11 @@ import { lstatSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { reviewedScreenshot } from './public-assets.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const findings = [];
+const publicAssets = JSON.parse(readFileSync(new URL('../docs/public-assets.json', import.meta.url), 'utf8'));
 const patterns = [
   ['private key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   ['GitHub credential', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/],
@@ -38,12 +40,14 @@ for (const relative of inputs) {
   }
   if (/(?:^|\/)(?:\.env(?:\..*)?|secrets?\.ya?ml|configuration\.ya?ml|\.storage|id_rsa|id_ed25519)$/i.test(relative))
     findings.push(`${relative}: sensitive filename`);
-  if (/\.(?:svg|png|jpe?g|webp|pdf|zip|ha_backup)$/i.test(relative))
+  const media = /\.(?:svg|png|jpe?g|webp|pdf|zip|ha_backup)$/i.test(relative);
+  if (media && !reviewedScreenshot(relative, readFileSync(full), publicAssets))
     findings.push(`${relative}: media requires an explicit public-asset review before admission`);
   if (entry.size > 2_000_000) {
     findings.push(`${relative}: oversized publication input`);
     continue;
   }
+  if (media) continue;
   const body = readFileSync(full, 'utf8');
   for (const [reason, pattern] of patterns) if (pattern.test(body)) findings.push(`${relative}: ${reason}`);
 }

@@ -155,11 +155,13 @@ export class HomeManagerApp extends HTMLElement {
     const context = this.shellContext();
     const title = context.homes.find(home => home.home_id === this.selected)?.title ?? t('HomeManager');
     header.hidden = !!this.selected && this.tab === 'plan' && !this.creating;
-    header.innerHTML = renderTopBar({
-      title: this.tab === 'rf' ? t('Controles RF') : title,
-      admin: this._hass?.user?.is_admin === true,
-      app: context,
-    });
+    header.innerHTML = header.hidden
+      ? ''
+      : renderTopBar({
+          title: this.tab === 'rf' ? t('Controles RF') : title,
+          admin: this._hass?.user?.is_admin === true,
+          app: context,
+        });
     this.card?.setShellContext(context);
   }
   private shellContext(): AppShellContext {
