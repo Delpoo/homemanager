@@ -58,6 +58,7 @@ export class HomeManagerApp extends HTMLElement {
   private error = '';
   private loading = false;
   private tab: 'plan' | 'rf' = 'plan';
+  private creating = false;
   private rfElement?: HomeManagerRf;
 
   set hass(hass: Hass) {
@@ -127,7 +128,7 @@ export class HomeManagerApp extends HTMLElement {
   private applyTab(): void {
     const rfTab = this.tab === 'rf' && this._hass?.user?.is_admin === true;
     this.root.querySelector<HTMLElement>('.messages')!.hidden = rfTab;
-    this.root.querySelector<HTMLElement>('.card-host')!.hidden = rfTab;
+    this.root.querySelector<HTMLElement>('.card-host')!.hidden = rfTab || this.creating;
     const host = this.root.querySelector<HTMLElement>('.rf-host')!;
     host.hidden = !rfTab;
     if (rfTab && !this.rfElement) {
@@ -158,6 +159,7 @@ export class HomeManagerApp extends HTMLElement {
     header.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button =>
       button.addEventListener('click', () => {
         this.tab = button.dataset.tab as 'plan' | 'rf';
+        if (this.tab === 'plan' && this.creating) this.cancelCreate();
         this.renderHeader();
         this.applyTab();
       }),
@@ -171,9 +173,10 @@ export class HomeManagerApp extends HTMLElement {
       .querySelector('.home-select')
       ?.addEventListener('change', event => this.select((event.target as HTMLSelectElement).value));
     header.querySelector('.new')?.addEventListener('click', () => {
-      this.selected = null;
-      this.dropCard();
+      this.creating = true;
+      this.root.querySelector<HTMLElement>('.card-host')!.hidden = true;
       this.renderMessages(true);
+      this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
     });
   }
   private async openStorage(): Promise<void> {
@@ -222,7 +225,14 @@ export class HomeManagerApp extends HTMLElement {
     };
     await refresh();
   }
-  private renderMessages(creating = false): void {
+  private cancelCreate(): void {
+    this.creating = false;
+    this.error = '';
+    this.renderMessages();
+    this.applyTab();
+    this.root.querySelector<HTMLButtonElement>('.new')?.focus();
+  }
+  private renderMessages(creating = this.creating): void {
     const host = this.root.querySelector('.messages');
     if (!host) return;
     // A reconnect can repaint the form while someone is typing: keep their text.
@@ -230,11 +240,12 @@ export class HomeManagerApp extends HTMLElement {
     const admin = this._hass?.user?.is_admin === true;
     const empty =
       this.homes && (!this.selected || creating)
-        ? `<div class="empty"><h2>${this.homes.length ? t('Nuevo hogar') : t('Todavía no hay hogares')}</h2>${admin ? `<p>${e(t('Elegí un identificador para tu vivienda. Después importá el plano SVG desde'))} <strong>${e(t('Editar plano → Importar y exportar'))}</strong> ${e(t('y detectá sus espacios.'))}</p><form class="create"><input name="homeId" aria-label="${e(t('ID del hogar'))}" required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="home"><button type="submit">${e(t('Crear hogar'))}</button></form>` : `<p>${e(t('Pedile a una persona administradora de Home Assistant que cree el hogar en este panel.'))}</p>`}</div>`
+        ? `<div class="empty"><h2>${this.homes.length ? t('Nuevo hogar') : t('Todavía no hay hogares')}</h2>${admin ? `<p>${e(t('Elegí un identificador para tu vivienda. Después importá el plano SVG desde'))} <strong>${e(t('Editar plano → Importar y exportar'))}</strong> ${e(t('y detectá sus espacios.'))}</p><form class="create"><input name="homeId" aria-label="${e(t('ID del hogar'))}" required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="home"><button type="submit">${e(t('Crear hogar'))}</button>${this.selected ? `<button type="button" class="cancel-create">${e(t('Cancelar'))}</button>` : ''}</form>` : `<p>${e(t('Pedile a una persona administradora de Home Assistant que cree el hogar en este panel.'))}</p>`}</div>`
         : '';
     host.innerHTML = `${this.error ? `<p class="error" role="alert">${e(this.error)}</p>` : ''}${this.homes ? empty : `<p>${e(t('Cargando…'))}</p>`}`;
     const field = host.querySelector<HTMLInputElement>('input[name=homeId]');
     if (field && typed) field.value = typed;
+    host.querySelector('.cancel-create')?.addEventListener('click', () => this.cancelCreate());
     host.querySelector('form.create')?.addEventListener('submit', event => {
       event.preventDefault();
       const id = new FormData(event.target as HTMLFormElement).get('homeId');
@@ -247,6 +258,7 @@ export class HomeManagerApp extends HTMLElement {
       this.renderMessages(true);
       return;
     }
+    this.creating = false;
     this.selected = homeId;
     this.error = '';
     remember(homeId);
