@@ -5,7 +5,7 @@
 | Contrato, límites públicos, tipos y unidades | `npm run check` | Esquemas V2 y migración V1, validador, modelo del editor, adaptador HA, comandos por capacidades, controles, agrupación, i18n completo y versión única (93 pruebas) |
 | Navegador | `npm run test:browser` | Tarjeta, editor, paneles, almacenamiento Lovelace, modo integración y panel lateral con sesiones HA sintéticas; escritorio y móvil (incluye regresión de expansión SVG) |
 | Integración Python | `python -m pip install -r requirements_test.txt` y `python -m pytest -q` | Backend con el arnés oficial de HA: permisos, revisión atómica concurrente, historial, persistencia, filtro de planos, flujo de configuración (incluye validación completa, permisos, cuotas, fallos de E/S y paquete reproducible). `requirements_test_latest.txt` usa la versión actual de HA |
-| Extremo a extremo | Ver abajo | Producto completo en Chrome contra un Home Assistant real y desechable (11 comprobaciones) |
+| Extremo a extremo | Ver abajo | Producto completo en Chrome contra un Home Assistant real y desechable (12 comprobaciones, incluida la pestaña Controles RF). Activa la opción de carga global para probar la tarjeta en un dashboard |
 
 La CI ejecuta las tres primeras capas y la integración en HA 2026.2.3 (mínima declarada) y 2026.10.4 (actual).
 

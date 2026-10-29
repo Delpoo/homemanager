@@ -156,7 +156,11 @@ async function importFile(name, content, type) {
   await applyImport();
 }
 async function save() {
+  // The previous save's message may still be on screen: wait for a new revision.
+  const before = (await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' })).result?.revision ?? 0;
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  for (let i = 0; i < 60 && ((await stored())?.revision ?? 0) <= before; i++) await page.waitForTimeout(250);
+  assert.ok(((await stored())?.revision ?? 0) > before, 'the save did not reach Home Assistant');
   await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
 }
 async function openImport() {
@@ -257,6 +261,20 @@ await step(
   },
 );
 await step('a Lovelace card references the home without embedding the plan', async () => {
+  // Since 0.3.1 cards outside the panel need the explicit "load on all pages"
+  // option; set it through the integration's own options flow.
+  const entry = (await ws({ type: 'config_entries/get', domain: 'homemanager' })).result[0];
+  const post = async (path, body) => {
+    const response = await fetch(`${base}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    assert.ok(response.ok, `${path}: ${response.status}`);
+    return response.json();
+  };
+  const flow = await post('/api/config/config_entries/options/flow', { handler: entry.entry_id });
+  const done = await post(`/api/config/config_entries/options/flow/${flow.flow_id}`, {
+    viewer_user_ids: [],
+    load_on_all_pages: true,
+  });
+  assert.equal(done.type, 'create_entry');
   const dashboard = await page.evaluate(async () => {
     const hass = document.querySelector('home-assistant').hass;
     const dashboards = await hass.callWS({ type: 'lovelace/dashboards/list' });
@@ -343,6 +361,21 @@ await step('the phone layout keeps the plan usable without horizontal scrolling'
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await settle();
   await page.screenshot({ path: `${out}/05-mobile.png` });
+});
+await step('the RF remotes tab is served and explains a missing transmitter', async () => {
+  // The test instance has no ESPHome transmitter: the library is empty and the
+  // wizard cannot start, but the API, permissions and entity platforms load.
+  const library = await ws({ type: 'homemanager/rf/library' });
+  assert.ok(library.success, JSON.stringify(library.error));
+  assert.deepEqual(library.result, { remotes: [] });
+  assert.deepEqual((await ws({ type: 'homemanager/rf/transmitters' })).result, { transmitters: [] });
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto(`${base}/homemanager`);
+  await app.getByRole('button', { name: 'Controles RF', exact: true }).click();
+  const rf = app.locator('homemanager-rf');
+  await rf.getByText('No hay transmisores con el paquete HomeManager RF').waitFor({ timeout: 30000 });
+  assert.ok(await rf.getByRole('button', { name: 'Agregar control', exact: true }).isDisabled());
+  await page.screenshot({ path: `${out}/06-rf-tab.png` });
 });
 assert.deepEqual(errors, [], `page errors: ${errors.join('; ')}`);
 await browser.close();
