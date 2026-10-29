@@ -7,10 +7,39 @@ import { controlsOf, cycleIndex, nextIndex, pinnedControls, stepLabel } from './
 import { escapeHTML as e, type Device, type DeviceControl } from './types.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
-export async function executeAction(this: HomeManagerCard, action: string, id: string) {
-  const result = await this.adapter?.executeAction(action, id);
-  if (result && typeof result === 'object' && 'ok' in result && result.ok === false)
-    throw new Error(reasonText(String('reason' in result ? result.reason : '')));
+export async function executeAction(this: HomeManagerCard, action: string, id: string, label?: string) {
+  const token = this.feed.prepareCommand(
+    id,
+    action,
+    this._hass,
+    Date.now(),
+    label ?? this.draft?.actions[action]?.service ?? action,
+  );
+  const result = (await this.adapter?.executeAction(action, id)) as { ok: boolean; reason?: string } | undefined;
+  this.feed.noteCommandResult(token, result ?? { ok: false, reason: 'ha-unavailable' }, Date.now());
+  this.updateShell();
+  if (!result?.ok) throw new Error(reasonText(result?.reason ?? 'ha-unavailable'));
+}
+
+export async function sendEntityCommand(
+  this: HomeManagerCard,
+  id: string,
+  command: { service: string; data?: Record<string, unknown> },
+  entityId?: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (this.editing || !this.adapter) return { ok: false, reason: 'ha-unavailable' };
+  const token = this.feed.prepareCommand(
+    id,
+    `entity-${command.service}`,
+    this._hass,
+    Date.now(),
+    undefined,
+    entityId ?? this.draft?.catalog.devices.find(device => device.id === id)?.bindings.entityId ?? undefined,
+  );
+  const result = (await this.adapter.executeEntityCommand(id, command, entityId)) as { ok: boolean; reason?: string };
+  this.feed.noteCommandResult(token, result, Date.now());
+  this.updateShell();
+  return result;
 }
 
 export function stepKey(this: HomeManagerCard, d: Device, control: DeviceControl) {
@@ -63,14 +92,14 @@ export async function runStep(
   // The RF echo of this press is the one that replaces the stamp seen now.
   const baseline = entityId ? airStamp(this._hass?.states[entityId]) : null;
   try {
-    await this.executeAction(step.actionId, d.id);
+    await this.executeAction(step.actionId, d.id, label);
     if (control.type !== 'button' && control.type !== 'updown') this.remember(d, control, index);
     this.sentNote(d, t('Enviado: {label}', { label }), entityId, baseline);
     return null;
   } catch (error) {
     const message = error instanceof Error ? error.message : t('No se pudo ejecutar la acción.');
     this.status(message);
-    if (anchor) this.sentNote(d, t('No se envió: {label}', { label }), undefined, null, true);
+    this.sentNote(d, `${t('No se pudo enviar')} · ${label}`, undefined, null, true);
     return message;
   } finally {
     this.refreshState();
@@ -98,7 +127,7 @@ export function sentNote(
   const echo = () => {
     if (!note.isConnected || !entityId) return;
     const air = onAir(this._hass?.states[entityId], baseline);
-    if (air === 'heard') note.textContent = `${text} · ${t('en el aire ✓')}`;
+    if (air === 'heard') note.textContent = `${text} · ${t('en el aire')}`;
     else if (air === 'not_heard') note.textContent = `${text} · ${t('sin eco')}`;
     if (air) clearInterval(poll);
   };
@@ -135,7 +164,7 @@ export function controlHost(this: HomeManagerCard, d: Device): ControlHost {
     remembered: control => this.remembered(d, control),
     sendValue: async (_control, entityId, command) => {
       if (this.editing || !this.adapter) return t('Salí del modo edición para controlar dispositivos.');
-      const result = (await this.adapter.executeEntityCommand(d.id, command, entityId)) as
+      const result = (await this.sendEntityCommand(d.id, command, entityId)) as
         | { ok?: boolean; reason?: string }
         | undefined;
       if (result?.ok === false) {
@@ -209,9 +238,7 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
                 reason: 'ha-unavailable',
               })
       : undefined,
-    onEntityCommand: entityId
-      ? async command => (this.editing ? { ok: false } : this.adapter?.executeEntityCommand(id, command))
-      : undefined,
+    onEntityCommand: entityId ? async command => this.sendEntityCommand(id, command) : undefined,
     onAssume:
       entityId && this._hass?.states[entityId]?.attributes?.homemanager_remote
         ? isOn => (this._hass ? rf.assume(this._hass, entityId, isOn) : Promise.resolve(null))
@@ -220,10 +247,27 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
       remoteId && this._hass
         ? {
             load: async () => (await rf.library(this._hass!)).remotes.find(remote => remote.id === remoteId),
-            press: buttonId =>
-              this.editing
-                ? Promise.reject(new Error(t('Salí del modo edición para controlar dispositivos.')))
-                : rf.press(this._hass!, remoteId, buttonId),
+            press: async buttonId => {
+              if (this.editing) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
+              const token = this.feed.prepareCommand(
+                id,
+                `remote-${buttonId}`,
+                this._hass,
+                Date.now(),
+                buttonId,
+                entityId ?? undefined,
+              );
+              try {
+                const result = await rf.press(this._hass!, remoteId, buttonId);
+                this.feed.noteCommandResult(token, { ok: true }, Date.now());
+                this.updateShell();
+                return result;
+              } catch (error) {
+                this.feed.noteCommandResult(token, { ok: false }, Date.now());
+                this.updateShell();
+                throw error;
+              }
+            },
           }
         : undefined,
     controls: controlsOf(d),

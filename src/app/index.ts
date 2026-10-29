@@ -7,6 +7,7 @@ import type { HomeManagerCard } from '../card/home-manager-card.js';
 import '../rf/manager.js';
 import type { HomeManagerRf } from '../rf/manager.js';
 import { bindTopBar, renderTopBar, topBarStyles, type AppShellContext } from '../shell/top-bar.js';
+import { ActivityLog } from '../model/activity.js';
 
 /** The HomeManager sidebar panel, registered by the integration
  * (custom_components/homemanager). It hosts the same card in full height and
@@ -42,6 +43,7 @@ function remember(id: string): void {
 }
 
 export class HomeManagerApp extends HTMLElement {
+  private readonly activity = new ActivityLog();
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
   private _narrow = false;
@@ -316,6 +318,7 @@ export class HomeManagerApp extends HTMLElement {
     }
     if (this._hass) this.card.hass = this._hass;
     this.card.setShellContext(this.shellContext());
+    this.card.setActivityLog(this.activity);
     this.card.setShellContext(this.shellContext());
     if (this.card.parentElement !== host) host.replaceChildren(this.card);
   }

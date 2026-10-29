@@ -171,6 +171,7 @@ export function positionMarkers(this: HomeManagerCard) {
       });
       for (const group of clusterPoints(points, GROUP_DISTANCE)) {
         if (group.ids.length < 2) continue;
+        if (group.ids.includes(this.selected ?? '')) continue;
         for (const id of group.ids)
           overlay.querySelector<HTMLElement>(`.marker[data-id="${CSS.escape(id)}"]`)!.hidden = true;
         const names = group.ids.map(id => byId.get(id)!.display.label);
@@ -258,4 +259,5 @@ export function refreshState(this: HomeManagerCard) {
     const s = this.runtime.states[d.id];
     if (s) this.panel.update(s);
   }
+  this.updateShell();
 }

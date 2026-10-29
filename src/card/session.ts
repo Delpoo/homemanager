@@ -87,13 +87,16 @@ export function setupAdapter(this: HomeManagerCard, configuration: Configuration
   this.runtime = { schemaVersion: 1, states: {} };
   try {
     const validated = validateConfiguration(configuration, { allowPending: true });
+    this.feed.configure(validated);
     this.adapter = new HomeAssistantAdapter({
       configuration: validated,
       verifiedFeedbackEntities: this.verifiedFeedbackEntities,
     }) as unknown as Adapter;
     this.unsubscribe = this.adapter.subscribe(s => {
       this.runtime = s;
+      this.feed.update(this._hass, s, this.verifiedFeedbackEntities, Date.now());
       this.refreshState();
+      this.updateShell();
     });
     this.adapter.setHass(this._hass ?? null);
     this.runtime = this.adapter.getSnapshot();

@@ -64,6 +64,7 @@ await build({
     'src/model/symbol-spec.ts',
     'src/model/alerts.ts',
     'src/model/activity.ts',
+    'src/shell/runtime-feed.ts',
   ],
   outbase: 'src',
   outdir: '.work',

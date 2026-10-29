@@ -1,5 +1,7 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'último:': 'latest:',
+  'Alerta resuelta': 'Alert resolved',
   'Menú de HomeManager': 'HomeManager menu',
   'Menú de Home Assistant': 'Home Assistant menu',
   'Historial de actividad': 'Activity history',

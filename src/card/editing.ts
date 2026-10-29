@@ -252,6 +252,7 @@ export async function save(this: HomeManagerCard, reviewed = false) {
       if (!this.homeUnsubscribe && this._hass) this.watchHome(this.home);
     }
     this.status(t('Guardado en Home Assistant.'));
+    this.activity.record({ type: 'saved', id: String(Date.now()), at: Date.now() });
     this.dispatchEvent(
       new CustomEvent('homemanager-saved', { detail: { configuration: clone(next) }, bubbles: true, composed: true }),
     );

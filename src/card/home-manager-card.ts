@@ -22,6 +22,10 @@ import {
 
 import { iconButtonMarkup, layerItems, renderLayers } from '../shell/layers.js';
 import { symbolSpec } from '../model/symbol-spec.js';
+import { ActivityLog } from '../model/activity.js';
+import { RuntimeFeed } from '../shell/runtime-feed.js';
+import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
+import { updateRoomRail } from '../shell/room-rail.js';
 import { renderRoomRail } from '../shell/room-rail.js';
 import { bindTopBar, renderTopBar, updateTopBar, type AppShellContext } from '../shell/top-bar.js';
 import { layer, same, type Adapter } from './card-helpers.js';
@@ -31,6 +35,18 @@ import * as gestures from './gestures.js';
 import * as planView from './plan-view.js';
 import * as session from './session.js';
 export class HomeManagerCard extends HTMLElement {
+  activity = new ActivityLog();
+  feed = new RuntimeFeed(this.activity);
+  activityTimer?: ReturnType<typeof setInterval>;
+  activityUnsubscribe?: () => void;
+  setActivityLog(log: ActivityLog): void {
+    if (this.activity === log) return;
+    this.activityUnsubscribe?.();
+    this.activity = log;
+    this.feed = new RuntimeFeed(log);
+    if (this.saved) this.feed.configure(this.saved);
+    if (this.isConnected) this.activityUnsubscribe = this.activity.subscribe(() => this.updateShell());
+  }
   /** Internal controller state is shared by the typed card responsibilities. */
   shellContext?: AppShellContext;
   shellUnsubscribe?: () => void;
@@ -46,7 +62,24 @@ export class HomeManagerCard extends HTMLElement {
         t('HomeManager'),
       admin: this._hass?.user?.is_admin === true,
       app: this.shellContext,
+      activityText: activityText(this.activity.latest),
+      activityTone: this.activity.latest?.tone,
+      alertCount: this.feed.alerts.length,
     });
+    if (this.draft)
+      updateRoomRail(
+        this.root,
+        this.draft.rooms.map(room => ({
+          ...room,
+          alerts: this.feed.alerts.filter(alert => alert.roomId === room.id).length,
+          active: this.draft!.catalog.devices.some(
+            device =>
+              device.roomId === room.id &&
+              !!symbolSpec(device, this._hass, Date.now(), this.runtime.states[device.id]).ring,
+          ),
+        })),
+        this.currentRoom,
+      );
   }
   config?: CardConfig;
   draft?: Configuration;
@@ -197,6 +230,14 @@ export class HomeManagerCard extends HTMLElement {
   }
   // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
   connectedCallback() {
+    this.activityUnsubscribe ??= this.activity.subscribe(() => this.updateShell());
+    this.activityTimer ??= setInterval(() => {
+      if (this._hass) {
+        this.feed.update(this._hass, this.runtime, this.verifiedFeedbackEntities, Date.now());
+        this.refreshState();
+        this.updateShell();
+      }
+    }, 1000);
     if (this.root.childElementCount && !this.shellUnsubscribe) this.shellUnsubscribe = bindTopBar(this.root);
     if (this.home && this.homeState !== 'loading' && !this.editing) {
       this.homeState = 'idle';
@@ -212,6 +253,10 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   disconnectedCallback() {
+    clearInterval(this.activityTimer);
+    this.activityTimer = undefined;
+    this.activityUnsubscribe?.();
+    this.activityUnsubscribe = undefined;
     this.shellUnsubscribe?.();
     this.shellUnsubscribe = undefined;
     this.homeUnsubscribe?.then(unsubscribe => unsubscribe()).catch(() => {});
@@ -328,6 +373,12 @@ export class HomeManagerCard extends HTMLElement {
       return;
     }
     switch (command) {
+      case 'activity':
+        showActivity.call(this);
+        break;
+      case 'alerts':
+        showAlerts.call(this);
+        break;
       case 'plan-settings':
         void (async () => {
           if (!this.editing) await this.toggleEdit();
@@ -394,6 +445,7 @@ export class HomeManagerCard extends HTMLElement {
     }
   };
   executeAction: OmitThisParameter<typeof commands.executeAction> = commands.executeAction.bind(this);
+  sendEntityCommand: OmitThisParameter<typeof commands.sendEntityCommand> = commands.sendEntityCommand.bind(this);
   /** Remembered steps of cycles, selectors and stepped sliders, per device and
    * control, in this browser (a cycle prefers the live state when it has one). */
   steps = new Map<string, number>();
