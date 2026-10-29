@@ -200,3 +200,43 @@ test('imported array prototypes cannot execute inherited serialization hooks', (
   assert.throws(() => assertConfiguration(config));
   assert.equal(reads, 0);
 });
+
+test('quick actions and the RF remote are optional V2 bindings, validated and bounded', () => {
+  const configuration = make();
+  configuration.actions['sample-on'] = {
+    domain: 'light',
+    service: 'turn_on',
+    target: { entity_id: 'light.sample' },
+    data: {},
+  };
+  configuration.catalog.devices[0].bindings.quickActions = [
+    { id: 'quick-1', label: 'Encender', actionId: 'sample-on' },
+    { id: 'quick-2', label: 'Ausente', actionId: 'missing' },
+  ];
+  configuration.catalog.devices[0].bindings.remoteId = 'techo';
+  const result = inspectConfiguration(configuration, { allowPending: true });
+  assert.equal(result.valid, true);
+  assert.ok(schema(configuration), JSON.stringify(schema.errors));
+  // An absent action is a pending reference, like a primary action.
+  assert.deepEqual(
+    result.issues.map(issue => [issue.path, issue.severity]),
+    [['catalog.sample-light.bindings.quickActions.quick-2', 'pending']],
+  );
+  // Plans without the new fields stay valid.
+  assert.equal(inspectConfiguration(make()).valid, true);
+  const quick = id => ({ id, label: 'x', actionId: 'sample-on' });
+  for (const bindings of [
+    { quickActions: ['a', 'b', 'c', 'd', 'e'].map(quick) },
+    { quickActions: [quick('a'), quick('a')] },
+    { quickActions: [{ ...quick('a'), label: 'x'.repeat(81) }] },
+    { quickActions: [{ ...quick('a'), script: 'x' }] },
+    { remoteId: 'Not An Id' },
+  ]) {
+    const bad = make();
+    Object.assign(bad.catalog.devices[0].bindings, bindings);
+    assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify(bindings));
+    // JSON Schema cannot express unique ids; only the semantic validator rejects those.
+    const duplicates = bindings.quickActions?.[1]?.id === 'a';
+    assert.equal(schema(bad), duplicates, JSON.stringify(bindings));
+  }
+});

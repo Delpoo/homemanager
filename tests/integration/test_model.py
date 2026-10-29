@@ -103,3 +103,37 @@ def test_sanitized_plans_with_namespaces_gradients_and_text_are_accepted() -> No
         '<rect id="room-a" width="5" height="5" fill="url(#g)"/><use xlink:href="#room-a"/></svg>'
     )
     assert validate_configuration(configuration(plan))["architecture"]["content"] == plan
+
+
+def test_quick_actions_and_rf_remote_are_optional_bindings() -> None:
+    valid = configuration()
+    device = {
+        "id": "lamp",
+        "roomId": "studio",
+        "kind": "light",
+        "position": {"x": 0.5, "y": 0.5},
+        "mobility": "editable",
+        "display": {"label": "Lamp", "icon": "mdi:lightbulb"},
+        "bindings": {
+            "entityId": "light.lamp",
+            "primaryAction": None,
+            "advancedPopupId": None,
+            "quickActions": [{"id": "quick-1", "label": "On", "actionId": "lamp-on"}],
+            "remoteId": "techo",
+        },
+        "state": {"value": "unknown", "confidence": "unknown"},
+    }
+    valid["catalog"]["devices"] = [device]
+    validate_configuration(valid)
+    for change in (
+        {"quickActions": [{"id": f"q{i}", "label": "x", "actionId": "a"} for i in range(5)]},
+        {"quickActions": [{"id": "q", "label": "x", "actionId": "a"}, {"id": "q", "label": "y", "actionId": "a"}]},
+        {"quickActions": [{"id": "q", "label": "x" * 81, "actionId": "a"}]},
+        {"quickActions": [{"id": "q", "label": "x", "actionId": "a", "code": "1010"}]},
+        {"remoteId": "Not An Id"},
+    ):
+        bad = configuration()
+        bad["catalog"]["devices"] = [{**device, "bindings": {**device["bindings"], **change}}]
+        with pytest.raises(ModelError):
+            validate_configuration(bad)
+

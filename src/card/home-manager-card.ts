@@ -155,6 +155,7 @@ export class HomeManagerCard extends HTMLElement {
   private animation = 0;
   private longPress?: { timer: ReturnType<typeof setTimeout>; id: string; x: number; y: number };
   private suppressClick: string | null = null;
+  private quick?: { element: HTMLElement; returnFocus: HTMLElement };
   private lastTap?: { time: number; x: number; y: number };
   private language = '';
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -642,7 +643,12 @@ export class HomeManagerCard extends HTMLElement {
         ? this.adapter?.getActionAvailability(d.bindings.primaryAction)
         : undefined;
       // Without a primary action, a tap opens the device's panel instead.
-      const opensPanel = !d.bindings.primaryAction && (!!d.bindings.entityId || !!d.bindings.advancedPopupId);
+      const opensPanel =
+        !d.bindings.primaryAction &&
+        (!!d.bindings.entityId ||
+          !!d.bindings.advancedPopupId ||
+          !!d.bindings.remoteId ||
+          !!d.bindings.quickActions?.length);
       main.setAttribute(
         'title',
         `${d.display.label} · ${stateText(state?.value ?? 'unknown')} · ${confidenceLabel(confidence)}${!this.editing && !opensPanel && !availability?.available ? ` · ${t('Acción pendiente o no disponible')}` : ''}`,
@@ -774,6 +780,75 @@ export class HomeManagerCard extends HTMLElement {
       this.refreshState();
     }
   }
+  /** Holding an icon shows its quick actions when it has some, else its panel. */
+  private hold(id: string, anchor: HTMLElement) {
+    const d = this.draft?.catalog.devices.find(item => item.id === id);
+    if (d?.bindings.quickActions?.length) this.showQuick(d, anchor);
+    else this.showDetails(id, anchor);
+  }
+  private showQuick(d: Device, anchor: HTMLElement) {
+    this.closeQuick();
+    const menu = document.createElement('div');
+    menu.className = 'quick';
+    menu.setAttribute('role', 'group');
+    menu.setAttribute('aria-label', t('Accesos rápidos de {label}', { label: d.display.label }));
+    menu.innerHTML = `${(d.bindings.quickActions ?? [])
+      .map(item => {
+        const availability = this.adapter?.getActionAvailability(item.actionId);
+        return `<button type="button" data-quick="${e(item.actionId)}"${availability?.available ? '' : ` disabled title="${e(t('Acción pendiente o no disponible'))}"`}>${e(item.label)}</button>`;
+      })
+      .join(
+        '',
+      )}<button type="button" data-quick-more aria-label="${e(t('Más controles de {label}', { label: d.display.label }))}">⋯</button>`;
+    const point = this.screen(d.position);
+    menu.style.left = `${point.x}px`;
+    menu.style.top = `${point.y}px`;
+    this.viewport.append(menu);
+    // Keep the whole row inside the plan.
+    const box = menu.getBoundingClientRect(),
+      area = this.viewport.getBoundingClientRect();
+    const shift = Math.max(area.left + 8 - box.left, Math.min(0, area.right - 8 - box.right));
+    if (shift) menu.style.left = `${point.x + shift}px`;
+    if (box.top < area.top + 8) menu.classList.add('below');
+    this.quick = { element: menu, returnFocus: anchor };
+    menu.addEventListener('click', event => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('button');
+      if (!button) return;
+      event.stopPropagation();
+      this.closeQuick(false);
+      if (button.hasAttribute('data-quick-more')) this.showDetails(d.id, anchor);
+      else void this.runQuick(button.dataset.quick!, d.id);
+    });
+    menu.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      this.closeQuick();
+    });
+    menu.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+  }
+  private closeQuick(restoreFocus = true) {
+    const quick = this.quick;
+    if (!quick) return;
+    this.quick = undefined;
+    quick.element.remove();
+    if (restoreFocus && quick.returnFocus.isConnected) quick.returnFocus.focus();
+  }
+  private async runQuick(actionId: string, id: string) {
+    try {
+      await this.executeAction(actionId, id);
+    } catch (error) {
+      this.status(error instanceof Error ? error.message : t('No se pudo ejecutar la acción.'));
+    } finally {
+      this.refreshState();
+    }
+  }
+  /** The RF remote to draw in a device's panel: chosen in the editor, or the
+   * remote behind an RF entity of HomeManager. */
+  private remoteOf(d: Device): string | null {
+    const entity = d.bindings.entityId ? this._hass?.states[d.bindings.entityId] : undefined;
+    const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
+    return d.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
+  }
   private showDetails(id: string, returnFocus: HTMLElement) {
     const d = this.draft?.catalog.devices.find(d => d.id === id);
     if (!d || !this.draft) return;
@@ -781,7 +856,8 @@ export class HomeManagerCard extends HTMLElement {
     this.panel?.close();
     const panel = d.bindings.advancedPopupId ? this.draft.panels[d.bindings.advancedPopupId] : undefined;
     const entityId = d.bindings.entityId;
-    if (!panel && !entityId) {
+    const remoteId = this.remoteOf(d);
+    if (!panel && !entityId && !remoteId && !d.bindings.quickActions?.length) {
       this.dialog(
         t('Detalles del dispositivo'),
         `<p>${e(d.display.label)}</p><p>${e(confidenceLabel(this.runtime.states[id]?.confidence ?? 'unknown'))}</p><p>${d.bindings.advancedPopupId ? e(t('Panel nativo pendiente: {id}', { id: d.bindings.advancedPopupId })) : e(t('Vinculá una entidad o un panel en el editor para controlar este dispositivo.'))}</p>`,
@@ -827,6 +903,17 @@ export class HomeManagerCard extends HTMLElement {
         entityId && this._hass?.states[entityId]?.attributes?.homemanager_remote
           ? isOn => (this._hass ? rf.assume(this._hass, entityId, isOn) : Promise.resolve(null))
           : undefined,
+      rfRemote:
+        remoteId && this._hass
+          ? {
+              load: async () => (await rf.library(this._hass!)).remotes.find(remote => remote.id === remoteId),
+              press: buttonId =>
+                this.editing
+                  ? Promise.reject(new Error(t('Salí del modo edición para controlar dispositivos.')))
+                  : rf.press(this._hass!, remoteId, buttonId),
+            }
+          : undefined,
+      quickActions: d.bindings.quickActions,
       returnFocus,
     });
   }
@@ -1187,7 +1274,8 @@ export class HomeManagerCard extends HTMLElement {
     if (event.button !== 0 || this.saving) return;
     const target = event.target as Element;
     // Floating controls inside the plan keep their own clicks (no pan capture).
-    if (target.closest('.zoom, .layers, .cluster, .edit-add')) return;
+    if (target.closest('.zoom, .layers, .cluster, .edit-add, .quick')) return;
+    this.closeQuick();
     const p = this.point(event);
     this.pointers.set(event.pointerId, p);
     const marker = target.closest<HTMLElement>('.marker');
@@ -1203,7 +1291,7 @@ export class HomeManagerCard extends HTMLElement {
           timer: setTimeout(() => {
             this.longPress = undefined;
             this.suppressClick = id;
-            this.showDetails(id, marker.querySelector('button.primary') ?? this.viewport);
+            this.hold(id, marker.querySelector('button.primary') ?? this.viewport);
           }, LONG_PRESS_MS),
         };
         return;

@@ -1,10 +1,11 @@
 """Home Assistant entities built from RF remotes.
 
-Each remote becomes a device. What its buttons do decides its entities:
+Each remote becomes a device. Its parts decide its entities:
 
-- a fan when it has speed buttons, "faster/slower", "off" or "power";
-- a light when it has a light button (one that toggles, or separate on/off);
-- a button entity for everything else (timers, brightness steps, modes...).
+- each fan part becomes a fan, each light part a light, made of the buttons
+  that have a role in that part;
+- every button without a role becomes a button entity (timers, brightness
+  steps, modes...).
 
 RF is one-way, so every state here is assumed: it is what was last sent,
 restored across restarts, and it can be corrected without sending anything.
@@ -28,43 +29,42 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .model import ModelError
 from .rf import RfManager
-from .rf_model import Remote
+from .rf_model import Part, Remote
 
 SPEED = re.compile(r"^speed_(\d+)$")
 # Pause between presses when a speed is reached by repeated "faster/slower".
 STEP_DELAY_SECONDS = 0.4
-FAN_FUNCTIONS = {"off", "power", "speed_up", "speed_down", "direction"}
-LIGHT_FUNCTIONS = {"light", "light_on", "light_off"}
 
 
 @dataclass(frozen=True)
-class Layout:
-    """Which entities a remote gets; derived only from its button functions."""
+class FanShape:
+    """How a fan part sets its speed; derived only from its roles."""
 
-    fan: bool
     speed_count: int
     direct_speeds: bool
-    light: bool
-    buttons: tuple[str, ...]
 
 
-def layout(remote: Remote) -> Layout:
-    functions = {button.function for button in remote.buttons.values() if button.function}
-    levels = sorted(int(match.group(1)) for function in functions if (match := SPEED.match(function)))
-    stepping = {"speed_up", "speed_down"} <= functions
-    speed_count = levels[-1] if levels else (remote.speeds or 0) if stepping else 0
-    fan = bool(levels) or bool(functions & FAN_FUNCTIONS - {"direction"})
-    light = bool(functions & LIGHT_FUNCTIONS)
-    covered = (FAN_FUNCTIONS | {f"speed_{level}" for level in levels} if fan else set()) | (LIGHT_FUNCTIONS if light else set())
-    buttons = tuple(key for key, button in remote.buttons.items() if button.function not in covered)
-    return Layout(fan, speed_count, bool(levels), light, buttons)
+def fan_shape(part: Part) -> FanShape:
+    levels = sorted(int(match.group(1)) for role in part.roles if (match := SPEED.match(role)))
+    stepping = {"speed_up", "speed_down"} <= set(part.roles)
+    speed_count = levels[-1] if levels else (part.speeds or 0) if stepping else 0
+    return FanShape(speed_count, bool(levels))
 
 
-def button_for(remote: Remote, *functions: str) -> str | None:
-    for function in functions:
-        for key, button in remote.buttons.items():
-            if button.function == function:
-                return key
+def parts_of(remote: Remote, kind: str) -> list[str]:
+    return [key for key, part in remote.parts.items() if part.kind == kind]
+
+
+def loose_buttons(remote: Remote) -> list[str]:
+    """Buttons without a role in any part: each one is a button entity."""
+    used = {button for part in remote.parts.values() for button in part.roles.values()}
+    return [key for key in remote.buttons if key not in used]
+
+
+def role(part: Part, *roles: str) -> str | None:
+    for name in roles:
+        if name in part.roles:
+            return part.roles[name]
     return None
 
 
@@ -105,7 +105,7 @@ class RemoteEntity(Entity):
 
     async def press(self, button_id: str | None) -> None:
         if button_id is None:
-            raise HomeAssistantError("This remote has no button for that function")
+            raise HomeAssistantError("This remote has no button for that")
         try:
             await self.manager.async_press(self.remote_id, button_id)
         except ModelError as error:
@@ -130,11 +130,36 @@ class RemoteEntity(Entity):
         await super().async_will_remove_from_hass()
 
 
+class PartEntity(RemoteEntity):
+    """A fan or light made of the buttons that have a role in one part."""
+
+    def __init__(self, manager: RfManager, remote_id: str, key: str) -> None:
+        super().__init__(manager, remote_id, key)
+        self.part_id = key
+
+    @property
+    def part(self) -> Part | None:
+        remote = self.remote
+        return remote.parts.get(self.part_id) if remote else None
+
+    @property
+    def available(self) -> bool:
+        return self.part is not None
+
+    @property
+    def name(self) -> str | None:
+        # A part named like its remote is the remote itself (the device name).
+        part, remote = self.part, self.remote
+        if not part or not remote or part.name.casefold() == remote.name.casefold():
+            return None
+        return part.name
+
+
 def async_setup_platform_entities(
     hass: HomeAssistant,
     manager: RfManager,
     platform: str,
-    wanted: Callable[[Remote, Layout], list[str]],
+    wanted: Callable[[Remote], list[str]],
     build: Callable[[str, str], Entity],
     add: AddEntitiesCallback,
 ) -> Callable[[], None]:
@@ -146,7 +171,7 @@ def async_setup_platform_entities(
     def sync() -> None:
         desired: dict[str, tuple[str, str]] = {}
         for remote in manager.library.remotes.values():
-            for key in wanted(remote, layout(remote)):
+            for key in wanted(remote):
                 desired[f"rf_{remote.remote_id}_{key}"] = (remote.remote_id, key)
         new = [build(remote_id, key) for unique_id, (remote_id, key) in desired.items() if unique_id not in current]
         for entity in new:

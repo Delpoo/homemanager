@@ -20,7 +20,9 @@ import {
   type Device,
   type Hass,
   type NativePanel,
+  type QuickAction,
 } from '../card/types.js';
+import { rf, type RfRemote } from '../integration/rf.js';
 import {
   moveRoom,
   newDeviceId,
@@ -56,6 +58,17 @@ const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
   `<label class="field">${label}<input name="${name}" aria-label="${label}" value="${esc(value)}" ${extra}></label>`;
+const QUICK_SLOTS = 4;
+/** Services a quick action can call without extra data, with their label. */
+const QUICK_SERVICES = (): Record<string, string> => ({
+  turn_on: t('Encender'),
+  turn_off: t('Apagar'),
+  toggle: t('Alternar'),
+  press: t('Pulsar'),
+  open_cover: t('Abrir'),
+  close_cover: t('Cerrar'),
+  stop_cover: t('Detener'),
+});
 function value(form: FormData, name: string): string {
   const item = form.get(name);
   if (item !== null && typeof item !== 'string') throw new Error(t('El formulario debe contener texto.'));
@@ -168,6 +181,7 @@ export class HomeManagerEditor extends HTMLElement {
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
+    if (first) this.loadRemotes();
     if (first && (this.homeConfig || integrationAvailable(hass))) {
       void this.refreshHomes();
       if (this.config && !this._embedded) this.render();
@@ -402,7 +416,98 @@ export class HomeManagerEditor extends HTMLElement {
       <label class="field">${esc(t('Icono del dispositivo'))}<span class="icon-field"><ha-icon data-preview icon="${esc(device?.display.icon ?? 'mdi:lightbulb-outline')}"></ha-icon><input name="icon" aria-label="${esc(t('Icono del dispositivo'))}" value="${esc(device?.display.icon ?? 'mdi:lightbulb-outline')}" list="device-icons" required></span></label><datalist id="device-icons">${['lightbulb', 'lightbulb-outline', 'fan', 'air-conditioner', 'curtains', 'power-socket', 'thermometer', 'robot-vacuum', 'air-purifier', 'flower', 'remote', 'water'].map(icon => `<option value="mdi:${icon}"></option>`).join('')}</datalist>
       <div class="field">${help(t('Entidad del dispositivo'), t('Elegí el equipo de Home Assistant que representa este icono.'))}<input name="entityId" aria-label="${esc(t('Entidad del dispositivo'))}" value="${esc(device?.bindings.entityId ?? '')}" data-entity-picker="" placeholder="${esc(t('Sin vincular'))}"></div>
       <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
-      <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), `${helpTip(t('Fuente de estado'), t('Define de dónde viene la lectura del dispositivo y si representa una medición o una estimación.'))}${this.stateForm(device)}`) : ''}</details>`;
+      ${this.holdForm(device)}<details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), `${helpTip(t('Fuente de estado'), t('Define de dónde viene la lectura del dispositivo y si representa una medición o una estimación.'))}${this.stateForm(device)}`) : ''}</details>`;
+  }
+  /** RF remotes, to choose the one a device's panel draws. Admins only, like
+   * the editor itself; without the RF manager the list stays empty. */
+  private remotes: RfRemote[] = [];
+  private loadRemotes(): void {
+    const hass = this._hass;
+    if (!hass?.callWS || hass.user?.is_admin !== true) return;
+    rf.library(hass)
+      .then(library => {
+        this.remotes = library.remotes;
+        if (library.remotes.length && this.surface === 'device') this.render();
+      })
+      .catch(() => undefined);
+  }
+  private remoteOf(device?: Device): string | null {
+    const entity = device?.bindings.entityId ? this._hass?.states[device.bindings.entityId] : undefined;
+    const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
+    return device?.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
+  }
+  /** Ready-made quick actions: what the bound entity can do without extra
+   * data, and the buttons of its RF remote. Picking one creates the action. */
+  private quickSuggestions(device?: Device): { value: string; label: string }[] {
+    const names = QUICK_SERVICES();
+    const found: { value: string; label: string }[] = [];
+    const entityId = device?.bindings.entityId;
+    if (entityId) {
+      const domain = entityId.split('.')[0];
+      for (const service of SERVICES[domain] ?? [])
+        if (names[service]) found.push({ value: `new:${domain}.${service}:${entityId}`, label: names[service] });
+    }
+    const remote = this.remoteOf(device);
+    if (remote) {
+      const remoteName = this.remotes.find(item => item.id === remote)?.name ?? '';
+      for (const [id, state] of Object.entries(this._hass?.states ?? {})) {
+        if (state.attributes?.homemanager_remote_button !== remote || id === entityId) continue;
+        const name =
+          String(state.attributes?.friendly_name ?? id)
+            .replace(remoteName, '')
+            .trim() || id;
+        found.push({ value: `new:button.press:${id}`, label: name });
+      }
+    }
+    return found;
+  }
+  private holdForm(device?: Device): string {
+    const quick = device?.bindings.quickActions ?? [];
+    const suggestions = this.quickSuggestions(device);
+    const actions = Object.keys(this.configuration.actions);
+    const help = (label: string, text: string) =>
+      `<span class="field-title">${esc(label)}${helpTip(label, text)}</span>`;
+    const rows = Array.from({ length: QUICK_SLOTS }, (_, index) => {
+      const item = quick[index],
+        number = index + 1;
+      const known = item && !actions.includes(item.actionId) ? option(item.actionId, item.actionId, item.actionId) : '';
+      return `<div class="grid quick-row"><label class="field">${esc(t('Acceso {number}', { number }))}<input form="device-form" name="quick-label-${index}" aria-label="${esc(t('Nombre del acceso {number}', { number }))}" maxlength="80" value="${esc(item?.label ?? '')}" placeholder="${esc(t('Nombre (opcional)'))}"></label><label class="field">${esc(t('Qué hace'))}<select form="device-form" name="quick-action-${index}" aria-label="${esc(t('Acción del acceso {number}', { number }))}">${option('', t('Nada'), item?.actionId ?? '')}${suggestions.length ? `<optgroup label="${esc(t('Sugeridas'))}">${suggestions.map(entry => option(entry.value, entry.label, '')).join('')}</optgroup>` : ''}${actions.length || known ? `<optgroup label="${esc(t('Acciones del plano'))}">${known}${actions.map(key => option(key, key, item?.actionId ?? '')).join('')}</optgroup>` : ''}</select></label></div>`;
+    }).join('');
+    const remoteId = device?.bindings.remoteId ?? '';
+    const remotes = this.remotes.length
+      ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se muestra en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
+      : '';
+    return `<details class="advanced" id="device-hold"${this.openSections.has('device-hold') ? ' open' : ''}><summary>${esc(t('Al mantener pulsado'))}</summary><p class="note">${esc(t('Hasta 4 accesos rápidos aparecen sobre el icono al mantenerlo pulsado. Sin accesos, se abre el panel.'))}</p>${rows}${remotes}</details>`;
+  }
+  /** Reads the quick-action rows; suggestions become actions of the plan. */
+  private quickFromForm(
+    data: FormData,
+    configuration: Configuration,
+    deviceId: string,
+  ): { configuration: Configuration; quickActions: QuickAction[] } {
+    const labels = new Map(this.quickSuggestions(this.device()).map(entry => [entry.value, entry.label]));
+    const quickActions: QuickAction[] = [];
+    let next = configuration;
+    for (let index = 0; index < QUICK_SLOTS; index++) {
+      let actionId = value(data, `quick-action-${index}`);
+      if (!actionId) continue;
+      let label = value(data, `quick-label-${index}`);
+      if (actionId.startsWith('new:')) {
+        const [, call, entityId] = actionId.split(':');
+        const [domain, service] = call.split('.');
+        label ||= labels.get(actionId) ?? service;
+        const objectId = entityId.split('.')[1].replace(/_/g, '-');
+        actionId = `${deviceId}-${objectId}-${service.replace(/_/g, '-')}`.replace(/-+/g, '-').slice(0, 120);
+        next = upsertAction(next, actionId, {
+          domain: domain as Action['domain'],
+          service,
+          target: { entity_id: entityId },
+          data: {},
+        });
+      }
+      quickActions.push({ id: `quick-${quickActions.length + 1}`, label: (label || actionId).slice(0, 80), actionId });
+    }
+    return { configuration: next, quickActions };
   }
   private stateForm(device?: Device): string {
     if (!device) return `<p class="note">${esc(t('Seleccioná un icono para declarar su fuente.'))}</p>`;
@@ -687,8 +792,12 @@ export class HomeManagerEditor extends HTMLElement {
           label = value(data, 'label');
         const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;
         if (!fixed && (!value(data, 'x') || !value(data, 'y'))) throw new Error(t('Completá las dos coordenadas.'));
+        const id = previous?.id ?? (value(data, 'id') || newDeviceId(label, this.configuration));
+        const held = this.quickFromForm(data, this.configuration, id);
+        // Without RF remotes the field is not shown: keep what the device had.
+        const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
         const device: Device = {
-          id: previous?.id ?? (value(data, 'id') || newDeviceId(label, this.configuration)),
+          id,
           display: { label, icon: value(data, 'icon') },
           kind: value(data, 'kind') as Device['kind'],
           roomId: fixed ? previous.roomId : value(data, 'roomId') || null,
@@ -698,10 +807,13 @@ export class HomeManagerEditor extends HTMLElement {
             entityId: value(data, 'entityId') || null,
             primaryAction: value(data, 'primaryAction') || null,
             advancedPopupId: value(data, 'panelId') || null,
+            // Optional V2 fields are written only when used, so plans stay as they were.
+            ...(held.quickActions.length ? { quickActions: held.quickActions } : {}),
+            ...(remoteId ? { remoteId } : {}),
           },
           state: { value: 'unknown', confidence: 'unknown' },
         };
-        let next = upsertDevice(this.configuration, device, {
+        let next = upsertDevice(held.configuration, device, {
           previousId: previous?.id,
           allowFixedPosition: this.allowFixedPosition,
         });

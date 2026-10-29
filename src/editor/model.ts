@@ -91,8 +91,14 @@ export function upsertDevice(
     fail(t('Usá la acción explícita de corregir ubicación para un elemento fijo.'));
   if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.display.icon)) fail(t('El icono debe ser un nombre mdi: válido.'));
   if (input.bindings.entityId) entity(input.bindings.entityId);
-  for (const key of [input.bindings.primaryAction, input.bindings.advancedPopupId])
+  for (const key of [input.bindings.primaryAction, input.bindings.advancedPopupId, input.bindings.remoteId ?? null])
     if (key !== null) stableKey(key, t('Referencia'));
+  const quick = input.bindings.quickActions;
+  if (quick && quick.length > 4) fail(t('Un dispositivo tiene como máximo 4 accesos rápidos.'));
+  for (const item of quick ?? []) {
+    stableKey(item.id, t('Referencia'));
+    stableKey(item.actionId, t('Referencia'));
+  }
   const device: Device = {
     id,
     roomId: input.roomId,
@@ -104,6 +110,16 @@ export function upsertDevice(
       entityId: input.bindings.entityId,
       primaryAction: input.bindings.primaryAction,
       advancedPopupId: input.bindings.advancedPopupId,
+      ...(quick?.length
+        ? {
+            quickActions: quick.map(item => ({
+              id: item.id,
+              label: plainText(item.label, t('Nombre')),
+              actionId: item.actionId,
+            })),
+          }
+        : {}),
+      ...(input.bindings.remoteId ? { remoteId: input.bindings.remoteId } : {}),
     },
     state: { value: 'unknown', confidence: 'unknown' },
   };

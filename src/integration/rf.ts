@@ -4,22 +4,8 @@ import type { Hass } from '../card/types.js';
  * Codes never travel here: captures are referenced by candidate id and buttons
  * by a short fingerprint. */
 
-export type RfFunction =
-  | 'off'
-  | 'power'
-  | 'light'
-  | 'light_on'
-  | 'light_off'
-  | 'brightness_up'
-  | 'brightness_down'
-  | 'color_temperature'
-  | 'speed_up'
-  | 'speed_down'
-  | 'direction'
-  | 'timer'
-  | 'mode'
-  | 'other'
-  | `speed_${number}`;
+export type PartKind = 'fan' | 'light';
+export type WidgetType = 'button' | 'toggle' | 'updown' | 'steps' | 'modes';
 
 export interface RfSettings {
   transmitter: string;
@@ -28,24 +14,64 @@ export interface RfSettings {
   pulse_us: number;
   repeats: number;
   wait_us: number;
-  speeds: number | null;
+  measured_pulse_us: number | null;
+}
+export interface RfAbout {
+  name: string;
+  icon: string | null;
+  description: string | null;
 }
 export interface RfButton {
   id: string;
   name: string;
-  function: RfFunction | null;
+  icon: string | null;
   fingerprint: string;
 }
-export interface RfRemote extends RfSettings {
+/** A fan or light for Home Assistant: roles name the buttons that do each thing. */
+export interface RfPart {
   id: string;
   name: string;
+  kind: PartKind;
+  speeds: number | null;
+  roles: Record<string, string>;
+}
+/** One control of the drawn remote, on a grid of four columns. */
+export interface RfWidget {
+  id: string;
+  type: WidgetType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  buttons: string[];
+  label: string | null;
+  icon: string | null;
+}
+export interface RfRemote extends RfSettings, RfAbout {
+  id: string;
   buttons: RfButton[];
+  parts: RfPart[];
+  /** null: not designed yet; the default drawing is used. */
+  layout: RfWidget[] | null;
 }
 export interface RfTransmitter {
   id: string;
   name: string;
   device_id: string | null;
   can_capture: boolean;
+}
+export interface RfDevice extends RfTransmitter {
+  manufacturer: string | null;
+  model: string | null;
+  online: boolean;
+  has_package: boolean;
+}
+export interface RfDevices {
+  devices: RfDevice[];
+  default_receiver: string | null;
+  /** What goes after `homemanager_rf:` in the device YAML. */
+  package: string;
+  builder_url: string | null;
 }
 export interface RfCandidate {
   candidate_id: string;
@@ -55,10 +81,27 @@ export interface RfCandidate {
   pulse_us: number;
   frames: number;
   bursts: number;
+  burst_frames: number;
   confirmed: boolean;
+  confirmed_by: 'frames' | 'presses' | null;
   fingerprint: string;
   known_as: string[];
 }
+export type RfCaptureEvent = { candidate?: RfCandidate; noise?: number; done?: boolean };
+
+/** Roles each part kind accepts (rf_model.ROLES). */
+export const ROLES: Record<PartKind, string[]> = {
+  fan: [
+    'on',
+    'off',
+    'toggle',
+    ...Array.from({ length: 12 }, (_, index) => `speed_${index + 1}`),
+    'speed_up',
+    'speed_down',
+    'direction',
+  ],
+  light: ['on', 'off', 'toggle'],
+};
 
 function ws<T>(hass: Hass, message: Record<string, unknown>): Promise<T> {
   if (!hass.callWS) return Promise.reject(new Error('not connected'));
@@ -71,15 +114,22 @@ export const rf = {
     ws<{ transmitters: RfTransmitter[] }>(hass, { type: 'homemanager/rf/transmitters' }).then(
       result => result.transmitters,
     ),
-  saveRemote: (hass: Hass, remote: Partial<RfSettings> & { name: string }, remoteId?: string) =>
+  devices: (hass: Hass) => ws<RfDevices>(hass, { type: 'homemanager/rf/devices' }),
+  setDefaultReceiver: (hass: Hass, receiver: string | null) =>
+    ws<null>(hass, { type: 'homemanager/rf/default_receiver', receiver }),
+  saveRemote: (hass: Hass, remote: Partial<RfSettings & RfAbout> & { name: string }, remoteId?: string) =>
     ws<RfRemote>(hass, { type: 'homemanager/rf/remote/save', remote, ...(remoteId ? { remote_id: remoteId } : {}) }),
   deleteRemote: (hass: Hass, remoteId: string) =>
     ws<null>(hass, { type: 'homemanager/rf/remote/delete', remote_id: remoteId }),
+  saveParts: (hass: Hass, remoteId: string, parts: (Omit<RfPart, 'id'> & { id?: string })[]) =>
+    ws<RfRemote>(hass, { type: 'homemanager/rf/parts/save', remote_id: remoteId, parts }),
+  saveLayout: (hass: Hass, remoteId: string, layout: RfWidget[] | null) =>
+    ws<RfRemote>(hass, { type: 'homemanager/rf/layout/save', remote_id: remoteId, layout }),
   saveButton: (
     hass: Hass,
     remoteId: string,
-    button: { name: string; function: RfFunction | null },
-    options: { buttonId?: string; candidateId?: string } = {},
+    button: { name: string; icon?: string | null },
+    options: { buttonId?: string; candidateId?: string; role?: { part: string; role: string } } = {},
   ) =>
     ws<RfButton>(hass, {
       type: 'homemanager/rf/button/save',
@@ -87,6 +137,7 @@ export const rf = {
       button,
       ...(options.buttonId ? { button_id: options.buttonId } : {}),
       ...(options.candidateId ? { candidate_id: options.candidateId } : {}),
+      ...(options.role ? { role: options.role } : {}),
     }),
   deleteButton: (hass: Hass, remoteId: string, buttonId: string) =>
     ws<null>(hass, { type: 'homemanager/rf/button/delete', remote_id: remoteId, button_id: buttonId }),
@@ -105,22 +156,14 @@ export const rf = {
     hass: Hass,
     transmitter: string,
     seconds: number,
-    listener: (event: { candidate?: RfCandidate; done?: boolean }) => void,
+    listener: (event: RfCaptureEvent) => void,
   ): Promise<() => void> {
     const connection = hass.connection;
     if (!connection?.subscribeMessage) return Promise.reject(new Error('not connected'));
-    return connection.subscribeMessage(event => listener(event as { candidate?: RfCandidate; done?: boolean }), {
+    return connection.subscribeMessage(event => listener(event as RfCaptureEvent), {
       type: 'homemanager/rf/capture',
       transmitter,
       seconds,
     });
   },
 };
-
-/** Functions in the order a fan-with-light remote usually presents them. */
-export function suggestedFunctions(kind: 'fan' | 'light' | 'other', speeds = 6): RfFunction[] {
-  const levels = Array.from({ length: speeds }, (_, index) => `speed_${index + 1}` as RfFunction);
-  if (kind === 'fan') return ['off', ...levels, 'direction', 'light', 'timer'];
-  if (kind === 'light') return ['light_on', 'light_off', 'brightness_up', 'brightness_down', 'color_temperature'];
-  return [];
-}

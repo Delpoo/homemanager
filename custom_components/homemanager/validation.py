@@ -225,10 +225,24 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fields(device["display"], {"label", "icon"})
         for value in device["display"].values():
             _text(value)
-        _fields(device["bindings"], {"entityId", "primaryAction", "advancedPopupId"})
-        for name, value in device["bindings"].items():
-            if value is not None:
-                (_entity if name == "entityId" else _id)(value)
+        bindings = device["bindings"]
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId"})
+        for name in ("entityId", "primaryAction", "advancedPopupId", "remoteId"):
+            if bindings.get(name) is not None:
+                (_entity if name == "entityId" else _id)(bindings[name])
+        if "quickActions" in bindings:
+            # Up to four actions offered when the icon is held (contract V2, optional).
+            if not isinstance(bindings["quickActions"], list) or len(bindings["quickActions"]) > 4:
+                _fail()
+            quick_ids: set[str] = set()
+            for item in bindings["quickActions"]:
+                _fields(item, {"id", "label", "actionId"})
+                _id(item["id"])
+                _text(item["label"], 80)
+                _id(item["actionId"])
+                if item["id"] in quick_ids:
+                    _fail()
+                quick_ids.add(item["id"])
         _fields(device["state"], {"value", "confidence"})
         if device["state"] != {"value": "unknown", "confidence": "unknown"}:
             _fail()

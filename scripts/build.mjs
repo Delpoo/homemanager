@@ -58,6 +58,7 @@ await build({
     'src/app/index.ts',
     'src/panels/controls.ts',
     'src/card/markers.ts',
+    'src/rf/layout.ts',
   ],
   outbase: 'src',
   outdir: '.work',

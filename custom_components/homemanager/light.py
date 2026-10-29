@@ -1,4 +1,4 @@
-"""Lights built from RF remotes (see rf_entity.py)."""
+"""Lights built from the light parts of RF remotes (see rf_entity.py)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .rf_entity import RemoteEntity, async_setup_platform_entities, button_for
+from .rf_entity import PartEntity, async_setup_platform_entities, parts_of, role
 from .rf_websocket import DATA_RF
 
 
@@ -21,15 +21,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             hass,
             manager,
             "light",
-            lambda remote, shape: ["light"] if shape.light else [],
+            lambda remote: parts_of(remote, "light"),
             lambda remote_id, key: RemoteLight(manager, remote_id, key),
             async_add_entities,
         )
     )
 
 
-class RemoteLight(RemoteEntity, LightEntity, RestoreEntity):
-    _attr_translation_key = "rf_light"
+class RemoteLight(PartEntity, LightEntity, RestoreEntity):
     _attr_color_mode = ColorMode.ONOFF
     _attr_supported_color_modes = {ColorMode.ONOFF}
 
@@ -43,16 +42,16 @@ class RemoteLight(RemoteEntity, LightEntity, RestoreEntity):
             self._attr_is_on = {"on": True, "off": False}.get(last.state)
 
     async def _switch(self, on: bool) -> None:
-        remote = self.remote
-        if not remote:
+        part = self.part
+        if not part:
             return
-        direct = button_for(remote, "light_on" if on else "light_off")
+        direct = role(part, "on" if on else "off")
         if direct is not None:
             await self.press(direct)
         elif self._attr_is_on is not on:
             # A toggle code is only sent when the assumed state differs; sending
             # it anyway would switch the light the wrong way.
-            await self.press(button_for(remote, "light"))
+            await self.press(role(part, "toggle"))
         self._attr_is_on = on
         self.async_write_ha_state()
 
