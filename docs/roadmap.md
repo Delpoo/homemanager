@@ -60,6 +60,15 @@ Objetivo: el día a día se ve profesional, cada símbolo dice qué es, y todo t
    - enviado → en el aire → confirmado / error, en la misma línea;
    - historial de los últimos 50.
 9. **Capas** con icono y nombre, abajo a la izquierda; *Infraestructura* apagada por defecto.
+10. **Importación del plano con resolución de conflictos y espacios editables**:
+    - `src/model/plan-import.ts`: `planImportReport(configuration, zonesAt, newZones)` y `mergeRoom(configuration, from, to)` son funciones puras. Geometría calcula todas las zonas que contienen cada dispositivo; el modelo no usa DOM.
+    - Antes de aplicar un SVG con conflictos, **Revisar cambios** muestra movimientos individuales marcados, espacios sin zona, zonas nuevas marcadas, ambiguos y dispositivos fuera de zona. Los espacios huérfanos sugieren fusionar sólo si todos sus dispositivos caen en exactamente la misma zona. Un espacio vacío elige Quitar; con dispositivos nunca se ofrece quitar sin resolverlos. Las opciones predeterminadas se ven elegidas.
+    - Botones **Aplicar**, **Importar sólo el plano**, **Cancelar**. Sin conflictos se importa directamente. Todo entra al borrador como un solo paso de deshacer; sólo Guardar persiste. Nunca mover o cambiar posiciones sin mostrarlas antes.
+    - **Revisar espacios con el plano** en Ajustes usa el mismo informe y paso sobre el plano ya guardado, sin reimportar.
+    - Fijo bloquea sólo la posición: el espacio se puede cambiar desde la ficha sin Corregir ubicación fija; `roomId` continúa siendo explícito y el contrato no cambia.
+    - En edición, tocar un espacio del riel permite Renombrar, Icono, Fusionar en… y Quitar. Para quitarlo con dispositivos se elige fusionarlos en otro espacio o dejarlos sin espacio. Ajustes conserva Espacios para ordenar.
+
+    Este punto tiene una fase y un commit propios. El propietario revisa primero `planImportReport`, `mergeRoom` y sus pruebas, antes de construir la interfaz encima.
 
 **Aceptación:**
 - [ ] Un sensor de humedad mojado se ve rojo con "1", en el plano, en su espacio y en la barra superior. Tocar la píldora encuadra el sensor.
@@ -69,12 +78,21 @@ Objetivo: el día a día se ve profesional, cada símbolo dice qué es, y todo t
 - [ ] En 390 px, la barra superior y el riel de espacios ocupan como mucho 120 px de alto en total. No queda ningún botón de administración a la vista.
 - [ ] Elegir un espacio en forma de L dibuja una L y oscurece el resto.
 - [ ] Un plano de 0.6 carga sin cambios en sus datos.
+- [ ] Al importar un plano donde desaparecen 3 zonas que tenían espacios declarados, el paso las lista con su sugerencia. Aplicar deja 0 espacios sin zona y reasigna los dispositivos. Un deshacer devuelve todo exactamente como estaba.
+- [ ] Un dispositivo ambiguo o fuera de zona nunca cambia de espacio solo.
+- [ ] Un plano sin conflictos se importa sin paso extra.
+- [ ] Revisar espacios con el plano funciona sobre el plano guardado.
+- [ ] El espacio de un dispositivo fijo se cambia desde la ficha. Su posición no se puede cambiar.
+- [ ] Renombrar, fusionar y quitar espacios desde el riel funciona en 1440 px y en 390 px.
+- [ ] Un plano de 0.6 carga igual con el nuevo flujo de importación.
 
 **Pruebas nuevas:**
 - unitarias de `archetype`, `symbolSpec`, `alertsOf` y `activity`;
 - de navegador del shell (escritorio y móvil);
 - de navegador de la máscara del espacio;
 - validación de los campos nuevos en los tres validadores.
+- unitarias de `planImportReport` y `mergeRoom`: espacio vacío, dispositivos en una sola zona o repartidos, ambiguo, fuera, zonas nuevas e IDs sin cambios;
+- navegador: importación de zonas que se fusionan, revisión del plano guardado, espacios desde el riel y posición fija; capturas de Revisar cambios a 1440×900 y 390×844.
 
 ## Etapa 0.8 · Dispositivos de HA completos (pista A)
 

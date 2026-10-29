@@ -49,6 +49,8 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
+import { reportForPlan, hasPlanChanges, openPlanReview } from './plan-review.js';
+import { openRoomActions } from './room-actions.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -116,6 +118,7 @@ export class HomeManagerEditor extends HTMLElement {
     missingZones: string[];
     newZones: string[];
     positionMode: PositionMode;
+    spatial?: boolean;
   };
   private openSections = new Set<string>();
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
@@ -329,6 +332,40 @@ export class HomeManagerEditor extends HTMLElement {
     this.surface = 'settings';
     this.render();
   }
+  openRoom(id: string): void {
+    this.openSettings();
+    openRoomActions(this.root, this.configuration, id, next => {
+      this.emit(next);
+      this.closeSurface();
+    });
+  }
+  private reviewCandidate(candidate: Configuration): void {
+    const report = reportForPlan(candidate);
+    const positionsChanged = candidate.catalog.devices.some(device => {
+      const old = this.configuration.catalog.devices.find(item => item.id === device.id);
+      return old && JSON.stringify(old.position) !== JSON.stringify(device.position);
+    });
+    if (!hasPlanChanges(report) && !positionsChanged) {
+      this.emit(candidate);
+      return;
+    }
+    openPlanReview(
+      this.root,
+      candidate,
+      report,
+      (next, planOnly) => {
+        this.emit(next);
+        this.notice(
+          planOnly
+            ? t(
+                'Se importó sólo el plano. Los espacios y dispositivos conservan su asignación; revisá los conflictos pendientes.',
+              )
+            : t('Cambios aplicados al borrador. Guardá para persistirlos.'),
+        );
+      },
+      this.configuration,
+    );
+  }
   closeSurface(): void {
     this.surface = null;
     this.sheet = undefined;
@@ -412,7 +449,7 @@ export class HomeManagerEditor extends HTMLElement {
           `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
       )
       .join('');
-    return `<p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
+    return `<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button><p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
       ${rooms.length ? `<form id="rooms-form">${rows}<div class="actions"><button type="submit" class="primary">${esc(t('Aplicar nombres'))}</button></div></form>` : `<p class="note">${esc(t('Todavía no hay espacios.'))}</p>`}
       ${candidates.length ? `<h3>${esc(t('Zonas detectadas en el plano'))}</h3><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">Agregar ${esc(zone.label ?? zone.id)}</button>`).join('')}<button type="button" data-command="room-add-all">Agregar todas (${candidates.length})</button></div>` : ''}
       <form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form>`;
@@ -436,7 +473,7 @@ export class HomeManagerEditor extends HTMLElement {
     return `<form id="device-form"><div class="basic">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
       <div class="field">${help(t('Entidad del dispositivo'), t('El equipo de Home Assistant que representa este símbolo. Sus acciones aparecen como sugerencias en los controles.'))}<input name="entityId" aria-label="${esc(t('Entidad del dispositivo'))}" value="${esc(device?.bindings.entityId ?? '')}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></div>
-      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
+      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
       <div class="ctl-host">${this.controlsSection()}</div>
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
   }
@@ -750,9 +787,13 @@ export class HomeManagerEditor extends HTMLElement {
                 note = ` ${remapped.clamped.length} dispositivo(s) quedaron fuera del nuevo plano y se ubicaron en su borde: revisalos.`;
             }
             this.imported = undefined;
-            this.emit(next);
+            if (imported.spatial) this.reviewCandidate(next);
+            else this.emit(next);
             if (note) this.notice(t('Importación aplicada al borrador.') + note);
           }
+          break;
+        case 'review-spaces':
+          this.reviewCandidate(this.configuration);
           break;
         case 'plans':
           void this.loadPlans();
@@ -901,7 +942,7 @@ export class HomeManagerEditor extends HTMLElement {
             ...(previous?.display.show ? { show: previous.display.show } : {}),
           },
           kind: value(data, 'kind') as Device['kind'],
-          roomId: fixed ? previous.roomId : value(data, 'roomId') || null,
+          roomId: value(data, 'roomId') || null,
           mobility: value(data, 'mobility') as Device['mobility'],
           position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },
           bindings: {
@@ -1018,12 +1059,18 @@ export class HomeManagerEditor extends HTMLElement {
       const previous = sanitizeArchitecture(this.configuration.architecture.content),
         incoming = sanitizeArchitecture(clean.architecture.content);
       const zones = detectZones(incoming.svg).map(zone => zone.id);
+      const viewBoxChanged = svg && JSON.stringify(previous.box) !== JSON.stringify(incoming.box);
+      if (svg && !viewBoxChanged) {
+        this.reviewCandidate(clean);
+        return;
+      }
       this.imported = {
         configuration: clean,
         summary: summarizeImport(this.configuration, clean),
         // Only a plan replacement moves devices: a JSON export already carries
         // positions that belong to its own plan and must be applied unchanged.
-        viewBoxChanged: svg && JSON.stringify(previous.box) !== JSON.stringify(incoming.box),
+        viewBoxChanged,
+        spatial: svg,
         backedUp: false,
         from: previous.box,
         to: incoming.box,

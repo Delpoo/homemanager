@@ -187,7 +187,7 @@ test('adding a device from a real entity derives its name, icon, room and visibl
 test('fixed location stays locked until explicit correction and bindings survive room correction', async ({ page }) => {
   await field(page, 'Dispositivo').selectOption('synthetic-fan');
   await expect(field(page, 'Posición X')).toBeDisabled();
-  await expect(field(page, 'Habitación del dispositivo')).toBeDisabled();
+  await expect(field(page, 'Habitación del dispositivo')).toBeEnabled();
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
   await expect(field(page, 'Posición X')).toBeDisabled();
   await button(page, 'Corregir ubicación fija').click();

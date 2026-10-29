@@ -30,7 +30,8 @@ Fuentes: `PROMPT-CHATGPT-0.7.md` adjunto, plan de seis fases aprobado,
 3. Shell: barra superior, menú, riel, capas y adaptación accesible.
 4. Plano: geometría real y dibujo exclusivo de `SymbolSpec`.
 5. Eventos: alertas y actividad conectadas con los flujos existentes.
-6. Verificación: pruebas, capturas comparadas y entrega verificable.
+6. Verificación: pruebas, capturas comparadas y entrega verificable, después del punto 10.
+7. Importación y espacios (punto 10 añadido por el propietario): modelo puro con revisión intermedia antes de su interfaz; revisión previa al importar y sobre el plano guardado; espacios editables desde el riel; fijo sólo bloquea posición. Commit propio antes de la verificación final de fase 6.
 
 Un commit por fase. No se implementan columna Ahora, pantallas de dispositivo,
 `deviceId`, inspector nuevo, configuración de alertas ni pista B. No modificar

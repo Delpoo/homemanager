@@ -82,9 +82,16 @@ test('immutable existing ID and duplicate new ID are rejected', () => {
   assert.throws(() => upsertDevice(configuration(), device('renamed'), { previousId: 'test-light' }), /inmutable/);
   assert.throws(() => upsertDevice(configuration(), device()), /ya existe/);
 });
-test('fixed room/coordinate correction requires explicit authorization, including a mobility change', () => {
+test('fixed devices can change room while position correction still requires explicit authorization', () => {
   const config = configuration();
   config.catalog.devices[0].mobility = 'fixed';
+  const reassigned = upsertDevice(
+    config,
+    { ...config.catalog.devices[0], roomId: 'kitchen' },
+    { previousId: 'test-light' },
+  );
+  assert.equal(reassigned.catalog.devices[0].roomId, 'kitchen');
+  assert.deepEqual(reassigned.catalog.devices[0].position, config.catalog.devices[0].position);
   const moved = device('test-light', { position: { x: 0.7, y: 0.8 }, mobility: 'portable' });
   assert.throws(() => upsertDevice(config, moved, { previousId: 'test-light' }), /corregir ubicación/);
   assert.equal(

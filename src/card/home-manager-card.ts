@@ -360,6 +360,7 @@ export class HomeManagerCard extends HTMLElement {
     const room = target.dataset.room as RoomId | undefined;
     if (room) {
       this.fit(room);
+      if (this.editing) this.editor?.openRoom(room);
       return;
     }
     const command = target.dataset.command;

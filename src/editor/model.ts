@@ -84,9 +84,7 @@ export function upsertDevice(
   if (
     previous?.mobility === 'fixed' &&
     !options.allowFixedPosition &&
-    (previous.position.x !== input.position.x ||
-      previous.position.y !== input.position.y ||
-      previous.roomId !== input.roomId)
+    (previous.position.x !== input.position.x || previous.position.y !== input.position.y)
   )
     fail(t('Usá la acción explícita de corregir ubicación para un elemento fijo.'));
   if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.display.icon)) fail(t('El icono debe ser un nombre mdi: válido.'));

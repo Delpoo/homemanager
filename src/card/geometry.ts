@@ -792,7 +792,7 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
 }
 /** Actual geometry hit-testing, including grouped/concave/transformed shapes.
  * Ambiguous overlaps, missing geometry and bounding-box-only evidence return null. */
-export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId | null {
+export function roomsAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId[] {
   if (
     ![normalized.x, normalized.y].every(Number.isFinite) ||
     normalized.x < 0 ||
@@ -800,7 +800,7 @@ export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, room
     normalized.y < 0 ||
     normalized.y > 1
   )
-    return null;
+    return [];
   const point = new DOMPoint(box.x + normalized.x * box.width, box.y + normalized.y * box.height),
     matches = new Set<RoomId>();
   for (const id of roomIds) {
@@ -828,5 +828,9 @@ export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, room
         /* No guess from a rectangle. */
       }
   }
-  return matches.size === 1 ? [...matches][0] : null;
+  return [...matches];
+}
+export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId | null {
+  const matches = roomsAt(svg, normalized, box, roomIds);
+  return matches.length === 1 ? matches[0] : null;
 }
