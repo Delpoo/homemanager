@@ -1,4 +1,4 @@
-import type { Hass } from '../card/types.js';
+import type { Hass, HassEntity } from '../card/types.js';
 
 /** Websocket client of the RF remote manager (custom_components/homemanager/rf*.py).
  * Codes never travel here: captures are referenced by candidate id and buttons
@@ -102,6 +102,30 @@ export const ROLES: Record<PartKind, string[]> = {
   ],
   light: ['on', 'off', 'toggle'],
 };
+
+/** Whether the last transmission of an RF remote was heard on air by a receiver
+ * (the transmitter itself or another one). Evidence that the signal went out,
+ * never that the device received it or changed. */
+export type AirResult = 'heard' | 'not_heard' | 'unverified';
+interface AirAttribute {
+  at?: unknown;
+  result?: unknown;
+  by?: unknown;
+}
+const air = (entity?: HassEntity) => entity?.attributes?.homemanager_on_air as AirAttribute | undefined;
+/** Identifies the last echo report of the remote behind an entity. */
+export function airStamp(entity?: HassEntity): string | null {
+  const value = air(entity);
+  return value && typeof value.at === 'string' ? value.at : null;
+}
+/** The echo of a transmission sent after `baseline` was read; null while pending. */
+export function onAir(entity: HassEntity | undefined, baseline: string | null): AirResult | null {
+  const value = air(entity);
+  if (!value || typeof value.at !== 'string' || value.at === baseline) return null;
+  return value.result === 'heard' || value.result === 'not_heard' || value.result === 'unverified'
+    ? value.result
+    : null;
+}
 
 function ws<T>(hass: Hass, message: Record<string, unknown>): Promise<T> {
   if (!hass.callWS) return Promise.reject(new Error('not connected'));

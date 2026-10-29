@@ -101,7 +101,13 @@ class RemoteEntity(Entity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         # Lets HomeManager panels offer "correct state" for this entity.
-        return {"homemanager_remote": self.remote_id}
+        return {"homemanager_remote": self.remote_id, **self.on_air()}
+
+    def on_air(self) -> dict[str, Any]:
+        """Echo of the remote's last transmission: whether a receiver heard it on
+        air. Evidence that it was emitted, never of the device's state."""
+        echo = self.manager.echoes.get(self.remote_id)
+        return {"homemanager_on_air": dict(echo)} if echo else {}
 
     async def press(self, button_id: str | None) -> None:
         if button_id is None:

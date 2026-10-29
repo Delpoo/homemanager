@@ -46,7 +46,7 @@ test('a real touch drag in edit mode creates a saveable draft without executing 
 }) => {
   test.skip(!isMobile, 'Requires the touch viewport.');
   await page.getByRole('button', { name: 'Editar plano', exact: true }).tap();
-  const marker = page.getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true });
+  const marker = page.getByRole('button', { name: 'Luz de prueba', exact: true });
   await marker.scrollIntoViewIfNeeded();
   const box = await marker.boundingBox();
   const x = box.x + box.width / 2,

@@ -100,9 +100,9 @@ test('New home can be cancelled or left through Plan without losing the previous
   const app = page.locator('homemanager-app');
   const homeCard = app.locator('homemanager-card');
   await homeCard.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await homeCard.getByRole('button', { name: 'Detalles de Luz de prueba', exact: true }).click();
+  await homeCard.getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await homeCard.getByLabel('Nombre del dispositivo', { exact: true }).fill('Borrador conservado');
-  await homeCard.getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await homeCard.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
   await page.evaluate(() => {
     window.previousHomeCard = document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card');
   });
@@ -134,18 +134,14 @@ test("an integration-backed card loads its home and follows other editors' revis
     window.homeServer.put('casa', window.homeServer.base, 'Casa');
     window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
   });
-  await expect(
-    card(page).getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true }),
-  ).toBeVisible();
+  await expect(card(page).getByRole('button', { name: 'Luz de prueba', exact: true })).toBeVisible();
   await expect(card(page).getByRole('button', { name: 'Encuadrar Espacio B', exact: true })).toBeVisible();
   await page.evaluate(() => {
     const next = structuredClone(window.homeServer.base);
     next.catalog.devices[0].display.label = 'Luz renombrada';
     window.homeServer.put('casa', next);
   });
-  await expect(
-    card(page).getByRole('button', { name: 'Acción principal de Luz renombrada', exact: true }),
-  ).toBeVisible();
+  await expect(card(page).getByRole('button', { name: 'Luz renombrada', exact: true })).toBeVisible();
   // The dashboard never receives the plan: only the reference lives in Lovelace.
   expect(
     await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length),
@@ -159,9 +155,9 @@ test('saving goes through the revision check and a conflict keeps the draft', as
     window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
   });
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Detalles de Luz de prueba', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz guardada');
-  await card(page).getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
   const saved = await page.evaluate(() => ({
@@ -173,9 +169,10 @@ test('saving goes through the revision check and a conflict keeps the draft', as
   }));
   expect(saved).toEqual({ revision: 2, label: 'Luz guardada', expected: [1] });
 
-  // Another editor saves while this draft is open.
+  // Another editor saves while this draft is open (saving the sheet closed it).
+  await card(page).getByRole('button', { name: 'Luz guardada', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Mi versión');
-  await card(page).getByRole('button', { name: 'Aplicar dispositivo', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
   await page.evaluate(() => {
     const other = structuredClone(window.homeServer.homes.get('casa').configuration);
     other.catalog.devices[0].display.label = 'Versión remota';
@@ -305,7 +302,7 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   await expect(app.getByRole('heading', { name: 'Mi casa' })).toBeVisible();
   await expect(app.getByLabel('Hogar', { exact: true })).toHaveValue('mi-casa');
   await expect(
-    app.locator('homemanager-card').getByRole('button', { name: 'Acción principal de Luz de prueba', exact: true }),
+    app.locator('homemanager-card').getByRole('button', { name: 'Luz de prueba', exact: true }),
   ).toBeVisible();
   const toggled = page.evaluate(
     () => new Promise(resolve => document.addEventListener('hass-toggle-menu', () => resolve(true), { once: true })),

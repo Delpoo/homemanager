@@ -36,6 +36,30 @@
         "confidence": { "enum": ["confirmed", "estimated", "sent", "unknown", "error"] }
       }
     },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actionId"],
+      "properties": {
+        "actionId": { "$ref": "#/$defs/deviceId" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
+        "icon": { "$ref": "#/$defs/text" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "label", "steps"],
+      "$comment": "Named by how it is operated. Steps: button 1, cycle 2-4, updown 2 (up, down), select 2-8, slider none (adjusts entityId's own value, or the device entity's) or 2-12 stops.",
+      "properties": {
+        "id": { "$ref": "#/$defs/deviceId" },
+        "type": { "enum": ["button", "cycle", "slider", "updown", "select"] },
+        "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
+        "steps": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/step" } },
+        "entityId": { "$ref": "#/$defs/text" },
+        "orientation": { "enum": ["vertical", "horizontal"] }
+      }
+    },
     "device": {
       "type": "object",
       "additionalProperties": false,
@@ -52,7 +76,15 @@
           "required": ["label", "icon"],
           "properties": {
             "label": { "$ref": "#/$defs/text" },
-            "icon": { "$ref": "#/$defs/text" }
+            "icon": { "$ref": "#/$defs/text" },
+            "size": { "enum": ["s", "m", "l"], "$comment": "Size of the symbol on the plan; m when absent." },
+            "pinned": {
+              "type": "array",
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/deviceId" },
+              "$comment": "Controls of bindings.controls shown next to the symbol, in this order."
+            }
           }
         },
         "bindings": {
@@ -77,7 +109,12 @@
                 }
               }
             },
-            "remoteId": { "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }] }
+            "remoteId": { "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }] },
+            "controls": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/control" } },
+            "tap": {
+              "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }],
+              "$comment": "Control (button or cycle) a tap on the symbol runs; null opens the panel. Absent: primaryAction, as before."
+            }
           }
         },
         "state": { "$ref": "#/$defs/state" }

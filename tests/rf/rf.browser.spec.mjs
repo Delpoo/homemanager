@@ -59,7 +59,7 @@ async function setup(page, { remotes = [] } = {}) {
               },
             ],
             default_receiver: defaultReceiver,
-            package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.5.0-beta.1',
+            package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.6.0-beta.1',
             builder_url: '/hassio/ingress/5c53de3b_esphome',
           };
         case 'homemanager/rf/default_receiver':
@@ -312,7 +312,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   await rf.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
   const editor = rf.getByRole('dialog', { name: 'Agregar elemento' });
-  await editor.getByRole('button', { name: 'Selector por pasos', exact: true }).click();
+  await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
   await editor.getByLabel('Paso 1', { exact: true }).selectOption('v1');
   await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(editor.getByText('Elegí al menos 2 botones.')).toBeVisible();
@@ -384,7 +384,7 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.5.0-beta.1',
+      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.6.0-beta.1',
     ].join('\n'),
   );
   await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(

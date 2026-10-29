@@ -1,8 +1,9 @@
+import { controlViewStyles } from '../ui/control-view.js';
 import { tokens } from '../ui/theme.js';
 import { iconButtonStyles } from '../ui/icon-button.js';
 import { fabStyles } from '../ui/fab.js';
 
-export const styles = `${tokens}${iconButtonStyles}${fabStyles}
+export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}
 :host{display:block}
 .shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:flex;flex-direction:column}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
@@ -29,7 +30,12 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .marker[data-active=true] .primary{background:color-mix(in srgb,var(--hm-active) 22%,var(--hm-bg));border-color:var(--hm-active)}
 .marker[data-active=true] .primary ha-icon{color:var(--hm-active)}
 .marker .primary:disabled{opacity:.55}
-.marker .detail{position:absolute;right:-7px;top:-7px;width:24px;height:24px;min-height:24px;border-radius:50%;padding:0;font-size:13px;line-height:1;background:var(--hm-bg);border:1px solid var(--hm-line);box-shadow:0 1px 3px rgba(0,0,0,.18);display:grid;place-items:center}
+.marker.size-s,.marker.size-s .primary{width:36px;height:36px;min-height:36px}.marker.size-s .primary ha-icon{--mdc-icon-size:18px}
+.marker.size-l,.marker.size-l .primary{width:58px;height:58px;min-height:58px}.marker.size-l .primary ha-icon{--mdc-icon-size:30px}
+.marker .pins{position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);display:flex;gap:4px;align-items:center;padding:4px;border-radius:18px;background:var(--hm-bg);border:1px solid var(--hm-line);box-shadow:var(--hm-shadow);white-space:nowrap}
+.is-editing .marker .pins{pointer-events:none;opacity:.7}
+.sent-note{position:absolute;z-index:6;transform:translate(-50%,calc(-100% - 30px));padding:6px 12px;border-radius:999px;background:var(--hm-text);color:var(--hm-bg);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:var(--hm-shadow)}
+.sent-note.failed{background:var(--hm-error)}
 .state-dot{position:absolute;width:11px;height:11px;border-radius:50%;bottom:1px;right:1px;border:2px solid var(--hm-bg);background:var(--hm-unknown);pointer-events:none}
 .marker[data-confidence=confirmed] .state-dot{background:var(--hm-confirmed)}
 .marker[data-confidence=estimated] .state-dot{background:var(--hm-estimated)}
@@ -80,5 +86,5 @@ dt{font-weight:600}dd{margin:0}
 .editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
 .is-editing .header [data-command=edit]{display:none}
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
-.quick{position:absolute;z-index:5;transform:translate(-50%,calc(-100% - 30px));display:flex;gap:6px;padding:6px;border-radius:999px;background:var(--hm-bg);box-shadow:var(--hm-shadow);border:1px solid var(--hm-line);white-space:nowrap}.quick.below{transform:translate(-50%,30px)}.quick button{min-height:var(--hm-touch);border-radius:999px;padding:0 14px;font-weight:600}.quick [data-quick-more]{width:var(--hm-touch);padding:0}
+
 `;

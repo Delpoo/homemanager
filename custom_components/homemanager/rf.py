@@ -11,6 +11,11 @@ No helper, script or template is involved: the remote's own settings say which
 transmitter, protocol, pulse length, repeats and frame wait to use. Codes stay
 in this process and in .storage; browsers only get names and fingerprints.
 A press is reported as "sent", never as a confirmed physical state.
+
+Echo: around each press, the receivers with the package (the transmitter
+itself included) listen for a moment. Hearing the same code back shows the
+signal went out on air; it never shows that the device received it or changed.
+The result is published on the remote's entities as `homemanager_on_air`.
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 import logging
 import secrets
 import time
@@ -53,6 +59,12 @@ CONFIRM_FRAMES = 3
 CANDIDATE_TTL_SECONDS = 15 * 60
 # Undecodable receptions are reported at most this often.
 NOISE_INTERVAL_SECONDS = 0.5
+# Echo of a press: receivers listen this long (the device closes its window by
+# itself), and the echo is awaited this long after the transmission ends.
+ECHO_WINDOW_SECONDS = 3
+ECHO_WAIT_SECONDS = 1.5
+# A receiver that does not open its window in time is skipped, not awaited.
+ECHO_OPEN_TIMEOUT_SECONDS = 1.0
 
 
 def _now() -> float:
@@ -121,6 +133,53 @@ class _RfStore(Store[dict[str, Any]]):
         return {"remotes": remotes, "default_receiver": None}
 
 
+class _Echo:
+    """Listens for one transmitted code on the receivers' raw events."""
+
+    def __init__(self, manager: RfManager, code: str, receivers: dict[str, str]) -> None:
+        self.manager = manager
+        self.code = code
+        # Device registry id -> name of each receiver that may hear it.
+        self.receivers = receivers
+        self.listening = False
+        self.heard = False
+        self.heard_by: str | None = None
+        self._heard = asyncio.Event()
+        self._unlisten = manager.hass.bus.async_listen(RAW_EVENT, self._received)
+
+    @callback
+    def _received(self, event: Event) -> None:
+        device_id = event.data.get("device_id")
+        if self._heard.is_set() or (device_id is not None and device_id not in self.receivers):
+            return
+        # Without a device id (older ESPHome) the only receiver listening is the one.
+        name = self.receivers.get(device_id) if device_id is not None else (next(iter(self.receivers.values())) if len(self.receivers) == 1 else None)
+        try:
+            timings = [int(value) for value in str(event.data.get("timings", "")).split(",")[:MAX_TIMINGS] if value.strip()]
+        except ValueError:
+            return
+        if any(frame.bits == self.code for frame in decode(timings)):
+            self.heard = True
+            self.heard_by = name
+            self._heard.set()
+
+    def cancel(self) -> None:
+        self._unlisten()
+
+    async def finish(self, remote_id: str) -> None:
+        try:
+            if self.listening:
+                try:
+                    async with asyncio.timeout(ECHO_WAIT_SECONDS):
+                        await self._heard.wait()
+                except TimeoutError:
+                    pass
+        finally:
+            self._unlisten()
+        result = "heard" if self.heard else "not_heard" if self.listening else "unverified"
+        self.manager._report_echo(remote_id, result, self.heard_by)  # noqa: SLF001 - same module
+
+
 class RfManager:
     """Event-loop only, like HomeManagerStore."""
 
@@ -133,6 +192,11 @@ class RfManager:
         self._listeners: set[Callable[[], None]] = set()
         # Entities built from remotes (rf_entity.py), by unique id.
         self.entities: dict[str, Any] = {}
+        # Nodes in a learning capture: an echo must not shorten their window.
+        self._learning: dict[str, int] = {}
+        # Last echo of each remote: {"at", "result": heard|not_heard|unverified, "by"}.
+        self.echoes: dict[str, dict[str, Any]] = {}
+        self._echo_tasks: set[asyncio.Task[None]] = set()
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
@@ -305,8 +369,44 @@ class RfManager:
         button = remote.buttons.get(button_id)
         if button is None:
             raise ModelError("button_not_found", "unknown button")
-        await self._send(remote.transmitter, remote.protocol, button.code, remote.pulse_us, remote.repeats, remote.wait_us)
+        listen = await self._listen_for(button.code)
+        try:
+            await self._send(remote.transmitter, remote.protocol, button.code, remote.pulse_us, remote.repeats, remote.wait_us)
+        except Exception:
+            listen.cancel()
+            raise
+        task = self.hass.async_create_background_task(listen.finish(remote_id), f"homemanager rf echo {remote_id}")
+        self._echo_tasks.add(task)
+        task.add_done_callback(self._echo_tasks.discard)
         return {"result": "sent"}
+
+    async def _listen_for(self, code: str) -> _Echo:
+        """Opens a short receive window on every receiver with the package and
+        listens for `code`. Receivers already learning keep their own window."""
+        nodes = [item["id"] for item in self.transmitters() if item["can_capture"]]
+        devices = {node: self._device(node) for node in nodes}
+        echo = _Echo(self, code, {device.id: (device.name_by_user or device.name or node) for node, device in devices.items() if device})
+
+        async def open_window(node: str) -> bool:
+            if self._learning.get(node):
+                return True
+            try:
+                async with asyncio.timeout(ECHO_OPEN_TIMEOUT_SECONDS):
+                    await self.hass.services.async_call("esphome", f"{node}_{CAPTURE_ACTION}", {"seconds": ECHO_WINDOW_SECONDS}, blocking=True)
+                return True
+            except Exception:  # noqa: BLE001 - an echo never blocks or fails a press
+                _LOGGER.debug("Could not open an echo window on %s", node)
+                return False
+
+        opened = await asyncio.gather(*(open_window(node) for node in nodes))
+        echo.listening = any(opened) and bool(echo.receivers)
+        return echo
+
+    def _report_echo(self, remote_id: str, result: str, by: str | None) -> None:
+        self.echoes[remote_id] = {"at": datetime.now(UTC).isoformat(timespec="milliseconds"), "result": result, "by": by}
+        for entity in list(self.entities.values()):
+            if entity.remote_id == remote_id and entity.hass is not None:
+                entity.async_write_ha_state()
 
     def assume(self, entity_id: str, is_on: bool) -> None:
         """Corrects an RF entity's assumed state; nothing is transmitted."""
@@ -350,6 +450,7 @@ class RfManager:
         (also called when time runs out)."""
         self._require(transmitter, CAPTURE_ACTION)
         seconds = max(1, min(MAX_CAPTURE_SECONDS, seconds))
+        self._learning[transmitter] = self._learning.get(transmitter, 0) + 1
         device = self._device(transmitter)
         device_id = device.id if device else None
         heard: dict[tuple[int, str], Candidate] = {}
@@ -399,6 +500,7 @@ class RfManager:
             if stopped:
                 return
             stopped = True
+            self._learning[transmitter] = max(0, self._learning.get(transmitter, 1) - 1)
             unlisten()
             cancel_timer()
             self.hass.async_create_task(self._stop_device_capture(transmitter))

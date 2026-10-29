@@ -240,3 +240,73 @@ test('quick actions and the RF remote are optional V2 bindings, validated and bo
     assert.equal(schema(bad), duplicates, JSON.stringify(bindings));
   }
 });
+
+test('device controls, the tap, pinned controls and the symbol size are optional V2 fields, validated and bounded', () => {
+  const configuration = make();
+  configuration.actions['sample-on'] = { domain: 'light', service: 'turn_on', target: { entity_id: 'light.sample' } };
+  configuration.actions['sample-off'] = { domain: 'light', service: 'turn_off', target: { entity_id: 'light.sample' } };
+  const device = configuration.catalog.devices[0];
+  device.bindings.controls = [
+    {
+      id: 'power',
+      type: 'cycle',
+      label: 'Encender / Apagar',
+      steps: [
+        { actionId: 'sample-on', label: 'Encender', icon: 'mdi:lightbulb' },
+        { actionId: 'missing', label: 'Apagar' },
+      ],
+    },
+    { id: 'level', type: 'slider', label: 'Nivel', steps: [], entityId: 'light.sample', orientation: 'vertical' },
+    { id: 'speed', type: 'slider', label: 'Velocidad', steps: [{ actionId: 'sample-on' }, { actionId: 'sample-off' }] },
+    { id: 'mode', type: 'updown', label: 'Subir', steps: [{ actionId: 'sample-on' }, { actionId: 'sample-off' }] },
+  ];
+  device.bindings.tap = 'power';
+  device.display.size = 'l';
+  device.display.pinned = ['level', 'mode'];
+  const result = inspectConfiguration(configuration, { allowPending: true });
+  assert.equal(result.valid, true, JSON.stringify(result.issues));
+  assert.ok(schema(configuration), JSON.stringify(schema.errors));
+  // An absent step action is pending, like any reference.
+  assert.deepEqual(
+    result.issues.map(issue => [issue.path, issue.severity]),
+    [['catalog.sample-light.bindings.controls.power.1', 'pending']],
+  );
+  // tap: null opens the panel.
+  const panel = make();
+  panel.catalog.devices[0].bindings.tap = null;
+  assert.equal(inspectConfiguration(panel).valid, true);
+  const step = { actionId: 'sample-on' };
+  const control = (type, steps, extra = {}) => ({ id: 'c', type, label: 'C', steps, ...extra });
+  // [bindings, display, rejected by the schema too]
+  for (const [bindings, display, bySchema] of [
+    [{ controls: [control('button', [step, step])] }, {}, false],
+    [{ controls: [control('cycle', [step])] }, {}, false],
+    [{ controls: [control('cycle', [step, step, step, step, step])] }, {}, false],
+    [{ controls: [control('select', Array(9).fill(step))] }, {}, false],
+    [{ controls: [control('slider', [step])] }, {}, false],
+    [{ controls: [control('slider', Array(13).fill(step))] }, {}, true],
+    [{ controls: [control('dimmer', [])] }, {}, true],
+    [{ controls: [control('button', [step], { entityId: 'light.sample' })] }, {}, false],
+    [{ controls: [control('slider', [step, step], { entityId: 'light.sample' })] }, {}, false],
+    [{ controls: [control('cycle', [step, step], { orientation: 'vertical' })] }, {}, false],
+    [{ controls: [control('button', [{ ...step, code: '1010' }])] }, {}, true],
+    [{ controls: [control('button', [step]), control('button', [step])] }, {}, false],
+    [
+      { controls: Array.from({ length: 9 }, (_, index) => ({ ...control('button', [step]), id: `c${index}` })) },
+      {},
+      true,
+    ],
+    [{ controls: [control('slider', [])], tap: 'c' }, {}, false],
+    [{ tap: 'missing' }, {}, false],
+    [{ controls: [control('button', [step])] }, { pinned: ['missing'] }, false],
+    [{ controls: [control('button', [step])] }, { pinned: ['c', 'c'] }, true],
+    [{}, { size: 'xl' }, true],
+  ]) {
+    const bad = make();
+    Object.assign(bad.catalog.devices[0].bindings, bindings);
+    Object.assign(bad.catalog.devices[0].display, display);
+    assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify([bindings, display]));
+    // Counts per type and references between fields are semantic: only some cases are schema errors.
+    if (bySchema) assert.equal(schema(bad), false, JSON.stringify([bindings, display]));
+  }
+});

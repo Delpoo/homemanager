@@ -5,43 +5,58 @@ const editor = page => card(page).locator('homemanager-editor');
 const button = (page, name) => card(page).getByRole('button', { name, exact: true });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = page => button(page, 'Editar plano').click();
-const select = (page, name = 'Luz de prueba') => button(page, `Detalles de ${name}`).click();
+// In edit mode a tap on the symbol opens its sheet.
+const select = (page, name = 'Luz de prueba') => button(page, name).click();
 
 test('automatic binding preserves a colliding reusable action and does not invent script parameters', async ({
   page,
 }) => {
   await page.evaluate(() => {
     window.testHarness.mutateRemote(dashboard => {
-      dashboard.views[0].cards[0].configuration.actions['synthetic-sensor-toggle'] = {
+      dashboard.views[0].cards[0].configuration.actions['synthetic-sensor-synthetic-spare-turn-on'] = {
         domain: 'light',
-        service: 'toggle',
+        service: 'turn_on',
         target: { entity_id: 'light.synthetic_light' },
       };
     });
   });
   await begin(page);
   await select(page, 'Temperatura de prueba');
-  await editor(page).getByLabel('Entidad del dispositivo', { exact: true }).fill('light.synthetic_spare');
-  await button(page, 'Aplicar dispositivo').click();
+  const entity = editor(page).getByLabel('Entidad del dispositivo', { exact: true });
+  await entity.fill('light.synthetic_spare');
+  await entity.press('Tab');
+  // A device without controls gets the ones its new entity suggests, shown before saving.
+  await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toHaveValue('power');
+  await button(page, 'Guardar dispositivo').click();
   const configuration = await draft(page);
-  expect(configuration.actions['synthetic-sensor-toggle'].target.entity_id).toBe('light.synthetic_light');
-  expect(configuration.catalog.devices[2].bindings.primaryAction).toBe('synthetic-sensor-toggle-2');
+  expect(configuration.actions['synthetic-sensor-synthetic-spare-turn-on'].target.entity_id).toBe(
+    'light.synthetic_light',
+  );
+  expect(configuration.catalog.devices[2].bindings.controls[0].steps[0].actionId).toBe(
+    'synthetic-sensor-synthetic-spare-turn-on-2',
+  );
+  expect(configuration.actions['synthetic-sensor-synthetic-spare-turn-on-2'].target.entity_id).toBe(
+    'light.synthetic_spare',
+  );
   await button(page, 'Descartar cambios').click();
   await card(page)
     .getByRole('dialog', { name: '¿Descartar los cambios?' })
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();
-  await expect.poll(async () => (await draft(page)).catalog.devices[2].bindings.primaryAction).toBeNull();
-  await expect(editor(page)).toBeVisible();
+  await expect.poll(async () => (await draft(page)).catalog.devices[2].bindings.controls).toBeUndefined();
   await page.evaluate(() => {
     const hass = window.testHarness.hass;
     hass.states['script.needs_input'] = { state: 'off', attributes: { friendly_name: 'Needs input' } };
     hass.services.script.needs_input = { fields: { message: { required: true, selector: { text: {} } } } };
     window.testHarness.card.hass = { ...hass };
   });
-  await editor(page).getByLabel('Entidad del dispositivo', { exact: true }).fill('script.needs_input');
-  await button(page, 'Aplicar dispositivo').click();
-  expect((await draft(page)).catalog.devices[2].bindings.primaryAction).toBeNull();
+  await select(page, 'Temperatura de prueba');
+  await entity.fill('script.needs_input');
+  await entity.press('Tab');
+  await button(page, 'Guardar dispositivo').click();
+  // A script that needs input is not run by a tap: its panel asks for the fields.
+  expect((await draft(page)).catalog.devices[2].bindings).toMatchObject({ primaryAction: null, tap: null });
+  expect((await draft(page)).catalog.devices[2].bindings.controls).toBeUndefined();
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
 });
 
@@ -63,7 +78,7 @@ test('editing starts with the plan, and the floating add menu offers both creati
   await expect(button(page, 'Dispositivo vacío')).toBeVisible();
   await button(page, 'Dispositivo vacío').click();
   await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Lámpara nueva');
-  await button(page, 'Aplicar dispositivo').click();
+  await button(page, 'Guardar dispositivo').click();
   await expect(card(page).locator('.placing-hint')).toBeVisible();
   await expect(editor(page)).toBeHidden();
   const zone = await card(page).locator('#room-living').boundingBox();
@@ -75,7 +90,7 @@ test('editing starts with the plan, and the floating add menu offers both creati
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
 });
 
-test('linking an existing icon generates its primary action only in the draft, then toggles after save', async ({
+test('linking an existing icon suggests its controls only in the draft, then a tap runs them after save', async ({
   page,
 }) => {
   await begin(page);
@@ -85,26 +100,28 @@ test('linking an existing icon generates its primary action only in the draft, t
   await editor(page)
     .getByRole('option', { name: /Synthetic spare light/ })
     .click();
-  await button(page, 'Aplicar dispositivo').click();
+  await button(page, 'Guardar dispositivo').click();
   const configuration = await draft(page);
   const device = configuration.catalog.devices.find(item => item.id === 'synthetic-sensor');
-  expect(configuration.actions[device.bindings.primaryAction]).toEqual({
+  expect(device.bindings.tap).toBe('power');
+  expect(configuration.actions[device.bindings.controls[0].steps[0].actionId]).toEqual({
     domain: 'light',
-    service: 'toggle',
+    service: 'turn_on',
     target: { entity_id: 'light.synthetic_spare' },
   });
   expect(
-    await page.evaluate(() => window.testHarness.config.configuration.catalog.devices[2].bindings.primaryAction),
-  ).toBeNull();
+    await page.evaluate(() => window.testHarness.config.configuration.catalog.devices[2].bindings.controls),
+  ).toBeUndefined();
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
   await button(page, 'Guardar cambios').click();
   await expect(button(page, 'Guardar cambios')).toHaveAttribute('data-dirty', 'false');
   await button(page, 'Salir de edición').click();
-  await button(page, 'Acción principal de Temperatura de prueba').click();
+  await button(page, 'Temperatura de prueba').click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
+  // The spare light is off, so the cycle's next step is "Encender".
   const call = await page.evaluate(() => window.testHarness.calls[0]);
   expect(call.domain).toBe('light');
-  expect(call.service).toBe('toggle');
+  expect(call.service).toBe('turn_on');
   expect(call.target?.entity_id ?? call.data.entity_id).toBe('light.synthetic_spare');
 });
 
@@ -152,10 +169,13 @@ test('plan settings and field help open without cluttering the map, and Move use
   await select(page);
   await editor(page).getByRole('button', { name: 'Ayuda: Entidad del dispositivo', exact: true }).click();
   await expect(
-    editor(page).getByText('Elegí el equipo de Home Assistant que representa este icono.', { exact: true }),
+    editor(page).getByText(
+      'El equipo de Home Assistant que representa este símbolo. Sus acciones aparecen como sugerencias en los controles.',
+      { exact: true },
+    ),
   ).toBeVisible();
   await page.keyboard.press('Escape');
-  await button(page, 'Mover').click();
+  await button(page, 'Mover en el plano').click();
   await expect(editor(page)).toBeHidden();
   const zone = await card(page).locator('#room-office').boundingBox();
   await page.mouse.click(zone.x + zone.width * 0.2, zone.y + zone.height * 0.2);
@@ -174,8 +194,8 @@ test('the device sheet fits the viewport with advanced fields collapsed and uses
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize().width + 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(button(page, 'Aplicar dispositivo')).toBeInViewport();
-  await expect(button(page, 'Mover')).toBeInViewport();
+  await expect(button(page, 'Guardar dispositivo')).toBeInViewport();
+  await expect(button(page, 'Mover en el plano')).toBeInViewport();
   if (testInfo.project.name === 'mobile') {
     await expect
       .poll(async () => {

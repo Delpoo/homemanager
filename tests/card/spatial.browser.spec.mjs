@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Spatial interaction and capability-aware panels, on the synthetic harness.
 const fixture = '/tests/browser/fixtures/card.html';
 const card = page => page.locator('homemanager-card');
-const action = (page, label) => card(page).getByRole('button', { name: `Acción principal de ${label}`, exact: true });
+const action = (page, label) => card(page).getByRole('button', { name: label, exact: true });
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem('homemanager-synthetic-dashboard'));
   await page.goto(fixture);
@@ -82,7 +82,7 @@ test('panels show controls for the real capabilities and only report commands as
     };
     window.testHarness.card.hass = { ...hass };
   });
-  await card(page).getByRole('button', { name: 'Detalles de Luz de prueba', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click({ button: 'right' });
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('switch', { name: 'Encendido' })).toHaveAttribute('aria-checked', 'true');
   const brightness = dialog.getByRole('slider', { name: 'Brillo' });

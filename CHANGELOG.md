@@ -2,6 +2,18 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.6.0-beta.1 — beta, sin publicar
+
+Los símbolos del plano se usan por cómo se tocan, no por formularios (D18).
+
+- **Controles del dispositivo** (contrato V2, campos opcionales `controls`, `tap`, `display.size` y `display.pinned`): cada dispositivo tiene controles elegidos por cómo se usan, no por lo que controlan: **pulsador**, **ciclo** (2 a 4 acciones, cada toque envía la siguiente y el símbolo muestra el icono de la última), **deslizador** (el valor de una entidad, o de 2 a 12 pasos), **subir / bajar** y **selector**. Lo que hace cada paso es una acción del plano.
+- **Tocar** ejecuta el control elegido (o abre el panel); **mantener pulsado**, el clic secundario o Mayús+Intro abren siempre el panel, con todos los controles. Desaparecen los 4 accesos al mantener pulsado y el círculo **⋯**. Un plano de 0.5 sigue funcionando igual: su acción principal es el toque y sus accesos aparecen como controles del panel.
+- **En el plano:** hasta 3 controles fijados junto al símbolo (por ejemplo un pulsador y un deslizador vertical) y tamaño chico, mediano o grande. Cada envío lo dice junto al símbolo: *Enviado: Apagar*.
+- **Ficha del dispositivo:** guardar, eliminar, mover y restablecer valores sugeridos con iconos; guardar cierra la ficha. Un dispositivo nuevo empieza con controles sugeridos y visibles (encender / apagar como ciclo) que se pueden cambiar. Selector de iconos con búsqueda y sugerencias; el de entidades muestra sugerencias sin escribir nada y se desplaza. La ayuda **ⓘ** va junto a su campo. *Medido* se explica en su ayuda, sin casilla de verificación.
+- **Eco RF** ([docs/rf-manager.md](docs/rf-manager.md)): alrededor de cada envío, los receptores con el paquete (el propio Athom incluido) escuchan un momento; si oyen el mismo código, el símbolo dice *en el aire ✓*. Es evidencia de emisión, no de que el equipo lo recibió. Sin cambios de firmware.
+- Arreglos: tras mantener pulsado, el toque siguiente ya no se pierde; el panel abierto al mantener pulsado con ratón ya no se cierra al soltar.
+- El diseñador RF nombra sus elementos con el mismo vocabulario (pulsador, subir / bajar, deslizador por pasos, selector).
+
 ## 0.5.0-beta.1 — beta, sin publicar
 
 Plan 0.5: el plano y los controles RF se usan como una app, sin formularios técnicos a la vista.

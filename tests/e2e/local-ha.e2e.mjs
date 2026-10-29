@@ -200,20 +200,21 @@ await step('an administrator creates a home and imports a plan with its devices'
 });
 await step('the home persists in HA storage and survives a reload', async () => {
   await page.reload();
-  await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
+  await card.getByRole('button', { name: 'Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
   await card.getByRole('button', { name: 'Encuadrar Salón', exact: true }).waitFor();
   await settle();
   await page.screenshot({ path: `${out}/02-home-in-panel.png` });
 });
 await step('a tap runs the primary action on an assumed-state (unknown) entity', async () => {
   const before = (await rest('/api/states/light.e2e_lamp')).state;
-  await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).click();
+  await card.getByRole('button', { name: 'Lámpara E2E', exact: true }).click();
   for (let i = 0; i < 20 && (await rest('/api/states/light.e2e_lamp')).state === before; i++)
     await page.waitForTimeout(250);
   assert.notEqual((await rest('/api/states/light.e2e_lamp')).state, before);
 });
 await step('the native panel offers brightness and sends it to HA without claiming confirmation', async () => {
-  await card.getByRole('button', { name: 'Detalles de Lámpara E2E', exact: true }).click();
+  // Since 0.6 the panel opens by holding the symbol, a secondary click or Shift+Enter.
+  await card.getByRole('button', { name: 'Lámpara E2E', exact: true }).click({ button: 'right' });
   const dialog = page.getByRole('dialog');
   const brightness = dialog.getByRole('slider', { name: 'Brillo' });
   await brightness.fill('60');
@@ -242,7 +243,31 @@ await step('a real entity is added by name and placed by tapping its space', asy
     item => item.bindings.entityId === 'light.e2e_spot',
   );
   assert.equal(device.roomId, 'cocina');
-  assert.equal(device.bindings.primaryAction, 'e2e-spot-toggle');
+  // A tap runs a visible on/off cycle made of ordinary plan actions.
+  assert.equal(device.bindings.tap, 'power');
+  assert.deepEqual(
+    device.bindings.controls[0].steps.map(item => item.actionId),
+    ['e2e-spot-turn-on', 'e2e-spot-turn-off'],
+  );
+});
+await step('the cycle sends its next step on each tap and the symbol says what it sent', async () => {
+  await card.getByRole('button', { name: 'Salir de edición', exact: true }).click();
+  const spot = card.getByRole('button', { name: 'E2E spot', exact: true });
+  for (const expected of ['on', 'off']) {
+    // The next step follows the live state, so start from whatever the spot is.
+    const before = (await rest('/api/states/light.e2e_spot')).state;
+    await spot.click();
+    for (let i = 0; i < 20 && (await rest('/api/states/light.e2e_spot')).state === before; i++)
+      await page.waitForTimeout(250);
+    const after = (await rest('/api/states/light.e2e_spot')).state;
+    assert.notEqual(after, before);
+    assert.ok(['on', 'off'].includes(after), expected);
+    await card
+      .locator('.sent-note')
+      .filter({ hasText: /^Enviado: (Encender|Apagar)$/ })
+      .waitFor();
+  }
+  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
 });
 await step(
   'replacing the plan keeps devices on the same drawing point and a previous plan can be restored',
@@ -311,7 +336,7 @@ await step('a Lovelace card references the home without embedding the plan', asy
   await page.goto(`${base}/e2e-plano/0`);
   await page
     .locator('homemanager-card')
-    .getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true })
+    .getByRole('button', { name: 'Lámpara E2E', exact: true })
     .waitFor({ timeout: 30000 });
   await settle();
   await page.screenshot({ path: `${out}/04-lovelace-card.png` });
@@ -365,7 +390,7 @@ await step(
 await step('the phone layout keeps the plan usable without horizontal scrolling', async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${base}/homemanager`);
-  await card.getByRole('button', { name: 'Acción principal de Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
+  await card.getByRole('button', { name: 'Lámpara E2E', exact: true }).waitFor({ timeout: 30000 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await settle();
   await page.screenshot({ path: `${out}/05-mobile.png` });

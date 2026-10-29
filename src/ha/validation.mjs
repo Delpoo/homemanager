@@ -21,6 +21,21 @@ export const KINDS = Object.freeze([
   'other',
 ]);
 export const MAX_ROOMS = 200;
+/** Controls a map device offers (contract V2, optional). They are named by how
+ * they are operated, never by what they control: what each step does is an
+ * action of the plan. Steps each type takes, as [minimum, maximum]; a slider
+ * has none when it adjusts an entity's own value, else 2 to 12 stops. */
+export const CONTROL_TYPES = Object.freeze(['button', 'cycle', 'slider', 'updown', 'select']);
+export const CONTROL_STEPS = Object.freeze({
+  button: [1, 1],
+  cycle: [2, 4],
+  slider: [0, 12],
+  updown: [2, 2],
+  select: [2, 8],
+});
+export const MAX_CONTROLS = 8;
+export const MAX_PINNED = 3;
+export const SYMBOL_SIZES = Object.freeze(['s', 'm', 'l']);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
@@ -114,6 +129,57 @@ function map(value, path, limit = 2000) {
   for (const key of Object.keys(value)) id(key, `${path} key`);
 }
 
+function controls(device, path) {
+  const list = device.bindings.controls;
+  const types = new Map();
+  if (Object.hasOwn(device.bindings, 'controls')) {
+    if (!Array.isArray(list) || list.length > MAX_CONTROLS)
+      invalid(`${path}.bindings.controls`, `array of at most ${MAX_CONTROLS} controls required`);
+    list.forEach((control, index) => {
+      const at = `${path}.bindings.controls[${index}]`;
+      fields(control, ['id', 'type', 'label', 'steps'], ['entityId', 'orientation'], at);
+      id(control.id, `${at}.id`);
+      if (types.has(control.id)) invalid(`${at}.id`, 'duplicate identifier');
+      one(control.type, CONTROL_TYPES, `${at}.type`);
+      types.set(control.id, control.type);
+      text(control.label, `${at}.label`, 80);
+      const [min, max] = CONTROL_STEPS[control.type];
+      if (!Array.isArray(control.steps) || control.steps.length < min || control.steps.length > max)
+        invalid(`${at}.steps`, `${min} to ${max} steps required`);
+      if (control.type === 'slider' && control.steps.length === 1)
+        invalid(`${at}.steps`, 'a slider has no steps or at least 2');
+      control.steps.forEach((step, position) => {
+        const where = `${at}.steps[${position}]`;
+        fields(step, ['actionId'], ['label', 'icon'], where);
+        id(step.actionId, `${where}.actionId`);
+        if (Object.hasOwn(step, 'label')) text(step.label, `${where}.label`, 80);
+        if (Object.hasOwn(step, 'icon')) text(step.icon, `${where}.icon`);
+      });
+      if (Object.hasOwn(control, 'entityId')) {
+        if (control.type !== 'slider' || control.steps.length)
+          invalid(`${at}.entityId`, 'only a slider without steps adjusts an entity');
+        entity(control.entityId, `${at}.entityId`);
+      }
+      if (Object.hasOwn(control, 'orientation')) {
+        if (control.type !== 'slider') invalid(`${at}.orientation`, 'only a slider has an orientation');
+        one(control.orientation, ['vertical', 'horizontal'], `${at}.orientation`);
+      }
+    });
+  }
+  if (Object.hasOwn(device.bindings, 'tap') && device.bindings.tap !== null) {
+    const type = types.get(device.bindings.tap);
+    if (type !== 'button' && type !== 'cycle')
+      invalid(`${path}.bindings.tap`, 'must name a button or cycle control of this device');
+  }
+  if (Object.hasOwn(device.display, 'pinned')) {
+    const pinned = device.display.pinned;
+    if (!Array.isArray(pinned) || pinned.length > MAX_PINNED || new Set(pinned).size !== pinned.length)
+      invalid(`${path}.display.pinned`, `at most ${MAX_PINNED} distinct controls`);
+    for (const item of pinned)
+      if (!types.has(item)) invalid(`${path}.display.pinned`, 'must name controls of this device');
+  }
+}
+
 function shape(configuration) {
   safeJson(configuration);
   // HA's websocket accepts at most 4 MiB per incoming message (aiohttp default) and
@@ -157,13 +223,14 @@ function shape(configuration) {
     one(device.kind, KINDS, `${path}.kind`);
     one(device.mobility, ['fixed', 'editable', 'portable'], `${path}.mobility`);
     position(device.position, `${path}.position`);
-    fields(device.display, ['label', 'icon'], [], `${path}.display`);
+    fields(device.display, ['label', 'icon'], ['size', 'pinned'], `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
+    if (Object.hasOwn(device.display, 'size')) one(device.display.size, SYMBOL_SIZES, `${path}.display.size`);
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId'],
+      ['quickActions', 'remoteId', 'controls', 'tap'],
       `${path}.bindings`,
     );
     for (const key of ['entityId', 'primaryAction', 'advancedPopupId', 'remoteId'])
@@ -186,6 +253,7 @@ function shape(configuration) {
         quickIds.add(item.id);
       });
     }
+    controls(device, path);
     fields(device.state, ['value', 'confidence'], [], `${path}.state`);
     if (device.state.value !== 'unknown' || device.state.confidence !== 'unknown')
       invalid(`${path}.state`, 'persisted state must remain unknown/unknown');
@@ -274,6 +342,11 @@ export function inspectConfiguration(input, { allowPending = true } = {}) {
     for (const item of device.bindings.quickActions ?? [])
       if (!Object.hasOwn(configuration.actions, item.actionId))
         pending(`catalog.${device.id}.bindings.quickActions.${item.id}`, 'Action is absent; quick action disabled');
+    for (const control of device.bindings.controls ?? [])
+      control.steps.forEach((step, index) => {
+        if (!Object.hasOwn(configuration.actions, step.actionId))
+          pending(`catalog.${device.id}.bindings.controls.${control.id}.${index}`, 'Action is absent; step disabled');
+      });
   }
   for (const [key, panel] of Object.entries(configuration.panels))
     for (const control of panel.controls)
