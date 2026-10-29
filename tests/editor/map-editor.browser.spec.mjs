@@ -31,6 +31,7 @@ test('automatic binding preserves a colliding reusable action and does not inven
     .getByRole('dialog', { name: '¿Descartar los cambios?' })
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();
+  await expect.poll(async () => (await draft(page)).catalog.devices[2].bindings.primaryAction).toBeNull();
   await expect(editor(page)).toBeVisible();
   await page.evaluate(() => {
     const hass = window.testHarness.hass;

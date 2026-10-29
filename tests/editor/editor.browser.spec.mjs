@@ -81,6 +81,20 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
       .entityId,
   ).toBe('fan.not_configured_yet');
 });
+test('a device change immediately after opening advanced options preserves the disclosure', async ({ page }) => {
+  await page.evaluate(() => {
+    const component = document.createElement('homemanager-editor');
+    component.setConfig(window.editorTest.original);
+    document.querySelector('#mount').replaceChildren(component);
+    window.editorTest.editor = component;
+    component.shadowRoot.querySelector('#device-options').open = true;
+    // The native toggle event has not yet run when this device change renders.
+    component.selectedDeviceId = 'synthetic-fan';
+  });
+  await expect(field(page, 'Movilidad del dispositivo')).toBeVisible();
+  await expect(field(page, 'Posición X')).toBeDisabled();
+});
+
 test('live hass updates preserve unsubmitted form values and expose actual entities', async ({ page }) => {
   await field(page, 'Nombre del dispositivo').fill('Unsubmitted label');
   await page.evaluate(() => {

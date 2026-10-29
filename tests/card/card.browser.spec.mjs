@@ -139,7 +139,7 @@ test('numeric edits, undo, redo and discard preserve associations', async ({ pag
     .getByRole('dialog', { name: '¿Descartar los cambios?' })
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();
-  expect((await draft(page)).catalog.devices[0]).toEqual(before);
+  await expect.poll(async () => (await draft(page)).catalog.devices[0]).toEqual(before);
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
@@ -208,7 +208,7 @@ test('new unbound icons can be added and removed entirely through the editor', a
   await detail(page, 'Icono sintético adicional').click();
   await page.getByRole('button', { name: 'Eliminar dispositivo', exact: true }).click();
   await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
-  expect((await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
+  await expect.poll(async () => (await draft(page)).catalog.devices.some(d => d.id === 'synthetic-added')).toBe(false);
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 

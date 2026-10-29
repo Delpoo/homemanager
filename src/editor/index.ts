@@ -121,6 +121,7 @@ export class HomeManagerEditor extends HTMLElement {
       'toggle',
       event => {
         const target = event.target as HTMLDetailsElement;
+        if (!target.isConnected) return;
         if (target.id) target.open ? this.openSections.add(target.id) : this.openSections.delete(target.id);
       },
       true,
@@ -309,6 +310,11 @@ export class HomeManagerEditor extends HTMLElement {
       ${this.section('import-section', t('Importar y exportar'), this.importForm())}${this.migrationForm()}`;
   }
   private render(): void {
+    // Native toggle events can arrive after a change event has already repainted
+    // the editor. Read the current DOM before replacing it so disclosures keep
+    // their actual state even when a device is changed immediately after opening.
+    for (const section of this.root.querySelectorAll<HTMLDetailsElement>('details[id]'))
+      section.open ? this.openSections.add(section.id) : this.openSections.delete(section.id);
     this.hidden = this._embedded && this.surface === null;
     if (this.homeConfig) {
       this.root.innerHTML = this.homeForm();
