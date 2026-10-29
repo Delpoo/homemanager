@@ -279,17 +279,18 @@ test("parts decide Home Assistant's fan and light, so the light's off is not the
   await fan.getByLabel('Velocidad 2', { exact: true }).selectOption('v2');
   await light.getByLabel('Encender / apagar (alterna)').selectOption('luz');
   await light.getByLabel('Apagar', { exact: true }).selectOption('luz-off');
-  const saved = (await calls(page, 'homemanager/rf/parts/save')).at(-1).parts;
-  expect(saved).toEqual([
-    {
-      id: 'ventilador',
-      name: 'Ventilador',
-      kind: 'fan',
-      speeds: null,
-      roles: { off: 'off', speed_1: 'v1', speed_2: 'v2' },
-    },
-    { id: 'luz', name: 'Luz', kind: 'light', speeds: null, roles: { toggle: 'luz', off: 'luz-off' } },
-  ]);
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/parts/save')).at(-1)?.parts)
+    .toEqual([
+      {
+        id: 'ventilador',
+        name: 'Ventilador',
+        kind: 'fan',
+        speeds: null,
+        roles: { off: 'off', speed_1: 'v1', speed_2: 'v2' },
+      },
+      { id: 'luz', name: 'Luz', kind: 'light', speeds: null, roles: { toggle: 'luz', off: 'luz-off' } },
+    ]);
   // A fourth speed appears once the third is chosen.
   await expect(fan.getByLabel('Velocidad 4', { exact: true })).toHaveCount(0);
   await fan.getByLabel('Velocidad 3', { exact: true }).selectOption('v3');
@@ -300,7 +301,9 @@ test("parts decide Home Assistant's fan and light, so the light's off is not the
   const dialog = rf.getByRole('dialog', { name: '¿Quitar «Luz» de Home Assistant?' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Quitar', exact: true }).click();
-  expect((await calls(page, 'homemanager/rf/parts/save')).at(-1).parts.map(part => part.kind)).toEqual(['fan']);
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/parts/save')).at(-1).parts.map(part => part.kind))
+    .toEqual(['fan']);
 });
 
 test('the remote is designed on a grid: add, move, resize and remove elements', async ({ page }) => {
