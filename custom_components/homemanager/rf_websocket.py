@@ -1,9 +1,10 @@
 """Websocket API of the RF remote manager.
 
-Pressing a button and reading the library (names and fingerprints only) is
-open to any authenticated user, like operating any other device. Capturing,
-testing and editing remotes require an administrator. No command returns a
-code: captures are referenced by candidate id.
+Reading the library (names and fingerprints only), pressing a button and
+correcting an assumed state follow HomeManager's access rule: administrators
+and the viewers selected in the integration options. Capturing, testing and
+editing remotes require an administrator. No command returns a code:
+captures are referenced by candidate id.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DOMAIN
+from .const import DOMAIN, MAX_SUBSCRIPTIONS_TOTAL
 from .model import ModelError
 from .rf import MAX_CAPTURE_SECONDS, RfManager
 from .rf_model import MAX_NAME
@@ -40,6 +41,15 @@ def _rf(hass: HomeAssistant) -> RfManager:
     return manager
 
 
+def _reader(hass: HomeAssistant, connection: websocket_api.ActiveConnection) -> None:
+    """Same rule as the homes API (websocket.py): admins and selected viewers."""
+    user = connection.user
+    store = hass.data.get(DOMAIN)
+    viewers = getattr(store, "viewer_user_ids", set())
+    if not (user and user.is_active and (user.is_admin or user.id in viewers)):
+        raise ModelError("unauthorized", "HomeManager access requires an administrator or an explicitly selected viewer")
+
+
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for command in (ws_library, ws_subscribe, ws_transmitters, ws_remote_save, ws_remote_delete, ws_button_save, ws_button_delete, ws_press, ws_assume, ws_test, ws_capture):
@@ -59,6 +69,7 @@ async def _run(connection: websocket_api.ActiveConnection, msg_id: int, work: An
 @callback
 def ws_library(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     try:
+        _reader(hass, connection)
         connection.send_result(msg["id"], _rf(hass).library.public())
     except ModelError as error:
         connection.send_error(msg["id"], error.code, str(error))
@@ -70,7 +81,10 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
     """Pushes an empty event whenever the library changes; clients re-read it."""
     msg_id = msg["id"]
     try:
+        _reader(hass, connection)
         manager = _rf(hass)
+        if manager.subscriber_count >= MAX_SUBSCRIPTIONS_TOTAL:
+            raise ModelError("too_many_subscriptions", "too many open subscriptions")
     except ModelError as error:
         connection.send_error(msg_id, error.code, str(error))
         return
@@ -150,6 +164,7 @@ async def ws_button_delete(hass: HomeAssistant, connection: websocket_api.Active
 @websocket_api.async_response
 async def ws_press(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     async def work() -> dict[str, Any]:
+        _reader(hass, connection)
         return await _rf(hass).async_press(msg["remote_id"], msg["button_id"])
 
     await _run(connection, msg["id"], work())
@@ -161,6 +176,7 @@ def ws_assume(hass: HomeAssistant, connection: websocket_api.ActiveConnection, m
     """Corrects the assumed on/off state of an RF fan or light. Nothing is sent:
     it is for when someone used the physical remote."""
     try:
+        _reader(hass, connection)
         _rf(hass).assume(msg["entity_id"], msg["is_on"])
     except ModelError as error:
         connection.send_error(msg["id"], error.code, str(error))

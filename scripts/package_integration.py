@@ -22,6 +22,9 @@ ALLOWED = frozenset({
     "model.py", "storage_policy.py", "store.py", "strings.json", "svg.py",
     "validation.py", "websocket.py", "translations/en.json", "translations/es.json",
     "frontend/homemanager.js",
+    # RF remote manager (docs/rf-manager.md).
+    "rf.py", "rf_codec.py", "rf_entity.py", "rf_model.py", "rf_websocket.py",
+    "button.py", "fan.py", "light.py",
 })
 SENSITIVE = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b|\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\b")
 
