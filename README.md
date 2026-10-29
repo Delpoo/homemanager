@@ -2,7 +2,7 @@
 
 Frontend Lovelace para visualizar espacios, vincular iconos a entidades de Home Assistant y abrir controles avanzados nativos.
 
-**Estado: versión candidata 0.3.0.** Integración, tarjeta, editor, paneles nativos y panel lateral funcionan juntos y están probados de extremo a extremo contra Home Assistant 2026.2.3 y 2026.10.4 (instancias desechables). Falta instalarla en la vivienda y publicar la primera release. [Instalación](docs/installation.md) · [Pruebas](docs/testing.md) · [Estado y continuación](docs/handoff-agent4.md) · [Cambios](CHANGELOG.md).
+**Estado: 0.3.0 en `main`, sin release publicada.** Integración, tarjeta, editor, paneles nativos y panel lateral funcionan juntos y están probados de extremo a extremo contra Home Assistant 2026.2.3 y 2026.10.4 (instancias desechables). Falta instalarla en la vivienda y publicar la primera release. [Instalación](docs/installation.md) · [Pruebas](docs/testing.md) · [Estado y continuación](docs/handoff-agent4.md) · [Cambios](CHANGELOG.md).
 
 ## Arquitectura
 
