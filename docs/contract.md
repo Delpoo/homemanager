@@ -25,6 +25,11 @@ No son coordenadas de habitación ni de pantalla. Cambiar el viewBox exige revis
 
 `display` contiene exactamente `label` e `icon`. `bindings` contiene exactamente `entityId`, `primaryAction` y `advancedPopupId`, cada uno string o null. `primaryAction` es una clave lógica, no un objeto de servicio. `advancedPopupId` identifica un panel **nativo de HomeManager**. No contiene un ID Browser Mod, una ruta de dashboard externo ni código ejecutable.
 
+Desde 0.5, `bindings` admite dos campos **opcionales**; un plano sin ellos sigue siendo válido y se guarda igual:
+
+- `quickActions`: hasta 4 accesos rápidos `{ "id", "label", "actionId" }` (IDs kebab-case únicos dentro del dispositivo, `label` de 1 a 80 caracteres, `actionId` clave lógica de `actions`). Mantener pulsado el icono los muestra sobre él, junto con "más" para abrir el panel; sin accesos, mantener abre el panel. También aparecen en el panel, para teclado y lectores de pantalla.
+- `remoteId`: ID kebab-case de un control del gestor RF ([rf-manager.md](rf-manager.md)) que el panel del dispositivo dibuja. Si falta, se usa el control de la entidad vinculada cuando es una entidad RF de HomeManager. No contiene códigos: la biblioteca RF vive aparte, en `.storage/homemanager.rf`.
+
 ## Configuración persistente y estado efímero
 
 `schemas/configuration.schema.json` define el documento persistente, separado del catálogo estricto:
@@ -83,7 +88,7 @@ Al iniciar un comando se captura la fecha de la última lectura como baseline. `
 Validar contra JSON Schema es necesario y no suficiente. Antes de persistir, importar o ejecutar, el consumidor también debe comprobar:
 
 1. Unicidad de IDs de dispositivos y controles; rechazo de claves `__proto__`, `prototype` y `constructor` en cualquier estructura, además de números no finitos y límites de bytes/profundidad.
-2. Existencia de cada `primaryAction` y `advancedPopupId`; existencia de cada `actionId`; claves `stateSources` presentes en el catálogo. Las referencias pendientes quedan claramente deshabilitadas.
+2. Existencia de cada `primaryAction`, `advancedPopupId` y `quickActions[].actionId`; existencia de cada `actionId`; claves `stateSources` presentes en el catálogo. Las referencias pendientes quedan claramente deshabilitadas.
 3. Formato/existencia de entidades, coherencia entre dominio de acción y destinos, rechazo de `.all` y validez de servicio/capacidad/datos según HA. Ninguna selección de UI amplía permisos de la sesión.
 4. Paneles RF exclusivamente sobre scripts HA verificados; no copiar ni interpretar capturas RF en el frontend.
 5. SVG XML válido, un solo elemento raíz SVG, viewBox finito de tamaño positivo, IDs únicos, zonas `room-${roomId}` de los espacios declarados (las ausentes se informan) y sanitización tanto al importar como antes de renderizar. Eliminar/rechazar scripts, eventos `on*`, `foreignObject`, HTML incrustado, DTD/entidades, animación ejecutable y referencias externas. Solo referencias internas `#id` resueltas; no ejecutar CSS arbitrario ni conservar URLs externas o `data:`. Mantener un perfil permitido explícito de elementos, atributos y estilos.

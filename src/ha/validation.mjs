@@ -160,12 +160,32 @@ function shape(configuration) {
     fields(device.display, ['label', 'icon'], [], `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
-    fields(device.bindings, ['entityId', 'primaryAction', 'advancedPopupId'], [], `${path}.bindings`);
-    for (const key of ['entityId', 'primaryAction', 'advancedPopupId'])
-      if (device.bindings[key] !== null) {
+    fields(
+      device.bindings,
+      ['entityId', 'primaryAction', 'advancedPopupId'],
+      ['quickActions', 'remoteId'],
+      `${path}.bindings`,
+    );
+    for (const key of ['entityId', 'primaryAction', 'advancedPopupId', 'remoteId'])
+      if (device.bindings[key] !== null && device.bindings[key] !== undefined) {
         if (key === 'entityId') entity(device.bindings[key], `${path}.bindings.${key}`);
         else id(device.bindings[key], `${path}.bindings.${key}`);
       }
+    if (Object.hasOwn(device.bindings, 'quickActions')) {
+      const quick = device.bindings.quickActions;
+      if (!Array.isArray(quick) || quick.length > 4)
+        invalid(`${path}.bindings.quickActions`, 'array of at most 4 quick actions required');
+      const quickIds = new Set();
+      quick.forEach((item, position) => {
+        const at = `${path}.bindings.quickActions[${position}]`;
+        fields(item, ['id', 'label', 'actionId'], [], at);
+        id(item.id, `${at}.id`);
+        text(item.label, `${at}.label`, 80);
+        id(item.actionId, `${at}.actionId`);
+        if (quickIds.has(item.id)) invalid(`${at}.id`, 'duplicate identifier');
+        quickIds.add(item.id);
+      });
+    }
     fields(device.state, ['value', 'confidence'], [], `${path}.state`);
     if (device.state.value !== 'unknown' || device.state.confidence !== 'unknown')
       invalid(`${path}.state`, 'persisted state must remain unknown/unknown');
@@ -251,6 +271,9 @@ export function inspectConfiguration(input, { allowPending = true } = {}) {
       pending(`catalog.${device.id}.bindings.primaryAction`, 'Action is absent; execution disabled');
     if (device.bindings.advancedPopupId && !Object.hasOwn(configuration.panels, device.bindings.advancedPopupId))
       pending(`catalog.${device.id}.bindings.advancedPopupId`, 'Native panel is absent; control disabled');
+    for (const item of device.bindings.quickActions ?? [])
+      if (!Object.hasOwn(configuration.actions, item.actionId))
+        pending(`catalog.${device.id}.bindings.quickActions.${item.id}`, 'Action is absent; quick action disabled');
   }
   for (const [key, panel] of Object.entries(configuration.panels))
     for (const control of panel.controls)

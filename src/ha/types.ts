@@ -33,6 +33,11 @@ export interface DeviceState {
   value: string;
   confidence: Confidence;
 }
+export interface QuickAction {
+  id: string;
+  label: string;
+  actionId: string;
+}
 export interface Device {
   id: string;
   roomId: RoomId | null;
@@ -40,7 +45,15 @@ export interface Device {
   position: Position;
   mobility: 'fixed' | 'editable' | 'portable';
   display: { label: string; icon: string };
-  bindings: { entityId: string | null; primaryAction: string | null; advancedPopupId: string | null };
+  bindings: {
+    entityId: string | null;
+    primaryAction: string | null;
+    advancedPopupId: string | null;
+    /** Up to 4 actions offered when the icon is held (V2, optional). */
+    quickActions?: QuickAction[];
+    /** RF remote drawn in the device panel (V2, optional). */
+    remoteId?: string | null;
+  };
   state: DeviceState;
 }
 export interface Catalog {

@@ -5,10 +5,14 @@ import {
   type Device,
   type HassEntity,
   type NativePanel,
+  type QuickAction,
   type RuntimeDeviceState,
 } from '../card/types.js';
 import { tokens } from '../ui/theme.js';
 import { commandFor, entityControls, humanize, type Command, type Control } from './controls.js';
+import type { RfRemote } from '../integration/rf.js';
+import '../rf/remote-view.js';
+import type { HomeManagerRfRemote } from '../rf/remote-view.js';
 
 export interface PanelAvailability {
   available: boolean;
@@ -32,6 +36,10 @@ export interface PanelOptions {
   onEntityCommand?: (command: Command) => Promise<unknown>;
   /** Corrects the assumed on/off state of an RF entity without sending anything. */
   onAssume?: (isOn: boolean) => Promise<unknown>;
+  /** An RF remote drawn as designed in Controles RF; its keys send codes. */
+  rfRemote?: { load: () => Promise<RfRemote | undefined>; press: (buttonId: string) => Promise<unknown> };
+  /** The device's quick actions (also offered when its icon is held). */
+  quickActions?: QuickAction[];
 }
 export interface PanelHandle {
   element: HomeManagerPanel;
@@ -221,9 +229,11 @@ export class HomeManagerPanel extends HTMLElement {
     const glyph = customElements.get('ha-icon')
       ? `<ha-icon icon="${escapeHTML(this.device.display.icon)}"></ha-icon>`
       : '◉';
-    this.root.innerHTML = `<style>${css}</style><dialog aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></dialog>`;
+    this.root.innerHTML = `<style>${css}</style><dialog aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="quick group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></dialog>`;
     this.renderCustom();
     this.renderAuto(true);
+    this.renderRemote();
+    this.renderQuick();
     this.root.querySelector('.close')!.addEventListener('click', () => this.close());
     this.dialog.addEventListener('click', event => {
       // A tap on the backdrop (outside the sheet) closes it, like native sheets.
@@ -239,6 +249,42 @@ export class HomeManagerPanel extends HTMLElement {
     this.refresh();
     this.dialog.showModal();
     this.root.querySelector<HTMLButtonElement>('.close')!.focus();
+  }
+  /** Before the other controls: for an RF device, its remote is the main control.
+   * Its keys live in the remote's own shadow root, so Tab order stays natural. */
+  private renderRemote(): void {
+    const source = this.options?.rfRemote;
+    const host = this.root.querySelector<HTMLElement>('.remote');
+    if (!source || !host) return;
+    void source
+      .load()
+      .then(remote => {
+        if (!remote || this.closed || !host.isConnected) return;
+        host.innerHTML = `<p class="group-title">${escapeHTML(t('Control remoto'))}</p>`;
+        const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+        view.onPress = source.press;
+        view.remote = remote;
+        host.append(view);
+        host.hidden = false;
+      })
+      .catch(() => undefined);
+  }
+  private renderQuick(): void {
+    const host = this.root.querySelector<HTMLElement>('.quick');
+    const quick = this.options?.quickActions ?? [];
+    if (!host || !quick.length) return;
+    host.innerHTML = `<p class="group-title">${escapeHTML(t('Accesos rápidos'))}</p><div class="controls"></div>`;
+    const list = host.querySelector('.controls')!;
+    for (const item of quick) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'control-button';
+      button.dataset.actionId = item.actionId;
+      button.textContent = item.label;
+      button.addEventListener('click', () => void this.activate(item.actionId));
+      list.append(button);
+    }
+    host.hidden = false;
   }
   private renderCustom(): void {
     const host = this.root.querySelector<HTMLElement>('.custom')!;

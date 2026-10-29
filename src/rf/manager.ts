@@ -13,7 +13,7 @@ import {
   type WidgetType,
 } from '../integration/rf.js';
 import { BUTTON_ICONS, REMOTE_ICONS, icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
-import { confirmDialog, dialogCss } from './dialog.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
 import { WIDGET_BUTTONS, WIDGET_SIZE, add, layoutOf, place, uniqueId } from './layout.js';
 import './remote-view.js';
 import './learn.js';
@@ -36,7 +36,7 @@ interface WidgetDraft {
   error: string;
 }
 
-const css = `${tokens}${dialogCss}
+const css = `${tokens}
 :host{display:block}
 .wrap{max-width:820px;margin:0 auto;display:grid;gap:14px}
 .panel{background:var(--hm-bg);border-radius:var(--hm-radius);box-shadow:var(--hm-shadow);padding:18px;display:grid;gap:14px}
@@ -642,7 +642,7 @@ export class HomeManagerRf extends HTMLElement {
         case 'auto-layout': {
           const ok = await confirmDialog(this.root, {
             title: t('¿Volver al diseño automático?'),
-            text: t('Se pierde la ubicación que elegiste para cada elemento.'),
+            message: t('Se pierde la ubicación que elegiste para cada elemento.'),
             confirm: t('Volver'),
           });
           if (ok) await this.saveLayout(null);
@@ -652,7 +652,7 @@ export class HomeManagerRf extends HTMLElement {
           const remote = this.remote()!;
           const ok = await confirmDialog(this.root, {
             title: t('¿Eliminar «{name}»?', { name: remote.name }),
-            text: t('Se borran sus botones y sus entidades de Home Assistant. El equipo físico no cambia.'),
+            message: t('Se borran sus botones y sus entidades de Home Assistant. El equipo físico no cambia.'),
             confirm: t('Eliminar'),
           });
           if (!ok) break;
@@ -770,7 +770,7 @@ export class HomeManagerRf extends HTMLElement {
     const label = widget.label ?? remote.buttons.find(button => button.id === widget.buttons[0])?.name ?? '';
     const ok = await confirmDialog(this.root, {
       title: t('¿Quitar «{name}» del control?', { name: label }),
-      text: t('El botón sigue aprendido: podés volver a ponerlo con Agregar elemento.'),
+      message: t('El botón sigue aprendido: podés volver a ponerlo con Agregar elemento.'),
       confirm: t('Quitar'),
     });
     if (ok) await this.saveLayout(layout.filter(item => item.id !== id));
@@ -812,7 +812,7 @@ export class HomeManagerRf extends HTMLElement {
     const button = remote.buttons.find(item => item.id === buttonId);
     const ok = await confirmDialog(this.root, {
       title: t('¿Eliminar «{name}»?', { name: button?.name ?? buttonId }),
-      text: t('Se olvida el código. Si lo necesitás, lo podés aprender de nuevo.'),
+      message: t('Se olvida el código. Si lo necesitás, lo podés aprender de nuevo.'),
       confirm: t('Eliminar'),
     });
     if (!ok) return;
@@ -862,7 +862,7 @@ export class HomeManagerRf extends HTMLElement {
     const part = parts.find(item => item.id === partId);
     const ok = await confirmDialog(this.root, {
       title: t('¿Quitar «{name}» de Home Assistant?', { name: part?.name ?? partId }),
-      text: t('Se borra esa entidad. Los botones no se borran.'),
+      message: t('Se borra esa entidad. Los botones no se borran.'),
       confirm: t('Quitar'),
     });
     if (ok) await this.saveParts(parts.filter(item => item.id !== partId));

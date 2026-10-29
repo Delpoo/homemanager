@@ -156,6 +156,9 @@ async function importFile(name, content, type) {
   await applyImport();
 }
 async function save() {
+  // Plan settings (import) is a modal sheet since 0.5: close it to reach Save.
+  const settings = card.getByRole('dialog', { name: 'Ajustes del plano' });
+  if (await settings.isVisible()) await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
   // The previous save's message may still be on screen: wait for a new revision.
   const before = (await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' })).result?.revision ?? 0;
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
@@ -164,6 +167,8 @@ async function save() {
   await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
 }
 async function openImport() {
+  if (!(await card.getByRole('dialog', { name: 'Ajustes del plano' }).isVisible()))
+    await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   if (!(await card.locator('details#import-section').evaluate(node => node.open)))
     await card.locator('summary').filter({ hasText: 'Importar y exportar' }).click();
 }
@@ -222,6 +227,9 @@ await step('the native panel offers brightness and sends it to HA without claimi
 });
 await step('a real entity is added by name and placed by tapping its space', async () => {
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  // Since 0.5 adding starts from the floating + on the plan.
+  await card.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
+  await card.getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
   const quick = card.getByLabel('Agregar dispositivo desde Home Assistant', { exact: true });
   await quick.click();
   await quick.pressSequentially('spot');
@@ -257,7 +265,7 @@ await step(
     const restored = (await stored()).configuration;
     assert.match(restored.architecture.content, /viewBox="0 0 800 500"/);
     assert.ok(Math.abs(restored.catalog.devices.find(d => d.id === 'lampara').position.x - 0.3) < 1e-5);
-    await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+    await card.getByRole('button', { name: 'Salir de edición', exact: true }).click();
   },
 );
 await step('a Lovelace card references the home without embedding the plan', async () => {

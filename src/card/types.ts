@@ -6,6 +6,11 @@ export { KINDS };
 export type { DeviceKind, Room };
 export type RoomId = string;
 export type Confidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
+export interface QuickAction {
+  id: string;
+  label: string;
+  actionId: string;
+}
 export interface Device {
   id: string;
   roomId: RoomId | null;
@@ -13,7 +18,15 @@ export interface Device {
   position: { x: number; y: number };
   mobility: 'fixed' | 'editable' | 'portable';
   display: { label: string; icon: string };
-  bindings: { entityId: string | null; primaryAction: string | null; advancedPopupId: string | null };
+  bindings: {
+    entityId: string | null;
+    primaryAction: string | null;
+    advancedPopupId: string | null;
+    /** Up to 4 actions offered when the icon is held (V2, optional). */
+    quickActions?: QuickAction[];
+    /** RF remote drawn in the device panel (V2, optional). */
+    remoteId?: string | null;
+  };
   state: { value: string; confidence: Confidence };
 }
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };

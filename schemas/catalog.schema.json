@@ -62,7 +62,22 @@
           "properties": {
             "entityId": { "$ref": "#/$defs/nullableText" },
             "primaryAction": { "$ref": "#/$defs/nullableText" },
-            "advancedPopupId": { "$ref": "#/$defs/nullableText" }
+            "advancedPopupId": { "$ref": "#/$defs/nullableText" },
+            "quickActions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "actionId"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/deviceId" },
+                  "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
+                  "actionId": { "$ref": "#/$defs/deviceId" }
+                }
+              }
+            },
+            "remoteId": { "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }] }
           }
         },
         "state": { "$ref": "#/$defs/state" }

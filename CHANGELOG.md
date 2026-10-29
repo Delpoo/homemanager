@@ -2,6 +2,18 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.5.0-beta.1 — beta, sin publicar
+
+Plan 0.5: el plano y los controles RF se usan como una app, sin formularios técnicos a la vista.
+
+- **Editor del plano centrado en el mapa** (parte A): botón **+** flotante, ficha emergente del dispositivo (nombre, icono, entidad, espacio), *Más opciones* para lo técnico, **Ajustes del plano** aparte, ayuda **?** en los campos no obvios, eliminar con ventana de confirmación y *Nuevo hogar* con **Cancelar**. Al vincular una entidad se crea la acción principal.
+- **Controles RF libres** (D17, [docs/rf-manager.md](docs/rf-manager.md)): un control es nombre e icono; los botones se aprenden en cualquier orden, con estado en vivo y aviso de señal no reconocida. Se confirma con 3 tramas iguales en una pulsación o dos pulsaciones a más de 0,3 s. Las pruebas cambian una cosa por vez y dicen qué cambió; el pulso se muestra como medido.
+- **Partes y roles:** el ventilador y la luz de Home Assistant se arman con roles por parte; el *Apagar* de la luz ya no cae en el ventilador.
+- **Diseñador del control:** botones, interruptores, −/+, selectores por pasos y de modos en una cuadrícula, para mover, redimensionar, editar y quitar.
+- **Equipos RF:** todos los dispositivos ESPHome, el YAML exacto con **Copiar**, enlace a ESPHome Builder, receptor por defecto y prueba de recepción.
+- **Accesos rápidos y control en el panel** (contrato V2, campos opcionales `quickActions` y `remoteId`): mantener pulsado un icono muestra hasta 4 accesos; el panel del dispositivo dibuja su control RF.
+- La biblioteca RF pasa a la versión 2 con migración automática que conserva las entidades de 0.4. Cerrar la página durante una captura ya no produce un error en Home Assistant.
+
 ## 0.4.0-beta.1 — beta, sin publicar
 
 Incluye 0.3.1. Primera versión para probar desde HACS el gestor de controles RF en una instalación real.

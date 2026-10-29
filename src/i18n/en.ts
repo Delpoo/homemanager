@@ -604,4 +604,24 @@ export const en: Record<string, string> = {
   '¿Descartar los cambios?': 'Discard changes?',
   'Se recupera la última versión guardada.': 'Returns to the last saved version.',
   Eliminar: 'Delete',
+  // Quick actions and the RF remote in device panels (0.5).
+  'Accesos rápidos de {label}': 'Quick actions of {label}',
+  'Más controles de {label}': 'More controls of {label}',
+  Alternar: 'Toggle',
+  'Acceso {number}': 'Shortcut {number}',
+  'Nombre del acceso {number}': 'Name of shortcut {number}',
+  'Nombre (opcional)': 'Name (optional)',
+  'Acción del acceso {number}': 'Action of shortcut {number}',
+  Nada: 'Nothing',
+  Sugeridas: 'Suggested',
+  'Acciones del plano': 'Plan actions',
+  'Control RF en el panel': 'RF remote in the panel',
+  'El control diseñado en Controles RF que se muestra en el panel de este dispositivo. Automático usa el de su entidad.':
+    "The remote designed in RF remotes that this device's panel shows. Automatic uses the one of its entity.",
+  'Al mantener pulsado': 'On long press',
+  'Hasta 4 accesos rápidos aparecen sobre el icono al mantenerlo pulsado. Sin accesos, se abre el panel.':
+    'Up to 4 quick actions appear above the icon when it is held. Without them, the panel opens.',
+  'Un dispositivo tiene como máximo 4 accesos rápidos.': 'A device has at most 4 quick actions.',
+  'Control remoto': 'Remote',
+  'Accesos rápidos': 'Quick actions',
 };

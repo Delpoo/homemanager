@@ -1,6 +1,6 @@
 # Gestor de controles RF
 
-Estado: **0.4 publicada como beta; 0.5 (aprendizaje libre, partes, diseñador y equipos RF) en la rama `claude/rf-designer`**. Falta la prueba con un transmisor real. Decisión: [D16](decisions.md#d16--gestor-de-controles-rf-propio). Sustituye, para los equipos que se den de alta aquí, la cadena actual de scripts, helpers y botones de dashboard. Lo existente en Home Assistant no se toca.
+Estado: **0.5.0-beta.1** (aprendizaje libre, partes, diseñador, equipos RF y control en el plano). Falta la prueba con un transmisor real. Decisión: [D16](decisions.md#d16--gestor-de-controles-rf-propio). Sustituye, para los equipos que se den de alta aquí, la cadena actual de scripts, helpers y botones de dashboard. Lo existente en Home Assistant no se toca.
 
 ## Qué reemplaza
 
@@ -114,8 +114,9 @@ Los navegadores sólo reciben nombres, iconos, ajustes y una huella corta de cad
 
 1. **Backend y firmware** — hecho (0.4).
 2. **Asistente, entidades y panel** — hecho (0.4).
-3. **Aprendizaje libre, partes, diseñador y equipos RF** — hecho (0.5, rama `claude/rf-designer`).
-4. **Pendiente:** abrir el control diseñado desde el icono del plano y accesos rápidos (0.5, parte B2); importación de catálogos de códigos; escucha continua del control físico para corregir el estado estimado.
+3. **Aprendizaje libre, partes, diseñador y equipos RF** — hecho (0.5).
+4. **Control en el plano** — hecho (0.5): el panel de un dispositivo dibuja su control RF (el elegido en *Al mantener pulsado → Control RF en el panel*, o el de su entidad) y el icono ofrece accesos rápidos al mantenerlo pulsado, sugeridos desde la entidad o los botones del control.
+5. **Pendiente:** importación de catálogos de códigos; escucha continua del control físico para corregir el estado estimado.
 
 ## Límites conocidos
 

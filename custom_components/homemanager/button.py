@@ -54,7 +54,9 @@ class RemoteButton(RemoteEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {}
+        # Not `homemanager_remote`: a button has no state to correct. This one
+        # lets a plan device bound to the button show its remote.
+        return {"homemanager_remote_button": self.remote_id}
 
     async def async_press(self) -> None:
         await self.press(self.button_id)

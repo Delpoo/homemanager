@@ -80,4 +80,5 @@ dt{font-weight:600}dd{margin:0}
 .editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
 .is-editing .header [data-command=edit]{display:none}
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
+.quick{position:absolute;z-index:5;transform:translate(-50%,calc(-100% - 30px));display:flex;gap:6px;padding:6px;border-radius:999px;background:var(--hm-bg);box-shadow:var(--hm-shadow);border:1px solid var(--hm-line);white-space:nowrap}.quick.below{transform:translate(-50%,30px)}.quick button{min-height:var(--hm-touch);border-radius:999px;padding:0 14px;font-weight:600}.quick [data-quick-more]{width:var(--hm-touch);padding:0}
 `;

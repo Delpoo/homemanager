@@ -52,7 +52,8 @@ async def test_fan_light_and_buttons_follow_the_remote(hass: HomeAssistant, setu
     assert fan.attributes["percentage_step"] == 100 / 3
     assert fan.attributes["homemanager_remote"] == "ventilador"
     assert hass.states.get("light.ventilador_light") is not None
-    assert hass.states.get("button.ventilador_1h") is not None
+    assert hass.states.get("button.ventilador_1h").attributes["homemanager_remote_button"] == "ventilador"
+    assert "homemanager_remote" not in hass.states.get("button.ventilador_1h").attributes
     # A part named like the remote takes the device name; the light has its own.
     assert hass.states.get("fan.ventilador").attributes["friendly_name"] == "Ventilador"
     # Speed, off and direction buttons live in the fan, the light button in the light.

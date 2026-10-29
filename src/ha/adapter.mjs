@@ -293,6 +293,7 @@ export class HomeAssistantAdapter {
 
   _matches(device, actionId) {
     if (device.bindings.primaryAction === actionId) return true;
+    if (device.bindings.quickActions?.some(item => item.actionId === actionId)) return true;
     const panelId = device.bindings.advancedPopupId;
     const panel = panelId && own(this._configuration.panels, panelId) ? this._configuration.panels[panelId] : null;
     return !!panel?.controls.some(control => control.actionId === actionId);
