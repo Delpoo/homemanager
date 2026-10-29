@@ -15,9 +15,10 @@
 #   packages:
 #     homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@main
 #
-# Both components need an `id:`; add one if your configuration has none.
-# If capture events do not reach Home Assistant, enable "Allow the device to
-# perform Home Assistant actions" in the ESPHome integration options.
+# Both components need an `id:`; add one if your configuration has none. In the
+# official Athom RF IR Remote package they are `rf_transmitter` and
+# `rf_receiver`. Events named `esphome.*` need no extra permission in Home
+# Assistant (device actions do; this package fires none).
 #
 # Supported RCSwitch protocols: 1, 2, 4 and 7 (sync mark of one pulse).
 
