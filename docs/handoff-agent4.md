@@ -1,4 +1,4 @@
-# Estado y continuación · versión candidata 0.3.0
+# Estado y continuación · 0.3.0 en main
 
 Actualizado el 29 de octubre de 2026 por la etapa de integración y maduración (Claude, en el rol de Agente 4). El complemento privado con los datos de la vivienda está en `docs/handoff-agent4-instance.md` de `Delpoo/homemanager-instance`. Antecedentes: [auditoría](audit-2026-10-29.md) y [decisiones](decisions.md).
 
@@ -6,9 +6,9 @@ Actualizado el 29 de octubre de 2026 por la etapa de integración y maduración 
 
 | Rama | Contenido | Estado |
 | --- | --- | --- |
-| `integration` | Rama de integración del Agente 4: `frontend` (#6, que incluye #5) + contrato V2 (#7) + integración D11 (#8) + maduración de producto | Candidata a `main` mediante un único PR, **sin fusionar** |
-| `claude/product-v1` | La misma historia; rama de trabajo de esta etapa | Trazabilidad |
-| #5, #6, #7, #8 | PR anteriores, incluidos íntegramente en `integration` | Cerrar como incluidos cuando se fusione el PR de `integration` |
+| `main` | 0.3.0: `frontend` (#6, que incluye #5) + contrato V2 (#7) + integración D11 (#8) + maduración de producto | **Fusionado** con #9 (rebase, aprobado por el propietario el 29/10/2026). Sin release |
+| `integration`, `claude/product-v1` | La misma historia que `main` | Trazabilidad; se pueden borrar |
+| #5, #6, #7, #8 | PR anteriores | Cerrados como incluidos en #9 |
 | #2, #3 | Dependabot (versiones mayores de acciones) | Pendientes de revisar |
 
 Privado: `integration` = #2 + #3 + #4 (preparación V2). Sin fusionar.
@@ -50,7 +50,7 @@ Errores que encontró la prueba contra HA real y ya están corregidos:
 
 ### P0 · Antes de la Raspberry
 
-1. **Aprobación del propietario** para fusionar el PR de `integration` en `main`.
+1. ~~Aprobación del propietario para fusionar en `main`~~: hecho con #9 el 29/10/2026. Pendiente aparte: fusionar el `integration` privado (#2 + #3 + #4).
 2. **Versión de HA de la vivienda.** Si es anterior a 2026.2 o posterior a 2026.10, repetir `pytest` y la E2E con esa versión antes de instalar.
 3. **Instalación** siguiendo [installation.md](installation.md): copia de seguridad, paquete manual (o release si el propietario la aprueba), crear el hogar `verdale` e importar `build/homemanager-configuration.json`.
 4. **Vinculación de entidades reales** con el propietario presente, siguiendo `docs/bindings.md` del privado. Las acciones físicas sólo con su aprobación.

@@ -1,6 +1,6 @@
 # Instalación en Home Assistant
 
-Guía para instalar HomeManager 0.3.0 en una instalación real, por ejemplo Home Assistant OS en una Raspberry Pi. Probado en Home Assistant 2026.2.3 y 2026.10.4 (instancias de prueba). **No hay release publicada todavía**: hasta entonces se instala el paquete generado desde la rama aprobada.
+Guía para instalar HomeManager 0.3.0 en una instalación real, por ejemplo Home Assistant OS en una Raspberry Pi. Probado en Home Assistant 2026.2.3 y 2026.10.4 (instancias de prueba). **No hay release publicada todavía**: hasta entonces se instala el paquete generado desde `main`.
 
 ## Antes de empezar
 
@@ -17,7 +17,7 @@ Guía para instalar HomeManager 0.3.0 en una instalación real, por ejemplo Home
 
 ## Opción B · Paquete manual (antes de la release)
 
-1. Desde un checkout de la rama aprobada: `npm ci --ignore-scripts && npm run package`. Genera `.work/release/homemanager.zip`.
+1. Desde un checkout de `main`: `npm ci --ignore-scripts && npm run package`. Genera `.work/release/homemanager.zip`.
 2. Copiar el contenido del zip en `/config/custom_components/homemanager/`, por ejemplo con el complemento *File editor* o *Samba share*. Debe quedar `/config/custom_components/homemanager/manifest.json` y `/config/custom_components/homemanager/frontend/homemanager.js`.
 3. Reiniciar Home Assistant y añadir la integración como en la opción A.
 

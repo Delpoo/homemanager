@@ -1,6 +1,6 @@
 # Distribución mediante HACS
 
-Estado (29 de octubre de 2026): **versión 0.3.0 candidata, empaquetado y E2E probados en instancias desechables de HA 2026.2.3 y 2026.10.4; sin releases publicadas.** Instalación: [installation.md](installation.md). Tras la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-configuración), HomeManager se distribuye como **una sola integración** que incluye la tarjeta, el editor y el panel.
+Estado (29 de octubre de 2026): **versión 0.3.0 en `main` (Delpoo/homemanager#9), empaquetado y E2E probados en instancias desechables de HA 2026.2.3 y 2026.10.4; sin releases publicadas.** Instalación: [installation.md](installation.md). Tras la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-configuración), HomeManager se distribuye como **una sola integración** que incluye la tarjeta, el editor y el panel.
 
 ## Paquete público
 
@@ -13,7 +13,7 @@ Estado (29 de octubre de 2026): **versión 0.3.0 candidata, empaquetado y E2E pr
 
 ## Secuencia de publicación
 
-1. Integrar por PR la tarjeta, el editor, el adaptador HA y la integración, con CI (`foundation` e `integration`) en verde.
+1. Integrar por PR la tarjeta, el editor, el adaptador HA y la integración, con CI (`foundation` e `integration`) en verde. *Hecho para 0.3.0 (#9).*
 2. Desde un commit identificado: `npm ci --ignore-scripts`, `npm run check`, `npm run test:browser`, `python -m pytest -q` y `npm run package` (genera `.work/release/homemanager.zip`). Revisar el contenido del zip: código, traducciones y bundle; ningún plano, binding real, URL interna ni secreto.
 3. Probar en las versiones de HA que se declararán compatibles: instalación por HACS como repositorio personalizado, alta de la integración, panel, tarjeta en un dashboard, migración de una tarjeta inline, guardado con conflicto, usuario no administrador, reinicio y actualización de versión sin pérdida de hogares. `tests/e2e/local-ha.e2e.mjs` automatiza la mayor parte contra una instancia de prueba.
 4. Crear un tag SemVer y una release **en borrador** con `homemanager.zip`, su checksum y notas de compatibilidad.
