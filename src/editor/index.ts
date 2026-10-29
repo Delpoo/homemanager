@@ -48,6 +48,7 @@ import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-butto
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
+import { suggestRoomIcon } from '../shell/room-rail.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -408,7 +409,7 @@ export class HomeManagerEditor extends HTMLElement {
     const rows = rooms
       .map(
         (room, index) =>
-          `<div class="room-row"><label class="field">Nombre de ${esc(room.id)}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}>↑</button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}">×</button></div>`,
+          `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
       )
       .join('');
     return `<p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
@@ -803,6 +804,12 @@ export class HomeManagerEditor extends HTMLElement {
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (!this.config) return;
+    if (target.hasAttribute('data-room-icon')) {
+      const index = target.dataset.roomIcon!;
+      const hidden = this.root.querySelector<HTMLInputElement>(`[name="room-icon-${index}"]`);
+      if (hidden) hidden.value = target.value;
+      return;
+    }
     if (this.sheet && (target.dataset.ctl !== undefined || target.dataset.sheet)) {
       if (editField(this.sheet, target)) this.paintControls();
       return;
@@ -890,6 +897,8 @@ export class HomeManagerEditor extends HTMLElement {
             icon: value(data, 'icon'),
             ...(held.size !== 'm' ? { size: held.size } : {}),
             ...(held.pinned.length ? { pinned: held.pinned } : {}),
+            ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
+            ...(previous?.display.show ? { show: previous.display.show } : {}),
           },
           kind: value(data, 'kind') as Device['kind'],
           roomId: fixed ? previous.roomId : value(data, 'roomId') || null,
@@ -957,7 +966,9 @@ export class HomeManagerEditor extends HTMLElement {
         let next = this.configuration;
         this.configuration.rooms.forEach((room, index) => {
           const label = value(data, `room-label-${index}`);
-          if (label !== room.label) next = upsertRoom(next, { id: room.id, label }, { previousId: room.id });
+          const icon = value(data, `room-icon-${index}`);
+          if (label !== room.label || icon !== (room.icon ?? ''))
+            next = upsertRoom(next, { id: room.id, label, ...(icon ? { icon } : {}) }, { previousId: room.id });
         });
         this.emit(next);
       } else if (formId === 'room-add-form') {

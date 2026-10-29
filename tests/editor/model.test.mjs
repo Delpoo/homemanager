@@ -51,6 +51,21 @@ function configuration() {
   };
 }
 
+test('editing preserves optional 0.7 presentation and room icons', () => {
+  const original = configuration();
+  original.rooms[0].icon = 'mdi:sofa';
+  original.catalog.devices[0].display = {
+    ...original.catalog.devices[0].display,
+    archetype: 'equipment',
+    show: 'both',
+  };
+  const next = upsertDevice(original, original.catalog.devices[0], { previousId: 'test-light' });
+  assert.equal(next.catalog.devices[0].display.archetype, 'equipment');
+  assert.equal(next.catalog.devices[0].display.show, 'both');
+  const renamed = upsertRoom(next, { ...next.rooms[0], label: 'Renamed' }, { previousId: 'living' });
+  assert.equal(renamed.rooms[0].icon, 'mdi:sofa');
+});
+
 test('device edits keep IDs, HA bindings and shared logical maps when room changes', () => {
   const original = configuration(),
     before = structuredClone(original),
