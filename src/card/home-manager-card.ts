@@ -32,6 +32,9 @@ import {
   type RoomId,
 } from './types.js';
 import { styles } from './styles.js';
+import { iconButton } from '../ui/icon-button.js';
+import { fab } from '../ui/fab.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
 import { VERSION } from '../version.js';
 
 const KIND_ICONS: Record<string, string> = {
@@ -110,6 +113,7 @@ export class HomeManagerCard extends HTMLElement {
   private unsubscribe?: () => void;
   private runtime: RuntimeState = { schemaVersion: 1, states: {} };
   private editor?: HomeManagerEditor;
+  private editorFocus?: HTMLElement;
   private store?: ConfigurationStore;
   // Integration storage (card config with home_id): loaded over the websocket.
   private home?: IntegrationConfigurationStore;
@@ -380,7 +384,10 @@ export class HomeManagerCard extends HTMLElement {
       ['infrastructure', t('Infraestructura'), '⚙'],
       ['energy', t('Energía'), 'ϟ'],
     ].filter(([id]) => this.draft!.catalog.devices.some(d => layer(d) === id));
-    this.root.innerHTML = `<style>${styles}</style><section class="shell"><header class="header"><span class="logo" aria-hidden="true">⌂</span><h1>${e(this.config.title ?? t('HomeManager'))}</h1>${this.icon('info', t('Información'), 'ⓘ')}${this.icon('edit', t('Editar plano'), '✎', 'aria-pressed="false"')}${this.icon('fullscreen', t('Pantalla completa'), '⛶')}</header><nav class="rooms" aria-label="${e(t('Espacios'))}"><button type="button" class="all" data-command="all" aria-label="${e(t('Encuadrar todo'))}" title="${e(t('Encuadrar todo'))}">${e(t('Todo'))}</button></nav><div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div><nav class="layers" aria-label="${e(t('Capas'))}">${layers.length > 1 ? layers.map(([id, label, icon]) => this.icon(`layer-${id}`, label, icon, `aria-pressed="${this.enabledLayers.has(id)}"`)).join('') : ''}</nav><div class="zoom">${this.icon('in', t('Acercar'), '+')}${this.icon('out', t('Alejar'), '−')}</div></div></div><div class="editor-wrap" hidden><div class="editbar">${this.icon('undo', t('Deshacer'), '↶')}${this.icon('redo', t('Rehacer'), '↷')}${this.icon('save-info', t('Información del guardado'), 'ⓘ')}<span class="space"></span><button data-command="discard" type="button">${e(t('Descartar cambios'))}</button><button data-command="save" class="save" type="button" data-dirty="false">${e(t('Guardar cambios'))}</button></div><div class="selection"></div><div class="editor"></div></div><div class="status" role="status" aria-live="polite"></div></section>`;
+    this.root.innerHTML = `<style>${styles}</style><section class="shell"><header class="header"><span class="logo" aria-hidden="true">⌂</span><h1>${e(this.config.title ?? t('HomeManager'))}</h1>${this.icon('info', t('Información'), '?')}${this.icon('edit', t('Editar plano'), '✎', 'aria-pressed="false"')}${this.icon('fullscreen', t('Pantalla completa'), '⛶')}</header>
+      <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
+      <nav class="rooms" aria-label="${e(t('Espacios'))}"><button type="button" class="all" data-command="all" aria-label="${e(t('Encuadrar todo'))}" title="${e(t('Encuadrar todo'))}">${e(t('Todo'))}</button></nav>
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div><nav class="layers" aria-label="${e(t('Capas'))}">${layers.length > 1 ? layers.map(([id, label, icon]) => this.icon(`layer-${id}`, label, icon, `aria-pressed="${this.enabledLayers.has(id)}"`)).join('') : ''}</nav><div class="zoom">${this.icon('in', t('Acercar'), '+')}${this.icon('out', t('Alejar'), '−')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.groupsKey = '';
     this.root.addEventListener('click', this.onClick);
     this.root.addEventListener('keydown', this.key as EventListener);
@@ -620,6 +627,7 @@ export class HomeManagerCard extends HTMLElement {
       highlight.style.width = `${bounds.width * this.camera.scale}px`;
       highlight.style.height = `${bounds.height * this.camera.scale}px`;
     }
+    this.positionEditor();
   }
   private refreshState() {
     this.root.querySelectorAll<HTMLElement>('.marker').forEach(m => {
@@ -689,6 +697,16 @@ export class HomeManagerCard extends HTMLElement {
       return;
     }
     switch (command) {
+      case 'add-device':
+        this.editorFocus = target;
+        this.editor?.openAdd();
+        this.positionEditor();
+        break;
+      case 'settings':
+        this.editorFocus = target;
+        this.editor?.openSettings();
+        break;
+      case 'exit':
       case 'edit':
         void this.toggleEdit();
         break;
@@ -716,7 +734,14 @@ export class HomeManagerCard extends HTMLElement {
         void this.save();
         break;
       case 'discard':
-        this.discard();
+        void confirmDialog(this.root, {
+          title: t('¿Descartar los cambios?'),
+          message: t('Se recupera la última versión guardada.'),
+          confirm: t('Descartar cambios'),
+          trigger: target,
+        }).then(confirmed => {
+          if (confirmed) this.discard();
+        });
         break;
       case 'undo':
         this.undo();
@@ -813,6 +838,8 @@ export class HomeManagerCard extends HTMLElement {
         return;
       }
       this.editing = false;
+      this.stopPlacing();
+      this.editor?.closeSurface();
       this.updateControls();
       this.renderMarkers();
       return;
@@ -850,6 +877,7 @@ export class HomeManagerCard extends HTMLElement {
       this.draft = clone(current);
       this.config.configuration = clone(current);
       this.editing = true;
+      this.selected = null;
       this.fixedPermit = null;
       this.history = [];
       this.future = [];
@@ -880,7 +908,22 @@ export class HomeManagerCard extends HTMLElement {
     // "Add device" in the editor asks the card for a tap on the plan.
     this.editor.addEventListener('homemanager-place', (event: Event) => {
       event.stopPropagation();
-      this.startPlacing((event as CustomEvent<{ deviceId: string }>).detail.deviceId);
+      const id = (event as CustomEvent<{ deviceId: string }>).detail.deviceId;
+      this.fixedPermit = id;
+      this.selected = id;
+      this.startPlacing(id);
+    });
+    this.editor.addEventListener('homemanager-fixed', (event: Event) => {
+      this.fixedPermit = (event as CustomEvent<{ deviceId: string }>).detail.deviceId;
+      this.renderMarkers();
+    });
+    this.editor.addEventListener('homemanager-editor-close', () => {
+      const marker =
+        this.selected && this.root.querySelector<HTMLElement>(`[data-id="${CSS.escape(this.selected)}"] .primary`);
+      (this.editorFocus?.isConnected
+        ? this.editorFocus
+        : marker || this.root.querySelector<HTMLElement>('[data-command=add-device]')
+      )?.focus();
     });
     this.editor.addEventListener('config-changed', (event: Event) => {
       event.stopPropagation();
@@ -891,9 +934,35 @@ export class HomeManagerCard extends HTMLElement {
     host.replaceChildren(this.editor);
   }
   private select(id: string) {
+    this.editorFocus = undefined;
     this.selected = id;
     if (this.editor) this.editor.selectedDeviceId = id;
     this.renderMarkers();
+    this.positionEditor();
+    this.frameAboveSheet();
+  }
+  private frameAboveSheet() {
+    if (!matchMedia('(max-width:650px)').matches || !this.editor || this.editor.hidden) return;
+    const device = this.draft?.catalog.devices.find(item => item.id === this.selected);
+    const host = this.root.querySelector<HTMLElement>('.workspace > .editor');
+    if (!device || !host) return;
+    const visibleHeight = this.viewport.clientHeight - host.clientHeight;
+    if (visibleHeight < 60) return;
+    cancelAnimationFrame(this.animation);
+    this.animation = 0;
+    this.camera.y += visibleHeight / 2 - this.screen(device.position).y;
+    this.queuePosition();
+  }
+  /** A sheet on phones, a clamped card beside the selected marker on desktop. */
+  private positionEditor() {
+    const host = this.root.querySelector<HTMLElement>('.editor');
+    if (!host || !this.editing || matchMedia('(max-width:650px)').matches) return;
+    const device = this.draft?.catalog.devices.find(item => item.id === this.selected);
+    const point = device ? this.screen(device.position) : { x: 16, y: 16 };
+    const width = Math.min(340, this.viewport.clientWidth - 24);
+    const left = device && point.x + width + 40 > this.viewport.clientWidth ? point.x - width - 34 : point.x + 34;
+    host.style.left = `${Math.max(12, Math.min(this.viewport.clientWidth - width - 12, left))}px`;
+    host.style.top = `${Math.max(12, Math.min(this.viewport.clientHeight - Math.min(this.editor?.offsetHeight ?? 0, this.viewport.clientHeight - 24) - 12, point.y - 24))}px`;
   }
   private updateSelection() {
     const host = this.root.querySelector('.selection');
@@ -912,6 +981,7 @@ export class HomeManagerCard extends HTMLElement {
       this.future = [];
       const architectureChanged = valid.architecture.content !== this.draft?.architecture.content;
       this.draft = valid;
+      if (this.selected && !valid.catalog.devices.some(device => device.id === this.selected)) this.selected = null;
       this.fixedPermit = null;
       if (architectureChanged) {
         this.mountArchitecture();
@@ -1017,11 +1087,19 @@ export class HomeManagerCard extends HTMLElement {
     }
     const wrap = this.root.querySelector<HTMLElement>('.editor-wrap');
     if (wrap) wrap.hidden = !this.editing;
+    for (const item of this.root.querySelectorAll<HTMLElement>('.edit-add, .workspace > .editor'))
+      item.hidden = !this.editing;
+    this.root.querySelector('.shell')?.classList.toggle('is-editing', this.editing);
+    for (const item of this.root.querySelectorAll<HTMLButtonElement>(
+      '[data-command=add-device], [data-command=settings], [data-command=exit]',
+    ))
+      item.disabled = this.loading || this.saving;
     const save = this.root.querySelector<HTMLButtonElement>('[data-command=save]');
     if (save) {
       save.dataset.dirty = String(this.dirty);
       save.disabled = !this.dirty || this.loading || this.saving || this._hass?.user?.is_admin !== true;
-      save.textContent = this.saving ? t('Guardando…') : t('Guardar cambios');
+      save.setAttribute('aria-label', this.saving ? t('Guardando…') : t('Guardar cambios'));
+      save.title = save.getAttribute('aria-label')!;
     }
     const undo = this.root.querySelector<HTMLButtonElement>('[data-command=undo]');
     if (undo) undo.disabled = !this.history.length || this.saving;
@@ -1030,6 +1108,7 @@ export class HomeManagerCard extends HTMLElement {
     const discard = this.root.querySelector<HTMLButtonElement>('[data-command=discard]');
     if (discard) discard.disabled = this.saving || !this.dirty;
     this.updateSelection();
+    this.positionEditor();
   }
   private status(message: string) {
     const host = this.root.querySelector('.status');
@@ -1108,7 +1187,7 @@ export class HomeManagerCard extends HTMLElement {
     if (event.button !== 0 || this.saving) return;
     const target = event.target as Element;
     // Floating controls inside the plan keep their own clicks (no pan capture).
-    if (target.closest('.zoom, .layers, .cluster')) return;
+    if (target.closest('.zoom, .layers, .cluster, .edit-add')) return;
     const p = this.point(event);
     this.pointers.set(event.pointerId, p);
     const marker = target.closest<HTMLElement>('.marker');
@@ -1132,7 +1211,6 @@ export class HomeManagerCard extends HTMLElement {
       const d = this.draft?.catalog.devices.find(d => d.id === marker.dataset.id);
       if (!d) return;
       this.selected = d.id;
-      if (this.editor) this.editor.selectedDeviceId = d.id;
       this.updateSelection();
       if (d.mobility === 'fixed' && this.fixedPermit !== d.id) {
         this.pointers.delete(event.pointerId);
@@ -1243,10 +1321,12 @@ export class HomeManagerCard extends HTMLElement {
         }
         this.fixedPermit = null;
       }
+      if (!g.moved && this.editor) this.editor.selectedDeviceId = g.id;
       this.renderMarkers();
       this.updateControls();
     }
     this.gesture = undefined;
+    if (g?.kind === 'device') this.frameAboveSheet();
     if (this.pointers.size === 1) {
       const p = [...this.pointers.values()][0];
       this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera } };
@@ -1263,6 +1343,8 @@ export class HomeManagerCard extends HTMLElement {
     const d = this.draft?.catalog.devices.find(item => item.id === id);
     if (!d) return;
     this.placing = id;
+    this.editor?.closeSurface();
+    this.viewport.focus();
     // The editor sits below the plan: bring the plan back into view for the tap.
     this.viewport.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
     const hint = this.root.querySelector<HTMLElement>('.placing-hint');
@@ -1311,6 +1393,7 @@ export class HomeManagerCard extends HTMLElement {
     if (detected) device.roomId = detected;
     this.selected = id;
     this.change(next);
+    this.frameAboveSheet();
     this.status(
       detected
         ? t('Ubicado en {room}.', { room: next.rooms.find(room => room.id === detected)?.label ?? detected })
