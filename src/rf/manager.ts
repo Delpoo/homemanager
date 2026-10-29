@@ -2,127 +2,98 @@ import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { tokens } from '../ui/theme.js';
 import {
+  ROLES,
   rf,
-  suggestedFunctions,
-  type RfCandidate,
-  type RfFunction,
+  type PartKind,
+  type RfAbout,
+  type RfPart,
   type RfRemote,
-  type RfSettings,
   type RfTransmitter,
+  type RfWidget,
+  type WidgetType,
 } from '../integration/rf.js';
+import { BUTTON_ICONS, REMOTE_ICONS, icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
+import { confirmDialog, dialogCss } from './dialog.js';
+import { WIDGET_BUTTONS, WIDGET_SIZE, add, layoutOf, place, uniqueId } from './layout.js';
+import './remote-view.js';
+import './learn.js';
+import './devices.js';
+import type { HomeManagerRfRemote } from './remote-view.js';
+import type { HomeManagerRfLearn } from './learn.js';
+import type { HomeManagerRfDevices } from './devices.js';
 
-/** RF remote manager: a guided wizard to capture a physical remote button by
- * button, find the transmission settings that work by trying them, and a
- * detail view to rename, re-test or tune a remote. Administrators only; the
- * integration enforces it. Codes never reach this page. */
+/** RF remotes, administrators only (the integration enforces it). A remote is
+ * a name and an icon; its buttons are learned in any order and drawn as a
+ * remote that can be designed on a grid. What Home Assistant gets (fans and
+ * lights) is decided apart, in "In Home Assistant". The RF devices page shows
+ * which ESPHome devices can send and listen, and how to prepare the others.
+ * Codes never reach this page. */
 
-type Kind = 'fan' | 'light' | 'other';
-type Step = 'setup' | 'capture' | 'done';
-interface Attempt {
-  transmitter: string;
-  pulse_us: number;
-  repeats: number;
-  worked: boolean | null;
-}
-interface Wizard {
-  step: Step;
-  name: string;
-  kind: Kind;
-  speeds: number;
-  listen: string;
-  remoteId: string | null;
-  queue: RfFunction[];
-  candidate: RfCandidate | null;
-  buttonName: string;
-  buttonFunction: RfFunction | '';
-  attempts: Attempt[];
-  trial: Attempt | null;
-  listening: boolean;
+type View = 'list' | 'new' | 'remote' | 'devices';
+interface WidgetDraft {
+  widget: RfWidget;
+  isNew: boolean;
+  error: string;
 }
 
-export function functionLabel(value: RfFunction | null | ''): string {
-  if (!value) return t('Sin función');
-  const speed = /^speed_(\d+)$/.exec(value);
-  if (speed) return t('Velocidad {level}', { level: speed[1] });
-  const labels: Record<string, string> = {
-    off: t('Apagar'),
-    power: t('Encender / apagar'),
-    light: t('Luz (alterna)'),
-    light_on: t('Encender luz'),
-    light_off: t('Apagar luz'),
-    brightness_up: t('Más brillo'),
-    brightness_down: t('Menos brillo'),
-    color_temperature: t('Cambiar tono'),
-    speed_up: t('Más velocidad'),
-    speed_down: t('Menos velocidad'),
-    direction: t('Dirección'),
-    timer: t('Temporizador'),
-    mode: t('Modo'),
-    other: t('Otro'),
-  };
-  return labels[value] ?? value;
-}
-const ALL_FUNCTIONS: RfFunction[] = [
-  'off',
-  'power',
-  ...Array.from({ length: 12 }, (_, index) => `speed_${index + 1}` as RfFunction),
-  'speed_up',
-  'speed_down',
-  'direction',
-  'light',
-  'light_on',
-  'light_off',
-  'brightness_up',
-  'brightness_down',
-  'color_temperature',
-  'timer',
-  'mode',
-  'other',
-];
-
-const css = `${tokens}
+const css = `${tokens}${dialogCss}
 :host{display:block}
-.wrap{max-width:760px;margin:0 auto;display:grid;gap:14px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:14px}
 .panel{background:var(--hm-bg);border-radius:var(--hm-radius);box-shadow:var(--hm-shadow);padding:18px;display:grid;gap:14px}
 h2{margin:0;font-size:20px;font-weight:600}
 h3{margin:0;font-size:15px;font-weight:600}
 p{margin:0;line-height:1.5}
 .muted{color:var(--hm-muted);font-size:13px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.row>*{flex:1 1 160px}
-.row>button{flex:0 0 auto}
+.tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--hm-surface);justify-self:start}
+.tabs button{border:0;border-radius:999px;min-height:36px;background:transparent}
+.tabs button[aria-selected=true]{background:var(--hm-bg);box-shadow:var(--hm-shadow);font-weight:600}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.head .title{flex:1;min-width:180px;display:flex;align-items:center;gap:10px}
+.head .title>div{display:grid;gap:2px;min-width:0}
+.head ha-icon{--mdc-icon-size:28px;color:var(--hm-accent)}
+.back{width:var(--hm-touch);padding:0;font-size:20px}
+.notice{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--hm-estimated) 12%,transparent);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.notice p{flex:1;min-width:200px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{display:flex;align-items:center;gap:12px;padding:14px;text-align:left;min-height:72px;border-radius:14px}
+.card ha-icon{--mdc-icon-size:28px;color:var(--hm-accent)}
+.card .info{display:grid;gap:2px;min-width:0}
+.card .name{font-weight:600}
 label{display:grid;gap:4px;font-size:13px;color:var(--hm-muted)}
-.kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.kinds button{min-height:72px;display:grid;gap:2px;place-items:center;text-align:center;font-weight:600}
-.kinds button span{font-size:12px;font-weight:400;color:var(--hm-muted)}
-.kinds button[aria-pressed=true]{border-color:var(--hm-accent);box-shadow:var(--hm-focus)}
-.kinds ha-icon{--mdc-icon-size:28px;color:var(--hm-accent)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips button{min-width:44px;padding:0;font-variant-numeric:tabular-nums}
-.chips button[aria-pressed=true]{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent);font-weight:600}
-.remote{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--hm-line);border-radius:14px}
-.remote .info{flex:1;min-width:0}
-.remote .name{font-weight:600}
-.listen{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--hm-surface)}
-.pulse{width:14px;height:14px;border-radius:50%;background:var(--hm-accent);flex:0 0 14px}
-@media (prefers-reduced-motion:no-preference){.pulse.on{animation:hm-pulse 1.2s ease-in-out infinite}}
-@keyframes hm-pulse{50%{opacity:.25;transform:scale(.7)}}
-.prompt{font-size:18px;font-weight:600}
-.code{padding:14px;border-radius:14px;border:1px solid var(--hm-line);display:grid;gap:10px}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--hm-surface)}
-.badge.ok{background:color-mix(in srgb,var(--hm-confirmed) 18%,transparent);color:var(--hm-confirmed)}
-.badge.warn{background:color-mix(in srgb,var(--hm-estimated) 18%,transparent);color:var(--hm-estimated)}
-.question{display:grid;gap:10px;padding:14px;border-radius:14px;background:color-mix(in srgb,var(--hm-accent) 8%,transparent)}
-.buttons{display:grid;gap:8px}
-.button-row{display:grid;grid-template-columns:1fr minmax(140px,190px) auto auto;gap:8px;align-items:center}
-.attempts{display:grid;gap:4px;font-size:12px;color:var(--hm-muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>label{flex:1 1 160px}
+.icons{display:flex;gap:6px;flex-wrap:wrap}
+.icons button{width:44px;padding:0}
+.icons button[aria-pressed=true],.types button[aria-pressed=true]{border-color:var(--hm-accent);box-shadow:var(--hm-focus)}
+.icons ha-icon{--mdc-icon-size:22px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .muted{flex:1 1 200px}
+section{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--hm-line)}
+.btn-row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(120px,170px) auto auto;gap:8px;align-items:center}
+.btn-row ha-icon{--mdc-icon-size:22px;color:var(--hm-accent)}
+.part{display:grid;gap:10px;padding:12px;border:1px solid var(--hm-line);border-radius:14px}
+.part .row{flex-wrap:nowrap}
+.part .row input{flex:1 1 auto;min-width:0;width:auto}
+.part .row button{flex:0 0 var(--hm-touch);padding:0}
+.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.badge{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--hm-surface)}
+.danger{color:var(--hm-error)}
+details summary{cursor:pointer;font-weight:600;min-height:var(--hm-touch);display:flex;align-items:center}
 .status{font-size:13px;line-height:1.5}
 .status.error{color:var(--hm-error)}
 .status:empty{display:none}
-details{border-top:1px solid var(--hm-line);padding-top:12px}
-summary{cursor:pointer;font-weight:600;min-height:var(--hm-touch);display:flex;align-items:center}
-.danger{color:var(--hm-error)}
-@media(max-width:600px){.button-row{grid-template-columns:1fr 1fr}.panel{border-radius:0;box-shadow:none}.row>button{flex:1 1 auto}}
+dialog.editor{border:0;border-radius:var(--hm-radius);padding:20px;width:min(94vw,480px);max-height:90dvh;overflow:auto;background:var(--hm-bg);color:var(--hm-text);box-shadow:var(--hm-shadow)}
+dialog.editor::backdrop{background:rgba(0,0,0,.4)}
+dialog.editor form{display:grid;gap:12px}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.types button{min-height:40px;font-size:13px}
+.slots{display:grid;gap:8px}
+.slot{display:flex;gap:6px;align-items:end}
+.slot label{flex:1}
+.error-text{color:var(--hm-error);font-size:13px;margin:0}
+.error-text:empty{display:none}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:600px){.panel{border-radius:0;box-shadow:none;padding:14px}.btn-row{grid-template-columns:28px minmax(0,1fr) auto auto}.btn-row select{grid-column:2/-1;grid-row:2}}
 `;
 
 export class HomeManagerRf extends HTMLElement {
@@ -130,17 +101,39 @@ export class HomeManagerRf extends HTMLElement {
   private _hass?: Hass;
   private remotes: RfRemote[] = [];
   private transmitters: RfTransmitter[] = [];
-  private view: 'list' | 'wizard' | 'remote' = 'list';
+  private defaultReceiver: string | null = null;
+  private view: View = 'list';
   private selected: string | null = null;
-  private wizard: Wizard | null = null;
+  /** A new remote that is stored with its first learned button. */
+  private draft: RfAbout | null = null;
+  private newRemote: RfAbout = { name: '', icon: 'mdi:remote', description: null };
+  private editing = false;
+  private learning = false;
+  private widgetDraft: WidgetDraft | null = null;
   private message = '';
   private failed = false;
-  private stopCapture: (() => void) | null = null;
   private loaded = false;
+  // Kept across renders: they hold a live capture, a drag or a probe.
+  private readonly remoteView = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+  private readonly learn = document.createElement('homemanager-rf-learn') as HomeManagerRfLearn;
+  private readonly devices = document.createElement('homemanager-rf-devices') as HomeManagerRfDevices;
+
+  constructor() {
+    super();
+    this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
+    this.remoteView.onLayout = layout => void this.saveLayout(layout);
+    this.remoteView.onEdit = id => this.editWidget(id);
+    this.remoteView.onDelete = id => void this.deleteWidget(id);
+    this.learn.onSaved = id => void this.learned(id);
+    this.learn.onClose = () => this.closeLearn();
+    this.devices.onChange = () => void this.reload();
+  }
 
   set hass(hass: Hass) {
     const first = !this._hass;
     this._hass = hass;
+    this.learn.hass = hass;
+    if (this.view === 'devices') this.devices.hass = hass;
     if (first) void this.load();
   }
   get hass(): Hass | undefined {
@@ -148,20 +141,31 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   disconnectedCallback(): void {
-    this.endCapture();
+    this.learn.stop();
+    this.devices.stop();
   }
 
   private async load(): Promise<void> {
-    if (!this._hass) return;
     try {
-      const [library, transmitters] = await Promise.all([rf.library(this._hass), rf.transmitters(this._hass)]);
-      this.remotes = library.remotes;
-      this.transmitters = transmitters;
+      await this.reload();
       this.loaded = true;
     } catch (error) {
       this.report(error);
     }
     this.render();
+  }
+
+  private async reload(): Promise<void> {
+    const hass = this._hass;
+    if (!hass) return;
+    const [library, transmitters, devices] = await Promise.all([
+      rf.library(hass),
+      rf.transmitters(hass),
+      rf.devices(hass).catch(() => null),
+    ]);
+    this.remotes = library.remotes;
+    this.transmitters = transmitters;
+    this.defaultReceiver = devices?.default_receiver ?? null;
   }
 
   private report(error: unknown): void {
@@ -174,493 +178,556 @@ export class HomeManagerRf extends HTMLElement {
     this.message = message;
   }
 
-  private transmitterName(id: string): string {
-    return this.transmitters.find(item => item.id === id)?.name ?? id;
+  private remote(): RfRemote | undefined {
+    return this.remotes.find(item => item.id === this.selected);
+  }
+
+  private receiver(): string {
+    const usable = (id: string | null | undefined) =>
+      !!id && this.transmitters.some(item => item.id === id && item.can_capture);
+    if (usable(this.defaultReceiver)) return this.defaultReceiver!;
+    const remote = this.remote();
+    if (usable(remote?.transmitter)) return remote!.transmitter;
+    return this.transmitters.find(item => item.can_capture)?.id ?? '';
   }
 
   // Rendering -------------------------------------------------------------
 
   private render(): void {
-    const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
-    let body = '';
-    if (!this.loaded) body = `<div class="panel"><p>${e(t('Cargando…'))}</p>${status}</div>`;
-    else if (this.view === 'wizard' && this.wizard) body = this.renderWizard(status);
-    else if (this.view === 'remote' && this.remote()) body = this.renderRemote(status);
-    else body = this.renderList(status);
-    // A capture event can repaint while someone types a name: keep their caret.
     const active = this.root.activeElement as HTMLInputElement | null;
-    const name = active?.name,
-      row = active?.closest<HTMLElement>('[data-button]')?.dataset.button,
-      caret = active?.selectionStart ?? null;
-    this.root.innerHTML = `<style>${css}</style><div class="wrap">${body}</div>`;
+    const focus = active?.name
+      ? {
+          name: active.name,
+          scope: active.closest<HTMLElement>('[data-button],[data-part]'),
+          caret: active.selectionStart ?? null,
+        }
+      : null;
+    const scopeKey = focus?.scope
+      ? focus.scope.dataset.button
+        ? `[data-button="${CSS.escape(focus.scope.dataset.button)}"]`
+        : `[data-part="${CSS.escape(focus.scope.dataset.part!)}"]`
+      : null;
+    const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
+    let body: string;
+    if (!this.loaded) body = `<p>${e(t('Cargando…'))}</p>${status}`;
+    else if (this.view === 'devices') body = this.renderDevices(status);
+    else if (this.view === 'new') body = this.renderNew(status);
+    else if (this.view === 'remote' && (this.remote() || this.draft)) body = this.renderRemote(status);
+    else body = this.renderList(status);
+    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-selected="${this.view === 'devices'}">${e(t('Equipos RF'))}</button></div>`;
+    this.root.innerHTML = `<style>${css}</style><div class="wrap"><div class="panel">${tabs}${body}</div></div>${this.renderWidgetEditor()}`;
+    for (const [slot, element] of [
+      ['remote', this.remoteView],
+      ['learn', this.learn],
+      ['devices', this.devices],
+    ] as const)
+      this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
     this.bind();
-    if (name) {
-      const scope = row ? this.root.querySelector(`[data-button="${CSS.escape(row)}"]`) : this.root;
-      const field = scope?.querySelector<HTMLInputElement>(`[name="${CSS.escape(name)}"]`);
+    const editor = this.root.querySelector<HTMLDialogElement>('dialog.editor');
+    if (editor && !editor.open) editor.showModal();
+    if (focus) {
+      const scope = scopeKey ? this.root.querySelector(scopeKey) : this.root;
+      const field = scope?.querySelector<HTMLInputElement>(`[name="${CSS.escape(focus.name)}"]`);
       field?.focus();
-      if (field && caret !== null && 'setSelectionRange' in field && field.type === 'text')
-        field.setSelectionRange(caret, caret);
+      if (field && focus.caret !== null && field.type === 'text') field.setSelectionRange(focus.caret, focus.caret);
     }
   }
 
   private renderList(status: string): string {
-    const noTransmitter = !this.transmitters.length
-      ? `<p class="muted">${e(t('No hay transmisores con el paquete HomeManager RF. Agregalo en ESPHome a tu emisor de 433 MHz (ver docs/rf-manager.md) y volvé a abrir esta página.'))}</p>`
-      : '';
-    const remotes = this.remotes.length
-      ? this.remotes
+    const ready = this.transmitters.length > 0;
+    const notice = ready
+      ? ''
+      : `<div class="notice"><p>${e(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.'))}</p><button type="button" data-view="devices">${e(t('Ver equipos RF'))}</button></div>`;
+    const cards = this.remotes.length
+      ? `<div class="cards">${this.remotes
           .map(
             remote =>
-              `<div class="remote"><div class="info"><div class="name">${e(remote.name)}</div><div class="muted">${e(t('{count} botones · {transmitter} · {pulse} µs', { count: remote.buttons.length, transmitter: this.transmitterName(remote.transmitter), pulse: remote.pulse_us }))}</div></div><button type="button" data-open="${e(remote.id)}">${e(t('Abrir'))}</button></div>`,
+              `<button type="button" class="card" data-open="${e(remote.id)}">${icon(remote.icon ?? 'mdi:remote')}<span class="info"><span class="name">${e(remote.name)}</span><span class="muted">${e(remote.description ?? t('{count} botones', { count: remote.buttons.length }))}</span></span></button>`,
           )
-          .join('')
-      : `<p class="muted">${e(t('Todavía no hay controles. Agregá el primero: HomeManager te guía botón por botón.'))}</p>`;
-    return `<div class="panel"><div class="row"><h2>${e(t('Controles RF'))}</h2><button type="button" data-variant="primary" data-command="new"${this.transmitters.length ? '' : ' disabled'}>${e(t('Agregar control'))}</button></div>${noTransmitter}${remotes}${status}</div>`;
+          .join('')}</div>`
+      : `<p class="muted">${e(t('Todavía no hay controles. Creá uno y enseñale sus botones.'))}</p>`;
+    return `<div class="head"><div class="title"><h2>${e(t('Controles RF'))}</h2></div><button type="button" data-variant="primary" data-command="new"${ready ? '' : ' disabled'}>${e(t('Nuevo control'))}</button></div>${notice}${cards}${status}`;
   }
 
-  private renderWizard(status: string): string {
-    const w = this.wizard!;
-    if (w.step === 'setup') {
-      const kinds: [Kind, string, string, string][] = [
-        ['fan', t('Ventilador'), t('con o sin luz'), 'mdi:ceiling-fan-light'],
-        ['light', t('Luz'), t('encender, apagar, brillo'), 'mdi:lightbulb-outline'],
-        ['other', t('Otro equipo'), t('botones con nombre'), 'mdi:remote'],
-      ];
-      const icon = (name: string) =>
-        customElements.get('ha-icon') ? `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>` : '';
-      const listeners = this.transmitters.filter(item => item.can_capture);
-      return `<div class="panel"><h2>${e(t('Nuevo control'))}</h2>
-<label>${e(t('Nombre del equipo'))}<input name="name" maxlength="80" value="${e(w.name)}" placeholder="${e(t('p. ej. Ventilador sala'))}"></label>
-<div><p class="muted">${e(t('¿Qué controla?'))}</p><div class="kinds">${kinds.map(([kind, label, detail, glyph]) => `<button type="button" data-kind="${kind}" aria-pressed="${w.kind === kind}">${icon(glyph)}${e(label)}<span>${e(detail)}</span></button>`).join('')}</div></div>
-${
-  w.kind === 'fan'
-    ? `<div><p class="muted" id="speeds-label">${e(t('¿Cuántas velocidades tiene el control?'))}</p><div class="chips" role="group" aria-labelledby="speeds-label">${Array.from(
-        { length: 12 },
-        (_, index) => index + 1,
+  private iconPicker(name: string, icons: string[], selected: string | null): string {
+    return `<div class="icons" role="group" aria-label="${e(t('Icono'))}">${icons
+      .map(
+        glyph =>
+          `<button type="button" data-pick="${e(name)}" data-value="${e(glyph)}" aria-pressed="${glyph === selected}" aria-label="${e(glyph.slice(4))}" title="${e(glyph.slice(4))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
       )
-        .map(
-          count =>
-            `<button type="button" data-speeds="${count}" aria-pressed="${count === w.speeds}">${count}</button>`,
-        )
-        .join('')}</div></div>`
-    : ''
-}
-<label>${e(t('Receptor que escucha el control (el más cercano)'))}<select name="listen">${listeners.map(item => `<option value="${e(item.id)}"${item.id === w.listen ? ' selected' : ''}>${e(item.name)}</option>`).join('')}</select></label>
-<div class="row"><button type="button" data-command="cancel">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="start"${w.name.trim() && listeners.length ? '' : ' disabled'}>${e(t('Empezar a capturar'))}</button></div>${status}</div>`;
-    }
-    if (w.step === 'done') {
-      const remote = this.remotes.find(item => item.id === w.remoteId);
-      return `<div class="panel"><h2>${e(t('Listo'))}</h2><p>${e(t('{name} quedó guardado con {count} botones.', { name: remote?.name ?? w.name, count: remote?.buttons.length ?? 0 }))}</p>${this.entitiesNote(w.remoteId)}<div class="row"><button type="button" data-open="${e(w.remoteId ?? '')}">${e(t('Ver el control'))}</button><button type="button" data-command="list">${e(t('Volver a la lista'))}</button></div>${status}</div>`;
-    }
-    return this.renderCapture(status);
+      .join('')}</div>`;
   }
 
-  private renderCapture(status: string): string {
-    const w = this.wizard!;
-    const remote = this.remotes.find(item => item.id === w.remoteId);
-    const next = w.queue[0];
-    const prompt = next
-      ? t('Presioná en tu control: {button}', { button: functionLabel(next) })
-      : t('Presioná otro botón de tu control');
-    const listening = `<div class="listen"><span class="pulse${w.listening ? ' on' : ''}" aria-hidden="true"></span><div><div class="prompt">${e(prompt)}</div><div class="muted">${e(w.listening ? t('Escuchando con {receiver}…', { receiver: this.transmitterName(w.listen) }) : t('El receptor dejó de escuchar.'))}</div></div>${w.listening ? '' : `<button type="button" data-command="listen">${e(t('Seguir escuchando'))}</button>`}</div>`;
-    const saved = remote?.buttons.length
-      ? `<p class="muted">${e(t('Guardados: {names}', { names: remote.buttons.map(button => button.name).join(' · ') }))}</p>`
-      : '';
-    const skip = next
-      ? `<button type="button" data-command="skip">${e(t('Mi control no tiene este botón'))}</button>`
-      : '';
-    return `<div class="panel"><h2>${e(remote?.name ?? w.name)}</h2>${listening}${w.candidate ? this.renderCandidate() : ''}${saved}<div class="row">${skip}<button type="button" data-command="finish"${remote?.buttons.length ? '' : ' disabled'}>${e(t('Terminar'))}</button><button type="button" data-command="cancel">${e(t('Cancelar'))}</button></div>${status}</div>`;
-  }
-
-  private renderCandidate(): string {
-    const w = this.wizard!,
-      c = w.candidate!;
-    const badge = c.confirmed
-      ? `<span class="badge ok">✓ ${e(t('Confirmado en {count} pulsaciones', { count: c.bursts }))}</span>`
-      : `<span class="badge warn">${e(t('Presioná el mismo botón otra vez para confirmarlo'))}</span>`;
-    const known = c.known_as.length
-      ? `<p class="muted">${e(t('Este código ya está guardado como: {names}', { names: c.known_as.join(', ') }))}</p>`
-      : '';
-    const details = `<p class="muted">${e(t('Protocolo {protocol} · {bits} bits · pulso medido {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p>`;
-    const form = `<div class="row"><label>${e(t('Nombre del botón'))}<input name="buttonName" maxlength="80" value="${e(w.buttonName)}"></label><label>${e(t('Qué hace'))}<select name="buttonFunction"><option value="">${e(t('Sin función'))}</option>${ALL_FUNCTIONS.map(value => `<option value="${value}"${value === w.buttonFunction ? ' selected' : ''}>${e(functionLabel(value))}</option>`).join('')}</select></label></div>`;
-    const firstButton = !w.remoteId;
-    let action = '';
-    if (c.confirmed && w.trial) {
-      action = `<div class="question"><p><strong>${e(t('¿El equipo reaccionó?'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(w.trial.transmitter), pulse: w.trial.pulse_us, repeats: w.trial.repeats }))}</p><div class="row"><button type="button" data-variant="primary" data-command="worked">${e(firstButton ? t('Sí, funcionó') : t('Sí, guardar'))}</button><button type="button" data-command="failed">${e(t('No reaccionó'))}</button></div></div>`;
-    } else if (c.confirmed) {
-      action = `<div class="row"><button type="button" data-variant="primary" data-command="try">${e(t('Probar este botón'))}</button>${firstButton ? '' : `<button type="button" data-command="save">${e(t('Guardar sin probar'))}</button>`}</div>`;
-    }
-    const attempts = w.attempts.length
-      ? `<div class="attempts">${w.attempts.map(item => `<span>${item.worked ? '✓' : '✗'} ${e(t('{transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(item.transmitter), pulse: item.pulse_us, repeats: item.repeats }))}</span>`).join('')}</div>`
-      : '';
-    return `<div class="code"><div class="row">${badge}</div>${details}${known}${form}${action}${attempts}</div>`;
-  }
-
-  private entitiesNote(remoteId: string | null): string {
-    const entities = Object.entries(this._hass?.states ?? {})
-      .filter(([, state]) => state.attributes?.homemanager_remote === remoteId)
-      .map(([entityId]) => entityId);
-    return entities.length
-      ? `<p class="muted">${e(t('En Home Assistant: {entities}. Para verlo en el plano: Editar plano → elegí el dispositivo → Entidad del dispositivo.', { entities: entities.join(', ') }))}</p>`
-      : '';
-  }
-
-  private remote(): RfRemote | undefined {
-    return this.remotes.find(item => item.id === this.selected);
+  private renderNew(status: string): string {
+    const draft = this.newRemote;
+    return `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title"><h2>${e(t('Nuevo control'))}</h2></div></div>
+<label>${e(t('Nombre'))}<input name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}"></label>
+<div><p class="muted">${e(t('Icono'))}</p>${this.iconPicker('new', REMOTE_ICONS, draft.icon)}</div>
+<label>${e(t('Descripción (opcional)'))}<input name="new-description" maxlength="200" value="${e(draft.description ?? '')}"></label>
+<div class="actions"><button type="button" data-command="list">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="create"${draft.name.trim() ? '' : ' disabled'}>${e(t('Aprender botones'))}</button></div>${status}`;
   }
 
   private renderRemote(status: string): string {
-    const remote = this.remote()!;
-    const rows = remote.buttons
+    const remote = this.remote();
+    const about: RfAbout = remote ?? this.draft!;
+    const head = `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title">${icon(about.icon ?? 'mdi:remote')}<div><h2>${e(about.name)}</h2>${about.description ? `<p class="muted">${e(about.description)}</p>` : ''}</div></div>${this.learning ? '' : `<button type="button" data-command="learn">${e(t('Aprender botones'))}</button>`}${remote ? `<button type="button" data-command="edit" aria-pressed="${this.editing}"${this.editing ? ' data-variant="primary"' : ''}>${e(this.editing ? t('Terminar edición') : t('Editar'))}</button>` : ''}</div>`;
+    const learn = this.learning ? '<div data-slot="learn"></div>' : '';
+    if (!remote)
+      return `${head}${learn}<p class="notice">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`;
+    const toolbar = this.editing
+      ? `<div class="toolbar"><button type="button" data-command="add-widget">${e(t('Agregar elemento'))}</button><button type="button" data-command="auto-layout"${remote.layout ? '' : ' disabled'}>${e(t('Diseño automático'))}</button><span class="muted">${e(t('Arrastrá para mover, la esquina para cambiar el tamaño, tocá para editar.'))}</span></div>`
+      : '';
+    const sections = this.editing ? this.renderEditSections(remote) : '';
+    return `${head}${learn}${toolbar}<div data-slot="remote"></div>${status}${sections}`;
+  }
+
+  private entities(remoteId: string): string[] {
+    return Object.entries(this._hass?.states ?? {})
+      .filter(([, state]) => state.attributes?.homemanager_remote === remoteId)
+      .map(([entityId]) => entityId);
+  }
+
+  private buttonOptions(remote: RfRemote, selected: string | undefined, empty: string): string {
+    return `<option value="">${e(empty)}</option>${remote.buttons
       .map(
         button =>
-          `<div class="button-row" data-button="${e(button.id)}"><input name="name" maxlength="80" value="${e(button.name)}" aria-label="${e(t('Nombre del botón'))}"><select name="function" aria-label="${e(t('Qué hace'))}"><option value="">${e(t('Sin función'))}</option>${ALL_FUNCTIONS.map(value => `<option value="${value}"${value === button.function ? ' selected' : ''}>${e(functionLabel(value))}</option>`).join('')}</select><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
+          `<option value="${e(button.id)}"${button.id === selected ? ' selected' : ''}>${e(button.name)}</option>`,
       )
-      .join('');
+      .join('')}`;
+  }
+
+  private renderEditSections(remote: RfRemote): string {
+    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(remote.name)}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(remote.description ?? '')}"></label></div>${this.iconPicker('remote', REMOTE_ICONS, remote.icon)}</section>`;
+    const glyphs = (current: string | null) =>
+      `<option value="">${e(t('Sin icono'))}</option>${[...new Set([...(current ? [current] : []), ...BUTTON_ICONS])]
+        .map(
+          glyph => `<option value="${e(glyph)}"${glyph === current ? ' selected' : ''}>${e(glyph.slice(4))}</option>`,
+        )
+        .join('')}`;
+    const buttons = remote.buttons.length
+      ? remote.buttons
+          .map(
+            button =>
+              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(button.name)}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}"><select name="button-icon" aria-label="${e(t('Icono de {name}', { name: button.name }))}">${glyphs(button.icon)}</select><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
+          )
+          .join('')
+      : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
+    const learned = `<section aria-labelledby="buttons-title"><h3 id="buttons-title">${e(t('Botones aprendidos ({count})', { count: remote.buttons.length }))}</h3>${buttons}</section>`;
+    const parts = remote.parts.map(part => this.renderPart(remote, part)).join('');
+    const entities = this.entities(remote.id);
+    const ha = `<section aria-labelledby="ha-title"><h3 id="ha-title">${e(t('En Home Assistant'))}</h3><p class="muted">${e(t('Para tener un ventilador o una luz en Home Assistant, elegí qué botón hace cada cosa. Los botones sin función aparecen como botones.'))}</p>${parts}<div class="row"><button type="button" data-add-part="fan">${e(t('Agregar ventilador'))}</button><button type="button" data-add-part="light">${e(t('Agregar luz'))}</button></div>${entities.length ? `<p class="muted">${e(t('Entidades: {entities}', { entities: entities.join(', ') }))}</p>` : ''}</section>`;
     const transmitters = this.transmitters
       .map(
         item =>
           `<option value="${e(item.id)}"${item.id === remote.transmitter ? ' selected' : ''}>${e(item.name)}</option>`,
       )
       .join('');
-    const advanced = `<details><summary>${e(t('Ajustes avanzados'))}</summary><p class="muted">${e(t('Protocolo {protocol} · {bits} bits · {pulse} µs · {repeats} repeticiones · espera {wait} µs', { protocol: remote.protocol, bits: remote.nbits, pulse: remote.pulse_us, repeats: remote.repeats, wait: remote.wait_us }))}</p><form class="settings"><div class="row"><label>${e(t('Transmisor'))}<select name="transmitter">${transmitters}</select></label><label>${e(t('Pulso (µs)'))}<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}"></label><label>${e(t('Repeticiones'))}<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}"></label><label>${e(t('Espera entre tramas (µs)'))}<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}"></label></div><p class="muted">${e(t('Guardá y usá Probar en cualquier botón. La espera suele ser 0: la pausa de sincronización ya va en cada trama.'))}</p><button type="submit">${e(t('Guardar ajustes'))}</button></form></details>`;
-    return `<div class="panel"><div class="row"><h2>${e(remote.name)}</h2><button type="button" data-command="list">${e(t('Volver'))}</button></div><p class="muted">${e(t('Envía por {transmitter}', { transmitter: this.transmitterName(remote.transmitter) }))}</p>${this.entitiesNote(remote.id)}<h3>${e(t('Botones'))}</h3><div class="buttons">${rows}</div><div class="row"><button type="button" data-command="more">${e(t('Agregar botones'))}</button><button type="button" data-command="save-buttons">${e(t('Guardar nombres y funciones'))}</button></div>${advanced}<details><summary class="danger">${e(t('Eliminar control'))}</summary><p class="muted">${e(t('Se borran sus botones y sus entidades de Home Assistant. El equipo físico no cambia.'))}</p><button type="button" class="danger" data-command="delete-remote">${e(t('Eliminar {name}', { name: remote.name }))}</button></details>${status}</div>`;
+    const measured =
+      remote.measured_pulse_us === null
+        ? t('No hay una medición guardada.')
+        : remote.measured_pulse_us === remote.pulse_us
+          ? t('Medido de la señal: {pulse} µs.', { pulse: remote.measured_pulse_us })
+          : t('Medido de la señal: {measured} µs; ahora usa {pulse} µs.', {
+              measured: remote.measured_pulse_us,
+              pulse: remote.pulse_us,
+            });
+    const advanced = `<section><details><summary>${e(t('Avanzado'))}</summary><form class="settings" style="display:grid;gap:10px"><p class="muted">${e(t('Protocolo {protocol} · {bits} bits. {measured}', { protocol: remote.protocol, bits: remote.nbits, measured }))}</p><div class="row"><label>${e(t('Transmisor'))}<select name="transmitter">${transmitters}</select></label><label>${e(t('Pulso (µs)'))}<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}"></label><label>${e(t('Repeticiones'))}<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}"></label><label>${e(t('Espera entre tramas (µs)'))}<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}"></label></div><p class="muted">${e(t('La espera suele ser 0: la pausa de sincronización ya va en cada trama.'))}</p><div><button type="submit">${e(t('Guardar ajustes'))}</button></div></form></details></section>`;
+    const remove = `<section><div><button type="button" class="danger" data-command="delete-remote">${e(t('Eliminar control'))}</button></div></section>`;
+    return `${about}${learned}${ha}${advanced}${remove}`;
+  }
+
+  private renderPart(remote: RfRemote, part: RfPart): string {
+    const highest = Object.keys(part.roles).reduce(
+      (max, role) => Math.max(max, Number(/^speed_(\d+)$/.exec(role)?.[1] ?? 0)),
+      0,
+    );
+    const roles = ROLES[part.kind].filter(role => {
+      const level = Number(/^speed_(\d+)$/.exec(role)?.[1] ?? 0);
+      return !level || level <= Math.min(12, Math.max(3, highest + 1));
+    });
+    const selects = roles
+      .map(
+        role =>
+          `<label>${e(roleLabel(role))}<select data-role="${e(role)}" aria-label="${e(roleLabel(role))}">${this.buttonOptions(remote, part.roles[role], '—')}</select></label>`,
+      )
+      .join('');
+    const speeds =
+      part.kind === 'fan'
+        ? `<label>${e(t('Velocidades (si sólo tiene más/menos)'))}<select name="part-speeds"><option value="">—</option>${Array.from(
+            { length: 12 },
+            (_, index) =>
+              `<option value="${index + 1}"${part.speeds === index + 1 ? ' selected' : ''}>${index + 1}</option>`,
+          ).join('')}</select></label>`
+        : '';
+    return `<div class="part" data-part="${e(part.id)}" data-kind="${part.kind}"><div class="row"><span class="badge">${e(kindLabel(part.kind))}</span><input name="part-name" maxlength="80" value="${e(part.name)}" aria-label="${e(t('Nombre en Home Assistant'))}"><button type="button" class="danger" data-remove-part="${e(part.id)}" aria-label="${e(t('Quitar {name}', { name: part.name }))}">✕</button></div><div class="roles">${selects}${speeds}</div></div>`;
+  }
+
+  private renderDevices(status: string): string {
+    return `<div class="head"><div class="title"><h2>${e(t('Equipos RF'))}</h2></div></div><div data-slot="devices"></div>${status}`;
+  }
+
+  private renderWidgetEditor(): string {
+    const draft = this.widgetDraft;
+    const remote = this.remote();
+    if (!draft || !remote) return '';
+    const widget = draft.widget;
+    const types = (Object.keys(WIDGET_BUTTONS) as WidgetType[])
+      .map(
+        type =>
+          `<button type="button" data-type="${type}" aria-pressed="${type === widget.type}">${e(widgetLabel(type))}</button>`,
+      )
+      .join('');
+    const slot = (index: number, label: string, removable: boolean) =>
+      `<div class="slot"><label>${e(label)}<select name="slot-${index}" data-slot-index="${index}" aria-label="${e(label)}">${this.buttonOptions(remote, widget.buttons[index], t('Elegí un botón'))}</select></label>${removable ? `<button type="button" data-remove-slot="${index}" aria-label="${e(t('Quitar {name}', { name: label }))}">✕</button>` : ''}</div>`;
+    let slots = '';
+    if (widget.type === 'button') slots = slot(0, t('Botón'), false);
+    else if (widget.type === 'toggle')
+      slots = slot(0, t('Encender (o el que alterna)'), false) + slot(1, t('Apagar (opcional)'), false);
+    else if (widget.type === 'updown') slots = slot(0, t('Bajar (−)'), false) + slot(1, t('Subir (+)'), false);
+    else {
+      const [min, max] = WIDGET_BUTTONS[widget.type];
+      const count = Math.max(min, widget.buttons.length);
+      const name = (index: number) =>
+        widget.type === 'steps'
+          ? t('Paso {number}', { number: index + 1 })
+          : t('Opción {number}', { number: index + 1 });
+      slots =
+        Array.from({ length: count }, (_, index) => slot(index, name(index), count > min)).join('') +
+        (count < max
+          ? `<div><button type="button" data-command="add-slot">${e(widget.type === 'steps' ? t('Agregar paso') : t('Agregar opción'))}</button></div>`
+          : '');
+    }
+    const glyph =
+      widget.type === 'button' || widget.type === 'toggle'
+        ? `<label>${e(t('Icono (opcional)'))}<select name="widget-icon"><option value="">${e(t('El del botón'))}</option>${BUTTON_ICONS.map(item => `<option value="${e(item)}"${item === widget.icon ? ' selected' : ''}>${e(item.slice(4))}</option>`).join('')}</select></label>`
+        : '';
+    const size = (name: string, label: string, value: number, max: number) =>
+      `<label>${e(label)}<select name="${name}">${Array.from({ length: max }, (_, index) => `<option value="${index + 1}"${index + 1 === value ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>`;
+    return `<dialog class="editor" aria-labelledby="editor-title"><form method="dialog"><h3 id="editor-title">${e(draft.isNew ? t('Agregar elemento') : t('Editar elemento'))}</h3>
+<div class="types" role="group" aria-label="${e(t('Tipo'))}">${types}</div><p class="muted">${e(widgetHelp(widget.type))}</p>
+<div class="slots">${slots}</div>
+<label>${e(t('Etiqueta (opcional)'))}<input name="widget-label" maxlength="40" value="${e(widget.label ?? '')}"></label>${glyph}
+<div class="row">${size('widget-w', t('Ancho'), widget.w, 4)}${size('widget-h', t('Alto'), widget.h, 3)}</div>
+<p class="error-text" role="alert">${e(draft.error)}</p>
+<div class="actions"><button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="widget-save">${e(t('Guardar'))}</button></div></form></dialog>`;
   }
 
   // Events --------------------------------------------------------------
 
   private bind(): void {
     const root = this.root;
+    const remote = this.remote();
     root
       .querySelectorAll<HTMLButtonElement>('[data-command]')
       .forEach(button => button.addEventListener('click', () => void this.command(button.dataset.command!)));
-    root.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.endCapture();
-        this.selected = button.dataset.open!;
-        this.view = 'remote';
-        this.wizard = null;
-        this.say('');
-        this.render();
-      }),
-    );
-    root.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.wizard!.kind = button.dataset.kind as Kind;
-        this.render();
-      }),
-    );
     root
-      .querySelectorAll<HTMLButtonElement>('[data-press]')
-      .forEach(button => button.addEventListener('click', () => void this.press(button.dataset.press!)));
+      .querySelectorAll<HTMLButtonElement>('[data-view]')
+      .forEach(button => button.addEventListener('click', () => this.show(button.dataset.view as View)));
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-open]')
+      .forEach(button => button.addEventListener('click', () => this.open(button.dataset.open!)));
+    root.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach(button =>
+      button.addEventListener('click', () => {
+        if (button.dataset.pick === 'new') {
+          this.newRemote.icon = button.dataset.value!;
+          this.render();
+        } else void this.saveAbout({ icon: button.dataset.value! });
+      }),
+    );
+    root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {
+      this.newRemote.name = (event.target as HTMLInputElement).value;
+      root.querySelector<HTMLButtonElement>('[data-command=create]')!.disabled = !this.newRemote.name.trim();
+    });
+    root.querySelector<HTMLInputElement>('input[name=new-description]')?.addEventListener('input', event => {
+      this.newRemote.description = (event.target as HTMLInputElement).value || null;
+    });
+    if (this.view === 'remote' && remote) {
+      this.remoteView.remote = remote;
+      this.remoteView.editing = this.editing;
+      this.bindEditSections(remote);
+    }
+    if (this.view === 'devices') this.devices.hass = this._hass!;
+    this.bindWidgetEditor();
+  }
+
+  private bindEditSections(remote: RfRemote): void {
+    const root = this.root;
+    root
+      .querySelector<HTMLInputElement>('input[name=remote-name]')
+      ?.addEventListener('change', event => void this.saveAbout({ name: (event.target as HTMLInputElement).value }));
+    root
+      .querySelector<HTMLInputElement>('input[name=remote-description]')
+      ?.addEventListener(
+        'change',
+        event => void this.saveAbout({ description: (event.target as HTMLInputElement).value || null }),
+      );
+    root.querySelectorAll<HTMLElement>('.btn-row').forEach(row => {
+      const save = () =>
+        void this.run(async () => {
+          const name = row.querySelector<HTMLInputElement>('[name=button-name]')!.value.trim();
+          const glyph = row.querySelector<HTMLSelectElement>('[name=button-icon]')!.value || null;
+          if (!name) return;
+          await rf.saveButton(this._hass!, remote.id, { name, icon: glyph }, { buttonId: row.dataset.button });
+          await this.reload();
+          this.say(t('Cambios guardados.'));
+        });
+      row.querySelector('[name=button-name]')!.addEventListener('change', save);
+      row.querySelector('[name=button-icon]')!.addEventListener('change', save);
+    });
+    root.querySelectorAll<HTMLButtonElement>('[data-press]').forEach(button =>
+      button.addEventListener(
+        'click',
+        () =>
+          void this.run(async () => {
+            await rf.press(this._hass!, remote.id, button.dataset.press!);
+            this.say(t('Señal enviada. Mirá el equipo.'));
+          }),
+      ),
+    );
     root
       .querySelectorAll<HTMLButtonElement>('[data-delete-button]')
       .forEach(button => button.addEventListener('click', () => void this.deleteButton(button.dataset.deleteButton!)));
-    const w = this.wizard;
-    if (w) {
-      root.querySelector<HTMLInputElement>('input[name=name]')?.addEventListener('input', event => {
-        w.name = (event.target as HTMLInputElement).value;
-        const start = root.querySelector<HTMLButtonElement>('[data-command=start]');
-        if (start) start.disabled = !w.name.trim();
-      });
-      root.querySelectorAll<HTMLButtonElement>('[data-speeds]').forEach(button =>
-        button.addEventListener('click', () => {
-          w.speeds = Number(button.dataset.speeds);
-          this.render();
-        }),
-      );
-      root
-        .querySelector<HTMLSelectElement>('select[name=listen]')
-        ?.addEventListener('change', event => (w.listen = (event.target as HTMLSelectElement).value));
-      root
-        .querySelector<HTMLInputElement>('input[name=buttonName]')
-        ?.addEventListener('input', event => (w.buttonName = (event.target as HTMLInputElement).value));
-      root.querySelector<HTMLSelectElement>('select[name=buttonFunction]')?.addEventListener('change', event => {
-        w.buttonFunction = (event.target as HTMLSelectElement).value as RfFunction | '';
-      });
-    }
+    root.querySelectorAll<HTMLElement>('.part').forEach(element => {
+      element
+        .querySelectorAll('select, input')
+        .forEach(field => field.addEventListener('change', () => void this.saveParts()));
+    });
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-add-part]')
+      .forEach(button => button.addEventListener('click', () => void this.addPart(button.dataset.addPart as PartKind)));
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-remove-part]')
+      .forEach(button => button.addEventListener('click', () => void this.removePart(button.dataset.removePart!)));
     root.querySelector<HTMLFormElement>('form.settings')?.addEventListener('submit', event => {
       event.preventDefault();
       void this.saveSettings(new FormData(event.target as HTMLFormElement));
     });
   }
 
+  private bindWidgetEditor(): void {
+    const dialog = this.root.querySelector<HTMLDialogElement>('dialog.editor');
+    const draft = this.widgetDraft;
+    if (!dialog || !draft) return;
+    const widget = draft.widget;
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      this.widgetDraft = null;
+      this.render();
+    });
+    dialog.querySelector('form')!.addEventListener('submit', event => {
+      event.preventDefault();
+      void this.command('widget-save');
+    });
+    dialog.querySelectorAll<HTMLButtonElement>('[data-type]').forEach(button =>
+      button.addEventListener('click', () => {
+        const type = button.dataset.type as WidgetType;
+        widget.type = type;
+        widget.buttons = widget.buttons.slice(0, WIDGET_BUTTONS[type][1]);
+        if (draft.isNew) [widget.w, widget.h] = WIDGET_SIZE[type];
+        draft.error = '';
+        this.render();
+      }),
+    );
+    dialog.querySelectorAll<HTMLSelectElement>('[data-slot-index]').forEach(select =>
+      select.addEventListener('change', () => {
+        widget.buttons[Number(select.dataset.slotIndex)] = select.value;
+      }),
+    );
+    dialog.querySelectorAll<HTMLButtonElement>('[data-remove-slot]').forEach(button =>
+      button.addEventListener('click', () => {
+        widget.buttons.splice(Number(button.dataset.removeSlot), 1);
+        this.render();
+      }),
+    );
+    dialog.querySelector('[name=widget-label]')!.addEventListener('input', event => {
+      widget.label = (event.target as HTMLInputElement).value || null;
+    });
+    dialog.querySelector('[name=widget-icon]')?.addEventListener('change', event => {
+      widget.icon = (event.target as HTMLSelectElement).value || null;
+    });
+    dialog.querySelector('[name=widget-w]')!.addEventListener('change', event => {
+      widget.w = Number((event.target as HTMLSelectElement).value);
+    });
+    dialog.querySelector('[name=widget-h]')!.addEventListener('change', event => {
+      widget.h = Number((event.target as HTMLSelectElement).value);
+    });
+  }
+
+  private show(view: View): void {
+    if (view !== 'remote') this.closeLearn(false);
+    if (view !== 'devices') this.devices.stop();
+    this.view = view;
+    this.editing = false;
+    this.widgetDraft = null;
+    this.say('');
+    this.render();
+  }
+
+  private open(remoteId: string): void {
+    this.selected = remoteId;
+    this.draft = null;
+    this.show('remote');
+  }
+
+  private async run(work: () => Promise<void>): Promise<void> {
+    try {
+      await work();
+    } catch (error) {
+      this.report(error);
+    }
+    this.render();
+  }
+
   private async command(name: string): Promise<void> {
     const hass = this._hass;
     if (!hass) return;
-    try {
+    await this.run(async () => {
       switch (name) {
-        case 'new': {
-          const listen = this.transmitters.find(item => item.can_capture)?.id ?? '';
-          this.wizard = {
-            step: 'setup',
-            name: '',
-            kind: 'fan',
-            speeds: 6,
-            listen,
-            remoteId: null,
-            queue: [],
-            candidate: null,
-            buttonName: '',
-            buttonFunction: '',
-            attempts: [],
-            trial: null,
-            listening: false,
-          };
-          this.view = 'wizard';
-          this.say('');
+        case 'new':
+          this.newRemote = { name: '', icon: 'mdi:remote', description: null };
+          this.show('new');
           break;
-        }
-        case 'cancel':
         case 'list':
-          this.endCapture();
-          this.wizard = null;
-          this.view = 'list';
-          this.say('');
+          this.closeLearn(false);
+          this.draft = null;
+          this.selected = null;
           await this.reload();
+          this.show('list');
           break;
-        case 'start': {
-          const w = this.wizard!;
-          w.queue = suggestedFunctions(w.kind, w.speeds);
-          w.step = 'capture';
-          this.prepareNext();
-          await this.listen();
-          break;
-        }
-        case 'listen':
-          await this.listen();
-          break;
-        case 'skip':
-          this.wizard!.queue.shift();
-          this.prepareNext();
-          break;
-        case 'try':
-          await this.tryCandidate(this.firstTrial());
-          break;
-        case 'worked':
-          await this.confirmWorked();
-          break;
-        case 'failed':
-          await this.tryNextVariant();
-          break;
-        case 'save':
-          await this.saveCandidate();
-          break;
-        case 'finish':
-          this.endCapture();
-          this.wizard!.step = 'done';
-          await this.reload();
-          break;
-        case 'more': {
-          const remote = this.remote()!;
-          this.wizard = {
-            step: 'capture',
-            name: remote.name,
-            kind: 'other',
-            speeds: remote.speeds ?? 6,
-            listen: this.transmitters.find(item => item.can_capture)?.id ?? remote.transmitter,
-            remoteId: remote.id,
-            queue: [],
-            candidate: null,
-            buttonName: '',
-            buttonFunction: '',
-            attempts: [],
-            trial: null,
-            listening: false,
+        case 'create':
+          this.draft = {
+            name: this.newRemote.name.trim(),
+            icon: this.newRemote.icon,
+            description: this.newRemote.description?.trim() || null,
           };
-          this.view = 'wizard';
-          this.prepareNext();
-          await this.listen();
+          this.selected = null;
+          this.view = 'remote';
+          this.startLearn();
+          break;
+        case 'learn':
+          this.editing = false;
+          this.startLearn();
+          break;
+        case 'edit':
+          this.editing = !this.editing;
+          if (this.editing) this.closeLearn(false);
+          this.say('');
+          break;
+        case 'add-widget':
+          this.widgetDraft = {
+            widget: {
+              id: '',
+              type: 'button',
+              x: 0,
+              y: 0,
+              w: 1,
+              h: 1,
+              buttons: [],
+              label: null,
+              icon: null,
+            },
+            isNew: true,
+            error: '',
+          };
+          break;
+        case 'add-slot':
+          this.widgetDraft?.widget.buttons.push('');
+          break;
+        case 'widget-cancel':
+          this.widgetDraft = null;
+          break;
+        case 'widget-save':
+          await this.saveWidget();
+          break;
+        case 'auto-layout': {
+          const ok = await confirmDialog(this.root, {
+            title: t('¿Volver al diseño automático?'),
+            text: t('Se pierde la ubicación que elegiste para cada elemento.'),
+            confirm: t('Volver'),
+          });
+          if (ok) await this.saveLayout(null);
           break;
         }
-        case 'save-buttons':
-          await this.saveButtons();
-          break;
-        case 'delete-remote':
-          await rf.deleteRemote(hass, this.selected!);
-          this.view = 'list';
-          this.say(t('Control eliminado.'));
+        case 'delete-remote': {
+          const remote = this.remote()!;
+          const ok = await confirmDialog(this.root, {
+            title: t('¿Eliminar «{name}»?', { name: remote.name }),
+            text: t('Se borran sus botones y sus entidades de Home Assistant. El equipo físico no cambia.'),
+            confirm: t('Eliminar'),
+          });
+          if (!ok) break;
+          await rf.deleteRemote(hass, remote.id);
+          this.selected = null;
           await this.reload();
+          this.show('list');
+          this.say(t('Control eliminado.'));
           break;
+        }
       }
-    } catch (error) {
-      this.report(error);
-    }
-    this.render();
-  }
-
-  private async reload(): Promise<void> {
-    if (!this._hass) return;
-    this.remotes = (await rf.library(this._hass)).remotes;
-  }
-
-  /** Prefills the name and function of the next expected button. */
-  private prepareNext(): void {
-    const w = this.wizard!;
-    w.candidate = null;
-    w.trial = null;
-    w.attempts = [];
-    w.buttonFunction = w.queue[0] ?? '';
-    w.buttonName = w.queue[0] ? functionLabel(w.queue[0]) : '';
-  }
-
-  private async listen(): Promise<void> {
-    const w = this.wizard;
-    if (!w || !this._hass || !w.listen) return;
-    this.endCapture();
-    w.listening = true;
-    this.stopCapture = await rf.capture(this._hass, w.listen, 60, event => {
-      if (!this.wizard) return;
-      if (event.done) {
-        this.wizard.listening = false;
-        this.stopCapture = null;
-      } else if (event.candidate) {
-        // Keep the current candidate while it is being tested.
-        if (this.wizard.trial && this.wizard.candidate?.candidate_id !== event.candidate.candidate_id) return;
-        this.wizard.candidate = event.candidate;
-      }
-      this.render();
     });
   }
-  private endCapture(): void {
-    const stop = this.stopCapture;
-    this.stopCapture = null;
-    if (this.wizard) this.wizard.listening = false;
-    try {
-      stop?.();
-    } catch {
-      /* the window may already be closed */
+
+  // Learning ------------------------------------------------------------
+
+  private startLearn(): void {
+    const learn = this.learn;
+    learn.hass = this._hass;
+    learn.transmitters = this.transmitters;
+    learn.remote = this.remote() ?? null;
+    learn.draft = learn.remote ? null : this.draft;
+    this.learning = true;
+    this.say('');
+    learn.start(this.receiver());
+  }
+
+  private closeLearn(render = true): void {
+    if (!this.learning) return;
+    this.learn.stop();
+    this.learning = false;
+    if (this.draft && !this.remote()) {
+      // Nothing was learned: the draft is not kept.
+      this.draft = null;
+      this.view = 'list';
+      this.say(t('No se guardó: el control necesita al menos un botón.'));
     }
+    if (render) this.render();
   }
 
-  /** The first trial uses what was measured; later buttons use the remote's settings. */
-  private firstTrial(): Attempt {
-    const w = this.wizard!,
-      c = w.candidate!;
-    const remote = this.remotes.find(item => item.id === w.remoteId);
-    return remote
-      ? { transmitter: remote.transmitter, pulse_us: remote.pulse_us, repeats: remote.repeats, worked: null }
-      : { transmitter: w.listen, pulse_us: c.pulse_us, repeats: 5, worked: null };
-  }
-
-  private async tryCandidate(trial: Attempt): Promise<void> {
-    const w = this.wizard!;
-    const remote = this.remotes.find(item => item.id === w.remoteId);
-    await rf.test(this._hass!, w.candidate!.candidate_id, {
-      transmitter: trial.transmitter,
-      pulse_us: trial.pulse_us,
-      repeats: trial.repeats,
-      wait_us: remote?.wait_us ?? 0,
-    });
-    w.trial = trial;
-    this.say(t('Señal enviada. Mirá el equipo.'));
-  }
-
-  /** One change at a time: other transmitters, then the neighbouring pulse
-   * lengths, then more repeats. Combinations already tried are skipped. */
-  private async tryNextVariant(): Promise<void> {
-    const w = this.wizard!;
-    if (w.trial) w.attempts.push({ ...w.trial, worked: false });
-    const base = this.firstTrial();
-    const tried = (item: Attempt) =>
-      w.attempts.some(
-        done =>
-          done.transmitter === item.transmitter && done.pulse_us === item.pulse_us && done.repeats === item.repeats,
-      );
-    const candidates: Attempt[] = [
-      ...this.transmitters.map(item => ({ ...base, transmitter: item.id })),
-      { ...base, pulse_us: base.pulse_us + 50 },
-      { ...base, pulse_us: Math.max(50, base.pulse_us - 50) },
-      { ...base, repeats: 10 },
-      ...this.transmitters.map(item => ({ ...base, transmitter: item.id, repeats: 10 })),
-    ];
-    const next = candidates.find(item => !tried(item));
-    w.trial = null;
-    if (!next) {
-      this.failed = true;
-      this.message = t(
-        'Ninguna combinación funcionó. Acercá el transmisor al equipo o capturá el botón de nuevo con el control cerca del receptor.',
-      );
-      return;
-    }
-    await this.tryCandidate(next);
-  }
-
-  private async confirmWorked(): Promise<void> {
-    const w = this.wizard!;
-    const hass = this._hass!;
-    if (!w.remoteId) {
-      // The first button that works fixes the settings of the whole remote.
-      const trial = w.trial!;
-      const settings: Partial<RfSettings> & { name: string } = {
-        name: w.name.trim(),
-        transmitter: trial.transmitter,
-        protocol: w.candidate!.protocol,
-        nbits: w.candidate!.nbits,
-        pulse_us: trial.pulse_us,
-        repeats: trial.repeats,
-        wait_us: 0,
-      };
-      if (w.kind === 'fan') settings.speeds = w.speeds;
-      w.remoteId = (await rf.saveRemote(hass, settings)).id;
-    }
-    await this.saveCandidate();
-  }
-
-  private async saveCandidate(): Promise<void> {
-    const w = this.wizard!;
-    const name = w.buttonName.trim() || functionLabel(w.buttonFunction);
-    await rf.saveButton(
-      this._hass!,
-      w.remoteId!,
-      { name, function: w.buttonFunction || null },
-      { candidateId: w.candidate!.candidate_id },
-    );
-    if (w.queue[0] && w.queue[0] === w.buttonFunction) w.queue.shift();
-    else w.queue = w.queue.filter(item => item !== w.buttonFunction);
-    await this.reload();
-    this.say(t('Botón «{name}» guardado.', { name }));
-    this.prepareNext();
-  }
-
-  private async press(buttonId: string): Promise<void> {
-    try {
-      await rf.press(this._hass!, this.selected!, buttonId);
-      this.say(t('Señal enviada. Mirá el equipo.'));
-    } catch (error) {
-      this.report(error);
-    }
-    this.render();
-  }
-
-  private async deleteButton(buttonId: string): Promise<void> {
-    try {
-      await rf.deleteButton(this._hass!, this.selected!, buttonId);
+  private async learned(remoteId: string): Promise<void> {
+    await this.run(async () => {
       await this.reload();
-      this.say(t('Botón eliminado.'));
-    } catch (error) {
-      this.report(error);
-    }
-    this.render();
+      this.selected = remoteId;
+      this.draft = null;
+      this.learn.remote = this.remote() ?? null;
+      this.say('');
+    });
   }
 
-  private async saveButtons(): Promise<void> {
-    const remote = this.remote()!;
-    for (const row of this.root.querySelectorAll<HTMLElement>('.button-row')) {
-      const id = row.dataset.button!;
-      const name = row.querySelector<HTMLInputElement>('input[name=name]')!.value.trim();
-      const value = row.querySelector<HTMLSelectElement>('select[name=function]')!.value as RfFunction | '';
-      const current = remote.buttons.find(button => button.id === id);
-      if (!current || !name || (current.name === name && (current.function ?? '') === value)) continue;
-      await rf.saveButton(this._hass!, remote.id, { name, function: value || null }, { buttonId: id });
-    }
-    await this.reload();
-    this.say(t('Cambios guardados.'));
+  // Saving --------------------------------------------------------------
+
+  private async saveAbout(change: Partial<RfAbout>): Promise<void> {
+    const remote = this.remote();
+    if (!remote) return;
+    await this.run(async () => {
+      const name = (change.name ?? remote.name).trim();
+      if (!name) return;
+      await rf.saveRemote(
+        this._hass!,
+        {
+          name,
+          icon: change.icon ?? remote.icon,
+          description: 'description' in change ? change.description : remote.description,
+        },
+        remote.id,
+      );
+      await this.reload();
+      this.say(t('Cambios guardados.'));
+    });
   }
 
   private async saveSettings(data: FormData): Promise<void> {
     const remote = this.remote()!;
-    try {
+    await this.run(async () => {
       await rf.saveRemote(
         this._hass!,
         {
@@ -674,10 +741,131 @@ ${
       );
       await this.reload();
       this.say(t('Ajustes guardados. Probá un botón.'));
-    } catch (error) {
-      this.report(error);
-    }
+    });
+  }
+
+  private async saveLayout(layout: RfWidget[] | null): Promise<void> {
+    const remote = this.remote();
+    if (!remote) return;
+    await this.run(async () => {
+      const saved = await rf.saveLayout(this._hass!, remote.id, layout);
+      this.remotes = this.remotes.map(item => (item.id === saved.id ? saved : item));
+      this.say('');
+    });
+  }
+
+  private editWidget(id: string): void {
+    const remote = this.remote();
+    const widget = remote && layoutOf(remote).find(item => item.id === id);
+    if (!widget) return;
+    this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
     this.render();
+  }
+
+  private async deleteWidget(id: string): Promise<void> {
+    const remote = this.remote();
+    const layout = remote ? layoutOf(remote) : [];
+    const widget = layout.find(item => item.id === id);
+    if (!remote || !widget) return;
+    const label = widget.label ?? remote.buttons.find(button => button.id === widget.buttons[0])?.name ?? '';
+    const ok = await confirmDialog(this.root, {
+      title: t('¿Quitar «{name}» del control?', { name: label }),
+      text: t('El botón sigue aprendido: podés volver a ponerlo con Agregar elemento.'),
+      confirm: t('Quitar'),
+    });
+    if (ok) await this.saveLayout(layout.filter(item => item.id !== id));
+  }
+
+  private async saveWidget(): Promise<void> {
+    const draft = this.widgetDraft;
+    const remote = this.remote();
+    if (!draft || !remote) return;
+    const widget = draft.widget;
+    const [min] = WIDGET_BUTTONS[widget.type];
+    // Optional slots (the toggle's off, extra steps) may stay empty.
+    const required = widget.type === 'toggle' || widget.type === 'button' ? 1 : widget.type === 'updown' ? 2 : min;
+    if (widget.buttons.slice(0, required).some(id => !id) || widget.buttons.filter(Boolean).length < required) {
+      draft.error =
+        widget.type === 'steps' || widget.type === 'modes'
+          ? t('Elegí al menos {count} botones.', { count: min })
+          : t('Elegí un botón en cada lugar obligatorio.');
+      return;
+    }
+    const clean: RfWidget = { ...widget, buttons: widget.buttons.filter(Boolean) };
+    const layout = layoutOf(remote);
+    const next = draft.isNew
+      ? add(layout, {
+          ...clean,
+          id: uniqueId(layout, clean.label ?? `${clean.type}-${clean.buttons[0]}`),
+        })
+      : place(
+          layout.map(item => (item.id === clean.id ? clean : item)),
+          clean.id,
+          { w: clean.w, h: clean.h },
+        );
+    this.widgetDraft = null;
+    await this.saveLayout(next);
+  }
+
+  private async deleteButton(buttonId: string): Promise<void> {
+    const remote = this.remote()!;
+    const button = remote.buttons.find(item => item.id === buttonId);
+    const ok = await confirmDialog(this.root, {
+      title: t('¿Eliminar «{name}»?', { name: button?.name ?? buttonId }),
+      text: t('Se olvida el código. Si lo necesitás, lo podés aprender de nuevo.'),
+      confirm: t('Eliminar'),
+    });
+    if (!ok) return;
+    await this.run(async () => {
+      await rf.deleteButton(this._hass!, remote.id, buttonId);
+      await this.reload();
+      this.say(t('Botón eliminado.'));
+    });
+  }
+
+  /** Reads the parts as they are on screen, with optional changes. */
+  private partsOnScreen(): (Omit<RfPart, 'id'> & { id?: string })[] {
+    return [...this.root.querySelectorAll<HTMLElement>('.part')].map(element => {
+      const roles: Record<string, string> = {};
+      element.querySelectorAll<HTMLSelectElement>('[data-role]').forEach(select => {
+        if (select.value) roles[select.dataset.role!] = select.value;
+      });
+      const speeds = element.querySelector<HTMLSelectElement>('[name=part-speeds]')?.value;
+      return {
+        id: element.dataset.part!,
+        name:
+          element.querySelector<HTMLInputElement>('[name=part-name]')!.value.trim() ||
+          kindLabel(element.dataset.kind as PartKind),
+        kind: element.dataset.kind as PartKind,
+        speeds: speeds ? Number(speeds) : null,
+        roles,
+      };
+    });
+  }
+
+  private async saveParts(parts = this.partsOnScreen()): Promise<void> {
+    const remote = this.remote();
+    if (!remote) return;
+    await this.run(async () => {
+      await rf.saveParts(this._hass!, remote.id, parts);
+      await this.reload();
+      this.say(t('Cambios guardados.'));
+    });
+  }
+
+  private async addPart(kind: PartKind): Promise<void> {
+    await this.saveParts([...this.partsOnScreen(), { name: kindLabel(kind), kind, speeds: null, roles: {} }]);
+  }
+
+  private async removePart(partId: string): Promise<void> {
+    const parts = this.partsOnScreen();
+    const part = parts.find(item => item.id === partId);
+    const ok = await confirmDialog(this.root, {
+      title: t('¿Quitar «{name}» de Home Assistant?', { name: part?.name ?? partId }),
+      text: t('Se borra esa entidad. Los botones no se borran.'),
+      confirm: t('Quitar'),
+    });
+    if (ok) await this.saveParts(parts.filter(item => item.id !== partId));
   }
 }
 

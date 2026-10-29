@@ -373,9 +373,16 @@ await step('the RF remotes tab is served and explains a missing transmitter', as
   await page.goto(`${base}/homemanager`);
   await app.getByRole('button', { name: 'Controles RF', exact: true }).click();
   const rf = app.locator('homemanager-rf');
-  await rf.getByText('No hay transmisores con el paquete HomeManager RF').waitFor({ timeout: 30000 });
-  assert.ok(await rf.getByRole('button', { name: 'Agregar control', exact: true }).isDisabled());
+  await rf.getByText('Primero prepará un equipo RF').waitFor({ timeout: 30000 });
+  assert.ok(await rf.getByRole('button', { name: 'Nuevo control', exact: true }).isDisabled());
   await page.screenshot({ path: `${out}/06-rf-tab.png` });
+  // RF devices answers from the real integration (no ESPHome devices here).
+  await rf.getByRole('tab', { name: 'Equipos RF' }).click();
+  await rf.getByText('No hay dispositivos ESPHome en Home Assistant').waitFor({ timeout: 30000 });
+  const devices = await ws({ type: 'homemanager/rf/devices' });
+  assert.ok(devices.success, JSON.stringify(devices.error));
+  assert.deepEqual(devices.result.devices, []);
+  assert.match(devices.result.package, /homemanager-rf\.yaml@v\d/);
 });
 assert.deepEqual(errors, [], `page errors: ${errors.join('; ')}`);
 await browser.close();

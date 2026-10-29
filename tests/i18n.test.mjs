@@ -26,7 +26,8 @@ for (const file of sources(path.join(root, 'src')))
     keys.add(match[1].replace(/\\'/g, "'"));
 
 test('every user-facing string has an English translation with the same variables', async () => {
-  const { en } = await load('src/i18n/en.ts');
+  // RF strings live in their own file (en-rf.ts); index.ts reads both.
+  const en = { ...(await load('src/i18n/en.ts')).en, ...(await load('src/i18n/en-rf.ts')).enRf };
   const missing = [...keys].filter(key => !Object.hasOwn(en, key));
   assert.deepEqual(missing, [], `Missing English translations:\n${missing.join('\n')}`);
   const vars = text => [...text.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort();
@@ -37,7 +38,7 @@ test('every user-facing string has an English translation with the same variable
 test('language follows Home Assistant and falls back to readable text', async () => {
   globalThis.__homemanagerLanguage = undefined;
   const i18n = await import(
-    `data:text/javascript;base64,${Buffer.from(transformSync(readFileSync(path.join(root, 'src/i18n/index.ts'), 'utf8').replace("import { en } from './en.js';", "const en = { 'Encuadrar {label}': 'Show {label}' };"), { loader: 'ts', format: 'esm' }).code).toString('base64')}`
+    `data:text/javascript;base64,${Buffer.from(transformSync(readFileSync(path.join(root, 'src/i18n/index.ts'), 'utf8').replace("import { en } from './en.js';", "const en = { 'Encuadrar {label}': 'Show {label}' };").replace("import { enRf } from './en-rf.js';", 'const enRf = {};'), { loader: 'ts', format: 'esm' }).code).toString('base64')}`
   );
   assert.equal(i18n.t('Encuadrar {label}', { label: 'Sala' }), 'Show Sala');
   i18n.setLanguage(i18n.languageFromHass({ locale: { language: 'es-AR' } }));
