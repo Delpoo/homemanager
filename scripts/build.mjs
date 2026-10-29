@@ -50,6 +50,7 @@ await build({
     'src/card/configuration.ts',
     'src/card/geometry.ts',
     'src/editor/model.ts',
+    'src/editor/entity-picker.ts',
     'src/editor/storage.ts',
     'src/editor/index.ts',
     'src/panels/native-panel.ts',
