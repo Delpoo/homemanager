@@ -20,7 +20,7 @@ Estado: **fase 1 en desarrollo** (rama `claude/rf-manager`). Decisión: [D16](de
    - `homemanager_rf_send(code, protocol, pulse_length, repeats, wait_us)`: arma la trama RCSwitch con esa temporización, la envía `repeats` veces y espera `wait_us` entre tramas;
    - `homemanager_rf_capture(seconds)`: abre una ventana de hasta 60 s en la que cada recepción se envía a HA como evento `esphome.homemanager_rf_raw` con los **tiempos crudos**. Fuera de la ventana no envía nada.
 
-   Validado con `esphome config` en ESPHome 2026.10.0 junto a acciones y disparadores existentes. No sustituye ni modifica las acciones actuales del Athom.
+   Validado con `esphome config` y compilado (ESP-IDF 5.5.6) en ESPHome 2026.10.0, junto a acciones y disparadores existentes; todavía no probado en un Athom real. No sustituye ni modifica las acciones actuales del Athom.
 2. **Decodificador** (`rf_codec.py`): a partir de los tiempos crudos obtiene protocolo, bits y **duración del pulso**. Esto es lo que distingue un control de 350 µs de uno de 400 µs. Admite los protocolos RCSwitch 1, 2, 4 y 7; los controles de ventilador de 433 MHz suelen usar el 1 con 24 bits.
 3. **Biblioteca** (`rf_model.py`, `rf.py`): controles con sus ajustes y botones con nombre, función y código.
 4. **API WebSocket** (`rf_websocket.py`): leer la biblioteca y pulsar botones (cualquier usuario); transmisores, captura, prueba y edición (sólo administradores). Ningún comando devuelve un código.
