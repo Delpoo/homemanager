@@ -373,6 +373,9 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
     .getByRole('dialog', { name: '¿Eliminar «Espacio B»?' })
     .getByRole('button', { name: 'Eliminar', exact: true })
     .click();
+  await expect
+    .poll(async () => (await current(page)).rooms.map(room => room.id))
+    .toEqual(['living', 'office', 'garage']);
   const config = await current(page);
   expect(config.rooms.map(room => room.id)).toEqual(['living', 'office', 'garage']);
   expect(config.catalog.devices.find(device => device.id === 'synthetic-fan')).toMatchObject({
