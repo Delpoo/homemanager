@@ -28,6 +28,22 @@ def test_decoder_measures_protocol_and_pulse_length() -> None:
         assert reading.frames >= 4
 
 
+def _single_frame(bits: str, pulse: int) -> list[int]:
+    """One frame as a receiver with a 10 ms idle timeout delivers it: the bits and
+    the next sync mark, without the sync space (31 x pulse) that ended it."""
+    return encode_timings(1, bits, pulse)[2:-1]
+
+
+def test_decoder_reads_frames_delivered_one_by_one() -> None:
+    for pulse in (350, 400):
+        # Receivers typically lengthen marks and shorten spaces by tens of µs.
+        frame = [value + 60 if value > 0 else value + 60 for value in _single_frame(CODE, pulse)]
+        reading = summarize(decode(_jitter(frame, pulse)))
+        assert reading is not None
+        assert (reading.protocol, reading.bits, reading.frames) == (1, CODE, 1)
+        assert abs(reading.pulse_us - pulse) <= 20
+
+
 def test_decoder_prefers_full_frames_and_rejects_noise() -> None:
     partial = encode_timings(1, CODE[:10], 350)
     full = encode_timings(1, CODE, 350, repeats=2)
@@ -68,9 +84,10 @@ async def test_capture_test_save_and_press_without_exposing_codes(hass: HomeAssi
     assert sent == [{"capture": 20}]
 
     # Two presses of the same button, more than a second apart.
-    clock = iter([100.0, 100.1, 102.0, 102.1])
-    monkeypatch.setattr("custom_components.homemanager.rf.time.monotonic", lambda: next(clock, 103.0))
-    for seed in (1, 2):
+    clock = {"now": 0.0}
+    monkeypatch.setattr("custom_components.homemanager.rf._now", lambda: clock["now"])
+    for seed, moment in ((1, 100.0), (2, 102.0)):
+        clock["now"] = moment
         timings = _jitter(encode_timings(1, CODE, 400, repeats=4), seed)
         hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(map(str, timings))})
         await hass.async_block_till_done()
@@ -164,3 +181,20 @@ async def test_library_survives_restart_and_failed_writes_roll_back(hass: HomeAs
     except Exception:  # The websocket reports an unknown error; the state must not change.
         pass
     assert list(manager.library.get("luz").buttons) == ["on"]
+
+
+async def test_capture_counts_presses_from_single_frame_receptions(hass: HomeAssistant, setup_integration, hass_ws_client, monkeypatch) -> None:
+    _transmitter(hass)
+    admin = await hass_ws_client(hass)
+    assert (await _call(admin, {"type": "homemanager/rf/capture", "transmitter": "test_tx", "seconds": 10}))["success"]
+    # Two presses of five frames each; frames of one press arrive ~40 ms apart.
+    moments = [10.0 + index * 0.04 for index in range(5)] + [13.0 + index * 0.04 for index in range(5)]
+    clock = {"now": 0.0}
+    monkeypatch.setattr("custom_components.homemanager.rf._now", lambda: clock["now"])
+    for index in range(10):
+        clock["now"] = moments[index]
+        hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(map(str, _jitter(_single_frame(CODE, 400), index)))})
+        await hass.async_block_till_done()
+    updates = [(await admin.receive_json())["event"]["candidate"] for _ in range(10)]
+    assert [update["bursts"] for update in updates] == [1] * 5 + [2] * 5
+    assert updates[-1]["frames"] == 10 and updates[-1]["pulse_us"] == 400 and updates[-1]["confirmed"] is True

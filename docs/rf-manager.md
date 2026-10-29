@@ -20,8 +20,8 @@ Estado: **fase 1 en desarrollo** (rama `claude/rf-manager`). Decisión: [D16](de
    - `homemanager_rf_send(code, protocol, pulse_length, repeats, wait_us)`: arma la trama RCSwitch con esa temporización, la envía `repeats` veces y espera `wait_us` entre tramas;
    - `homemanager_rf_capture(seconds)`: abre una ventana de hasta 60 s en la que cada recepción se envía a HA como evento `esphome.homemanager_rf_raw` con los **tiempos crudos**. Fuera de la ventana no envía nada.
 
-   Validado con `esphome config` y compilado (ESP-IDF 5.5.6) en ESPHome 2026.10.0, junto a acciones y disparadores existentes; todavía no probado en un Athom real. No sustituye ni modifica las acciones actuales del Athom.
-2. **Decodificador** (`rf_codec.py`): a partir de los tiempos crudos obtiene protocolo, bits y **duración del pulso**. Esto es lo que distingue un control de 350 µs de uno de 400 µs. Admite los protocolos RCSwitch 1, 2, 4 y 7; los controles de ventilador de 433 MHz suelen usar el 1 con 24 bits.
+   Validado con `esphome config` y compilado (ESP-IDF 5.5.6) en ESPHome 2026.10.0 sobre el paquete oficial *Athom RF IR Remote*, junto a acciones y disparadores existentes; todavía no probado en un equipo real. Los eventos `esphome.*` no necesitan permisos adicionales en HA. No sustituye ni modifica las acciones actuales del Athom.
+2. **Decodificador** (`rf_codec.py`): a partir de los tiempos crudos obtiene protocolo, bits y **duración del pulso**, medida sobre el periodo completo de cada bit (marca + espacio) para que la asimetría típica del receptor no la sesgue. Acepta recepciones con varias tramas y también tramas sueltas: un receptor con `idle` de 10 ms (como el del paquete Athom) corta cada trama antes de su pausa de sincronización. Esto es lo que distingue un control de 350 µs de uno de 400 µs. Admite los protocolos RCSwitch 1, 2, 4 y 7; los controles de ventilador de 433 MHz suelen usar el 1 con 24 bits.
 3. **Biblioteca** (`rf_model.py`, `rf.py`): controles con sus ajustes y botones con nombre, función y código.
 4. **API WebSocket** (`rf_websocket.py`): leer la biblioteca y pulsar botones (cualquier usuario); transmisores, captura, prueba y edición (sólo administradores). Ningún comando devuelve un código.
 
@@ -30,7 +30,7 @@ Estado: **fase 1 en desarrollo** (rama `claude/rf-manager`). Decisión: [D16](de
 El orden importa: no se puede probar un transmisor sin un botón capturado.
 
 1. **Captura.** "¿Qué transmisor está más cerca del control físico?" → "Presiona *Apagar* en tu control" → "Otra vez". Un código cuenta como **confirmado** cuando aparece igual en dos pulsaciones separadas por más de un segundo. Las lecturas parciales (menos bits, por ejemplo 10 de 24) nunca ganan a una completa, y si un código ya existe en otro control, el asistente lo avisa.
-2. **Prueba del primer botón.** HomeManager lo envía con lo medido (protocolo, bits, pulso), 6 repeticiones y espera 0. Pregunta "¿El equipo reaccionó?".
+2. **Prueba del primer botón.** HomeManager lo envía con lo medido (protocolo, bits, pulso), 5 repeticiones y espera 0. Pregunta "¿El equipo reaccionó?".
    - **Sí:** esos ajustes quedan en el control y valen para todos sus botones.
    - **No:** prueba variantes, una por vez y siempre preguntando: el otro transmisor; el pulso alternativo (350 ↔ 400); más repeticiones. Cada intento queda registrado para no repetir combinaciones.
 3. **Resto de botones.** Capturar, poner nombre y elegir qué hace: apagar, luz, velocidad N, subir/bajar, dirección, temporizador, otro. En la plantilla "ventilador con luz" el asistente propone un orden típico: apagar, velocidades, dirección, luz, temporizadores.
@@ -39,7 +39,7 @@ El orden importa: no se puede probar un transmisor sin un botón capturado.
 ### Ajustes de transmisión (los que costó encontrar a mano)
 
 - **Pulso (`pulse_us`).** Se mide en cada trama capturada (mediana de los pulsos cortos, redondeada a 10 µs). Si la prueba falla, se intenta el valor alternativo.
-- **Repeticiones (`repeats`, 1–20).** Cuántas tramas se envían por pulsación. Los controles de ventilador suelen emitir entre 4 y 8 tramas por pulsación; se empieza con 6.
+- **Repeticiones (`repeats`, 1–20).** Cuántas tramas se envían por pulsación. Los controles de ventilador suelen emitir entre 4 y 8 tramas por pulsación; se empieza con 5.
 - **Espera entre tramas (`wait_us`, 0–100 000 µs).** Empieza en **0**: la pausa de sincronización ya forma parte de cada trama, y una espera adicional hace que algunos receptores no reconozcan la secuencia.
 
 Los tres aparecen en "Ajustes avanzados" del control, cada uno con su botón **Probar**. No hace falta tocarlos si la primera prueba funciona.

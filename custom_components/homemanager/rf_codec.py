@@ -53,17 +53,22 @@ def _near(value: float, target: float) -> bool:
     return abs(value - target) <= target * TOLERANCE
 
 
-def _segments(timings: list[int]) -> list[list[int]]:
+def _segments(timings: list[int]) -> tuple[list[list[int]], bool]:
     """Split on long spaces: each segment starts with a bit mark and usually ends
-    with the sync mark of the next frame."""
+    with the sync mark of the next frame. The flag says whether any sync space
+    was seen: receivers whose idle timeout is shorter than the sync space (for
+    example 10 ms against 31 x 350 us) deliver one frame per reception and
+    never include it."""
     durations = [abs(value) for value in timings if value]
     if len(durations) < 2 * MIN_BITS:
-        return []
+        return [], False
     short = median(sorted(durations)[: max(1, len(durations) // 2)])
     segments: list[list[int]] = []
     current: list[int] = []
+    synced = False
     for value in timings:
         if value < 0 and -value > short * 5:
+            synced = True
             if current:
                 segments.append(current)
             current = []
@@ -71,10 +76,10 @@ def _segments(timings: list[int]) -> list[list[int]]:
             current.append(value)
     if current:
         segments.append(current)
-    return segments
+    return segments, synced
 
 
-def _decode_segment(segment: list[int], sync_low: float) -> Frame | None:
+def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
     # Drop a leading space and a trailing lone mark (the next frame's sync mark).
     if segment and segment[0] < 0:
         segment = segment[1:]
@@ -83,15 +88,25 @@ def _decode_segment(segment: list[int], sync_low: float) -> Frame | None:
     pairs = [(segment[i], -segment[i + 1]) for i in range(0, len(segment), 2)]
     if not MIN_BITS <= len(pairs) <= MAX_BITS or any(high <= 0 or low <= 0 for high, low in pairs):
         return None
-    pulse = median(min(high, low) for high, low in pairs)
+    # A bit lasts (one_high + one_low) pulses whichever its value, so the whole
+    # pair measures the pulse; receivers that stretch marks and shorten spaces
+    # (or the opposite) do not bias it. The share of the mark gives the value.
+    period = median(high + low for high, low in pairs)
     for protocol, (one_high, one_low, sync, _nominal) in PROTOCOLS.items():
-        if not _near(sync_low / pulse, sync):
+        total = one_high + one_low
+        pulse = period / total
+        # Without a sync space only the bit shape identifies the protocol; the
+        # first match wins (protocol 1 before 4, which shares its 1:3 shape).
+        if sync_low is not None and not _near(sync_low / pulse, sync):
             continue
         bits = []
         for high, low in pairs:
-            if _near(high, one_high * pulse) and _near(low, one_low * pulse):
+            share = high / (high + low)
+            if not _near(high + low, period):
+                break
+            if abs(share - one_high / total) <= 0.12:
                 bits.append("1")
-            elif _near(high, pulse) and _near(low, one_high * pulse):
+            elif abs(share - 1 / total) <= 0.12:
                 bits.append("0")
             else:
                 break
@@ -107,9 +122,9 @@ def decode(timings: list[int]) -> list[Frame]:
     sync_lows = [-value for value in timings if value < 0]
     if not sync_lows:
         return frames
-    segments = _segments(timings)
+    segments, synced = _segments(timings)
     longest = sorted(sync_lows, reverse=True)
-    sync_low = median(longest[: max(1, len(segments))])
+    sync_low = median(longest[: max(1, len(segments))]) if synced else None
     for segment in segments:
         frame = _decode_segment(segment, sync_low)
         if frame:

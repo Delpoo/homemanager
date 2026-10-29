@@ -46,6 +46,10 @@ BURST_GAP_SECONDS = 1.0
 CANDIDATE_TTL_SECONDS = 15 * 60
 
 
+def _now() -> float:
+    return time.monotonic()
+
+
 @dataclass
 class Candidate:
     """A code heard during a capture. Its id is what the browser sees."""
@@ -219,7 +223,7 @@ class RfManager:
         return candidate
 
     def _expire(self) -> None:
-        limit = time.monotonic() - CANDIDATE_TTL_SECONDS
+        limit = _now() - CANDIDATE_TTL_SECONDS
         for key in [key for key, item in self._candidates.items() if item.last_seen < limit]:
             del self._candidates[key]
 
@@ -244,7 +248,7 @@ class RfManager:
             reading = summarize(frames)
             if reading is None:
                 return
-            now = time.monotonic()
+            now = _now()
             candidate = heard.get((reading.protocol, reading.bits))
             if candidate is None:
                 candidate = Candidate(secrets.token_hex(8), transmitter, reading.protocol, reading.bits)

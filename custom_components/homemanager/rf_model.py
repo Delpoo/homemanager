@@ -49,7 +49,7 @@ FUNCTIONS = frozenset(
 )
 # Defaults for a new remote: what most 433 MHz fan remotes use. The capture
 # replaces protocol, length and pulse with measured values.
-DEFAULTS = {"protocol": 1, "nbits": 24, "pulse_us": 350, "repeats": 6, "wait_us": 0}
+DEFAULTS = {"protocol": 1, "nbits": 24, "pulse_us": 350, "repeats": 5, "wait_us": 0}
 LIMITS = {"pulse_us": (50, 2000), "repeats": (1, 20), "wait_us": (0, 100_000)}
 
 
