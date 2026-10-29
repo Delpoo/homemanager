@@ -50,7 +50,7 @@ api:
               case 4: one = 3; sync = 6; break;
               case 7: one = 6; sync = 62; break;
               default:
-                ESP_LOGW("homemanager", "Rejected RF send: unsupported protocol %d", protocol);
+                ESP_LOGW("homemanager", "Rejected RF send: unsupported protocol %d", (int) protocol);
                 return;
             }
             uint64_t value = 0;
@@ -65,17 +65,17 @@ api:
             const esphome::remote_base::RCSwitchBase rc(p, sync * p, p, one * p, one * p, p, false);
             auto call = id(${hm_rf_transmitter}).transmit();
             rc.transmit(call.get_data(), value, code.size());
-            call.set_send_times(std::max(1, std::min(repeats, 20)));
-            call.set_send_wait(std::max(0, std::min(wait_us, 100000)));
+            call.set_send_times(std::max<int32_t>(1, std::min<int32_t>(repeats, 20)));
+            call.set_send_wait(std::max<int32_t>(0, std::min<int32_t>(wait_us, 100000)));
             call.perform();
-            ESP_LOGD("homemanager", "RF sent: protocol %d, %u bits, %u us, x%d, wait %d us", protocol, (unsigned) code.size(), p, repeats, wait_us);
+            ESP_LOGD("homemanager", "RF sent: protocol %d, %u bits, %u us, x%d, wait %d us", (int) protocol, (unsigned) code.size(), (unsigned) p, (int) repeats, (int) wait_us);
 
     - action: homemanager_rf_capture
       variables:
         seconds: int
       then:
         - lambda: |-
-            const int window = std::max(0, std::min(seconds, 60));
+            const int window = (int) std::max<int32_t>(0, std::min<int32_t>(seconds, 60));
             id(hm_rf_capture_until) = window > 0 ? millis() + (uint32_t) window * 1000 : 0;
             ESP_LOGI("homemanager", "RF capture window: %d s", window);
 
