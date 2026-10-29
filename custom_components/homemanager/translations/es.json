@@ -3,12 +3,34 @@
     "step": {
       "user": {
         "title": "HomeManager",
-        "description": "Guarda tus planos y la distribución de dispositivos en Home Assistant y agrega el panel HomeManager a la barra lateral. Editar requiere una cuenta administradora."
+        "description": "Sólo administradores por defecto. Los usuarios elegidos pueden leer todos los planos; las acciones siguen los permisos de HA. La carga global es opcional para usar tarjetas en cualquier dashboard.",
+        "data": {
+          "viewer_user_ids": "Usuarios con lectura de todos los hogares",
+          "load_on_all_pages": "Cargar HomeManager en todas las páginas de HA"
+        }
       }
     },
     "abort": {
       "already_configured": "HomeManager ya está configurado.",
       "single_instance_allowed": "HomeManager ya está configurado."
+    },
+    "error": {
+      "invalid_viewers": "Elegí cuentas activas de Home Assistant."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HomeManager",
+        "description": "Sólo administradores por defecto. Los usuarios elegidos pueden leer todos los planos; las acciones siguen los permisos de HA. La carga global es opcional para usar tarjetas en cualquier dashboard.",
+        "data": {
+          "viewer_user_ids": "Usuarios con lectura de todos los hogares",
+          "load_on_all_pages": "Cargar HomeManager en todas las páginas de HA"
+        }
+      }
+    },
+    "error": {
+      "invalid_viewers": "Elegí cuentas activas de Home Assistant."
     }
   }
 }

@@ -2,6 +2,15 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.3.1 — sin publicar
+
+- Acceso privado por defecto; lectores elegidos desde las opciones de la integración.
+- Carga global del frontend sólo con autorización explícita en las opciones.
+- Validación completa V2 y perfil SVG estático en servidor; presupuesto de expansión en ambos lados.
+- Suscripciones acotadas y limpieza al cancelar; cuotas globales de almacenamiento e historial con purga explícita.
+- Guardados serializados y recuperación de fallos; documentos inválidos conservados en cuarentena.
+- Paquete reproducible con lista de archivos permitidos y verificación final. Preparación manual de una release en borrador sólo después de superar toda la CI, con atestación y sin sobrescribir assets.
+
 ## 0.3.0 — sin publicar
 
 Primera versión candidata para instalar en una vivienda real.

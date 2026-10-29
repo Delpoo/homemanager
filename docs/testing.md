@@ -3,8 +3,8 @@
 | Capa | Comando | Qué cubre |
 | --- | --- | --- |
 | Contrato, límites públicos, tipos y unidades | `npm run check` | Esquemas V2 y migración V1, validador, modelo del editor, adaptador HA, comandos por capacidades, controles, agrupación, i18n completo y versión única (93 pruebas) |
-| Navegador | `npm run test:browser` | Tarjeta, editor, paneles, almacenamiento Lovelace, modo integración y panel lateral con sesiones HA sintéticas; escritorio y móvil (158 pruebas) |
-| Integración Python | `python -m pip install -r requirements_test.txt` y `python -m pytest -q` | Backend con el arnés oficial de HA: permisos, revisión atómica concurrente, historial, persistencia, filtro de planos, flujo de configuración (35 pruebas). `requirements_test_latest.txt` usa la versión actual de HA |
+| Navegador | `npm run test:browser` | Tarjeta, editor, paneles, almacenamiento Lovelace, modo integración y panel lateral con sesiones HA sintéticas; escritorio y móvil (incluye regresión de expansión SVG) |
+| Integración Python | `python -m pip install -r requirements_test.txt` y `python -m pytest -q` | Backend con el arnés oficial de HA: permisos, revisión atómica concurrente, historial, persistencia, filtro de planos, flujo de configuración (incluye validación completa, permisos, cuotas, fallos de E/S y paquete reproducible). `requirements_test_latest.txt` usa la versión actual de HA |
 | Extremo a extremo | Ver abajo | Producto completo en Chrome contra un Home Assistant real y desechable (11 comprobaciones) |
 
 La CI ejecuta las tres primeras capas y la integración en HA 2026.2.3 (mínima declarada) y 2026.10.4 (actual).
@@ -28,3 +28,7 @@ Detalles útiles: el script renueva el token en cada ejecución. Detener HA de f
 - un lanzador que omita la comprobación de plataforma y los manejadores de señales.
 
 En Linux, WSL o un contenedor no hace falta nada de eso.
+
+## Regresiones de seguridad
+
+`tests/integration/test_security.py` cubre las entradas manipuladas que motivaron la auditoría, cuotas que incluyen hogares borrados y ausencia de cambios visibles al fallar la persistencia. `test_package.py` comprueba el ZIP final, denegación de archivos inesperados/sensibles, symlinks, reproducibilidad y las restricciones del flujo de release. `tests/panels/geometry.browser.spec.mjs` rechaza referencias SVG duplicadoras antes del layout. Ninguna de estas pruebas llama hardware.

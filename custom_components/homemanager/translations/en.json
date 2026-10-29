@@ -3,12 +3,34 @@
     "step": {
       "user": {
         "title": "HomeManager",
-        "description": "Stores your floor plans and device layout in Home Assistant and adds the HomeManager panel to the sidebar. Editing requires an administrator."
+        "description": "Administrators only by default. Selected viewers can read every home; actions still use HA permissions. Global loading is optional for cards on any dashboard.",
+        "data": {
+          "viewer_user_ids": "Viewers of all HomeManager homes",
+          "load_on_all_pages": "Load HomeManager on all HA pages"
+        }
       }
     },
     "abort": {
       "already_configured": "HomeManager is already configured.",
       "single_instance_allowed": "HomeManager is already configured."
+    },
+    "error": {
+      "invalid_viewers": "Select active Home Assistant accounts."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HomeManager",
+        "description": "Administrators only by default. Selected viewers can read every home; actions still use HA permissions. Global loading is optional for cards on any dashboard.",
+        "data": {
+          "viewer_user_ids": "Viewers of all HomeManager homes",
+          "load_on_all_pages": "Load HomeManager on all HA pages"
+        }
+      }
+    },
+    "error": {
+      "invalid_viewers": "Select active Home Assistant accounts."
     }
   }
 }

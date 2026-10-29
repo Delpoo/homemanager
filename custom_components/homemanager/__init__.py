@@ -17,7 +17,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
 from .store import HomeManagerStore
 from .websocket import async_register
 
@@ -29,9 +29,12 @@ DATA_STATIC = f"{DOMAIN}_static_registered"
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store = HomeManagerStore(hass)
     await store.async_load()
+    store.viewer_user_ids = set(entry.options.get(CONF_VIEWER_USER_IDS, []))
     hass.data[DOMAIN] = store
     async_register(hass)
     await _async_register_frontend(hass)
+    await _async_update_options(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(_async_update_options))
     return True
 
 
@@ -39,7 +42,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, PANEL_URL_PATH, warn_if_unknown=False)
     if url := hass.data.pop(f"{DOMAIN}_module_url", None):
         frontend.remove_extra_js_url(hass, url)
-    hass.data.pop(DOMAIN, None)
+    if store := hass.data.pop(DOMAIN, None):
+        store.async_close()
     # Websocket commands and the static route cannot be unregistered in HA; they
     # answer "not loaded" errors through the missing store until the next setup.
     return True
@@ -47,6 +51,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def _bundle_version(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+
+
+async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    store = hass.data.get(DOMAIN)
+    if store:
+        store.viewer_user_ids = set(entry.options.get(CONF_VIEWER_USER_IDS, []))
+    if url := hass.data.get(f"{DOMAIN}_module_url"):
+        if entry.options.get(CONF_GLOBAL_FRONTEND, False):
+            frontend.add_extra_js_url(hass, url)
+        else:
+            frontend.remove_extra_js_url(hass, url)
 
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:
@@ -61,9 +76,8 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         hass.data[DATA_STATIC] = True
     version = await hass.async_add_executor_job(_bundle_version, bundle)
     url = f"{FRONTEND_URL_BASE}/{FRONTEND_FILENAME}?v={version}"
-    # Loaded on every frontend page: the card works on any dashboard without
-    # registering a Lovelace resource by hand.
-    frontend.add_extra_js_url(hass, url)
+    # The panel loads its own module. Loading on every dashboard/session is an
+    # explicit integration option; existing installs also default to private.
     hass.data[f"{DOMAIN}_module_url"] = url
     await panel_custom.async_register_panel(
         hass,

@@ -1,6 +1,6 @@
 # Seguridad y separación de datos
 
-Estado: **controles implementados y probados con datos sintéticos; validación en HA real pendiente** (29 de octubre de 2026). Esta política documenta requisitos para los agentes de frontend y de conexión con Home Assistant. La presencia de documentación, esquemas o un escáner de patrones no certifica la seguridad del producto.
+Estado: **controles endurecidos en la candidata 0.3.1; sin instalación productiva ni release durante esta corrección**. Ver [controles, compatibilidad y límites](security-hardening.md).
 
 ## Fronteras de confianza
 
@@ -19,7 +19,7 @@ La tarjeta recibe el contexto `hass` y utiliza la conexión de la sesión existe
 
 La edición persistente V1 ocurre dentro del editor Lovelace y requiere administrador. La comprobación de UI mejora la experiencia, pero la autorización del guardado corresponde al servidor HA. La configuración no debe contener secretos. [Comprobación del servidor](https://github.com/home-assistant/core/blob/2026.10.4/homeassistant/components/lovelace/websocket.py#L138).
 
-La configuración de un dashboard no es una bóveda aislada por usuario. Otras sesiones autenticadas pueden tener acceso a su configuración; ocultar el dashboard o un control no constituye una barrera de autorización. No se promete una ACL privada de HomeManager frente a los demás usuarios autenticados de HA.
+La configuración de un dashboard no es una bóveda aislada por usuario. Otras sesiones autenticadas pueden tener acceso a su configuración; ocultar el dashboard o un control no constituye una barrera de autorización. Esto se aplica a configuraciones inline de Lovelace. La integración HomeManager 0.3.1 autoriza en el servidor sólo a administradores y lectores seleccionados explícitamente, para todos sus hogares.
 
 El SVG privado se importará como dato inline sanitizado dentro de la configuración. Deben probarse el tamaño admitido, carga, recarga y restauración. No se colocará el plano real bajo `www` ni se presentará una ruta `/local/` como autenticada: HA advierte que esos archivos pueden leerse sin iniciar sesión si se conoce la URL. [HTTP: archivos estáticos](https://www.home-assistant.io/integrations/http/#hosting-files).
 

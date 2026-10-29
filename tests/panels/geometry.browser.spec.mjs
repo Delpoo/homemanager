@@ -2,6 +2,27 @@ import { test, expect } from '@playwright/test';
 
 // Deliberately synthetic geometry. These tests contain no instance plan/data.
 const fixture = '/tests/browser/fixtures/card.html';
+
+test('acyclic duplicate SVG references cannot expand beyond the rendering budget', async ({ page }) => {
+  await page.goto(fixture);
+  const result = await page.evaluate(async () => {
+    const { sanitizeArchitecture } = await import('/.work/card/geometry.js');
+    const plan = levels => {
+      let groups = '<g id="n0"><rect width="1" height="1"/></g>';
+      for (let i = 1; i <= levels; i++) groups += `<g id="n${i}"><use href="#n${i - 1}"/><use href="#n${i - 1}"/></g>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><defs>${groups}</defs><use href="#n${levels}"/></svg>`;
+    };
+    const small = sanitizeArchitecture(plan(3)).content;
+    try {
+      sanitizeArchitecture(plan(16));
+      return { rejected: false, small };
+    } catch {
+      return { rejected: true, small };
+    }
+  });
+  expect(result.rejected).toBe(true);
+  expect(result.small).toContain('use');
+});
 test.beforeEach(async ({ page }) => {
   await page.goto(fixture);
 });

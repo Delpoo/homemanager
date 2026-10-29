@@ -1,6 +1,18 @@
 /** English translations, keyed by the Spanish source text (see index.ts).
  * tests/i18n.test.mjs fails when a t('…') key in src/ has no entry here. */
 export const en: Record<string, string> = {
+  'No tenés permiso para esta operación. Pedile acceso a una persona administradora.':
+    'You do not have permission for this operation. Ask an administrator for access.',
+  'Se alcanzó el límite de almacenamiento. Revisá los historiales conservados desde Almacenamiento.':
+    'The storage limit has been reached. Review retained histories under Storage.',
+  'No se pudo guardar o leer el almacenamiento. Recargá antes de reintentar.':
+    'Could not save or read storage. Reload before retrying.',
+  Almacenamiento: 'Storage',
+  'Los historiales de hogares eliminados se conservan hasta que los elimines definitivamente. Las copias de seguridad se administran por separado.':
+    'Deleted-home histories are retained until you permanently delete them. Backups are managed separately.',
+  'Eliminar historial': 'Delete history',
+  '¿Eliminar definitivamente el historial de {home}?': 'Permanently delete the history of {home}?',
+  'Uso de almacenamiento: {size} MiB de 64 MiB.': 'Storage usage: {size} MiB of 64 MiB.',
   'No se pudo leer la integración HomeManager. Comprobá que esté cargada.':
     'Could not read the HomeManager integration. Check that it is loaded.',
   Hogar: 'Home',

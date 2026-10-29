@@ -38,11 +38,16 @@ export function subscribeHome(
   hass: Hass,
   homeId: string,
   listener: (event: { revision: number | null; deleted: boolean }) => void,
+  onError?: (error: unknown) => void,
 ): Promise<() => void> | undefined {
-  return hass.connection?.subscribeMessage?.(
+  const pending = hass.connection?.subscribeMessage?.(
     event => listener(event as { revision: number | null; deleted: boolean }),
     { type: 'homemanager/home/subscribe', home_id: homeId },
   );
+  return pending?.catch(error => {
+    onError?.(error);
+    return () => {};
+  });
 }
 export function describeError(error: unknown): string {
   const { code, message } = (error ?? {}) as WsError;
@@ -51,7 +56,11 @@ export function describeError(error: unknown): string {
       'Otro editor guardó una versión más nueva (revisión {revision}). Tu borrador se conserva: exportalo, recargá y volvé a aplicar los cambios.',
       { revision: message?.replace('revision:', '') ?? '?' },
     );
-  if (code === 'unauthorized') return t('Guardar requiere una cuenta administradora de Home Assistant.');
+  if (code === 'unauthorized')
+    return t('No tenés permiso para esta operación. Pedile acceso a una persona administradora.');
+  if (code === 'storage_quota')
+    return t('Se alcanzó el límite de almacenamiento. Revisá los historiales conservados desde Almacenamiento.');
+  if (code === 'storage_error') return t('No se pudo guardar o leer el almacenamiento. Recargá antes de reintentar.');
   if (code === 'unknown_command') return t('La integración HomeManager no está cargada en Home Assistant.');
   if (code === 'home_not_found') return t('Ese hogar no existe en la integración HomeManager.');
   if (code === 'plan_too_large' || code === 'configuration_too_large')

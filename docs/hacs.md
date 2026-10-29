@@ -1,20 +1,16 @@
 # Distribución mediante HACS
 
-Estado (29 de octubre de 2026): **versión 0.3.0 en `main` (Delpoo/homemanager#9), empaquetado y E2E probados en instancias desechables de HA 2026.2.3 y 2026.10.4; sin releases publicadas.** Instalación: [installation.md](installation.md). Tras la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-configuración), HomeManager se distribuye como **una sola integración** que incluye la tarjeta, el editor y el panel.
+Estado: **candidata de seguridad 0.3.1, sin release publicada**. Ver [instalación](installation.md) y [preparación verificada de releases](versioning.md). HomeManager se distribuye como una integración que incluye tarjeta, editor y panel.
 
 ## Paquete público
 
 - Categoría HACS: **Integración**. El repositorio público contiene `custom_components/homemanager/` en la raíz, como exige HACS. [Requisitos de integraciones](https://hacs.dev/docs/publish/integration/).
 - `hacs.json` usa `zip_release: true` con `filename: homemanager.zip`: cada release adjunta ese asset, que contiene los archivos de la integración **y** el bundle `frontend/homemanager.js`. El bundle no se versiona en Git (`npm run build` lo genera). `hide_default_branch` impide instalar la rama de desarrollo.
-- La integración sirve el bundle en `/homemanager_files/homemanager.js?v=<hash>` y lo añade a todas las páginas del frontend (`add_extra_js_url`): **no hace falta registrar un recurso Lovelace**. El parámetro de versión invalida la caché al actualizar.
+- La integración sirve el bundle y el panel lo carga al abrirse. La carga en todas las páginas de HA es opcional; consultar las opciones y la modalidad de recurso manual en [instalación](installation.md).
 - `homeassistant: 2026.2.0` en `hacs.json` es la mínima declarada; probadas 2026.2.3 y 2026.10.4. Antes de publicar, probar también la versión de la instalación real y ajustar la mínima si hace falta.
 - Quien ya registró `homemanager.js` como recurso Lovelace puede quitarlo: si conviven, el segundo registro de los elementos se ignora sin errores.
 - `homemanager-instance` sigue siendo privado y nunca se distribuye.
 
 ## Secuencia de publicación
 
-1. Integrar por PR la tarjeta, el editor, el adaptador HA y la integración, con CI (`foundation` e `integration`) en verde. *Hecho para 0.3.0 (#9).*
-2. Desde un commit identificado: `npm ci --ignore-scripts`, `npm run check`, `npm run test:browser`, `python -m pytest -q` y `npm run package` (genera `.work/release/homemanager.zip`). Revisar el contenido del zip: código, traducciones y bundle; ningún plano, binding real, URL interna ni secreto.
-3. Probar en las versiones de HA que se declararán compatibles: instalación por HACS como repositorio personalizado, alta de la integración, panel, tarjeta en un dashboard, migración de una tarjeta inline, guardado con conflicto, usuario no administrador, reinicio y actualización de versión sin pérdida de hogares. `tests/e2e/local-ha.e2e.mjs` automatiza la mayor parte contra una instancia de prueba.
-4. Crear un tag SemVer y una release **en borrador** con `homemanager.zip`, su checksum y notas de compatibilidad.
-5. Publicar sólo con la aprobación del propietario. No anunciar el alta en el catálogo predeterminado de HACS hasta completar ese trámite aparte. [Repositorios personalizados](https://hacs.dev/docs/faq/custom_repositories/).
+Seguir [versioning.md](versioning.md): CI completa del tag existente en `main`, paquete inspeccionado y reproducible, checksum, atestación y release en borrador. La publicación es una acción manual posterior del propietario. No se publican datos ni artifacts de `homemanager-instance`.
