@@ -5,15 +5,18 @@ import json
 import re
 from typing import Any
 
-from .const import MAX_PLAN_STORES, MAX_TOTAL_STORAGE_BYTES, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY
+from .const import MAX_PLAN_STORES, MAX_TOTAL_STORAGE_BYTES, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY, STORAGE_MINOR_VERSION, STORAGE_VERSION
 from .errors import ModelError
 
 SAFE_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 
 def encoded_size(data: Any) -> int:
-    # Reserve space for HA's version/key metadata and JSON formatting.
-    return len(json.dumps(data, ensure_ascii=False).encode("utf-8")) + 1024
+    # HA stores an envelope with two-space indentation. Compact JSON plus a
+    # constant reserve undercounts large, deeply nested documents. Include the
+    # entire envelope at the longest permitted key, plus serialization headroom.
+    envelope = {"version": STORAGE_VERSION, "minor_version": STORAGE_MINOR_VERSION, "key": PLAN_STORAGE_KEY_PREFIX + "x" * 64, "data": data}
+    return len(json.dumps(envelope, ensure_ascii=False, indent=2).encode("utf-8")) + 1024
 
 
 def disk_sizes(directory: Path) -> dict[str, int]:
