@@ -39,8 +39,27 @@ test('controls follow the real capabilities of each entity', () => {
       preset_modes: ['auto', 'sleep'],
     }),
   );
-  assert.deepEqual(ids(fan), ['range:speed', 'select:preset']);
-  assert.equal(fan[0].step, 33.33);
+  // Few discrete speeds become stops; every stop sends, the current one too.
+  assert.deepEqual(ids(fan), ['steps:speed', 'select:preset']);
+  assert.equal(fan[0].count, 3);
+  assert.equal(fan[0].value, 2);
+  assert.equal(fan[0].off, false);
+  assert.deepEqual(commandFor(fan[0], 2), { service: 'set_percentage', data: { percentage: 66 } });
+  assert.deepEqual(commandFor(fan[0], 3), { service: 'set_percentage', data: { percentage: 100 } });
+  assert.throws(() => commandFor(fan[0], 0));
+  const six = entityControls(
+    'fan.rf',
+    entity('off', { supported_features: 1 | 16 | 32, percentage: 0, percentage_step: 100 / 6, assumed_state: true }),
+  );
+  assert.deepEqual(ids(six), ['toggle:power', 'steps:speed']);
+  assert.equal(six[1].value, 0);
+  assert.equal(six[1].off, true);
+  assert.deepEqual(commandFor(six[1], 0), { service: 'set_percentage', data: { percentage: 0 } });
+  // Home Assistant rounds 4/6 down to 66, which maps back to level 4.
+  assert.deepEqual(commandFor(six[1], 4), { service: 'set_percentage', data: { percentage: 66 } });
+  // Fine-grained speeds keep the slider.
+  const smooth = entityControls('fan.s', entity('on', { supported_features: 1, percentage: 40, percentage_step: 1 }));
+  assert.deepEqual(ids(smooth), ['range:speed']);
   assert.deepEqual(
     ids(entityControls('cover.c', entity('open', { supported_features: 1 | 2 | 4 | 8, current_position: 40 }))),
     ['buttons:movement', 'range:position'],

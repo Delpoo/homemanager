@@ -10,6 +10,7 @@ import {
   integrationAvailable,
   subscribeHome,
 } from '../integration/store.js';
+import { rf } from '../integration/rf.js';
 import { validateCardConfig, validateConfiguration, emptyConfiguration } from './configuration.js';
 import {
   sanitizeArchitecture,
@@ -797,6 +798,10 @@ export class HomeManagerCard extends HTMLElement {
       onEntityCommand: entityId
         ? async command => (this.editing ? { ok: false } : this.adapter?.executeEntityCommand(id, command))
         : undefined,
+      onAssume:
+        entityId && this._hass?.states[entityId]?.attributes?.homemanager_remote
+          ? isOn => (this._hass ? rf.assume(this._hass, entityId, isOn) : Promise.resolve(null))
+          : undefined,
       returnFocus,
     });
   }

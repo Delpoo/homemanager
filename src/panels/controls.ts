@@ -34,6 +34,15 @@ export type Control =
       scale?: 'percent';
     })
   | (Base & {
+      /** Discrete levels (fan speeds). Every stop sends, including the current one. */
+      kind: 'steps';
+      count: number;
+      /** Whether a 0 ("off") stop is offered. */
+      off: boolean;
+      /** 0 = off, 1..count, null = unknown. */
+      value: number | null;
+    })
+  | (Base & {
       kind: 'stepper';
       min: number;
       max: number;
@@ -155,8 +164,27 @@ export function entityControls(entityId: string, entity: HassEntity | undefined,
     power({ service: 'turn_on' }, { service: 'turn_off' });
   } else if (domain === 'fan') {
     if (has(a, FAN.TURN_ON) && has(a, FAN.TURN_OFF)) power({ service: 'turn_on' }, { service: 'turn_off' });
-    if (has(a, FAN.SET_SPEED)) {
-      const step = num(a.percentage_step) ?? 1;
+    const percentageStep = num(a.percentage_step) ?? 1;
+    const count = Math.round(100 / percentageStep);
+    if (has(a, FAN.SET_SPEED) && count >= 2 && count <= 12) {
+      const percentage = num(a.percentage);
+      controls.push({
+        kind: 'steps',
+        id: 'speed',
+        label: t('Velocidad'),
+        count,
+        off: has(a, FAN.TURN_OFF),
+        value:
+          entity.state === 'off'
+            ? 0
+            : percentage === null
+              ? null
+              : percentage <= 0
+                ? 0
+                : Math.max(1, Math.min(count, Math.round((percentage * count) / 100))),
+      });
+    } else if (has(a, FAN.SET_SPEED)) {
+      const step = percentageStep;
       controls.push({
         kind: 'range',
         id: 'speed',
@@ -351,6 +379,14 @@ export function commandFor(control: Control, value: unknown): Command {
           ? Math.round(number)
           : Math.round(number / control.step) * control.step;
       return { service: control.service, data: { [control.field]: Number(rounded.toFixed(4)) } };
+    }
+    case 'steps': {
+      const level = Number(value);
+      if (!Number.isInteger(level) || level < (control.off ? 0 : 1) || level > control.count)
+        throw new Error(t('Valor fuera de rango.'));
+      // Same rounding as Home Assistant (ranged_value_to_percentage), so the fan
+      // maps it back to exactly this level.
+      return { service: 'set_percentage', data: { percentage: Math.floor((level * 100) / control.count) } };
     }
     case 'select': {
       if (!control.options.some(option => option.value === value)) throw new Error(t('Opción no disponible.'));
