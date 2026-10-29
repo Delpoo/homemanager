@@ -1,12 +1,12 @@
 # Instalación en Home Assistant
 
-Guía para instalar HomeManager 0.3.0 en una instalación real, por ejemplo Home Assistant OS en una Raspberry Pi. Probado en Home Assistant 2026.2.3 y 2026.10.4 (instancias de prueba). **No hay release publicada todavía**: hasta entonces se instala el paquete generado desde `main`.
+Guía para instalar HomeManager 0.3.1 en una instalación real, por ejemplo Home Assistant OS en una Raspberry Pi. Probado en Home Assistant 2026.2.3 y 2026.10.4 (instancias de prueba). **No hay release publicada todavía**: hasta entonces se instala el paquete generado desde `main`.
 
 ## Antes de empezar
 
 1. **Copia de seguridad completa** de Home Assistant (Ajustes → Sistema → Copias de seguridad). HomeManager no modifica entidades, scripts, automatizaciones ni dashboards existentes, pero la copia es la forma de volver atrás.
 2. Versión de Home Assistant **2026.2 o posterior**.
-3. Una cuenta **administradora** para crear y editar el plano. Las demás cuentas pueden usarlo.
+3. Una cuenta **administradora** para crear y editar el plano. Las demás cuentas requieren acceso de lectura explícito en las opciones de la integración.
 4. El plano SVG de la vivienda (para la primera instalación: `build/homemanager-configuration.json` del repositorio privado, ver su handoff).
 
 ## Opción A · HACS (cuando exista la release)
@@ -21,7 +21,7 @@ Guía para instalar HomeManager 0.3.0 en una instalación real, por ejemplo Home
 2. Copiar el contenido del zip en `/config/custom_components/homemanager/`, por ejemplo con el complemento *File editor* o *Samba share*. Debe quedar `/config/custom_components/homemanager/manifest.json` y `/config/custom_components/homemanager/frontend/homemanager.js`.
 3. Reiniciar Home Assistant y añadir la integración como en la opción A.
 
-No hace falta registrar recursos de Lovelace: la integración carga la tarjeta en todo el frontend. Si antes se registró `homemanager.js` a mano, conviene quitar ese recurso.
+Por defecto el bundle se carga al abrir el panel HomeManager. Para tarjetas en dashboards, activá **Cargar HomeManager en todas las páginas de HA** en las opciones de la integración, o registrá manualmente `/homemanager_files/homemanager.js?v=0.3.1` como módulo Lovelace. Elegí una sola modalidad. Una pestaña abierta debe recargarse al actualizar o deshabilitar la integración.
 
 ## Primer uso
 
@@ -39,9 +39,17 @@ Probarlas con el usuario presente, porque implican acciones físicas:
 - un toque enciende y apaga una luz; el panel (pulsación larga o ⋯) ajusta brillo, velocidad o posición según el equipo;
 - un ventilador RF vía script ejecuta sus campos declarados;
 - el estado se muestra *enviado* y luego *estimado*; *confirmado* sólo aparece con una fuente medida y verificada;
-- una cuenta no administradora ve y usa el plano, pero no puede guardar;
+- una cuenta sin acceso explícito no puede leer el plano; una cuenta lectora seleccionada puede usarlo con los permisos de servicios que HA le conceda, pero no puede guardar;
 - el móvil, en vertical y apaisado.
 
 ## Volver atrás
 
 Eliminar la integración en *Dispositivos y servicios* y borrar `/config/custom_components/homemanager/`. Los hogares guardados permanecen en `.storage` hasta que se borren `homemanager.homes` y `homemanager.plans.*`; nada más de la instalación cambia. La copia de seguridad restaura el estado anterior completo.
+
+## Privacidad y almacenamiento desde 0.3.1
+
+En **Ajustes → Dispositivos y servicios → HomeManager → Configurar**, elegí las cuentas que podrán leer **todos** los hogares. La lista vacía limita la lectura a administradores, también en instalaciones actualizadas. Esto no cambia los permisos de servicios de Home Assistant. Un dashboard con configuración inline mantiene los permisos de Lovelace; usar la integración evita incluir el plano en ese dashboard.
+
+Límites: 20 hogares activos, 10 planos por historial, 40 historiales en total y 64 MiB para los datos de HomeManager. Eliminar un hogar conserva su historial dentro de esa cuota. Desde el panel, **Almacenamiento → Eliminar historial** permite purgar definitivamente el historial de un hogar eliminado, con confirmación. Las copias de seguridad anteriores pueden seguir conteniendo esos datos.
+
+Los documentos antiguos que no cumplen la nueva validación quedan en cuarentena, fuera de las listas de lectura, sin borrarse al guardar otro hogar. Recuperar desde una copia de seguridad revisada. No escribir ni editar archivos de `.storage` con HA en ejecución.

@@ -10,6 +10,7 @@ async function setup(page) {
     const { hass, original } = window.testHarness;
     const homes = new Map(),
       listeners = new Map(),
+      retained = new Set(['deleted-home']),
       calls = [];
     const v2 = configuration => ({
       ...structuredClone(configuration),
@@ -36,6 +37,7 @@ async function setup(page) {
     const server = {
       homes,
       calls,
+      retained,
       base: v2(original.configuration),
       put(id, configuration, title = null) {
         const revision = (homes.get(id)?.revision ?? 0) + 1;
@@ -51,6 +53,14 @@ async function setup(page) {
       calls.push(structuredClone(message));
       const home = homes.get(message.home_id);
       switch (message.type) {
+        case 'homemanager/storage/status':
+          if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
+          return { bytes: 1024, retained_home_ids: [...retained] };
+        case 'homemanager/history/purge':
+          if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
+          if (message.confirm !== true || homes.has(message.home_id)) throw fail('home_in_use', 'Home is active');
+          retained.delete(message.home_id);
+          return {};
         case 'homemanager/homes':
           return { homes: [...homes].map(([id, item]) => summary(id, item)) };
         case 'homemanager/home/get':
@@ -257,4 +267,24 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   });
   await app.getByRole('button', { name: 'Menú', exact: true }).click();
   expect(await toggled).toBe(true);
+});
+
+test('storage maintenance requires explicit confirmation before purging retained history', async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const app = document.createElement('homemanager-app');
+    document.querySelector('#mount').replaceChildren(app);
+    app.hass = window.testHarness.hass;
+  });
+  const app = page.locator('homemanager-app');
+  await app.getByRole('button', { name: 'Almacenamiento', exact: true }).click();
+  const dialog = app.getByRole('dialog');
+  await expect(dialog.getByText('deleted-home', { exact: false })).toBeVisible();
+  page.once('dialog', confirmation => confirmation.dismiss());
+  await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
+  expect(await page.evaluate(() => window.homeServer.retained.has('deleted-home'))).toBe(true);
+  page.once('dialog', confirmation => confirmation.accept());
+  await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Eliminar historial', exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => window.homeServer.retained.has('deleted-home'))).toBe(false);
 });

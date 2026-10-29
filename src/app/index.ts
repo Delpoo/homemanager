@@ -1,6 +1,6 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import { listHomes, type HomeSummary } from '../integration/store.js';
+import { describeError, listHomes, type HomeSummary } from '../integration/store.js';
 import { tokens } from '../ui/theme.js';
 import { setLanguage, languageFromHass } from '../i18n/index.js';
 import type { HomeManagerCard } from '../card/home-manager-card.js';
@@ -22,7 +22,9 @@ homemanager-card{--hm-viewport-height:calc(100dvh - 210px);--hm-title-display:no
 .empty input{flex:1;min-width:180px}
 .empty button{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent)}
 .error{color:var(--hm-error)}
-@media(max-width:650px){.content{padding:0}homemanager-card{--hm-viewport-height:calc(100dvh - 200px)}}`;
+.maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
+.maintenance ul{padding-left:20px}.maintenance li{margin:12px 0}.maintenance button{margin-left:8px}
+@media(max-width:650px){.toolbar{flex-wrap:wrap;padding:8px 12px;gap:8px}.toolbar h1{flex:1 0 calc(100% - 56px)}.toolbar select{flex:1 1 100px;max-width:100%}.toolbar .new,.toolbar .storage{flex:1 1 auto}.content{padding:0}homemanager-card{--hm-viewport-height:calc(100dvh - 240px)}}`;
 const STORAGE_KEY = 'homemanager-app-home';
 function remembered(): string | null {
   try {
@@ -80,9 +82,9 @@ export class HomeManagerApp extends HTMLElement {
     try {
       this.homes = await listHomes(this._hass);
       this.error = '';
-    } catch {
+    } catch (error) {
       this.homes = [];
-      this.error = t('No se pudo leer la integración HomeManager. Comprobá que esté cargada.');
+      this.error = describeError(error);
     } finally {
       this.loading = false;
     }
@@ -121,7 +123,8 @@ export class HomeManagerApp extends HTMLElement {
         ? `<select aria-label="${e(t('Hogar'))}" class="home-select">${homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === this.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}${missing ? `<option value="${e(this.selected!)}" selected>${e(this.selected!)} · nuevo</option>` : ''}</select>`
         : '';
     const title = homes?.find(home => home.home_id === this.selected)?.title ?? t('HomeManager');
-    header.innerHTML = `<button type="button" class="menu" aria-label="${e(t('Menú'))}"${this._narrow ? '' : ' hidden'}>☰</button><h1>${e(title)}</h1>${selector}${admin && homes?.length ? `<button type="button" class="new">${e(t('Nuevo hogar'))}</button>` : ''}`;
+    header.innerHTML = `<button type="button" class="menu" aria-label="${e(t('Menú'))}"${this._narrow ? '' : ' hidden'}>☰</button><h1>${e(title)}</h1>${selector}${admin ? `<button type="button" class="storage">${e(t('Almacenamiento'))}</button>` : ''}${admin && homes?.length ? `<button type="button" class="new">${e(t('Nuevo hogar'))}</button>` : ''}`;
+    header.querySelector('.storage')?.addEventListener('click', () => void this.openStorage());
     header
       .querySelector('.menu')
       ?.addEventListener('click', () =>
@@ -135,6 +138,52 @@ export class HomeManagerApp extends HTMLElement {
       this.dropCard();
       this.renderMessages(true);
     });
+  }
+  private async openStorage(): Promise<void> {
+    if (!this._hass?.callWS || this._hass.user?.is_admin !== true) return;
+    const hass = this._hass;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'maintenance';
+    dialog.innerHTML = `<h2>${e(t('Almacenamiento'))}</h2><p>${e(t('Los historiales de hogares eliminados se conservan hasta que los elimines definitivamente. Las copias de seguridad se administran por separado.'))}</p><div class="retained"></div><p class="storage-status" role="status"></p><button type="button" class="close">${e(t('Cerrar'))}</button>`;
+    dialog.querySelector('.close')!.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    this.root.append(dialog);
+    dialog.showModal();
+    const refresh = async () => {
+      try {
+        const result = await hass.callWS!<{ bytes: number; retained_home_ids: string[] }>({
+          type: 'homemanager/storage/status',
+        });
+        const host = dialog.querySelector('.retained')!;
+        host.replaceChildren();
+        for (const homeId of result.retained_home_ids) {
+          const row = document.createElement('p'),
+            button = document.createElement('button');
+          row.textContent = homeId;
+          button.textContent = t('Eliminar historial');
+          button.type = 'button';
+          button.addEventListener('click', async () => {
+            if (!window.confirm(t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }))) return;
+            button.disabled = true;
+            try {
+              await hass.callWS!({ type: 'homemanager/history/purge', home_id: homeId, confirm: true });
+              await refresh();
+            } catch (error) {
+              dialog.querySelector('.storage-status')!.textContent = describeError(error);
+              button.disabled = false;
+            }
+          });
+          row.append(button);
+          host.append(row);
+        }
+        dialog.querySelector('.storage-status')!.textContent = t('Uso de almacenamiento: {size} MiB de 64 MiB.', {
+          size: (result.bytes / 1048576).toFixed(1),
+        });
+      } catch (error) {
+        dialog.querySelector('.storage-status')!.textContent = describeError(error);
+      }
+    };
+    await refresh();
   }
   private renderMessages(creating = false): void {
     const host = this.root.querySelector('.messages');

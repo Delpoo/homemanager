@@ -4,7 +4,12 @@ import { HomeManagerEditor, LovelaceConfigurationStore, type ConfigurationStore 
 import { openPanel, stateText, reasonText } from '../panels/native-panel.js';
 import { isActiveValue } from '../panels/controls.js';
 import { clusterPoints, boundsOf, interpolateCamera } from './markers.js';
-import { IntegrationConfigurationStore, integrationAvailable, subscribeHome } from '../integration/store.js';
+import {
+  describeError,
+  IntegrationConfigurationStore,
+  integrationAvailable,
+  subscribeHome,
+} from '../integration/store.js';
 import { validateCardConfig, validateConfiguration, emptyConfiguration } from './configuration.js';
 import {
   sanitizeArchitecture,
@@ -275,6 +280,19 @@ export class HomeManagerCard extends HTMLElement {
     this.home = undefined;
     this.homeState = 'idle';
   }
+  private watchHome(home: IntegrationConfigurationStore): void {
+    if (!this._hass || home.revision === null) return;
+    this.homeUnsubscribe = subscribeHome(
+      this._hass,
+      home.homeId,
+      event => this.onHomeRevision(event.revision),
+      error => {
+        if (this.home !== home) return;
+        this.homeUnsubscribe = undefined;
+        this.status(describeError(error));
+      },
+    );
+  }
   /** Loads the home and keeps it current: other editors' saves arrive as revisions. */
   private async loadHome() {
     const home = this.home;
@@ -301,8 +319,7 @@ export class HomeManagerCard extends HTMLElement {
         );
       else if (/^Cargando el hogar|todavía no existe/.test(this.root.querySelector('.status')?.textContent ?? ''))
         this.status('');
-      if (!this.homeUnsubscribe && this._hass)
-        this.homeUnsubscribe = subscribeHome(this._hass, home.homeId, event => this.onHomeRevision(event.revision));
+      if (!this.homeUnsubscribe && this._hass && home.revision !== null) this.watchHome(home);
     } catch (error) {
       if (home === this.home) {
         this.homeState = 'error';
@@ -973,10 +990,7 @@ export class HomeManagerCard extends HTMLElement {
       this.setupAdapter(next);
       if (this.home) {
         this.homeState = 'ready';
-        if (!this.homeUnsubscribe && this._hass)
-          this.homeUnsubscribe = subscribeHome(this._hass, this.home.homeId, event =>
-            this.onHomeRevision(event.revision),
-          );
+        if (!this.homeUnsubscribe && this._hass) this.watchHome(this.home);
       }
       this.status(t('Guardado en Home Assistant.'));
       this.dispatchEvent(

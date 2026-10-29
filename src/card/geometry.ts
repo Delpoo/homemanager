@@ -448,23 +448,34 @@ function checkReferences(root: SVGSVGElement, ids: Map<string, Element>): void {
   for (const element of [root, ...root.querySelectorAll('*')])
     for (const reference of internalRefs(element))
       if (!ids.has(reference)) throw new Error(`Referencia SVG interna inexistente: ${reference}.`);
-  const edges = new Map<string, Set<string>>();
-  for (const [id, element] of ids) {
-    const refs = new Set<string>();
-    for (const node of [element, ...element.querySelectorAll('*')]) for (const ref of internalRefs(node)) refs.add(ref);
-    edges.set(id, refs);
-  }
-  const active = new Set<string>(),
-    done = new Set<string>();
-  const visit = (id: string) => {
-    if (active.has(id)) throw new Error(t('El SVG contiene referencias internas cíclicas.'));
-    if (done.has(id)) return;
-    active.add(id);
-    for (const ref of edges.get(id) ?? []) visit(ref);
-    active.delete(id);
-    done.add(id);
+  // Multiplicity matters: two references to the same subtree double its render
+  // cost even when the graph has no cycle. Bound expanded geometry, not just XML.
+  const active = new Set<Element>();
+  const memo = new Map<Element, { count: number; references: number }>();
+  const visit = (node: Element, calls = 0): { count: number; references: number } => {
+    if (active.has(node)) throw new Error(t('El SVG contiene referencias internas cíclicas.'));
+    if (calls > 128) throw new Error(t('SVG demasiado profundo.'));
+    const cached = memo.get(node);
+    if (cached) return cached;
+    active.add(node);
+    let count = 1,
+      references = 0;
+    const edges = [
+      ...[...node.children].map(child => ({ child, reference: 0 })),
+      ...internalRefs(node).map(id => ({ child: ids.get(id)!, reference: 1 })),
+    ];
+    for (const { child, reference } of edges) {
+      const cost = visit(child, calls + 1);
+      count += cost.count;
+      references = Math.max(references, cost.references + reference);
+      if (count > 20000 || references > 32) throw new Error(t('SVG demasiado profundo.'));
+    }
+    active.delete(node);
+    const result = { count, references };
+    memo.set(node, result);
+    return result;
   };
-  for (const id of ids.keys()) visit(id);
+  visit(root);
 }
 /** Explicit static-vector profile; sanitizes in the inert XML document BEFORE
  * importNode. Styles become permitted presentation attributes, never live CSS. */

@@ -1,12 +1,13 @@
 """Integration setup, websocket API, permissions, persistence and frontend registration."""
 
 import asyncio
+import pytest
 
 from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL, DATA_PANELS
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.homemanager.const import DOMAIN, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY
+from custom_components.homemanager.const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY
 
 from .conftest import PLAN, configuration
 
@@ -25,7 +26,7 @@ async def test_setup_registers_panel_and_bundle(hass: HomeAssistant, setup_integ
     assert panel.require_admin is False
     module_url = panel.config["_panel_custom"]["module_url"]
     assert module_url.startswith("/homemanager_files/homemanager.js?v=")
-    assert module_url in hass.data[DATA_EXTRA_MODULE_URL].urls
+    assert module_url not in hass.data[DATA_EXTRA_MODULE_URL].urls
 
 
 async def test_missing_bundle_keeps_storage_working(hass: HomeAssistant, tmp_path, monkeypatch, hass_ws_client) -> None:
@@ -38,7 +39,7 @@ async def test_missing_bundle_keeps_storage_working(hass: HomeAssistant, tmp_pat
     assert (await _save(client))["success"]
 
 
-async def test_admin_saves_with_revision_check_and_everyone_reads(hass: HomeAssistant, setup_integration, hass_ws_client, hass_admin_user, hass_read_only_access_token) -> None:
+async def test_admin_saves_and_only_explicit_viewers_read(hass: HomeAssistant, setup_integration, hass_ws_client, hass_admin_user, hass_read_only_user, hass_read_only_access_token) -> None:
     admin = await hass_ws_client(hass)
     created = await _save(admin, title="Casa")
     assert created["success"] and created["result"]["revision"] == 1
@@ -48,6 +49,15 @@ async def test_admin_saves_with_revision_check_and_everyone_reads(hass: HomeAssi
     assert updated["result"]["revision"] == 2
 
     reader = await hass_ws_client(hass, hass_read_only_access_token)
+    for message in (
+        {"type": "homemanager/homes"},
+        {"type": "homemanager/home/get", "home_id": "home"},
+        {"type": "homemanager/home/subscribe", "home_id": "home"},
+    ):
+        await reader.send_json_auto_id(message)
+        assert (await reader.receive_json())["error"]["code"] == "unauthorized"
+    hass.config_entries.async_update_entry(setup_integration, options={CONF_VIEWER_USER_IDS: [hass_read_only_user.id]})
+    await hass.async_block_till_done()
     await reader.send_json_auto_id({"type": "homemanager/home/get", "home_id": "home"})
     response = await reader.receive_json()
     assert response["result"]["revision"] == 2
@@ -89,12 +99,13 @@ async def test_concurrent_saves_with_the_same_revision_cannot_both_win(hass: Hom
 async def test_subscribers_receive_revisions_only(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:
     admin = await hass_ws_client(hass)
     watcher = await hass_ws_client(hass)
+    await _save(admin)
     await watcher.send_json_auto_id({"type": "homemanager/home/subscribe", "home_id": "home"})
     assert (await watcher.receive_json())["success"]
-    await _save(admin)
+    await _save(admin, expected=1)
     event = await watcher.receive_json()
-    assert event["event"] == {"home_id": "home", "revision": 1, "deleted": False}
-    await admin.send_json_auto_id({"type": "homemanager/home/delete", "home_id": "home", "expected_revision": 1})
+    assert event["event"] == {"home_id": "home", "revision": 2, "deleted": False}
+    await admin.send_json_auto_id({"type": "homemanager/home/delete", "home_id": "home", "expected_revision": 2})
     assert (await admin.receive_json())["success"]
     assert (await watcher.receive_json())["event"] == {"home_id": "home", "revision": None, "deleted": True}
 
@@ -135,3 +146,30 @@ async def test_config_flow_allows_a_single_instance(hass: HomeAssistant) -> None
     assert result["type"] == "create_entry"
     again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     assert again["type"] == "abort"
+
+
+async def test_global_frontend_loading_is_explicit_and_revocable(hass, setup_integration) -> None:
+    url = hass.data[DATA_PANELS]["homemanager"].config["_panel_custom"]["module_url"]
+    hass.config_entries.async_update_entry(setup_integration, options={CONF_GLOBAL_FRONTEND: True})
+    await hass.async_block_till_done()
+    assert url in hass.data[DATA_EXTRA_MODULE_URL].urls
+    hass.config_entries.async_update_entry(setup_integration, options={})
+    await hass.async_block_till_done()
+    assert url not in hass.data[DATA_EXTRA_MODULE_URL].urls
+
+
+async def test_revoking_a_viewer_stops_existing_subscription_events(hass, setup_integration, hass_ws_client, hass_read_only_user, hass_read_only_access_token) -> None:
+    admin = await hass_ws_client(hass)
+    await _save(admin)
+    hass.config_entries.async_update_entry(setup_integration, options={CONF_VIEWER_USER_IDS: [hass_read_only_user.id]})
+    await hass.async_block_till_done()
+    reader = await hass_ws_client(hass, hass_read_only_access_token)
+    await reader.send_json_auto_id({"type": "homemanager/home/subscribe", "home_id": "home"})
+    assert (await reader.receive_json())["success"]
+    hass.config_entries.async_update_entry(setup_integration, options={})
+    await hass.async_block_till_done()
+    assert (await _save(admin, expected=1))["success"]
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(reader.receive_json(), 0.05)
+    await reader.send_json_auto_id({"type": "homemanager/home/get", "home_id": "home"})
+    assert (await reader.receive_json())["error"]["code"] == "unauthorized"

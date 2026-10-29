@@ -11,12 +11,12 @@ Implementa la decisión [D11](decisions.md#d11--almacenamiento-del-plano-y-la-co
 | Cambios de otro editor | Se ven al recargar | La tarjeta abierta se actualiza sola (suscripción) |
 | Historial de planos | No | Últimos 10 planos por hogar, restaurables |
 | Varias tarjetas del mismo hogar | Copias que divergen | Todas referencian el mismo `home_id` |
-| Instalación | Recurso Lovelace manual | La integración sirve el bundle y lo registra en todo el frontend |
-| Panel lateral | No | **HomeManager** en la barra lateral, para todos los usuarios |
+| Instalación | Recurso Lovelace manual | Panel con carga propia; carga global opcional para dashboards |
+| Panel lateral | No | **HomeManager** en la barra lateral; datos sólo para cuentas autorizadas |
 
 ## Instalación
 
-Por HACS, como repositorio personalizado de categoría **Integración** (`hacs.json` usa `zip_release` con el asset `homemanager.zip`). Manualmente, copiar el contenido de `homemanager.zip` en `config/custom_components/homemanager/`. Reiniciar y añadirla en *Ajustes → Dispositivos y servicios → Añadir integración → HomeManager* (instancia única, sin opciones).
+Por HACS, como repositorio personalizado de categoría **Integración** (`hacs.json` usa `zip_release` con el asset `homemanager.zip`). Manualmente, copiar el contenido de `homemanager.zip` en `config/custom_components/homemanager/`. Reiniciar y añadirla en *Ajustes → Dispositivos y servicios → Añadir integración → HomeManager* (instancia única; opciones de lectores y carga global).
 
 Para desarrollo: `npm run build` copia el bundle en `custom_components/homemanager/frontend/` (ignorado por Git) y `npm run package` genera `.work/release/homemanager.zip`. Sin bundle, la integración guarda y sirve datos pero registra un error y no crea el panel.
 
@@ -30,28 +30,32 @@ Para desarrollo: `npm run build` copia el bundle en `custom_components/homemanag
 
 | Comando | Permiso | Resultado |
 | --- | --- | --- |
-| `homemanager/homes` | Usuario autenticado | Resumen de hogares: revisión, fecha, hash del plano, conteos |
-| `homemanager/home/get` `{home_id}` | Usuario autenticado | Resumen + `configuration` |
+| `homemanager/homes` | Administrador o lector seleccionado | Resumen de hogares: revisión, fecha, hash del plano, conteos |
+| `homemanager/home/get` `{home_id}` | Administrador o lector seleccionado | Resumen + `configuration` |
 | `homemanager/home/save` `{home_id, expected_revision, configuration, title?}` | **Administrador** | Crea (`expected_revision: null`) o reemplaza si coincide la revisión |
 | `homemanager/home/delete` `{home_id, expected_revision}` | **Administrador** | Borra el hogar; su historial de planos se conserva |
-| `homemanager/home/subscribe` `{home_id}` | Usuario autenticado | Eventos `{home_id, revision, deleted}`; nunca el documento |
+| `homemanager/home/subscribe` `{home_id}` | Administrador o lector seleccionado | Eventos `{home_id, revision, deleted}`; nunca el documento |
 | `homemanager/plans` `{home_id}` | **Administrador** | Historial de planos (sin contenido) |
 | `homemanager/plan/get` `{home_id, plan_id}` | **Administrador** | Contenido de un plano anterior |
 
 La interfaz de historial está en *Editar plano → Importar y exportar → Planos anteriores*.
 
-Errores estables: `unsafe_plan`, `not_loaded`, `revision_conflict` (mensaje `revision:N`), `home_not_found`, `invalid_home_id`, `invalid_configuration`, `unsupported_schema`, `plan_too_large`, `configuration_too_large`, `too_many_homes`, `unauthorized`. Restaurar un plano se hace cargándolo en un borrador y guardando con `home/save`, de modo que pasa por la misma validación y control de revisión.
+Errores adicionales: `storage_quota`, `storage_error`, `subscription_limit`, `home_in_use`. Errores estables: `unsafe_plan`, `not_loaded`, `revision_conflict` (mensaje `revision:N`), `home_not_found`, `invalid_home_id`, `invalid_configuration`, `unsupported_schema`, `plan_too_large`, `configuration_too_large`, `too_many_homes`, `unauthorized`. Restaurar un plano se hace cargándolo en un borrador y guardando con `home/save`, de modo que pasa por la misma validación y control de revisión.
 
 ## Seguridad
 
 - El plano **nunca** se sirve por una ruta estática ni sin autenticación: sólo viaja por el WebSocket de la sesión HA. La ruta estática `/homemanager_files/` contiene únicamente el bundle público MIT.
-- Lectura para cualquier usuario autenticado (igual que un dashboard); escritura e historial sólo para administradores, comprobado por HA (`require_admin`).
-- El servidor valida el sobre (versión 2, campos, tipos JSON, claves seguras, profundidad, 1 MiB de plano y 3 MiB de documento) y rechaza planos con contenido que ningún SVG sanitizado puede tener: scripts, manejadores de eventos, `foreignObject`, URLs externas o `data:`, y DTD (`unsafe_plan`). La validación semántica y la sanitización SVG siguen en el frontend al guardar **y** antes de renderizar.
-- La comprobación de revisión y la actualización ocurren sin ceder el bucle de eventos de HA, por lo que dos guardados con la misma revisión no pueden ganar ambos (probado con escrituras concurrentes). Si la escritura en disco falla, el estado en memoria se revierte.
+- Lectura privada por defecto: administradores y lectores elegidos explícitamente en las opciones. La autorización se comprueba en listar, leer y suscribir. Escritura e historial sólo para administradores (`require_admin`).
+- El servidor valida el contrato V2 completo y un perfil SVG XML estático con lista permitida, entidades/DTD prohibidas, referencias locales y presupuesto de expansión. El navegador vuelve a sanearlo antes de renderizar.
+- Los guardados y borrados se serializan; el estado visible cambia sólo después de persistir. Si falla el guardado principal se intenta restaurar el historial anterior. No hay una transacción de sistema de archivos entre ambos stores; un corte de energía todavía requiere recuperación desde backup.
+- Suscripciones: hogar existente, 40 por conexión y 400 totales; la cancelación y descarga liberan los índices.
+- Cuotas: 20 hogares activos, diez versiones por historial, 40 stores de historial y 64 MiB totales, incluidos hogares eliminados. Los documentos inválidos quedan preservados en cuarentena.
+- `homemanager/storage/status` (administrador) informa uso e IDs de historiales retenidos; `homemanager/history/purge` requiere `{home_id, confirm: true}` y sólo admite hogares ya eliminados. El panel ofrece **Almacenamiento** para esta operación. No purga backups.
+
 
 ## Verificación
 
-- `tests/integration/test_model.py` y `test_init.py`: 26 pruebas con el arnés oficial `pytest-homeassistant-custom-component` sobre Home Assistant 2026.2.3 (permisos, CAS concurrente, suscripción, historial, persistencia tras recarga, flujo de configuración, registro del panel). CI: job `integration`.
+- `tests/integration/test_model.py` y `test_init.py`: pruebas con el arnés oficial `pytest-homeassistant-custom-component` sobre Home Assistant 2026.2.3 (permisos, CAS concurrente, suscripción, historial, persistencia tras recarga, flujo de configuración, registro del panel). CI: job `integration`.
 - `tests/integration/home.browser.spec.mjs`: tarjeta, editor, migración y panel con un servidor simulado que sigue el mismo contrato.
 - `tests/e2e/local-ha.e2e.mjs`: 11 comprobaciones en Chrome contra instancias **reales y desechables** de HA 2026.2.3 y 2026.10.4 (procedimiento en [testing.md](testing.md)).
 
