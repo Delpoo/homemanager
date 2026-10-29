@@ -13,7 +13,7 @@
   ],
   "documentation": "https://github.com/Delpoo/homemanager",
   "integration_type": "service",
-  "iot_class": "calculated",
+  "iot_class": "assumed_state",
   "issue_tracker": "https://github.com/Delpoo/homemanager/issues",
   "requirements": [],
   "single_config_entry": true,

@@ -94,6 +94,8 @@ class RfManager:
         self._locks: dict[str, asyncio.Lock] = {}
         self._candidates: dict[str, Candidate] = {}
         self._listeners: set[Callable[[], None]] = set()
+        # Entities built from remotes (rf_entity.py), by unique id.
+        self.entities: dict[str, Any] = {}
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
@@ -199,6 +201,14 @@ class RfManager:
             raise ModelError("button_not_found", "unknown button")
         await self._send(remote.transmitter, remote.protocol, button.code, remote.pulse_us, remote.repeats, remote.wait_us)
         return {"result": "sent"}
+
+    def assume(self, entity_id: str, is_on: bool) -> None:
+        """Corrects an RF entity's assumed state; nothing is transmitted."""
+        for entity in self.entities.values():
+            if entity.entity_id == entity_id:
+                entity.assume(is_on)
+                return
+        raise ModelError("entity_not_found", "not an RF entity of HomeManager")
 
     async def async_test(self, candidate_id: str, settings: dict[str, Any]) -> dict[str, Any]:
         """Sends a captured code with trial settings, before anything is saved.
