@@ -2,6 +2,17 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.4.0-beta.1 — beta, sin publicar
+
+Incluye 0.3.1. Primera versión para probar desde HACS el gestor de controles RF en una instalación real.
+
+- **Gestor de controles RF** (D16, [docs/rf-manager.md](docs/rf-manager.md)): paquete ESPHome de envío y captura; decodificación RCSwitch con medición del pulso; biblioteca de controles en `.storage/homemanager.rf`; envío con cola por transmisor.
+- **Asistente** en el panel lateral (*Controles RF*, administradores): captura botón por botón, prueba guiada que cambia una cosa por vez y detalle del control.
+- **Entidades de HA** por control: `fan`, `light` y `button`, con estado asumido y corrección sin transmitir.
+- **Selector por pasos** para ventiladores con 2–12 velocidades; cada parada envía, también la actual.
+- **Selector de entidades:** primero lo operable; sin actualizaciones ni diagnósticos.
+- Acciones de GitHub actualizadas: `actions/checkout` 7.0.1 y `actions/setup-node` 7.1.0.
+
 ## 0.3.1 — sin publicar
 
 - Acceso privado por defecto; lectores elegidos desde las opciones de la integración.
