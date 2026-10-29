@@ -1,0 +1,101 @@
+# HomeManager RF package for ESPHome (433 MHz RCSwitch remotes).
+#
+# Adds two device actions used by the HomeManager integration:
+#   homemanager_rf_send(code, protocol, pulse_length, repeats, wait_us)
+#   homemanager_rf_capture(seconds)
+# While a capture window is open, every RF reception is sent to Home Assistant
+# as an `esphome.homemanager_rf_raw` event with its raw timings; HomeManager
+# decodes it and measures the pulse length. Outside the window nothing is sent.
+#
+# Usage, in the device's YAML (ESPHome Builder):
+#
+#   substitutions:
+#     hm_rf_transmitter: rf_transmitter   # id of the 433 MHz remote_transmitter
+#     hm_rf_receiver: rf_receiver         # id of the 433 MHz remote_receiver
+#   packages:
+#     homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@main
+#
+# Both components need an `id:`; add one if your configuration has none.
+# If capture events do not reach Home Assistant, enable "Allow the device to
+# perform Home Assistant actions" in the ESPHome integration options.
+#
+# Supported RCSwitch protocols: 1, 2, 4 and 7 (sync mark of one pulse).
+
+globals:
+  - id: hm_rf_capture_until
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+api:
+  actions:
+    - action: homemanager_rf_send
+      variables:
+        code: string
+        protocol: int
+        pulse_length: int
+        repeats: int
+        wait_us: int
+      then:
+        - lambda: |-
+            if (code.empty() || code.size() > 64 || pulse_length < 50 || pulse_length > 2000) {
+              ESP_LOGW("homemanager", "Rejected RF send: invalid code or pulse length");
+              return;
+            }
+            // (one bit high length, sync low length) in pulses; zero bit is (1, one).
+            uint32_t one, sync;
+            switch (protocol) {
+              case 1: one = 3; sync = 31; break;
+              case 2: one = 2; sync = 10; break;
+              case 4: one = 3; sync = 6; break;
+              case 7: one = 6; sync = 62; break;
+              default:
+                ESP_LOGW("homemanager", "Rejected RF send: unsupported protocol %d", protocol);
+                return;
+            }
+            uint64_t value = 0;
+            for (char c : code) {
+              if (c != '0' && c != '1') {
+                ESP_LOGW("homemanager", "Rejected RF send: code must be binary");
+                return;
+              }
+              value = (value << 1) | (c == '1' ? 1 : 0);
+            }
+            const uint32_t p = pulse_length;
+            const esphome::remote_base::RCSwitchBase rc(p, sync * p, p, one * p, one * p, p, false);
+            auto call = id(${hm_rf_transmitter}).transmit();
+            rc.transmit(call.get_data(), value, code.size());
+            call.set_send_times(std::max(1, std::min(repeats, 20)));
+            call.set_send_wait(std::max(0, std::min(wait_us, 100000)));
+            call.perform();
+            ESP_LOGD("homemanager", "RF sent: protocol %d, %u bits, %u us, x%d, wait %d us", protocol, (unsigned) code.size(), p, repeats, wait_us);
+
+    - action: homemanager_rf_capture
+      variables:
+        seconds: int
+      then:
+        - lambda: |-
+            const int window = std::max(0, std::min(seconds, 60));
+            id(hm_rf_capture_until) = window > 0 ? millis() + (uint32_t) window * 1000 : 0;
+            ESP_LOGI("homemanager", "RF capture window: %d s", window);
+
+remote_receiver:
+  - id: !extend ${hm_rf_receiver}
+    on_raw:
+      then:
+        - if:
+            condition:
+              lambda: "return (int32_t) (id(hm_rf_capture_until) - millis()) > 0 && x.size() >= 32;"
+            then:
+              - homeassistant.event:
+                  event: esphome.homemanager_rf_raw
+                  data:
+                    timings: !lambda |-
+                      std::string out;
+                      const size_t count = std::min<size_t>(x.size(), 1500);
+                      out.reserve(count * 6);
+                      for (size_t i = 0; i < count; i++) {
+                        if (i) out += ',';
+                        out += std::to_string(x[i]);
+                      }
+                      return out;

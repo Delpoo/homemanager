@@ -14,7 +14,7 @@ La tarjeta utiliza el contexto y la conexión autenticada de Home Assistant. Se 
 
 ## D03 — RF y C01 permanecen en Home Assistant
 
-Toda lógica RF, códigos, transmisión, normalización de comandos y scripts de C01 siguen en HA. El frontend enlaza acciones lógicas con entidades/scripts. No se trasplanta la implementación RF al navegador. El estado físico de un equipo RF no se deduce únicamente del éxito de una llamada.
+Toda lógica RF, códigos, transmisión, normalización de comandos y scripts de C01 siguen en HA. El frontend enlaza acciones lógicas con entidades/scripts. No se trasplanta la implementación RF al navegador. El estado físico de un equipo RF no se deduce únicamente del éxito de una llamada. *Modificada por [D16](#d16--gestor-de-controles-rf-propio): la lógica RF de los equipos dados de alta en el gestor pasa a la integración HomeManager, dentro de HA.*
 
 ## D04 — Editor visual obligatorio
 
@@ -86,3 +86,7 @@ Textos en el código como fuente en español con traducción por clave (`t('…'
 ## D15 — Versiones y publicación
 
 SemVer con una sola versión en `package.json`, replicada en `manifest.json`, el bundle y `CHANGELOG.md` (comprobado por prueba). Las releases las crea sólo el propietario; el workflow `release.yml` verifica el tag, ejecuta todas las pruebas y adjunta `homemanager.zip`. La CI prueba la integración en la versión mínima declarada y en la actual de Home Assistant.
+
+## D16 — Gestor de controles RF propio
+
+Aceptada por el propietario el 29/10/2026 (opción D). Cambia la regla inicial "los scripts y la lógica RF existente permanecen en Home Assistant": la lógica RF sigue dentro de Home Assistant, pero en la integración HomeManager y no en scripts del usuario. Los códigos viven en `.storage/homemanager.rf`, nunca en el plano, en el navegador ni en el repositorio; el validador del plano sigue rechazando claves como `rf_code`. Un paquete ESPHome único por transmisor sustituye las acciones por temporización, los helpers y el script enrutador. Los comandos siguen mostrándose como enviados o estimados, nunca confirmados. Lo existente en la instalación no se modifica ni se retira sin decisión expresa del propietario. Detalle: [rf-manager.md](rf-manager.md).
