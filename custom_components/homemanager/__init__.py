@@ -16,6 +16,7 @@ from pathlib import Path
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
@@ -27,6 +28,8 @@ from .websocket import async_register
 _LOGGER = logging.getLogger(__name__)
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 DATA_STATIC = f"{DOMAIN}_static_registered"
+# Entities built from RF remotes (rf_entity.py).
+PLATFORMS = [Platform.BUTTON, Platform.FAN, Platform.LIGHT]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -42,10 +45,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_register_frontend(hass)
     await _async_update_options(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
     frontend.async_remove_panel(hass, PANEL_URL_PATH, warn_if_unknown=False)
     if url := hass.data.pop(f"{DOMAIN}_module_url", None):
         frontend.remove_extra_js_url(hass, url)

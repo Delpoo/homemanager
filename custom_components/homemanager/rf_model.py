@@ -107,6 +107,8 @@ class Remote:
     pulse_us: int = DEFAULTS["pulse_us"]
     repeats: int = DEFAULTS["repeats"]
     wait_us: int = DEFAULTS["wait_us"]
+    # Number of speeds of a fan whose remote only has "faster/slower" buttons.
+    speeds: int | None = None
     buttons: dict[str, Button] = field(default_factory=dict)
 
     @classmethod
@@ -121,6 +123,7 @@ class Remote:
             pulse_us=raw.get("pulse_us", previous.pulse_us if previous else DEFAULTS["pulse_us"]),
             repeats=raw.get("repeats", previous.repeats if previous else DEFAULTS["repeats"]),
             wait_us=raw.get("wait_us", previous.wait_us if previous else DEFAULTS["wait_us"]),
+            speeds=raw.get("speeds", previous.speeds if previous else None),
             buttons=dict(previous.buttons) if previous else {},
         )
         remote.validate()
@@ -134,6 +137,8 @@ class Remote:
         _int(self.nbits, "nbits", MIN_BITS, MAX_BITS)
         for key, (low, high) in LIMITS.items():
             _int(getattr(self, key), key, low, high)
+        if self.speeds is not None:
+            _int(self.speeds, "speeds", 1, MAX_SPEEDS)
         if len(self.buttons) > MAX_BUTTONS:
             raise ModelError("too_many_buttons", f"a remote holds at most {MAX_BUTTONS} buttons")
         for button in self.buttons.values():
@@ -174,6 +179,7 @@ class Remote:
             "pulse_us": self.pulse_us,
             "repeats": self.repeats,
             "wait_us": self.wait_us,
+            "speeds": self.speeds,
         }
 
     def as_dict(self) -> dict[str, Any]:
@@ -188,6 +194,7 @@ class Remote:
             remote_id=_id(remote_id, "remote id"),
             name=_text(raw["name"], "name"),
             buttons={_id(key, "button id"): Button(key, _text(item["name"], "name"), item["code"], item.get("function")) for key, item in raw.get("buttons", {}).items()},
+            speeds=raw.get("speeds"),
             **{key: raw[key] for key in ("transmitter", "protocol", "nbits", "pulse_us", "repeats", "wait_us")},
         )
         remote.validate()

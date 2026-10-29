@@ -29,6 +29,7 @@ SETTINGS = {
     vol.Optional("pulse_us"): int,
     vol.Optional("repeats"): int,
     vol.Optional("wait_us"): int,
+    vol.Optional("speeds"): vol.Any(None, int),
 }
 
 
@@ -41,7 +42,7 @@ def _rf(hass: HomeAssistant) -> RfManager:
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_library, ws_subscribe, ws_transmitters, ws_remote_save, ws_remote_delete, ws_button_save, ws_button_delete, ws_press, ws_test, ws_capture):
+    for command in (ws_library, ws_subscribe, ws_transmitters, ws_remote_save, ws_remote_delete, ws_button_save, ws_button_delete, ws_press, ws_assume, ws_test, ws_capture):
         websocket_api.async_register_command(hass, command)
 
 
@@ -152,6 +153,19 @@ async def ws_press(hass: HomeAssistant, connection: websocket_api.ActiveConnecti
         return await _rf(hass).async_press(msg["remote_id"], msg["button_id"])
 
     await _run(connection, msg["id"], work())
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/rf/assume", vol.Required("entity_id"): vol.All(str, vol.Length(max=255)), vol.Required("is_on"): bool})
+@callback
+def ws_assume(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Corrects the assumed on/off state of an RF fan or light. Nothing is sent:
+    it is for when someone used the physical remote."""
+    try:
+        _rf(hass).assume(msg["entity_id"], msg["is_on"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+        return
+    connection.send_result(msg["id"])
 
 
 @websocket_api.require_admin
