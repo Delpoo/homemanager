@@ -21,6 +21,7 @@ import {
 } from './types.js';
 
 import { iconButtonMarkup, layerItems, renderLayers } from '../shell/layers.js';
+import { symbolSpec } from '../model/symbol-spec.js';
 import { renderRoomRail } from '../shell/room-rail.js';
 import { bindTopBar, renderTopBar, updateTopBar, type AppShellContext } from '../shell/top-bar.js';
 import { layer, same, type Adapter } from './card-helpers.js';
@@ -305,7 +306,8 @@ export class HomeManagerCard extends HTMLElement {
       if (target.closest('.pins')) return;
       const d = this.draft?.catalog.devices.find(item => item.id === id);
       if (!d) return;
-      const tap = tapControl(d);
+      const tap =
+        symbolSpec(d, this._hass, Date.now(), this.runtime.states[d.id]).tap === 'control' ? tapControl(d) : null;
       if (!tap) this.showDetails(id, target);
       else void this.runStep(d, tap, this.tapStep(d, tap), target);
       return;

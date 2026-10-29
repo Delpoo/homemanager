@@ -1,10 +1,11 @@
 import { t } from '../i18n/index.js';
 import { isActiveValue } from '../panels/controls.js';
 import { stateText } from '../panels/native-panel.js';
-import { GROUP_DISTANCE, KIND_ICONS, confidenceLabel, layer, reducedMotion } from './card-helpers.js';
+import { GROUP_DISTANCE, confidenceLabel, layer, reducedMotion } from './card-helpers.js';
 import { pinnedControls, stepLabel, tapControl } from './device-controls.js';
-import { fitCamera, roomBounds, sanitizeArchitecture, type Camera } from './geometry.js';
-import { boundsOf, clusterPoints, interpolateCamera } from './markers.js';
+import { createRoomHighlight, fitCamera, roomBounds, sanitizeArchitecture, type Camera } from './geometry.js';
+import { boundsOf, clusterPoints, interpolateCamera, renderSymbol } from './markers.js';
+import { symbolSpec } from '../model/symbol-spec.js';
 import { escapeHTML as e, type RoomId } from './types.js';
 
 import { updateRoomRail } from '../shell/room-rail.js';
@@ -125,7 +126,7 @@ export function renderMarkers(this: HomeManagerCard) {
     .filter(d => this.editing || this.enabledLayers.has(layer(d)))
     .map(
       d =>
-        `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}" data-kind="${e(d.kind)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}">${customElements.get('ha-icon') ? `<ha-icon icon="${e(d.display.icon)}"></ha-icon>` : (KIND_ICONS[d.kind] ?? '◉')}</button><span class="state-dot" aria-hidden="true"></span>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,
+        `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}"></button>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,
     )
     .join('');
   this.mountPins();
@@ -195,6 +196,7 @@ export function positionMarkers(this: HomeManagerCard) {
     const d = byId.get(marker.dataset.id!);
     if (!d) continue;
     const point = this.screen(d.position);
+    marker.classList.toggle('dim', this.currentRoom !== null && d.roomId !== this.currentRoom);
     marker.style.left = `${point.x}px`;
     marker.style.top = `${point.y}px`;
   }
@@ -204,23 +206,15 @@ export function positionMarkers(this: HomeManagerCard) {
     cluster.style.left = `${points.reduce((sum, p) => sum + p.x, 0) / points.length}px`;
     cluster.style.top = `${points.reduce((sum, p) => sum + p.y, 0) / points.length}px`;
   }
-  let highlight = overlay.querySelector<HTMLElement>('.room-highlight');
-  const bounds = this.currentRoom && this.svg ? roomBounds(this.svg, this.currentRoom) : null;
-  if (!bounds) highlight?.remove();
-  else {
-    if (!highlight) {
-      highlight = document.createElement('div');
-      highlight.className = 'room-highlight';
-      overlay.prepend(highlight);
+  const highlight = architecture?.querySelector<SVGSVGElement>(':scope > .room-highlight');
+  if (!this.currentRoom) highlight?.remove();
+  else if (this.svg && architecture && highlight?.dataset.room !== this.currentRoom) {
+    highlight?.remove();
+    const next = createRoomHighlight(this.svg, this.currentRoom);
+    if (next) {
+      next.dataset.room = this.currentRoom;
+      architecture.append(next);
     }
-    const a = this.screen({
-      x: (bounds.x - this.box.x) / this.box.width,
-      y: (bounds.y - this.box.y) / this.box.height,
-    });
-    highlight.style.left = `${a.x}px`;
-    highlight.style.top = `${a.y}px`;
-    highlight.style.width = `${bounds.width * this.camera.scale}px`;
-    highlight.style.height = `${bounds.height * this.camera.scale}px`;
   }
   this.positionEditor();
 }
@@ -230,11 +224,14 @@ export function refreshState(this: HomeManagerCard) {
     const d = this.draft?.catalog.devices.find(d => d.id === m.dataset.id);
     if (!d) return;
     const state = this.runtime.states[d.id];
+    const spec = symbolSpec(d, this._hass, Date.now(), state);
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
-    m.dataset.active = String(isActiveValue(state?.value));
+    m.dataset.active = String(!!spec.ring);
+    m.dataset.archetype = spec.archetype;
+    m.dataset.alert = spec.badge?.level ?? '';
     const main = m.querySelector('button.primary')!;
-    const tap = tapControl(d);
+    const tap = spec.tap === 'control' ? tapControl(d) : null;
     const next = tap ? this.tapStep(d, tap) : -1;
     const availability = tap ? this.adapter?.getActionAvailability(tap.steps[next]?.actionId ?? '') : undefined;
     const action = tap ? stepLabel(tap, next, this.draft) : t('Abrir panel');
@@ -248,10 +245,10 @@ export function refreshState(this: HomeManagerCard) {
     );
     // A cycle shows the icon of the step it is in (for example on or off).
     const current = tap?.type === 'cycle' ? this.cycleCurrent(d, tap) : -1;
-    const glyph = (current >= 0 && tap?.steps[current]?.icon) || d.display.icon;
-    const icon = main.querySelector('ha-icon');
-    if (icon && icon.getAttribute('icon') !== glyph) icon.setAttribute('icon', glyph);
-    (main as HTMLElement).dataset.icon = glyph;
+    const glyph = current >= 0 ? tap?.steps[current]?.icon : undefined;
+    if (glyph && spec.body.icon) spec.body.icon = glyph;
+    main.innerHTML = renderSymbol(spec);
+    (main as HTMLElement).dataset.icon = spec.body.icon ?? '';
     // Keep selection reachable in edit mode; a tap that cannot run still opens the panel by holding.
     (main as HTMLButtonElement).disabled = !this.editing && !!tap && !availability?.available;
     for (const view of this.pins.get(d.id) ?? []) view.refresh();

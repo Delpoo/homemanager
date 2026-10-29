@@ -1,18 +1,6 @@
 import { t } from '../i18n/index.js';
+import { presentationOf } from '../model/archetype.js';
 import { type Configuration, type Device, type Hass, type RuntimeState } from './types.js';
-export const KIND_ICONS: Record<string, string> = {
-  light: '☼',
-  fan: '✣',
-  curtain: '▥',
-  ac: '❄',
-  sensor: '◌',
-  switch: '⏻',
-  robot: '◉',
-  purifier: '≋',
-  plant: '♧',
-  infra: '⚙',
-  energy: 'ϟ',
-};
 export const confidenceLabel = (confidence: string) =>
   (
     ({
@@ -42,14 +30,7 @@ export function currentDashboardPath(hass: Hass): string | undefined {
     ? segment
     : undefined;
 }
-export const layer = (d: Device) =>
-  d.kind === 'infra'
-    ? 'infrastructure'
-    : d.kind === 'energy'
-      ? 'energy'
-      : d.kind === 'sensor' || d.kind === 'plant'
-        ? 'sensors'
-        : 'controls';
+export const layer = (d: Device) => presentationOf(d).layer;
 export interface Adapter {
   configure(c: Configuration): void;
   setHass(h: Hass | null): void;

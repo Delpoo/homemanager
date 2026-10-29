@@ -656,6 +656,140 @@ export function roomBounds(svg: SVGSVGElement, roomId: RoomId): ViewBox | null {
     return null;
   }
 }
+
+let highlightSequence = 0;
+const NON_GEOMETRY = new Set(['text', 'tspan', 'title', 'desc']);
+const PAINT_RESOURCES = new Set(['mask', 'clipPath', 'linearGradient', 'radialGradient', 'pattern', 'marker']);
+
+/** Namespace both IDs and local references so the overlay can coexist with the
+ * source and another card. The source must have passed sanitizeArchitecture. */
+function namespaceHighlight(root: Element, prefix: string, removeIds = false): void {
+  for (const element of [root, ...root.querySelectorAll('*')]) {
+    for (const attr of [...element.attributes]) {
+      if (attr.localName === 'id') {
+        if (removeIds) element.removeAttributeNode(attr);
+        else attr.value = prefix + attr.value;
+      } else if (attr.localName === 'href' && attr.value.startsWith('#'))
+        attr.value = '#' + prefix + attr.value.slice(1);
+      else
+        attr.value = attr.value.replace(
+          /url\s*\(\s*(['"]?)#([A-Za-z0-9_.:-]+)\1\s*\)/g,
+          (_, quote, id) => `url(#${prefix}${id})`,
+        );
+    }
+  }
+}
+
+function paintRoom(root: Element, mode: 'mask' | 'contour'): void {
+  for (const element of [root, ...root.querySelectorAll('*')]) {
+    if (NON_GEOMETRY.has(element.localName)) {
+      element.remove();
+      continue;
+    }
+    // A local clipping/masking resource keeps its own coverage semantics.
+    // Referenced symbols, paths and groups are recoloured along with the room.
+    let resource = false;
+    for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
+      if (PAINT_RESOURCES.has(ancestor.localName)) {
+        resource = true;
+        break;
+      }
+      if (ancestor === root) break;
+    }
+    if (resource) continue;
+    for (const name of ['opacity', 'fill-opacity', 'stroke-opacity', 'display', 'visibility'])
+      element.removeAttribute(name);
+    element.setAttribute('fill', mode === 'mask' ? '#000' : 'none');
+    element.setAttribute('stroke', mode === 'mask' ? 'none' : 'var(--hm-brand)');
+    if (mode === 'contour') {
+      element.setAttribute('stroke-width', '2');
+      element.setAttribute('stroke-linejoin', 'round');
+      element.setAttribute('stroke-linecap', 'round');
+      element.setAttribute('vector-effect', 'non-scaling-stroke');
+      element.removeAttribute('stroke-dasharray');
+    }
+  }
+}
+
+/** Clone the real room and its ancestor coordinate systems. In particular,
+ * nested SVG viewport/viewBox transforms cannot be represented by copying only
+ * a path's own `transform` attribute. This works before and after DOM mounting. */
+function roomDrawing(svg: SVGSVGElement, zone: Element, mode: 'mask' | 'contour', prefix: string): Element {
+  let drawing = zone.cloneNode(true) as Element;
+  for (
+    let ancestor: Element | null = zone.parentElement;
+    ancestor && ancestor !== svg;
+    ancestor = ancestor.parentElement
+  ) {
+    const wrapper = ancestor.cloneNode(false) as Element;
+    wrapper.append(drawing);
+    drawing = wrapper;
+  }
+  // Root presentation may carry fill-rule or clipping inherited by the room.
+  const inherited = document.createElementNS(SVG_NS, 'g');
+  for (const name of ['fill-rule', 'clip-path', 'mask']) {
+    const value = svg.getAttribute(name);
+    if (value) inherited.setAttribute(name, value);
+  }
+  inherited.append(drawing);
+  paintRoom(inherited, mode);
+  namespaceHighlight(inherited, prefix, true);
+  return inherited;
+}
+
+/** A same-viewBox overlay with a hole and contour made from actual room shapes.
+ * Mount it over the sanitized architecture under the same camera transform.
+ * Bounding boxes are used only by roomBounds for framing, never for drawing. */
+export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGElement | null {
+  const zone = roomZone(svg, roomId);
+  if (!zone) return null;
+  const box = parseViewBox(svg.getAttribute('viewBox'));
+  const overlay = document.createElementNS(SVG_NS, 'svg');
+  overlay.setAttribute('viewBox', `${box.x} ${box.y} ${box.width} ${box.height}`);
+  overlay.setAttribute('width', String(box.width));
+  overlay.setAttribute('height', String(box.height));
+  overlay.setAttribute('preserveAspectRatio', svg.getAttribute('preserveAspectRatio') ?? 'xMidYMid meet');
+  const rootTransform = svg.getAttribute('transform');
+  if (rootTransform) overlay.setAttribute('transform', rootTransform);
+  overlay.setAttribute('class', 'room-highlight');
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.setAttribute('focusable', 'false');
+  overlay.style.pointerEvents = 'none';
+  const prefix = `hm-room-${++highlightSequence}-`;
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  // Whole inert sources retain local <use> dependencies, including references
+  // outside <defs>. Nothing is fetched and the originals are never mutated.
+  for (const mode of ['mask', 'contour'] as const) {
+    const resources = svg.cloneNode(true) as SVGSVGElement;
+    paintRoom(resources, mode);
+    namespaceHighlight(resources, `${prefix}${mode}-`);
+    defs.append(resources);
+  }
+  const mask = document.createElementNS(SVG_NS, 'mask');
+  mask.id = `${prefix}cutout`;
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
+  mask.style.maskType = 'luminance';
+  for (const [name, value] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height }))
+    mask.setAttribute(name, String(value));
+  const rect = (fill: string) => {
+    const element = document.createElementNS(SVG_NS, 'rect');
+    for (const [name, value] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height }))
+      element.setAttribute(name, String(value));
+    element.setAttribute('fill', fill);
+    return element;
+  };
+  mask.append(rect('#fff'), roomDrawing(svg, zone, 'mask', `${prefix}mask-`));
+  defs.append(mask);
+  const shade = rect('var(--hm-ink)');
+  shade.setAttribute('class', 'room-shade');
+  shade.setAttribute('opacity', '.42');
+  shade.setAttribute('mask', `url(#${mask.id})`);
+  const contour = roomDrawing(svg, zone, 'contour', `${prefix}contour-`);
+  contour.setAttribute('class', 'room-contour');
+  overlay.append(defs, shade, contour);
+  return overlay;
+}
 /** Actual geometry hit-testing, including grouped/concave/transformed shapes.
  * Ambiguous overlaps, missing geometry and bounding-box-only evidence return null. */
 export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId | null {

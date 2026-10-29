@@ -90,6 +90,25 @@ dt{font-weight:600}dd{margin:0}
 .is-editing .header [data-command=edit]{display:none}
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
 
+.architecture>.room-highlight{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:none;overflow:visible}
+.marker.dim,.cluster.dim{opacity:.3}
+.marker .primary{position:relative;overflow:visible;background:var(--hm-surface)}
+.symbol-body{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--hm-ink)}
+.symbol-ring{position:absolute;inset:-4px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--hm-active) calc(var(--level)*1turn),transparent 0);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0)}
+.symbol-ring[data-tone=cool]{background:conic-gradient(var(--hm-cool) calc(var(--level)*1turn),transparent 0)}
+.marker[data-active=true] .primary{border-color:var(--hm-line);background:var(--hm-surface)}
+.marker[data-active=true] .primary ha-icon{color:var(--hm-active)}
+.symbol-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:var(--hm-alert);color:#fff;border:2px solid var(--hm-surface);font-size:10px;line-height:14px;font-weight:700}
+.symbol-badge[data-level=warning]{background:var(--hm-warn)}
+.marker[data-alert=critical] .primary{color:var(--hm-alert);box-shadow:0 0 0 3px var(--hm-alert),var(--hm-shadow)}
+.marker[data-alert=critical] .primary ha-icon{color:var(--hm-alert)}
+.symbol-health{position:absolute;bottom:-3px;right:-3px;width:14px;height:14px;border:2px dashed var(--hm-warn);border-radius:50%;background:var(--hm-surface)}
+.symbol-health[data-health=unavailable]{border-style:solid;border-color:var(--hm-unknown)}.symbol-health[data-health=unknown]{border-color:var(--hm-unknown)}
+.symbol-health ha-icon{position:absolute;inset:-3px;--mdc-icon-size:16px!important;color:var(--hm-unknown)!important;transform:rotate(-45deg)}
+.remote-mark{position:absolute;left:-3px;bottom:-3px;width:14px;height:14px;border:2px solid var(--hm-surface);border-radius:4px;background:var(--hm-brand)}
+.symbol-tag{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:7px;background:var(--hm-surface);color:var(--hm-cool)}
+.marker[data-archetype=meter] .primary{width:max-content;max-width:150px;height:30px;min-height:30px;min-width:44px;left:50%;transform:translateX(-50%);border-radius:16px;padding:0 10px;font-size:13px;font-weight:600;margin-top:7px}
+.marker[data-archetype=infrastructure] .primary{background:transparent;border:0;box-shadow:none}.marker[data-archetype=infrastructure] .symbol-body{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);border:3px solid var(--hm-surface)}.marker[data-archetype=infrastructure] .symbol-body ha-icon{display:none}
 ${topBarStyles}${roomRailStyles}${layerStyles}
 @media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
 `;

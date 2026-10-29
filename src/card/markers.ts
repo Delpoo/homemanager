@@ -1,5 +1,29 @@
 /** Marker layout in screen space. Pure and deterministic, so the same plan and
  * zoom always produce the same groups (no flicker while panning). */
+import type { SymbolSpec } from '../model/symbol-spec.js';
+
+const escape = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!,
+  );
+/** The renderer consumes presentation semantics only; it knows no device kinds. */
+export function renderSymbol(spec: SymbolSpec): string {
+  const ring = spec.ring
+    ? `<span class="symbol-ring" data-tone="${spec.ring.tone}" style="--level:${spec.ring.level ?? 1}" aria-hidden="true"></span>`
+    : '';
+  const icon = spec.body.icon ? `<ha-icon icon="${escape(spec.body.icon)}" aria-hidden="true"></ha-icon>` : '';
+  const value = spec.body.value
+    ? `<span class="value" title="${escape(spec.body.fullValue ?? spec.body.value)}">${escape(spec.body.value)}</span>`
+    : '';
+  const badge = spec.badge
+    ? `<span class="symbol-badge" data-level="${spec.badge.level}">${spec.badge.count}</span>`
+    : '';
+  const health = spec.health
+    ? `<span class="symbol-health" data-health="${spec.health}" aria-hidden="true">${spec.health === 'unavailable' ? '<ha-icon icon="mdi:minus" aria-hidden="true"></ha-icon>' : ''}</span>`
+    : '';
+  return `${ring}<span class="symbol-body">${icon}${value}</span>${badge}${health}${spec.archetype === 'remote' ? '<span class="remote-mark" aria-hidden="true"></span>' : ''}${spec.tag ? `<span class="symbol-tag">${escape(spec.tag)}</span>` : ''}`;
+}
 
 export interface ScreenPoint {
   id: string;
