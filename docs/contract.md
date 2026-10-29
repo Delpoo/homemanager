@@ -6,7 +6,7 @@ Este contrato coordina arquitectura SVG, frontend e integración de HomeManager.
 
 `schemas/catalog.schema.json` define el catálogo V2: raíz con `schemaVersion: 2` y `devices: []`. Cada dispositivo requiere `id`, `roomId`, `kind`, `position`, `mobility`, `display`, `bindings` y `state`, sin campos adicionales. Los identificadores son kebab-case únicos y permanecen iguales al cambiar de posición, habitación o etiqueta.
 
-**Los espacios son datos de cada instancia, no del software.** La configuración declara `rooms`, una lista ordenada de `{id, label}` (máximo 200). `id` es kebab-case, único e inmutable; `label` es texto libre que se puede renombrar. El `roomId` de cada dispositivo referencia un espacio declarado o es `null` mientras su ubicación no se conozca. Cada zona SVG se identifica como `room-${roomId}`; el editor detecta esas zonas en el plano y las propone como espacios, pero sólo los espacios declarados participan en la navegación y en la detección de habitación al arrastrar. Un espacio sin zona se informa y conserva sus dispositivos.
+**Los espacios son datos de cada instancia, no del software.** La configuración declara `rooms`, una lista ordenada de `{id, label, icon?}` (máximo 200). `id` es kebab-case, único e inmutable; `label` es texto libre que se puede renombrar. Desde 0.7, `icon` es un identificador MDI opcional (`mdi:sofa`, por ejemplo), de hasta 240 caracteres, con nombre en minúsculas, números y guiones simples; no admite URLs, HTML ni espacios. Sin él, el riel sugiere un icono a partir del nombre sin escribirlo en el documento. El `roomId` de cada dispositivo referencia un espacio declarado o es `null` mientras su ubicación no se conozca. Cada zona SVG se identifica como `room-${roomId}`; el editor detecta esas zonas en el plano y las propone como espacios, pero sólo los espacios declarados participan en la navegación y en la detección de habitación al arrastrar. Un espacio sin zona se informa y conserva sus dispositivos.
 
 ### Migración desde V1
 
@@ -39,6 +39,13 @@ Desde 0.6 (D18), los **controles del dispositivo**, también opcionales:
 
 El paso actual de un ciclo sale del estado en vivo cuando todos sus pasos dicen en qué estado dejan su destino (encender, apagar, abrir, cerrar); si no, es el último enviado desde ese navegador. No se persiste en el plano: el estado persistido sigue siendo `unknown`.
 
+Desde 0.7 (D20), hay dos campos de presentación **opcionales**:
+
+- `display.archetype`: `actuator`, `equipment`, `sensor`, `meter`, `remote` o `infrastructure`. Si falta, las funciones puras de `src/model/` lo resuelven a partir del tipo y de la entidad, sin cambiar el documento guardado. El arquetipo describe la presentación, nunca autoriza servicios ni confirma estados.
+- `display.show`: `icon`, `value` o `both`. Si falta, los medidores muestran el valor y los demás arquetipos el icono.
+
+Los tres campos nuevos (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita. El vínculo al registro de dispositivos (`bindings.deviceId`) y la configuración de reglas de alerta (`bindings.alerts`) pertenecen a etapas posteriores y continúan rechazándose.
+
 ## Configuración persistente y estado efímero
 
 `schemas/configuration.schema.json` define el documento persistente, separado del catálogo estricto:
@@ -46,7 +53,7 @@ El paso actual de un ciclo sale del estado en vivo cuando todos sus pasos dicen 
 | Campo | Contenido |
 | --- | --- |
 | `schemaVersion` | `2`. V1 se migra en memoria; cambios incompatibles futuros requieren otra migración explícita. |
-| `rooms` | Lista ordenada de espacios `{id, label}` de la instancia. |
+| `rooms` | Lista ordenada de espacios `{id, label, icon?}` de la instancia. |
 | `catalog` | Catálogo V2; todo `state` persistido es `unknown/unknown`. |
 | `architecture` | `{format: "svg", content: "…"}`; SVG inline sanitizado, máximo 1 MiB UTF-8. |
 | `actions` | Mapa de acciones lógicas a llamadas HA permitidas y destinos explícitos. |

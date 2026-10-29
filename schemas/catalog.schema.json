@@ -15,6 +15,7 @@
   },
   "$defs": {
     "text": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S" },
+    "mdiIcon": { "type": "string", "minLength": 5, "maxLength": 240, "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])" },
     "nullableText": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
     "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "roomId": { "$ref": "#/$defs/deviceId", "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/." },
@@ -78,6 +79,11 @@
             "label": { "$ref": "#/$defs/text" },
             "icon": { "$ref": "#/$defs/text" },
             "size": { "enum": ["s", "m", "l"], "$comment": "Size of the symbol on the plan; m when absent." },
+            "archetype": {
+              "enum": ["actuator", "equipment", "sensor", "meter", "remote", "infrastructure"],
+              "$comment": "Optional presentation override; inferred without changing the stored document when absent."
+            },
+            "show": { "enum": ["icon", "value", "both"], "$comment": "Body content; value for meters and icon for other archetypes when absent." },
             "pinned": {
               "type": "array",
               "maxItems": 3,

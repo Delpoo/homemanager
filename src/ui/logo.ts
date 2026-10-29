@@ -1,0 +1,2 @@
+/** Original monochrome floorplan-house logo from docs/vision-mockup.html. */
+export const logo = `<svg class="hm-logo" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false" style="color:var(--hm-brand)"><path d="M3 11.2 12 4l9 7.2V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M7 21v-6h5v6M12 15h5M12 11v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;

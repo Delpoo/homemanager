@@ -12,6 +12,89 @@ from .conftest import PLAN, configuration
 NOW = datetime(2026, 10, 29, tzinfo=UTC)
 
 
+def presentation_configuration() -> dict:
+    value = configuration()
+    value["catalog"]["devices"] = [{
+        "id": "sample-lamp", "roomId": "studio", "kind": "light",
+        "position": {"x": 0.5, "y": 0.5}, "mobility": "editable",
+        "display": {"label": "Sample lamp", "icon": "mdi:lightbulb"},
+        "bindings": {"entityId": "light.sample", "primaryAction": None, "advancedPopupId": None},
+        "state": {"value": "unknown", "confidence": "unknown"},
+    }]
+    return value
+
+
+def test_07_presentation_fields_are_optional_without_migrating_06_data() -> None:
+    from copy import deepcopy
+
+    legacy = presentation_configuration()
+    before = deepcopy(legacy)
+    result = validate_configuration(legacy)
+    assert result == before == legacy
+    assert result is not legacy
+    assert "icon" not in result["rooms"][0]
+    assert set(result["catalog"]["devices"][0]["display"]) == {"label", "icon"}
+
+
+@pytest.mark.parametrize("icon", ["mdi:sofa", "mdi:flower-tulip-outline", "mdi:" + "a" * 236])
+def test_07_space_icon_round_trips(icon: str) -> None:
+    value = presentation_configuration()
+    value["rooms"][0]["icon"] = icon
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("archetype", [None, "actuator", "equipment", "sensor", "meter", "remote", "infrastructure"])
+@pytest.mark.parametrize("show", [None, "icon", "value", "both"])
+def test_07_presentation_fields_round_trip_independently(archetype: str | None, show: str | None) -> None:
+    value = presentation_configuration()
+    display = value["catalog"]["devices"][0]["display"]
+    if archetype is not None:
+        display["archetype"] = archetype
+    if show is not None:
+        display["show"] = show
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("icon", [
+    None, False, 1, [], {}, "", "mdi:", "mdi:Bad", "lightbulb", "mdi:sofa ",
+    "mdi:sofa\n", "mdi:sofa\r\n", "mdi:sofa\u2028", "mdi:sofa--outline", "mdi:sofa-",
+    "mdi:<svg>", 'mdi:sofa" onload="x', "https://example.test/icon.svg", "mdi:" + "a" * 237,
+])
+def test_07_space_icon_rejects_wrong_types_and_unsafe_values(icon) -> None:
+    value = presentation_configuration()
+    value["rooms"][0]["icon"] = icon
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
+@pytest.mark.parametrize(("field", "invalid"), [
+    *[("archetype", value) for value in (None, False, 1, [], {}, "", "Actuator", "actuador", "dimmer", "actuator\n")],
+    *[("show", value) for value in (None, False, 1, [], {}, "", "Icon", "all", "value\n")],
+])
+def test_07_presentation_fields_reject_unknown_values_and_types(field: str, invalid) -> None:
+    value = presentation_configuration()
+    value["catalog"]["devices"][0]["display"][field] = invalid
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
+@pytest.mark.parametrize(("location", "field", "invalid"), [
+    ("room", "archetype", "sensor"),
+    ("display", "iconUrl", "https://example.test/icon.svg"),
+    ("bindings", "deviceId", "future-device"),
+    ("bindings", "alerts", {}),
+])
+def test_07_only_adds_the_three_approved_optional_fields(location: str, field: str, invalid) -> None:
+    value = presentation_configuration()
+    target = value["rooms"][0] if location == "room" else value["catalog"]["devices"][0][location]
+    target[field] = invalid
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
 def test_create_requires_null_revision_and_updates_require_the_current_one() -> None:
     homes = Homes()
     home, plan_changed = homes.save("home", None, configuration(), "Casa", "admin", NOW)

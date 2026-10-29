@@ -1,7 +1,16 @@
 /** Persistent V2 types. Live values never belong in Configuration.
  * Spaces are instance data (`rooms`); the public code has no room vocabulary. */
 import { KINDS } from '../ha/validation.mjs';
-import type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize } from '../ha/types.ts';
+import type {
+  ControlStep,
+  ControlType,
+  DeviceControl,
+  DeviceKind,
+  Room,
+  SymbolSize,
+  SymbolArchetype,
+  SymbolShow,
+} from '../ha/types.ts';
 export { KINDS };
 export type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize };
 export type RoomId = string;
@@ -22,6 +31,8 @@ export interface Device {
     icon: string;
     /** Symbol size on the plan; m when absent (V2, optional). */
     size?: SymbolSize;
+    archetype?: SymbolArchetype;
+    show?: SymbolShow;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };
@@ -106,6 +117,8 @@ export interface Hass {
   areas?: Record<string, { name?: string }>;
   language?: string;
   locale?: { language?: string };
+  themes?: { darkMode?: boolean };
+  formatEntityState?(entity: { state: string; attributes?: Record<string, unknown> }): string;
   callWS?<T = unknown>(message: Record<string, unknown>): Promise<T>;
   callService?(
     domain: string,

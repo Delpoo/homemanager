@@ -36,9 +36,19 @@ export const CONTROL_STEPS = Object.freeze({
 export const MAX_CONTROLS = 8;
 export const MAX_PINNED = 3;
 export const SYMBOL_SIZES = Object.freeze(['s', 'm', 'l']);
+export const SYMBOL_ARCHETYPES = Object.freeze([
+  'actuator',
+  'equipment',
+  'sensor',
+  'meter',
+  'remote',
+  'infrastructure',
+]);
+export const SYMBOL_SHOW = Object.freeze(['icon', 'value', 'both']);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
+const MDI_ICON = /^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/;
 const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
 const RESERVED_DATA_KEY =
   /^(?:entity_id|device_id|area_id|rf_codes?|ir_codes?|codes?|protocol|pulse_length|raw(?:_data)?|rc_switch|commands?|command_type)$/i;
@@ -199,9 +209,13 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], [], path);
+    fields(room, ['id', 'label'], ['icon'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
+    if (Object.hasOwn(room, 'icon')) {
+      text(room.icon, `${path}.icon`);
+      if (!MDI_ICON.test(room.icon)) invalid(`${path}.icon`, 'MDI icon identifier required');
+    }
     if (roomIds.has(room.id)) invalid(`${path}.id`, 'duplicate space identifier');
     roomIds.add(room.id);
   });
@@ -223,10 +237,13 @@ function shape(configuration) {
     one(device.kind, KINDS, `${path}.kind`);
     one(device.mobility, ['fixed', 'editable', 'portable'], `${path}.mobility`);
     position(device.position, `${path}.position`);
-    fields(device.display, ['label', 'icon'], ['size', 'pinned'], `${path}.display`);
+    fields(device.display, ['label', 'icon'], ['size', 'pinned', 'archetype', 'show'], `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
     if (Object.hasOwn(device.display, 'size')) one(device.display.size, SYMBOL_SIZES, `${path}.display.size`);
+    if (Object.hasOwn(device.display, 'archetype'))
+      one(device.display.archetype, SYMBOL_ARCHETYPES, `${path}.display.archetype`);
+    if (Object.hasOwn(device.display, 'show')) one(device.display.show, SYMBOL_SHOW, `${path}.display.show`);
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],

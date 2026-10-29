@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { assertConfiguration, inspectConfiguration } from '../../src/ha/validation.mjs';
+import { assertConfiguration, inspectConfiguration, SYMBOL_ARCHETYPES, SYMBOL_SHOW } from '../../src/ha/validation.mjs';
 import { LEGACY_V1_ROOM_IDS } from '../../src/ha/migration.mjs';
 const make = () => ({
   schemaVersion: 2,
@@ -37,6 +37,99 @@ for (const name of ['catalog', 'configuration', 'runtime-state'])
     `${name}.schema.json`,
   );
 const schema = ajv.getSchema('configuration.schema.json');
+
+test('0.7 presentation fields are optional, preserve 0.6 documents and round-trip without defaults', () => {
+  const legacy = make();
+  const input = structuredClone(legacy);
+  assert.deepEqual(assertConfiguration(legacy), input);
+  assert.deepEqual(legacy, input);
+  assert(schema(legacy), JSON.stringify(schema.errors));
+  for (const icon of ['mdi:sofa', 'mdi:flower-tulip-outline', `mdi:${'a'.repeat(236)}`]) {
+    const configuration = make();
+    configuration.rooms[0].icon = icon;
+    assert.deepEqual(assertConfiguration(configuration), configuration);
+    assert(schema(configuration), JSON.stringify(schema.errors));
+  }
+  for (const archetype of SYMBOL_ARCHETYPES) {
+    for (const show of SYMBOL_SHOW) {
+      const configuration = make();
+      Object.assign(configuration.catalog.devices[0].display, { archetype, show });
+      assert.deepEqual(assertConfiguration(configuration), configuration);
+      assert(schema(configuration), JSON.stringify(schema.errors));
+    }
+    const configuration = make();
+    configuration.catalog.devices[0].display.archetype = archetype;
+    assert(schema(assertConfiguration(configuration)), JSON.stringify(schema.errors));
+  }
+  for (const show of SYMBOL_SHOW) {
+    const configuration = make();
+    configuration.catalog.devices[0].display.show = show;
+    assert(schema(assertConfiguration(configuration)), JSON.stringify(schema.errors));
+  }
+  const catalogSchema = JSON.parse(readFileSync(new URL('../../schemas/catalog.schema.json', import.meta.url)));
+  assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.archetype.enum, SYMBOL_ARCHETYPES);
+  assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.show.enum, SYMBOL_SHOW);
+});
+
+test('JS and JSON Schema reject the same unsafe 0.7 fields, types and unknown presentation properties', () => {
+  const invalidIcons = [
+    null,
+    false,
+    1,
+    [],
+    {},
+    '',
+    'mdi:',
+    'mdi:Bad',
+    'lightbulb',
+    'mdi:sofa ',
+    'mdi:sofa\n',
+    'mdi:sofa\r\n',
+    'mdi:sofa\u2028',
+    'mdi:sofa--outline',
+    'mdi:sofa-',
+    'mdi:<svg>',
+    'mdi:sofa" onload="x',
+    'https://example.test/icon.svg',
+    `mdi:${'a'.repeat(237)}`,
+  ];
+  for (const icon of invalidIcons) {
+    const configuration = make();
+    configuration.rooms[0].icon = icon;
+    assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify(icon));
+    assert.equal(schema(configuration), false, JSON.stringify(icon));
+  }
+  for (const [field, invalid] of [
+    ['archetype', [null, false, 1, [], {}, '', 'Actuator', 'actuador', 'dimmer', 'actuator\n']],
+    ['show', [null, false, 1, [], {}, '', 'Icon', 'all', 'value\n']],
+  ]) {
+    for (const value of invalid) {
+      const configuration = make();
+      configuration.catalog.devices[0].display[field] = value;
+      assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify([field, value]));
+      assert.equal(schema(configuration), false, JSON.stringify([field, value]));
+    }
+  }
+  for (const mutate of [
+    c => {
+      c.rooms[0].archetype = 'sensor';
+    },
+    c => {
+      c.catalog.devices[0].display.iconUrl = 'https://example.test/icon.svg';
+    },
+    c => {
+      c.catalog.devices[0].bindings.deviceId = 'future-device';
+    },
+    c => {
+      c.catalog.devices[0].bindings.alerts = {};
+    },
+  ]) {
+    const configuration = make();
+    mutate(configuration);
+    assert.equal(inspectConfiguration(configuration).valid, false);
+    assert.equal(schema(configuration), false);
+  }
+});
 
 test('accepted configuration conforms to committed schema, with instance-defined spaces', () => {
   for (const roomId of ['attic', 'garage-2', 'studio', ...LEGACY_V1_ROOM_IDS]) {
