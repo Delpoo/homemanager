@@ -30,6 +30,8 @@ export interface PanelOptions {
   getScriptFields?: () => unknown;
   entityAvailability?: (command: Command) => PanelAvailability;
   onEntityCommand?: (command: Command) => Promise<unknown>;
+  /** Corrects the assumed on/off state of an RF entity without sending anything. */
+  onAssume?: (isOn: boolean) => Promise<unknown>;
 }
 export interface PanelHandle {
   element: HomeManagerPanel;
@@ -121,6 +123,13 @@ h2{font-size:18px;line-height:1.3;font-weight:600;margin:0;overflow-wrap:anywher
 .segmented{display:flex;flex-wrap:wrap;gap:6px}
 .segmented button{flex:1 1 auto;min-width:64px}
 .segmented button[aria-pressed=true]{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent)}
+.steps{position:relative;display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--hm-surface);touch-action:none;user-select:none}
+.steps button{flex:1 1 0;min-width:0;min-height:40px;border:0;border-radius:999px;background:transparent;font-variant-numeric:tabular-nums;font-weight:600;color:var(--hm-muted);padding:0}
+.steps button.reached{color:var(--hm-text);background:color-mix(in srgb,var(--hm-accent) 14%,transparent)}
+.steps button[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent);box-shadow:var(--hm-shadow)}
+.steps button.preview{outline:2px solid var(--hm-accent);outline-offset:-2px}
+.assume{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--hm-muted)}
+.assume button{min-height:36px;font-size:13px;flex:0 0 auto}
 .stepper{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .stepper output{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
 .stepper button{min-width:56px;font-size:22px}
@@ -277,6 +286,8 @@ export class HomeManagerPanel extends HTMLElement {
     if (same) return this.updateAutoValues();
     host.innerHTML = next.length ? `<p class="group-title">${escapeHTML(t('Controles'))}</p>` : '';
     for (const control of next) host.append(this.renderControl(control));
+    if (this.options.onAssume && this.options.getEntity()?.attributes?.homemanager_remote)
+      host.append(this.renderAssume());
     this.updateAutoValues();
   }
   private renderControl(control: Control): HTMLElement {
@@ -297,6 +308,11 @@ export class HomeManagerPanel extends HTMLElement {
       input.addEventListener('input', () => (output.textContent = fmt(Number(input.value), control.unit)));
       // Commit on release only: one service call per gesture, not per pixel.
       input.addEventListener('change', () => void this.send(commandFor(control, Number(input.value))));
+    } else if (control.kind === 'steps') {
+      const first = control.off ? 0 : 1;
+      const levels = Array.from({ length: control.count - first + 1 }, (_, index) => first + index);
+      box.innerHTML = `${head}<output></output></div><div class="steps" role="group" aria-labelledby="label-${escapeHTML(control.id)}">${levels.map(level => `<button type="button" data-level="${level}" aria-label="${escapeHTML(level ? t('Velocidad {level}', { level }) : t('Apagado'))}">${level || escapeHTML(t('Off'))}</button>`).join('')}</div>`;
+      this.bindSteps(box.querySelector<HTMLElement>('.steps')!, control.id);
     } else if (control.kind === 'stepper') {
       box.innerHTML = `${head}</div><div class="stepper"><button type="button" data-step="-1" aria-label="${escapeHTML(t('Bajar {label}', { label: control.label }))}">−</button><output aria-live="polite"></output><button type="button" data-step="1" aria-label="${escapeHTML(t('Subir {label}', { label: control.label }))}">+</button></div>`;
       for (const button of box.querySelectorAll<HTMLButtonElement>('[data-step]'))
@@ -358,17 +374,86 @@ export class HomeManagerPanel extends HTMLElement {
     }
     return box;
   }
+  /** Tap any stop to send it, including the current one (re-sending is how an
+   * RF device is re-synchronized). Dragging previews and sends once on release. */
+  private bindSteps(track: HTMLElement, controlId: string): void {
+    let preview: number | null = null;
+    const levelAt = (x: number): number | null => {
+      let best: number | null = null,
+        distance = Infinity;
+      for (const button of track.querySelectorAll<HTMLButtonElement>('[data-level]')) {
+        const rect = button.getBoundingClientRect(),
+          gap = Math.abs(x - (rect.left + rect.width / 2));
+        if (gap < distance) [best, distance] = [Number(button.dataset.level), gap];
+      }
+      return best;
+    };
+    const mark = (level: number | null) => {
+      preview = level;
+      for (const button of track.querySelectorAll<HTMLButtonElement>('[data-level]'))
+        button.classList.toggle('preview', Number(button.dataset.level) === level);
+    };
+    const send = (level: number) => {
+      const current = this.controls.find(item => item.id === controlId);
+      if (current?.kind === 'steps') void this.send(commandFor(current, level));
+    };
+    track.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      track.setPointerCapture?.(event.pointerId);
+      mark(levelAt(event.clientX));
+    });
+    track.addEventListener('pointermove', event => {
+      if (preview !== null) mark(levelAt(event.clientX));
+    });
+    track.addEventListener('pointerup', () => {
+      const level = preview;
+      mark(null);
+      if (level !== null) send(level);
+    });
+    track.addEventListener('pointercancel', () => mark(null));
+    // Keyboard activation; pointer taps are sent on release above.
+    track.addEventListener('click', event => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-level]');
+      if (button && event.detail === 0) send(Number(button.dataset.level));
+    });
+  }
+  private renderAssume(): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'assume';
+    row.innerHTML = `<span>${escapeHTML(t('¿No coincide con el equipo? Corregí el estado sin enviar nada.'))}</span><button type="button"></button>`;
+    row.querySelector('button')!.addEventListener('click', () => {
+      const isOn = this.options?.getEntity?.()?.state === 'on';
+      this.options?.onAssume?.(!isOn).catch(error => {
+        if (!this.closed)
+          this.root.querySelector('.status')!.textContent = error instanceof Error ? error.message : String(error);
+      });
+    });
+    return row;
+  }
+  private updateAssume(value: boolean | null): void {
+    const button = this.root.querySelector<HTMLButtonElement>('.assume button');
+    if (button) button.textContent = value ? t('Marcar como apagado') : t('Marcar como encendido');
+  }
   private updateAutoValues(): void {
     for (const control of this.controls) {
       const box = this.root.querySelector<HTMLElement>(`.auto [data-control-id="${CSS.escape(control.id)}"]`);
       if (!box) continue;
-      if (control.kind === 'toggle')
+      if (control.kind === 'toggle') {
         box.querySelector('[role=switch]')!.setAttribute('aria-checked', String(control.value === true));
-      else if (control.kind === 'range') {
+        if (control.id === 'power') this.updateAssume(control.value);
+      } else if (control.kind === 'range') {
         const input = box.querySelector('input')!;
         // Never move the thumb under the user's finger.
         if (this.root.activeElement !== input && control.value !== null) input.value = String(control.value);
         box.querySelector('output')!.textContent = fmt(control.value, control.unit);
+      } else if (control.kind === 'steps') {
+        for (const button of box.querySelectorAll<HTMLButtonElement>('[data-level]')) {
+          const level = Number(button.dataset.level);
+          button.setAttribute('aria-pressed', String(level === control.value));
+          button.classList.toggle('reached', control.value !== null && level > 0 && level < control.value);
+        }
+        box.querySelector('output')!.textContent =
+          control.value === null ? '—' : control.value === 0 ? t('Apagado') : `${control.value}/${control.count}`;
       } else if (control.kind === 'stepper')
         box.querySelector('output')!.textContent = fmt(control.value, control.unit);
       else if (control.kind === 'select') {
@@ -531,6 +616,8 @@ function probeCommand(control: Control): Command | null {
     case 'range':
     case 'stepper':
       return commandFor(control, control.value ?? control.min);
+    case 'steps':
+      return commandFor(control, control.count);
     case 'select':
       return control.options[0] ? commandFor(control, control.value ?? control.options[0].value) : null;
     case 'buttons':
