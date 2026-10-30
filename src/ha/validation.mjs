@@ -35,6 +35,7 @@ export const CONTROL_STEPS = Object.freeze({
 });
 export const MAX_CONTROLS = 8;
 export const MAX_PINNED = 3;
+export const MAX_READINGS = 3;
 export const SYMBOL_SIZES = Object.freeze(['s', 'm', 'l']);
 export const SYMBOL_ARCHETYPES = Object.freeze([
   'actuator',
@@ -47,7 +48,8 @@ export const SYMBOL_ARCHETYPES = Object.freeze([
 export const SYMBOL_SHOW = Object.freeze(['icon', 'value', 'both']);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
+const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
+const REGISTRY_DEVICE = /^[A-Za-z0-9][A-Za-z0-9_-]*(?![\s\S])/;
 const MDI_ICON = /^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/;
 const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
 const RESERVED_DATA_KEY =
@@ -247,9 +249,24 @@ function shape(configuration) {
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId', 'controls', 'tap'],
+      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings'],
       `${path}.bindings`,
     );
+    if (Object.hasOwn(device.bindings, 'deviceId')) {
+      text(device.bindings.deviceId, `${path}.bindings.deviceId`);
+      if (!REGISTRY_DEVICE.test(device.bindings.deviceId) || UNSAFE.has(device.bindings.deviceId))
+        invalid(`${path}.bindings.deviceId`, 'registry device identifier required');
+    }
+    if (Object.hasOwn(device.bindings, 'readings')) {
+      const readings = device.bindings.readings;
+      if (!Array.isArray(readings) || readings.length > MAX_READINGS)
+        invalid(`${path}.bindings.readings`, 'array of at most 3 additional readings required');
+      for (const reading of readings) entity(reading, `${path}.bindings.readings`);
+      if (new Set(readings).size !== readings.length || readings.includes(device.bindings.entityId))
+        invalid(`${path}.bindings.readings`, 'additional readings must be unique and exclude the principal');
+      if (readings.length && !device.bindings.deviceId)
+        invalid(`${path}.bindings.readings`, 'additional readings require a registry device');
+    }
     for (const key of ['entityId', 'primaryAction', 'advancedPopupId', 'remoteId'])
       if (device.bindings[key] !== null && device.bindings[key] !== undefined) {
         if (key === 'entityId') entity(device.bindings[key], `${path}.bindings.${key}`);

@@ -6,6 +6,7 @@ export const CONTROL_TYPES: readonly ControlType[];
 export const CONTROL_STEPS: Readonly<Record<ControlType, readonly [number, number]>>;
 export const MAX_CONTROLS: number;
 export const MAX_PINNED: number;
+export const MAX_READINGS: number;
 export const SYMBOL_SIZES: readonly SymbolSize[];
 export const SYMBOL_ARCHETYPES: readonly SymbolArchetype[];
 export const SYMBOL_SHOW: readonly SymbolShow[];

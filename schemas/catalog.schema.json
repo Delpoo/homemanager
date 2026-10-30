@@ -18,6 +18,8 @@
     "mdiIcon": { "type": "string", "minLength": 5, "maxLength": 240, "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])" },
     "nullableText": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
     "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "registryDeviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(?![\\s\\S])", "not": { "enum": ["__proto__", "prototype", "constructor"] } },
+    "entityId": { "type": "string", "minLength": 3, "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+(?![\\s\\S])", "not": { "pattern": "\\.all$" } },
     "roomId": { "$ref": "#/$defs/deviceId", "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/." },
     "position": {
       "type": "object",
@@ -99,6 +101,8 @@
           "required": ["entityId", "primaryAction", "advancedPopupId"],
           "properties": {
             "entityId": { "$ref": "#/$defs/nullableText" },
+            "deviceId": { "$ref": "#/$defs/registryDeviceId" },
+            "readings": { "type": "array", "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/$defs/entityId" }, "$comment": "Additional readings exclude the principal (semantic validation); registry membership is checked live without rejecting older plans." },
             "primaryAction": { "$ref": "#/$defs/nullableText" },
             "advancedPopupId": { "$ref": "#/$defs/nullableText" },
             "quickActions": {
@@ -121,7 +125,8 @@
               "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }],
               "$comment": "Control (button or cycle) a tap on the symbol runs; null opens the panel. Absent: primaryAction, as before."
             }
-          }
+          },
+          "allOf": [{ "if": { "required": ["readings"], "properties": { "readings": { "type": "array", "minItems": 1 } } }, "then": { "required": ["deviceId"], "properties": { "deviceId": { "$ref": "#/$defs/registryDeviceId" } } } }]
         },
         "state": { "$ref": "#/$defs/state" }
       }

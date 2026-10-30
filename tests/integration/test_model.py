@@ -24,6 +24,37 @@ def presentation_configuration() -> dict:
     return value
 
 
+def test_08_registry_readings_round_trip_and_07_is_unchanged() -> None:
+    from copy import deepcopy
+
+    legacy = presentation_configuration()
+    before = deepcopy(legacy)
+    assert validate_configuration(legacy) == before == legacy
+    for readings in ([], ["sensor.sample_temperature"], ["sensor.a", "sensor.b", "sensor.c"]):
+        value = presentation_configuration()
+        value["catalog"]["devices"][0]["bindings"].update(deviceId="0011aaBB-device_1", readings=readings)
+        assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize(("field", "invalid"), [
+    *[("deviceId", value) for value in ("", None, False, 1, {}, [], "device.id", "device/id", " bad", "bad\n", "constructor", "x" * 241)],
+    *[("readings", value) for value in (None, False, "sensor.a", {}, [None], ["sensor.all"], ["sensor.a\n"], ["sensor.a", "sensor.a"], ["sensor.a", "sensor.b", "sensor.c", "sensor.d"], ["light.sample"])],
+])
+def test_08_rejects_malformed_registry_readings(field, invalid) -> None:
+    value = presentation_configuration()
+    value["catalog"]["devices"][0]["bindings"].update(deviceId="registry-device")
+    value["catalog"]["devices"][0]["bindings"][field] = invalid
+    with pytest.raises(ModelError):
+        validate_configuration(value)
+
+
+def test_08_additional_readings_need_a_registry_device() -> None:
+    value = presentation_configuration()
+    value["catalog"]["devices"][0]["bindings"]["readings"] = ["sensor.other"]
+    with pytest.raises(ModelError):
+        validate_configuration(value)
+
+
 def test_07_presentation_fields_are_optional_without_migrating_06_data() -> None:
     from copy import deepcopy
 
@@ -83,7 +114,6 @@ def test_07_presentation_fields_reject_unknown_values_and_types(field: str, inva
 @pytest.mark.parametrize(("location", "field", "invalid"), [
     ("room", "archetype", "sensor"),
     ("display", "iconUrl", "https://example.test/icon.svg"),
-    ("bindings", "deviceId", "future-device"),
     ("bindings", "alerts", {}),
 ])
 def test_07_only_adds_the_three_approved_optional_fields(location: str, field: str, invalid) -> None:
