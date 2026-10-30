@@ -191,7 +191,7 @@ await step('the sidebar panel is registered and served by the integration', asyn
   await page.screenshot({ path: `${out}/01-empty-panel.png` });
 });
 await step('an administrator creates a home and imports a plan with its devices', async () => {
-  await app.getByLabel('ID del hogar', { exact: true }).fill('e2e-casa');
+  await app.getByLabel('Nombre del hogar', { exact: true }).fill('e2e-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
   await status.filter({ hasText: 'todavía no existe' }).waitFor();
   await card.locator('.hm-menu > summary:visible').click();

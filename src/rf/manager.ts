@@ -1,6 +1,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import { tokens } from '../ui/theme.js';
+import { installPanelComponents, panelField, panelIconAction, panelChoices } from '../ui/panel-components.js';
+import { rfManagerStyles, rfText, rfEditedText, rfWorkspace, rfWidgetDialog } from '../ui/rf-components.js';
 import {
   ROLES,
   rf,
@@ -13,6 +14,8 @@ import {
   type WidgetType,
 } from '../integration/rf.js';
 import { BUTTON_ICONS, REMOTE_ICONS, icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
+import { uiEmpty, uiNotice } from '../ui/components.js';
+import { iconLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { WIDGET_BUTTONS, WIDGET_SIZE, add, layoutOf, place, uniqueId } from './layout.js';
 import './remote-view.js';
@@ -35,66 +38,6 @@ interface WidgetDraft {
   isNew: boolean;
   error: string;
 }
-
-const css = `${tokens}
-:host{display:block}
-.wrap{max-width:820px;margin:0 auto;display:grid;gap:14px}
-.panel{background:var(--hm-bg);border-radius:var(--hm-radius);box-shadow:var(--hm-shadow);padding:18px;display:grid;gap:14px}
-h2{margin:0;font-size:20px;font-weight:600}
-h3{margin:0;font-size:15px;font-weight:600}
-p{margin:0;line-height:1.5}
-.muted{color:var(--hm-muted);font-size:13px}
-.tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--hm-surface);justify-self:start}
-.tabs button{border:0;border-radius:999px;min-height:36px;background:transparent}
-.tabs button[aria-selected=true]{background:var(--hm-bg);box-shadow:var(--hm-shadow);font-weight:600}
-.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.head .title{flex:1;min-width:180px;display:flex;align-items:center;gap:10px}
-.head .title>div{display:grid;gap:2px;min-width:0}
-.head ha-icon{--mdc-icon-size:28px;color:var(--hm-accent)}
-.back{width:var(--hm-touch);padding:0;font-size:20px}
-.notice{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--hm-estimated) 12%,transparent);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.notice p{flex:1;min-width:200px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.card{display:flex;align-items:center;gap:12px;padding:14px;text-align:left;min-height:72px;border-radius:14px}
-.card ha-icon{--mdc-icon-size:28px;color:var(--hm-accent)}
-.card .info{display:grid;gap:2px;min-width:0}
-.card .name{font-weight:600}
-label{display:grid;gap:4px;font-size:13px;color:var(--hm-muted)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.row>label{flex:1 1 160px}
-.icons{display:flex;gap:6px;flex-wrap:wrap}
-.icons button{width:44px;padding:0}
-.icons button[aria-pressed=true],.types button[aria-pressed=true]{border-color:var(--hm-accent);box-shadow:var(--hm-focus)}
-.icons ha-icon{--mdc-icon-size:22px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.toolbar .muted{flex:1 1 200px}
-section{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--hm-line)}
-.btn-row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(120px,170px) auto auto;gap:8px;align-items:center}
-.btn-row ha-icon{--mdc-icon-size:22px;color:var(--hm-accent)}
-.part{display:grid;gap:10px;padding:12px;border:1px solid var(--hm-line);border-radius:14px}
-.part .row{flex-wrap:nowrap}
-.part .row input{flex:1 1 auto;min-width:0;width:auto}
-.part .row button{flex:0 0 var(--hm-touch);padding:0}
-.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-.badge{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--hm-surface)}
-.danger{color:var(--hm-error)}
-details summary{cursor:pointer;font-weight:600;min-height:var(--hm-touch);display:flex;align-items:center}
-.status{font-size:13px;line-height:1.5}
-.status.error{color:var(--hm-error)}
-.status:empty{display:none}
-dialog.editor{border:0;border-radius:var(--hm-radius);padding:20px;width:min(94vw,480px);max-height:90dvh;overflow:auto;background:var(--hm-bg);color:var(--hm-text);box-shadow:var(--hm-shadow)}
-dialog.editor::backdrop{background:rgba(0,0,0,.4)}
-dialog.editor form{display:grid;gap:12px}
-.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
-.types button{min-height:40px;font-size:13px}
-.slots{display:grid;gap:8px}
-.slot{display:flex;gap:6px;align-items:end}
-.slot label{flex:1}
-.error-text{color:var(--hm-error);font-size:13px;margin:0}
-.error-text:empty{display:none}
-.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-@media(max-width:600px){.panel{border-radius:0;box-shadow:none;padding:14px}.btn-row{grid-template-columns:28px minmax(0,1fr) auto auto}.btn-row select{grid-column:2/-1;grid-row:2}}
-`;
 
 export class HomeManagerRf extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -120,6 +63,7 @@ export class HomeManagerRf extends HTMLElement {
 
   constructor() {
     super();
+    installPanelComponents(this.root, 'rf-manager', rfManagerStyles, true);
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
     this.remoteView.onLayout = layout => void this.saveLayout(layout);
     this.remoteView.onEdit = id => this.editWidget(id);
@@ -215,8 +159,10 @@ export class HomeManagerRf extends HTMLElement {
     else if (this.view === 'new') body = this.renderNew(status);
     else if (this.view === 'remote' && (this.remote() || this.draft)) body = this.renderRemote(status);
     else body = this.renderList(status);
-    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-selected="${this.view === 'devices'}">${e(t('Equipos RF'))}</button></div>`;
-    this.root.innerHTML = `<style>${css}</style><div class="wrap"><div class="panel">${tabs}${body}</div></div>${this.renderWidgetEditor()}`;
+    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button></div>`;
+    this.root.innerHTML =
+      rfWorkspace(this.renderNavigation(tabs), body, this.learning ? '<div data-slot="learn"></div>' : '', this.view) +
+      this.renderWidgetEditor();
     for (const [slot, element] of [
       ['remote', this.remoteView],
       ['learn', this.learn],
@@ -234,52 +180,71 @@ export class HomeManagerRf extends HTMLElement {
     }
   }
 
-  private renderList(status: string): string {
-    const ready = this.transmitters.length > 0;
-    const notice = ready
-      ? ''
-      : `<div class="notice"><p>${e(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.'))}</p><button type="button" data-view="devices">${e(t('Ver equipos RF'))}</button></div>`;
+  private renderNavigation(tabs: string): string {
     const cards = this.remotes.length
-      ? `<div class="cards">${this.remotes
-          .map(
-            remote =>
-              `<button type="button" class="card" data-open="${e(remote.id)}">${icon(remote.icon ?? 'mdi:remote')}<span class="info"><span class="name">${e(remote.name)}</span><span class="muted">${e(remote.description ?? t('{count} botones', { count: remote.buttons.length }))}</span></span></button>`,
-          )
-          .join('')}</div>`
-      : `<p class="muted">${e(t('Todavía no hay controles. Creá uno y enseñale sus botones.'))}</p>`;
-    return `<div class="head"><div class="title"><h2>${e(t('Controles RF'))}</h2></div><button type="button" data-variant="primary" data-command="new"${ready ? '' : ' disabled'}>${e(t('Nuevo control'))}</button></div>${notice}${cards}${status}`;
+      ? `<div class="cards">${this.remotes.map(remote => `<button type="button" class="card" data-open="${e(remote.id)}" aria-current="${this.view === 'remote' && this.selected === remote.id}">${icon(remote.icon ?? 'mdi:remote')}<span class="info"><span class="name">${e(rfText(remote.name))}</span><span class="muted">${e(rfText(remote.description ?? t('{count} botones', { count: remote.buttons.length })))}</span></span></button>`).join('')}</div>`
+      : '';
+    return (
+      tabs +
+      cards +
+      `<button type="button" data-command="new"${this.transmitters.length ? '' : ' disabled'}>${icon('mdi:plus')}${e(t('Nuevo control'))}</button>`
+    );
+  }
+  private renderList(status: string): string {
+    const notice = this.transmitters.length
+      ? ''
+      : uiNotice(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.')) +
+        `<button type="button" data-view="devices">${e(t('Ver equipos RF'))}</button>`;
+    return (
+      `<div class="head"><div class="title"><h2>${e(t('Controles RF'))}</h2></div></div>` +
+      notice +
+      uiEmpty(
+        this.remotes.length
+          ? t('Elegí un control para ver sus botones.')
+          : t('Todavía no hay controles. Creá uno y enseñale sus botones.'),
+      ) +
+      status
+    );
   }
 
   private iconPicker(name: string, icons: string[], selected: string | null): string {
     return `<div class="icons" role="group" aria-label="${e(t('Icono'))}">${icons
       .map(
         glyph =>
-          `<button type="button" data-pick="${e(name)}" data-value="${e(glyph)}" aria-pressed="${glyph === selected}" aria-label="${e(glyph.slice(4))}" title="${e(glyph.slice(4))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
+          `<button type="button" data-pick="${e(name)}" data-value="${e(glyph)}" aria-pressed="${glyph === selected}" aria-label="${e(iconLabel(glyph))}" title="${e(iconLabel(glyph))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
       )
       .join('')}</div>`;
   }
 
   private renderNew(status: string): string {
     const draft = this.newRemote;
-    return `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title"><h2>${e(t('Nuevo control'))}</h2></div></div>
-<label>${e(t('Nombre'))}<input name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}"></label>
-<div><p class="muted">${e(t('Icono'))}</p>${this.iconPicker('new', REMOTE_ICONS, draft.icon)}</div>
-<label>${e(t('Descripción (opcional)'))}<input name="new-description" maxlength="200" value="${e(draft.description ?? '')}"></label>
-<div class="actions"><button type="button" data-command="list">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="create"${draft.name.trim() ? '' : ' disabled'}>${e(t('Aprender botones'))}</button></div>${status}`;
+    return (
+      `<div class="head">${panelIconAction(t('Volver'), 'data-command="list"', 'mdi:arrow-left')}<div class="title"><h2>${e(t('Nuevo control'))}</h2></div></div>` +
+      panelField(
+        t('Nombre'),
+        `<input name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}">`,
+        t('El nombre identifica el control. Podés cambiarlo después.'),
+      ) +
+      panelChoices(t('Icono'), this.iconPicker('new', REMOTE_ICONS, draft.icon)) +
+      panelField(
+        t('Descripción (opcional)'),
+        `<input name="new-description" maxlength="200" value="${e(draft.description ?? '')}">`,
+      ) +
+      `<div class="actions"><button type="button" data-command="list">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="create"${draft.name.trim() ? '' : ' disabled'}>${e(t('Aprender botones'))}</button></div>${status}`
+    );
   }
 
   private renderRemote(status: string): string {
     const remote = this.remote();
     const about: RfAbout = remote ?? this.draft!;
-    const head = `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title">${icon(about.icon ?? 'mdi:remote')}<div><h2>${e(about.name)}</h2>${about.description ? `<p class="muted">${e(about.description)}</p>` : ''}</div></div>${this.learning ? '' : `<button type="button" data-command="learn">${e(t('Aprender botones'))}</button>`}${remote ? `<button type="button" data-command="edit" aria-pressed="${this.editing}"${this.editing ? ' data-variant="primary"' : ''}>${e(this.editing ? t('Terminar edición') : t('Editar'))}</button>` : ''}</div>`;
-    const learn = this.learning ? '<div data-slot="learn"></div>' : '';
+    const head = `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title">${icon(about.icon ?? 'mdi:remote')}<div><h2>${e(rfText(about.name))}</h2>${about.description ? `<p class="muted">${e(rfText(about.description))}</p>` : ''}</div></div>${remote ? panelIconAction(this.editing ? t('Terminar edición') : t('Editar'), `data-command="edit" aria-pressed="${this.editing}"`, this.editing ? 'mdi:check' : 'mdi:pencil-outline') : ''}</div>`;
     if (!remote)
-      return `${head}${learn}<p class="notice">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`;
+      return `${head}<p class="notice">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`;
     const toolbar = this.editing
       ? `<div class="toolbar"><button type="button" data-command="add-widget">${e(t('Agregar elemento'))}</button><button type="button" data-command="auto-layout"${remote.layout ? '' : ' disabled'}>${e(t('Diseño automático'))}</button><span class="muted">${e(t('Arrastrá para mover, la esquina para cambiar el tamaño, tocá para editar.'))}</span></div>`
       : '';
     const sections = this.editing ? this.renderEditSections(remote) : '';
-    return `${head}${learn}${toolbar}<div data-slot="remote"></div>${status}${sections}`;
+    return `${head}${toolbar}<div data-slot="remote"></div>${this.learning ? '' : `<div class="actions"><button type="button" data-command="learn" aria-label="${e(t('Aprender botones'))}">${icon('mdi:plus')}${e(t('Agregar botón'))}</button></div>`}${uiNotice(t('El envío no confirma que el equipo reaccionó. El eco «en el aire» sólo indica que la señal salió.'))}${status}${sections}`;
   }
 
   private entities(remoteId: string): string[] {
@@ -292,35 +257,35 @@ export class HomeManagerRf extends HTMLElement {
     return `<option value="">${e(empty)}</option>${remote.buttons
       .map(
         button =>
-          `<option value="${e(button.id)}"${button.id === selected ? ' selected' : ''}>${e(button.name)}</option>`,
+          `<option value="${e(button.id)}"${button.id === selected ? ' selected' : ''}>${e(rfText(button.name))}</option>`,
       )
       .join('')}`;
   }
 
   private renderEditSections(remote: RfRemote): string {
-    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(remote.name)}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(remote.description ?? '')}"></label></div>${this.iconPicker('remote', REMOTE_ICONS, remote.icon)}</section>`;
+    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(rfText(remote.name))}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(rfText(remote.description))}"></label></div>${this.iconPicker('remote', REMOTE_ICONS, remote.icon)}</section>`;
     const glyphs = (current: string | null) =>
       `<option value="">${e(t('Sin icono'))}</option>${[...new Set([...(current ? [current] : []), ...BUTTON_ICONS])]
         .map(
-          glyph => `<option value="${e(glyph)}"${glyph === current ? ' selected' : ''}>${e(glyph.slice(4))}</option>`,
+          glyph => `<option value="${e(glyph)}"${glyph === current ? ' selected' : ''}>${e(iconLabel(glyph))}</option>`,
         )
         .join('')}`;
     const buttons = remote.buttons.length
       ? remote.buttons
           .map(
             button =>
-              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(button.name)}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}"><select name="button-icon" aria-label="${e(t('Icono de {name}', { name: button.name }))}">${glyphs(button.icon)}</select><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
+              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}"><select name="button-icon" aria-label="${e(t('Icono de {name}', { name: button.name }))}">${glyphs(button.icon)}</select><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
           )
           .join('')
       : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
     const learned = `<section aria-labelledby="buttons-title"><h3 id="buttons-title">${e(t('Botones aprendidos ({count})', { count: remote.buttons.length }))}</h3>${buttons}</section>`;
     const parts = remote.parts.map(part => this.renderPart(remote, part)).join('');
     const entities = this.entities(remote.id);
-    const ha = `<section aria-labelledby="ha-title"><h3 id="ha-title">${e(t('En Home Assistant'))}</h3><p class="muted">${e(t('Para tener un ventilador o una luz en Home Assistant, elegí qué botón hace cada cosa. Los botones sin función aparecen como botones.'))}</p>${parts}<div class="row"><button type="button" data-add-part="fan">${e(t('Agregar ventilador'))}</button><button type="button" data-add-part="light">${e(t('Agregar luz'))}</button></div>${entities.length ? `<p class="muted">${e(t('Entidades: {entities}', { entities: entities.join(', ') }))}</p>` : ''}</section>`;
+    const ha = `<section aria-labelledby="ha-title"><h3 id="ha-title">${e(t('En Home Assistant'))}</h3><p class="muted">${e(t('Para tener un ventilador o una luz en Home Assistant, elegí qué botón hace cada cosa. Los botones sin función aparecen como botones.'))}</p>${parts}<div class="row"><button type="button" data-add-part="fan">${e(t('Agregar ventilador'))}</button><button type="button" data-add-part="light">${e(t('Agregar luz'))}</button></div>${entities.length ? `<p class="muted">${e(t('Vinculados: {entities}', { entities: entities.map(id => rfText(this._hass?.states[id]?.attributes.friendly_name, t('Dispositivo'))).join(', ') }))}</p>` : ''}</section>`;
     const transmitters = this.transmitters
       .map(
         item =>
-          `<option value="${e(item.id)}"${item.id === remote.transmitter ? ' selected' : ''}>${e(item.name)}</option>`,
+          `<option value="${e(item.id)}"${item.id === remote.transmitter ? ' selected' : ''}>${e(rfText(item.name))}</option>`,
       )
       .join('');
     const measured =
@@ -332,7 +297,7 @@ export class HomeManagerRf extends HTMLElement {
               measured: remote.measured_pulse_us,
               pulse: remote.pulse_us,
             });
-    const advanced = `<section><details><summary>${e(t('Avanzado'))}</summary><form class="settings" style="display:grid;gap:10px"><p class="muted">${e(t('Protocolo {protocol} · {bits} bits. {measured}', { protocol: remote.protocol, bits: remote.nbits, measured }))}</p><div class="row"><label>${e(t('Transmisor'))}<select name="transmitter">${transmitters}</select></label><label>${e(t('Pulso (µs)'))}<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}"></label><label>${e(t('Repeticiones'))}<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}"></label><label>${e(t('Espera entre tramas (µs)'))}<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}"></label></div><p class="muted">${e(t('La espera suele ser 0: la pausa de sincronización ya va en cada trama.'))}</p><div><button type="submit">${e(t('Guardar ajustes'))}</button></div></form></details></section>`;
+    const advanced = `<section><details><summary>${e(t('Avanzado'))}</summary><form class="settings"><p class="muted">${e(t('Tipo {protocol} · tamaño {bits}.', { protocol: remote.protocol, bits: remote.nbits }))}</p><div class="row">${panelField(t('Transmisor'), `<select name="transmitter">${transmitters}</select>`)}${panelField(t('Pulso (µs)'), `<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}">`, measured)}${panelField(t('Repeticiones'), `<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}">`)}${panelField(t('Pausa entre señales (µs)'), `<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}">`, t('La espera suele ser 0: cada señal ya incluye su propia pausa.'))}</div><div>${panelIconAction(t('Guardar ajustes'), '', 'mdi:check', 'primary', 'submit')}</div></form></details></section>`;
     const remove = `<section><div><button type="button" class="danger" data-command="delete-remote">${e(t('Eliminar control'))}</button></div></section>`;
     return `${about}${learned}${ha}${advanced}${remove}`;
   }
@@ -360,11 +325,11 @@ export class HomeManagerRf extends HTMLElement {
               `<option value="${index + 1}"${part.speeds === index + 1 ? ' selected' : ''}>${index + 1}</option>`,
           ).join('')}</select></label>`
         : '';
-    return `<div class="part" data-part="${e(part.id)}" data-kind="${part.kind}"><div class="row"><span class="badge">${e(kindLabel(part.kind))}</span><input name="part-name" maxlength="80" value="${e(part.name)}" aria-label="${e(t('Nombre en Home Assistant'))}"><button type="button" class="danger" data-remove-part="${e(part.id)}" aria-label="${e(t('Quitar {name}', { name: part.name }))}">✕</button></div><div class="roles">${selects}${speeds}</div></div>`;
+    return `<div class="part" data-part="${e(part.id)}" data-kind="${part.kind}"><div class="row"><span class="badge">${e(kindLabel(part.kind))}</span><input name="part-name" maxlength="80" value="${e(rfText(part.name))}" aria-label="${e(t('Nombre en Home Assistant'))}"><button type="button" class="danger" data-remove-part="${e(part.id)}" aria-label="${e(t('Quitar {name}', { name: part.name }))}">✕</button></div><div class="roles">${selects}${speeds}</div></div>`;
   }
 
   private renderDevices(status: string): string {
-    return `<div class="head"><div class="title"><h2>${e(t('Equipos RF'))}</h2></div></div><div data-slot="devices"></div>${status}`;
+    return `<div class="head"><div class="title"><h2>${e(t('Equipos ESPHome'))}</h2></div></div><div data-slot="devices"></div>${status}`;
   }
 
   private renderWidgetEditor(): string {
@@ -379,7 +344,7 @@ export class HomeManagerRf extends HTMLElement {
       )
       .join('');
     const slot = (index: number, label: string, removable: boolean) =>
-      `<div class="slot"><label>${e(label)}<select name="slot-${index}" data-slot-index="${index}" aria-label="${e(label)}">${this.buttonOptions(remote, widget.buttons[index], t('Elegí un botón'))}</select></label>${removable ? `<button type="button" data-remove-slot="${index}" aria-label="${e(t('Quitar {name}', { name: label }))}">✕</button>` : ''}</div>`;
+      `<div class="slot"><label>${e(label)}<select name="slot-${index}" data-slot-index="${index}" aria-label="${e(label)}">${this.buttonOptions(remote, widget.buttons[index], t('Elegí un botón'))}</select></label>${removable ? `<button type="button" data-remove-slot="${index}" aria-label="${e(t('Quitar {name}', { name: rfText(label) }))}">✕</button>` : ''}</div>`;
     let slots = '';
     if (widget.type === 'button') slots = slot(0, t('Botón'), false);
     else if (widget.type === 'toggle')
@@ -400,17 +365,16 @@ export class HomeManagerRf extends HTMLElement {
     }
     const glyph =
       widget.type === 'button' || widget.type === 'toggle'
-        ? `<label>${e(t('Icono (opcional)'))}<select name="widget-icon"><option value="">${e(t('El del botón'))}</option>${BUTTON_ICONS.map(item => `<option value="${e(item)}"${item === widget.icon ? ' selected' : ''}>${e(item.slice(4))}</option>`).join('')}</select></label>`
+        ? `<label>${e(t('Icono (opcional)'))}<select name="widget-icon"><option value="">${e(t('El del botón'))}</option>${BUTTON_ICONS.map(item => `<option value="${e(item)}"${item === widget.icon ? ' selected' : ''}>${e(iconLabel(item))}</option>`).join('')}</select></label>`
         : '';
     const size = (name: string, label: string, value: number, max: number) =>
       `<label>${e(label)}<select name="${name}">${Array.from({ length: max }, (_, index) => `<option value="${index + 1}"${index + 1 === value ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>`;
-    return `<dialog class="editor" aria-labelledby="editor-title"><form method="dialog"><h3 id="editor-title">${e(draft.isNew ? t('Agregar elemento') : t('Editar elemento'))}</h3>
-<div class="types" role="group" aria-label="${e(t('Tipo'))}">${types}</div><p class="muted">${e(widgetHelp(widget.type))}</p>
-<div class="slots">${slots}</div>
-<label>${e(t('Etiqueta (opcional)'))}<input name="widget-label" maxlength="40" value="${e(widget.label ?? '')}"></label>${glyph}
-<div class="row">${size('widget-w', t('Ancho'), widget.w, 4)}${size('widget-h', t('Alto'), widget.h, 3)}</div>
-<p class="error-text" role="alert">${e(draft.error)}</p>
-<div class="actions"><button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="widget-save">${e(t('Guardar'))}</button></div></form></dialog>`;
+    return rfWidgetDialog(
+      draft.isNew ? t('Agregar elemento') : t('Editar elemento'),
+      `<div class="type-picker">${panelChoices(t('Tipo'), `<div class="types" role="group" aria-label="${e(t('Tipo'))}">${types}</div>`, widgetHelp(widget.type))}</div><div class="slots">${slots}</div>${panelField(t('Etiqueta (opcional)'), `<input name="widget-label" maxlength="40" value="${e(rfText(widget.label))}">`)}${glyph}<div class="row">${size('widget-w', t('Ancho'), widget.w, 4)}${size('widget-h', t('Alto'), widget.h, 3)}</div><p class="error-text" role="alert">${e(draft.error)}</p>`,
+      `<button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button>` +
+        panelIconAction(t('Guardar'), 'data-command="widget-save"', 'mdi:check', 'primary'),
+    );
   }
 
   // Events --------------------------------------------------------------
@@ -465,7 +429,10 @@ export class HomeManagerRf extends HTMLElement {
     root.querySelectorAll<HTMLElement>('.btn-row').forEach(row => {
       const save = () =>
         void this.run(async () => {
-          const name = row.querySelector<HTMLInputElement>('[name=button-name]')!.value.trim();
+          const name = rfEditedText(
+            row.querySelector<HTMLInputElement>('[name=button-name]')!.value.trim(),
+            remote.buttons.find(button => button.id === row.dataset.button)?.name,
+          );
           const glyph = row.querySelector<HTMLSelectElement>('[name=button-icon]')!.value || null;
           if (!name) return;
           await rf.saveButton(this._hass!, remote.id, { name, icon: glyph }, { buttonId: row.dataset.button });
@@ -652,7 +619,7 @@ export class HomeManagerRf extends HTMLElement {
         case 'delete-remote': {
           const remote = this.remote()!;
           const ok = await confirmDialog(this.root, {
-            title: t('¿Eliminar «{name}»?', { name: remote.name }),
+            title: t('¿Eliminar «{name}»?', { name: rfText(remote.name) }),
             message: t('Se borran sus botones y sus entidades de Home Assistant. El equipo físico no cambia.'),
             confirm: t('Eliminar'),
           });
@@ -770,7 +737,7 @@ export class HomeManagerRf extends HTMLElement {
     if (!remote || !widget) return;
     const label = widget.label ?? remote.buttons.find(button => button.id === widget.buttons[0])?.name ?? '';
     const ok = await confirmDialog(this.root, {
-      title: t('¿Quitar «{name}» del control?', { name: label }),
+      title: t('¿Quitar «{name}» del control?', { name: rfText(label) }),
       message: t('El botón sigue aprendido: podés volver a ponerlo con Agregar elemento.'),
       confirm: t('Quitar'),
     });
@@ -812,7 +779,7 @@ export class HomeManagerRf extends HTMLElement {
     const remote = this.remote()!;
     const button = remote.buttons.find(item => item.id === buttonId);
     const ok = await confirmDialog(this.root, {
-      title: t('¿Eliminar «{name}»?', { name: button?.name ?? buttonId }),
+      title: t('¿Eliminar «{name}»?', { name: rfText(button?.name, t('Botón')) }),
       message: t('Se olvida el código. Si lo necesitás, lo podés aprender de nuevo.'),
       confirm: t('Eliminar'),
     });
@@ -835,8 +802,10 @@ export class HomeManagerRf extends HTMLElement {
       return {
         id: element.dataset.part!,
         name:
-          element.querySelector<HTMLInputElement>('[name=part-name]')!.value.trim() ||
-          kindLabel(element.dataset.kind as PartKind),
+          rfEditedText(
+            element.querySelector<HTMLInputElement>('[name=part-name]')!.value.trim(),
+            this.remote()?.parts.find(part => part.id === element.dataset.part)?.name,
+          ) || kindLabel(element.dataset.kind as PartKind),
         kind: element.dataset.kind as PartKind,
         speeds: speeds ? Number(speeds) : null,
         roles,
@@ -862,7 +831,7 @@ export class HomeManagerRf extends HTMLElement {
     const parts = this.partsOnScreen();
     const part = parts.find(item => item.id === partId);
     const ok = await confirmDialog(this.root, {
-      title: t('¿Quitar «{name}» de Home Assistant?', { name: part?.name ?? partId }),
+      title: t('¿Quitar «{name}» de Home Assistant?', { name: rfText(part?.name, t('Dispositivo')) }),
       message: t('Se borra esa entidad. Los botones no se borran.'),
       confirm: t('Quitar'),
     });

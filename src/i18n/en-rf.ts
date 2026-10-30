@@ -165,4 +165,54 @@ export const enRf: Record<string, string> = {
     'A bar of 2 to 12 steps, each with its button: speeds, levels.',
   'De 2 a 8 opciones con nombre, cada una con su botón: tonos, modos.':
     'From 2 to 8 named options, each with its button: tones, modes.',
+  Equipos: 'Devices',
+  'Elegí un control para ver sus botones.': 'Choose a remote to see its buttons.',
+  'El envío no confirma que el equipo reaccionó. El eco «en el aire» sólo indica que la señal salió.':
+    'Sending does not confirm that the device reacted. An on-air echo only means the signal was emitted.',
+  'Tipo {protocol} · tamaño {bits}. {measured}': 'Type {protocol} · length {bits}. {measured}',
+  'Pausa entre señales (µs)': 'Pause between signals (µs)',
+  'La espera suele ser 0: cada señal ya incluye su propia pausa.':
+    'The wait is usually 0: each signal already includes its own pause.',
+  'Ventilador de techo': 'Ceiling fan',
+  'Ventilador con luz': 'Fan with light',
+  'Tira de luces': 'Light strip',
+  Televisión: 'Television',
+  'Aire acondicionado': 'Air conditioner',
+  Garaje: 'Garage',
+  Portón: 'Gate',
+  Enchufe: 'Socket',
+  'Luz apagada': 'Light off',
+  'Ventilador apagado': 'Fan off',
+  'Brillo alto': 'High brightness',
+  'Brillo medio': 'Medium brightness',
+  Favorito: 'Favorite',
+  'Señal reconocida': 'Signal recognised',
+  'Recibido, falta repetir': 'Received, repeat once more',
+  '{frames} señales iguales en una pulsación.': '{frames} identical signals in one press.',
+  '{frames} señal(es). Mantené pulsado un momento o pulsalo otra vez.':
+    '{frames} signal(s). Hold the button a moment or press it again.',
+  'La misma señal en {bursts} pulsaciones.': 'The same signal in {bursts} presses.',
+  'Tipo {protocol} · tamaño {bits} · pulso medido de la señal: {pulse} µs':
+    'Type {protocol} · length {bits} · pulse measured from the signal: {pulse} µs',
+  'Detalles de la señal': 'Signal details',
+  'Lista para aprender': 'Ready to learn',
+  '✓ Recibe bien: tipo {protocol}, tamaño {bits}, pulso {pulse} µs.':
+    '✓ Reception works: type {protocol}, length {bits}, pulse {pulse} µs.',
+  'En {name}, tocá Edit y agregá estas líneas. Si esas secciones ya existen, agregá sólo las líneas de adentro.':
+    'On {name}, tap Edit and add these lines. If those sections already exist, add only the inner lines.',
+  'Equipos ESPHome': 'ESPHome devices',
+  'El nombre identifica el control. Podés cambiarlo después.':
+    'The name identifies the remote. You can change it later.',
+  'Un toque, una señal.': 'One tap, one signal.',
+  Control: 'Remote',
+  Cortina: 'Curtain',
+  Temperatura: 'Temperature',
+  Ajustes: 'Settings',
+  'Falta el paquete': 'Package missing',
+  Receptor: 'Receiver',
+  'Agregar botón': 'Add button',
+  'Tipo {protocol} · tamaño {bits}.': 'Type {protocol} · length {bits}.',
+  'Vinculados: {entities}': 'Linked: {entities}',
+  'Esta señal no coincide con las de este control. ¿Es del mismo control?':
+    'This signal does not match this remote. Is it from the same remote?',
 };

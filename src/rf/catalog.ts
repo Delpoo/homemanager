@@ -88,7 +88,7 @@ export function widgetLabel(type: WidgetType): string {
 
 export function widgetHelp(type: WidgetType): string {
   const help: Record<WidgetType, string> = {
-    button: t('Un toque, un código.'),
+    button: t('Un toque, una señal.'),
     toggle: t('Dos botones (encender y apagar) o uno que alterna.'),
     updown: t('Dos botones juntos: bajar y subir.'),
     steps: t('Una barra de 2 a 12 pasos, cada uno con su botón: velocidades, niveles.'),
@@ -100,4 +100,36 @@ export function widgetHelp(type: WidgetType): string {
 export function icon(name: string | null | undefined): string {
   if (!name || !customElements.get('ha-icon')) return '';
   return `<ha-icon icon="${name.replace(/[^a-z0-9:-]/g, '')}" aria-hidden="true"></ha-icon>`;
+}
+
+export function iconLabel(glyph: string): string {
+  const labels: Record<string, string> = {
+    'mdi:remote': t('Control'),
+    'mdi:ceiling-fan': t('Ventilador de techo'),
+    'mdi:ceiling-fan-light': t('Ventilador con luz'),
+    'mdi:fan': t('Ventilador'),
+    'mdi:lightbulb': t('Luz'),
+    'mdi:led-strip-variant': t('Tira de luces'),
+    'mdi:television': t('Televisión'),
+    'mdi:air-conditioner': t('Aire acondicionado'),
+    'mdi:blinds': t('Cortina'),
+    'mdi:garage': t('Garaje'),
+    'mdi:gate': t('Portón'),
+    'mdi:power-socket-eu': t('Enchufe'),
+    'mdi:power': t('Encender'),
+    'mdi:power-off': t('Apagar'),
+    'mdi:lightbulb-off': t('Luz apagada'),
+    'mdi:fan-off': t('Ventilador apagado'),
+    'mdi:plus': t('Más'),
+    'mdi:minus': t('Menos'),
+    'mdi:brightness-7': t('Brillo alto'),
+    'mdi:brightness-5': t('Brillo medio'),
+    'mdi:thermometer': t('Temperatura'),
+    'mdi:rotate-3d-variant': t('Dirección'),
+    'mdi:timer-outline': t('Temporizador'),
+    'mdi:weather-night': t('Modo noche'),
+    'mdi:tune-variant': t('Ajustes'),
+    'mdi:star-outline': t('Favorito'),
+  };
+  return labels[glyph] ?? t('Icono');
 }

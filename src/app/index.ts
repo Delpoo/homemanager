@@ -1,3 +1,4 @@
+import { homeStart } from '../ui/home-start.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { describeError, listHomes, type HomeSummary } from '../integration/store.js';
@@ -16,10 +17,6 @@ const css = `${tokens}
 :host{display:block;min-height:100dvh;background:var(--hm-bg)}
 .content{padding:0;margin:0}
 homemanager-card{--hm-viewport-height:calc(100dvh - 58px)}
-.empty{max-width:520px;margin:48px auto;padding:24px;border-radius:var(--hm-radius);background:var(--hm-bg);line-height:1.6;box-shadow:var(--hm-shadow)}
-.empty form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.empty input{flex:1;min-width:180px}
-.empty button{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent)}
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
 .maintenance ul{padding-left:20px}.maintenance li{margin:12px 0}.maintenance button{margin-left:8px}
@@ -280,9 +277,13 @@ export class HomeManagerApp extends HTMLElement {
     const admin = this._hass?.user?.is_admin === true;
     const empty =
       this.homes && (!this.selected || creating)
-        ? `<div class="empty"><h2>${this.homes.length ? t('Nuevo hogar') : t('Todavía no hay hogares')}</h2>${admin ? `<p>${e(t('Elegí un identificador para tu vivienda. Después importá el plano SVG desde'))} <strong>${e(t('Editar plano → Importar y exportar'))}</strong> ${e(t('y detectá sus espacios.'))}</p><form class="create"><input name="homeId" aria-label="${e(t('ID del hogar'))}" required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="home"><button type="submit">${e(t('Crear hogar'))}</button>${this.selected ? `<button type="button" class="cancel-create">${e(t('Cancelar'))}</button>` : ''}</form>` : `<p>${e(t('Pedile a una persona administradora de Home Assistant que cree el hogar en este panel.'))}</p>`}</div>`
+        ? homeStart(this.root, {
+            title: this.homes.length ? t('Nuevo hogar') : t('Todavía no hay hogares'),
+            admin,
+            cancel: !!this.selected,
+          })
         : '';
-    host.innerHTML = `${this.error ? `<p class="error" role="alert">${e(this.error)}</p>` : ''}${this.homes ? empty : `<p>${e(t('Cargando…'))}</p>`}`;
+    host.innerHTML = `${this.error ? `<p class="error" role="alert">${e(this.error === t('El ID del hogar debe ser kebab-case (minúsculas, números y guiones).') ? t('Usá minúsculas, números y guiones para el nombre del hogar.') : this.error)}</p>` : ''}${this.homes ? empty : `<p>${e(t('Cargando…'))}</p>`}`;
     const field = host.querySelector<HTMLInputElement>('input[name=homeId]');
     if (field && typed) field.value = typed;
     host.querySelector('.cancel-create')?.addEventListener('click', () => this.cancelCreate());

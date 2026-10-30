@@ -1,6 +1,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
-import { tokens } from '../ui/theme.js';
+import { installPanelComponents } from '../ui/panel-components.js';
+import { rfRemoteStyles, rfText, remoteCell, remoteWidget, positionRemoteWidget } from '../ui/rf-components.js';
 import type { RfButton, RfRemote, RfWidget } from '../integration/rf.js';
 import { COLUMNS, MAX_HEIGHT, MAX_ROWS, buttonById, layoutOf, place, rows } from './layout.js';
 import { icon } from './catalog.js';
@@ -15,38 +16,6 @@ import { icon } from './catalog.js';
 
 const ROW = 64;
 const GAP = 10;
-
-const css = `${tokens}
-:host{display:block}
-.body{max-width:440px;margin:0 auto;padding:18px;border-radius:28px;background:var(--hm-surface);box-shadow:inset 0 0 0 1px var(--hm-line)}
-.grid{display:grid;grid-template-columns:repeat(${COLUMNS},minmax(0,1fr));grid-auto-rows:${ROW}px;gap:${GAP}px;position:relative}
-.widget{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;min-height:0;border-radius:16px}
-.content{display:flex;flex-direction:column;gap:4px;flex:1;min-height:0}
-.cap{font-size:11px;line-height:14px;color:var(--hm-muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.key{flex:1;width:100%;min-height:0;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:600;font-size:14px;padding:4px 6px;overflow:hidden}
-.key ha-icon{--mdc-icon-size:24px;color:var(--hm-accent)}
-.key span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row{display:flex;gap:6px;flex:1;min-height:0}
-.row button{flex:1 1 0;min-width:0;min-height:0;height:100%;padding:0 4px;border-radius:12px;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-.updown{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;flex:1;min-height:0}
-.updown button{height:100%;min-height:0;font-size:22px;border-radius:12px}
-.updown .cap{max-width:90px}
-.sent{background:color-mix(in srgb,var(--hm-sent) 24%,var(--hm-bg))!important;border-color:var(--hm-sent)!important}
-.failed{border-color:var(--hm-error)!important}
-.live{min-height:18px;margin:10px 0 0;font-size:13px;text-align:center;color:var(--hm-muted)}
-.live.error{color:var(--hm-error)}
-.empty{grid-column:1/-1;text-align:center;color:var(--hm-muted);font-size:14px;align-self:center}
-.cell{border:1px dashed var(--hm-line);border-radius:12px}
-.editing .widget{outline:2px dashed color-mix(in srgb,var(--hm-accent) 55%,transparent);outline-offset:2px;cursor:grab;touch-action:none;z-index:1}
-.editing .widget:focus-visible{outline-style:solid;box-shadow:var(--hm-focus)}
-.editing .content{pointer-events:none}
-.widget.dragging{opacity:.85;z-index:4;cursor:grabbing}
-.tools{position:absolute;top:-12px;right:-8px;display:flex;gap:4px;z-index:3}
-.tools button{min-height:32px;height:32px;width:32px;padding:0;border-radius:50%;box-shadow:var(--hm-shadow);font-size:15px;line-height:1}
-.tools .remove{color:var(--hm-error)}
-.resize{position:absolute;right:-6px;bottom:-6px;width:22px;height:22px;border-radius:7px;background:var(--hm-accent);cursor:nwse-resize;z-index:3;touch-action:none}
-@media(max-width:600px){.body{padding:12px;border-radius:22px}}
-`;
 
 export class HomeManagerRfRemote extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -66,6 +35,11 @@ export class HomeManagerRfRemote extends HTMLElement {
   onLayout?: (layout: RfWidget[]) => void;
   onEdit?: (widgetId: string) => void;
   onDelete?: (widgetId: string) => void;
+
+  constructor() {
+    super();
+    installPanelComponents(this.root, 'rf-remote-view', rfRemoteStyles(COLUMNS, ROW, GAP), false);
+  }
 
   set remote(remote: RfRemote | null) {
     this._remote = remote;
@@ -97,30 +71,28 @@ export class HomeManagerRfRemote extends HTMLElement {
     const layout = this.layout();
     const height = Math.max(1, rows(layout) + (this._editing ? 1 : 0));
     const cells = this._editing
-      ? Array.from(
-          { length: height * COLUMNS },
-          (_, index) =>
-            `<div class="cell" style="grid-column:${(index % COLUMNS) + 1};grid-row:${Math.floor(index / COLUMNS) + 1}" aria-hidden="true"></div>`,
+      ? Array.from({ length: height * COLUMNS }, (_, index) =>
+          remoteCell((index % COLUMNS) + 1, Math.floor(index / COLUMNS) + 1),
         ).join('')
       : '';
     const widgets = layout.map(widget => this.renderWidget(remote, widget)).join('');
     const empty = layout.length ? '' : `<p class="empty">${e(t('Este control todavía no tiene botones.'))}</p>`;
-    this.root.innerHTML = `<style>${css}</style><div class="body${this._editing ? ' editing' : ''}"><div class="grid">${cells}${widgets}${empty}</div><p class="live" role="status" aria-live="polite"></p></div>`;
+    this.root.innerHTML = `<div class="body${this._editing ? ' editing' : ''}"><div class="grid">${cells}${widgets}${empty}</div><p class="live" role="status" aria-live="polite"></p></div>`;
     this.bind();
   }
 
   private name(widget: RfWidget, remote: RfRemote): string {
-    if (widget.label) return widget.label;
-    return widget.buttons.map(id => buttonById(remote, id)?.name ?? id).join(' / ');
+    if (widget.label) return rfText(widget.label);
+    return widget.buttons.map(id => buttonById(remote, id)?.name ?? t('Botón')).join(' / ');
   }
 
   private renderWidget(remote: RfRemote, widget: RfWidget): string {
     const buttons = widget.buttons.map(id => buttonById(remote, id)).filter((item): item is RfButton => !!item);
     const send = (button: RfButton, inner: string, label = button.name) =>
-      `<button type="button" data-send="${e(button.id)}" aria-label="${e(label)}">${inner}</button>`;
+      `<button type="button" data-send="${e(button.id)}" aria-label="${e(rfText(label))}">${inner}</button>`;
     const key = (button: RfButton, text: string, glyph: string | null) =>
-      `<button type="button" class="key" data-send="${e(button.id)}">${icon(glyph)}<span>${e(text)}</span></button>`;
-    const cap = widget.label ? `<div class="cap">${e(widget.label)}</div>` : '';
+      `<button type="button" class="key" data-send="${e(button.id)}">${icon(glyph)}<span>${e(rfText(text))}</span></button>`;
+    const cap = widget.label ? `<div class="cap">${e(rfText(widget.label))}</div>` : '';
     let content = '';
     switch (widget.type) {
       case 'button': {
@@ -132,30 +104,30 @@ export class HomeManagerRfRemote extends HTMLElement {
         content =
           buttons.length === 1
             ? key(buttons[0], widget.label ?? buttons[0].name, widget.icon ?? buttons[0].icon ?? 'mdi:power')
-            : `${cap}<div class="row">${buttons.map(button => send(button, `${icon(button.icon)}${e(button.name)}`)).join('')}</div>`;
+            : `${cap}<div class="row">${buttons.map(button => send(button, `${icon(button.icon)}${e(rfText(button.name))}`)).join('')}</div>`;
         break;
       case 'updown': {
         const [down, up] = buttons;
         if (down && up)
-          content = `<div class="updown">${send(down, '−')}<div class="cap">${e(widget.label ?? `${down.name} / ${up.name}`)}</div>${send(up, '+')}</div>`;
+          content = `<div class="updown">${send(down, '−')}<div class="cap">${e(rfText(widget.label ?? `${down.name} / ${up.name}`))}</div>${send(up, '+')}</div>`;
         break;
       }
       case 'steps':
         content = `${cap}<div class="row">${buttons.map((button, index) => send(button, String(index + 1))).join('')}</div>`;
         break;
       case 'modes':
-        content = `${cap}<div class="row">${buttons.map(button => send(button, e(button.name))).join('')}</div>`;
+        content = `${cap}<div class="row">${buttons.map(button => send(button, e(rfText(button.name)))).join('')}</div>`;
         break;
     }
     const label = this.name(widget, remote);
-    const place = `grid-column:${widget.x + 1}/span ${widget.w};grid-row:${widget.y + 1}/span ${widget.h}`;
+
     const tools = this._editing
       ? `<div class="tools"><button type="button" data-edit="${e(widget.id)}" aria-label="${e(t('Editar {name}', { name: label }))}" title="${e(t('Editar'))}">✎</button><button type="button" class="remove" data-remove="${e(widget.id)}" aria-label="${e(t('Eliminar {name}', { name: label }))}" title="${e(t('Eliminar'))}">✕</button></div><span class="resize" data-resize="${e(widget.id)}" title="${e(t('Arrastrá para cambiar el tamaño'))}"></span>`
       : '';
     const editable = this._editing
-      ? ` tabindex="0" role="group" aria-roledescription="${e(t('elemento movible'))}" aria-label="${e(label)}"`
+      ? ` tabindex="0" role="group" aria-roledescription="${e(t('elemento movible'))}" aria-label="${e(rfText(label))}"`
       : '';
-    return `<div class="widget" data-widget="${e(widget.id)}" style="${place}"${editable}><div class="content"${this._editing ? ' inert' : ''}>${content}</div>${tools}</div>`;
+    return remoteWidget(widget, editable, content, tools, this._editing);
   }
 
   // Use mode --------------------------------------------------------------
@@ -183,14 +155,14 @@ export class HomeManagerRfRemote extends HTMLElement {
   private async send(button: HTMLButtonElement): Promise<void> {
     const remote = this._remote;
     const id = button.dataset.send!;
-    const name = (remote && buttonById(remote, id)?.name) ?? id;
+    const name = (remote && buttonById(remote, id)?.name) ?? t('Botón');
     const live = this.root.querySelector<HTMLElement>('.live')!;
     button.classList.remove('sent', 'failed');
     try {
       await this.onPress?.(id);
       button.classList.add('sent');
       live.classList.remove('error');
-      live.textContent = t('Enviado: {name}', { name });
+      live.textContent = t('Enviado: {name}', { name: rfText(name) });
       window.setTimeout(() => button.classList.remove('sent'), 600);
     } catch (error) {
       button.classList.add('failed');
@@ -248,8 +220,7 @@ export class HomeManagerRfRemote extends HTMLElement {
       drag.box = box;
       drag.moved = true;
       element.classList.add('dragging');
-      element.style.gridColumn = `${box.x + 1}/span ${box.w}`;
-      element.style.gridRow = `${box.y + 1}/span ${box.h}`;
+      positionRemoteWidget(element, box);
     };
     const end = (endEvent: PointerEvent) => {
       const drag = this.drag;

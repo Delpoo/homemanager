@@ -434,6 +434,690 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
       "sha256": "d915b5ee0fee3dc7dc9952827c0b1456024228d761fd8ed70dabc611920e328b"
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-candidate.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "cd88eda6bcf5f8dc717574aeb94fc221206d4f18bef94fadd152fffc96f98c45",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-confirm.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "90b17accdfc01887fe51054745266c706dc7fc081f7f9825583d3f58e76b69dd",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-designer.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a0c0d28b415d6fdcac783ec93cc0ab00b710024d8a743fd478b83d54a2a18f44",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-devices.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "202bf7bf2fd20cb22a269b7d19b720efdc517f27e8bd492591a5bc6c46572e4e",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-empty-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7ea3ad1605646c85ea25d968094e158ae1356f66141658e8f4934cc23ea587ce",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-empty.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "9d7fcc7a66a0d3557fdcc7558df89ac14703c6ad694fda04d77506861dfebad1",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-learn.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8aa4fe7dcd6c19885d51b6538bd50a32b7ff8016af59fb37d7caf5549b9e26a8",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-list.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b50bffcb661766d984f37840b95fc922a04a8d90a4ac75675a384e350650569f",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-new-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d0df00b217ab95c6be13bfc5e980537c0bdf336c81fa1c9e8857231f3cb255ac",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-new.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c2ca5c4a5a0f80dfe637d864901f69ebc196e033665cde0080e70dad528627d5",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-reference-dialogs.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a5d29fc0256d18a3a6d32c945ba44c177728031a9f0aafdf72a8a841ee19047f",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-reference-rf.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8cf6d31f7efffa1358b32533094130b6148f9a6797d822f3101db5a26a437576",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-remote.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b1bb41b02fb93f48e3e993d50c7179c571c7176984d58d8a9777b87448a5808d",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-roles.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b99b18151a0509b1ed43ea42623c589ed02a79ddae19005513b53f6ad686befa",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-settings.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4e81982b20774fdf295dcf275bbe63817a65c5e4bbf45cbd020430b181b3ff46",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-trial.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0df0f73cb38712a197ceb46edd771630549bb5e25eb8215d5fa385ec4aa7d7aa",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-widget.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7ca6d791e70de4611899fa64494191198388d42b7acbee6217603d6e89a056c4",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-dark-yaml.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f1939adfe8402be0dca302151723f0ad28312fef508cc1d32752465f749c30ec",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-candidate.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7c9a538322d5a5758b6212abf85b36ab1744c87c3d920a33a45f5417bfc9b49a",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-confirm.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "87247a1875a656497a69446c90296875baea22a1dbc57cea4addbab72d78e43f",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-designer.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a469d5ee21d3a4406f245de4ce8a0eb307c8d7be11852876d26fbeb26882754e",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-devices.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ca3f9d0a03204202fa9b912931dd2466030a8c6c387749c9676193692106ea05",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-empty-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1e85bc453059637f0b6fbccdbfcbf48cd685b843fbb21097b0546f8012357642",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-empty.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "959834206ea5460ac82375e4563b6bcd5d2cb8276ae59e184215e32618a6b8b4",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-learn.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ecebaf9966b18eef727b6abda339871b3cc9ddeb5d1dbcbd0a382863ef032436",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-list.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4b054551cd2e732e1a1c323359c2a692b287fc38edb5de9b43975c1da0c69d64",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-new-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "87a8958b8d6f373db02fb498f3906fb313d8b9e322e2fcad685c6350e224d44c",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-new.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "31897079f827ff79bcb93bb80e157d89d9458a51ddf56a12a118fc26bb8a530d",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-reference-dialogs.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "146854a7eae148a6e7a870fe179024871457d64b2cf30d043bee5074b189a6bb",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-reference-rf.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c653ac1616c0694874a0887151bd79ef253c41e0186dba539cba1b003ce7447d",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-remote.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "728ebfd4daa2296cfd2c0354188bfc51e84b9c6a4885b23ce512391f44e8ee85",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-roles.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b126cbfd1e08756444d05d30eee148607ecde43c72ffe9b07a15276d9f0f2d52",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-settings.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1bdee686fba30123b4b257dcf4302570e254db7c1a444b7ac0c9ef40365af791",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-trial.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "55970d5591d455d08c5131fc28151572442eba01522869733fb549b7799c7f10",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-widget.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "89b91605fe0515c1070d902f445b5e62d8719aef88c0d79c614ed707a2ecff88",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/desktop-light-yaml.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "11fb06541fc0273cb504a1ba879b96630e189ac6997092beab52d36db057c9c4",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-candidate.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f8eb385d4250598f35edc72f3bcf45ba97b1aa8ab30f69603e7e98197e7024ff",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-confirm.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e30dccbc51916c581c704c64e4d7936d55ac217f2fafc9ecb11d8684840c460b",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-designer.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "60a9d003faec5f4f15e83cf5c58cf4a118602fcc0e1eda890a3ba81ad70a2e7f",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-devices.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1f2f0a6b6a0753214924e730b4185990cb61019c494f2fd94ffcd58b12b358ad",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-empty-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "86822656d8773dedc106eefd445a81e6e68d773e314ae1aaa1c09d7125caddb0",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-empty.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8e7074143c0cd84a2c5e1e6ace8561a252dc4b9ec7f3503328ccc016137bf791",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-learn.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c7cbf4da2a19b94cfcc2e338ebe4146cdb35b6a95b23c2c80c9b9dd6e2617f98",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-list.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "3e9ee1f12fd900c7587f127da0e640f373cd2b1f490e3e0aaa30e84d3991d5d3",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-new-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5402cdaf45682d2f7da34691ddca572b7587522311946590907ebb8329dfb37d",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-new.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0b8649c54bb3e33d0089aec1200d774f4eb7ccb62a21b4c52ef669b9d8a95261",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "52204ed3dfa57b3c185df3cca0be128d018a7a38d753eca15124bd982ab2c949",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-reference-dialogs.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7caf8b9f3a2e06207f5eb0f630410c8f0e2701daf806ce3367e59100e7d226d5",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-reference-rf.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ac0f7578e324706bdc423ff2feb372d5fb60b74d58894fcf3fc83ad0e3da212e",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-remote.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7b6e383bb9e761d0d9d8798d23aa534f6d2f80985d7b3afe7f1ba1edf66fcf54",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-roles.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d8c684363ba5f9db6027d64eed44c73671c48b748e58917b4b768886dff473e3",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-settings.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "cb60c65f7bf988636fa603b30d7a4b2beb03581a895e1ec6ba78377ce3754ee2",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-trial.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "099145354a064f007f0c88df260462320ace9298e511efad116d71f81cade048",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-widget.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ef8d3de0913ac812c71014250a8d853f8807a9f5ca163e12a03204ef4db56a6c",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-dark-yaml.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "636fc5491c0bbcd9fe1fef08f043cdedc4d192dba27b1c7871fdb88aac1ff925",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-candidate.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "20cde6b9413ef7f1336ced5cc88ce99adc657f2881718c4dcf7e2a2abc685cf9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-confirm.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d668139e5c1b5dcbed0c087544d13a1c010f20b0ff4caec7ad3ab3664232b13a",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-designer.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "80b89a0eafbb047acd31f301266c9c1a72b908441a6f13c18c9d490cdbacab2c",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-devices.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a11e8433d70da6ece3b4d7733310b5dd904d16a14576d9ac9e12917f8594c7af",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-empty-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "be6c88206f98f2b1e79c5614fabfcc75b1baaaf595a5a8b285a4c1c2d71df69f",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-empty.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "623d7567c3a9092988754254d718e4ee8d2e28e96cd92a6894e18824ca787946",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-learn.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4a08570730189ccd1dacd34b09a6f68f691f182ced9041d669bcabc720d0d777",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-list.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4dbdbca6340c336cf4fc4870404b7d346a657c0586f0442f88aadebe7a67f5c7",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-new-home.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "04a806a4d382a0e95f9b0f418d3b0729777f3860d5121a868025c402d3bab25c",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-new.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "2ca5dc90ee7367ab2f5e3e1905250b6d591643ee7ea4e90f451fff9db4ce5883",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "11927006f68c9c63d3882de272388ab7e560ff107da2a7158415839fc17092f9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-reference-dialogs.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "64b01348e422b9438ed2530d90b9d1b1dbbd81ad62c6b28c376a8edf593bc275",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-reference-rf.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d4b1399fed98b1effa6a7e7cd458f21d63a6717cb629ff8d183b5f79d0a51303",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-remote.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5c44c9152f6700ada86370086cc33e81b181c956004a8a78b6b7c07253a1c7bf",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-roles.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ea93fa9fca76b96efb3575e7caa19083e3a90a6d90f48e187bb1edf0ad9b40f0",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-settings.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "556c153251e5f01061478dcd69facab3545ff95f7d066b6905efc1d0070de1ec",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-trial.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0561756757cfa6578e232336ae9df0970049f08668ba7bc1648d7aa7f426cc3f",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-widget.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "52e3d761be7e1df552c5d1dd19a2be77e749642d4c0bb0aa83d61cb8a1e31145",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp6/mobile-light-yaml.png",
+      "source": "tests/rf/cp6.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0a8a4cfa2e0db6adc2c400b17ad1bee8b240387a7c102c22df4bfeb09e2dbef5",
+      "width": 390,
+      "height": 844
     }
   ]
 }

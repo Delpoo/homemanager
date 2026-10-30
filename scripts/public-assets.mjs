@@ -11,18 +11,24 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/0\.8-device-screen\/(?:desktop|mobile)-(?:plan|now|meter|climate|sensor|infrastructure|appearance|meter-dark|now-dark|alert|empty|reference-device|reference-now|reference-components)\.png$/.test(
       relative,
     );
-  if (!legacy && !picker && !deviceScreen) return false;
+  const rfDialogs =
+    /^docs\/evidence\/0\.9-cp6\/(?:desktop|mobile)-(?:light|dark)-(?:list|new|remote|learn|candidate|trial|designer|widget|roles|settings|confirm|devices|yaml|new-home|empty-home|empty|reference-components|reference-rf|reference-dialogs)\.png$/.test(
+      relative,
+    );
+  if (!legacy && !picker && !deviceScreen && !rfDialogs) return false;
   if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.assets)) return false;
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (/-reference(?:-devices|-readings|-components|-device|-now)?\.png$/.test(relative)
+      (/-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs)?\.png$/.test(relative)
         ? 'docs/vision-mockup.html'
         : picker
           ? 'tests/browser/fixtures/picker.html'
-          : deviceScreen
-            ? 'tests/browser/fixtures/device-screen.html'
-            : 'tests/browser/fixtures/shell.html') &&
+          : rfDialogs
+            ? 'tests/rf/cp6.browser.spec.mjs'
+            : deviceScreen
+              ? 'tests/browser/fixtures/device-screen.html'
+              : 'tests/browser/fixtures/shell.html') &&
     entry?.review === 'fictional-only' &&
     entry?.sha256 === createHash('sha256').update(bytes).digest('hex') &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

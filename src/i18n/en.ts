@@ -589,4 +589,9 @@ export const en: Record<string, string> = {
   'Control RF en el panel': 'RF remote in the panel',
   'Un dispositivo tiene como máximo 4 accesos rápidos.': 'A device has at most 4 quick actions.',
   'Control remoto': 'Remote',
+  'Nombre del hogar': 'Home name',
+  'Usá minúsculas, números y guiones. El plano se agrega después.':
+    'Use lowercase letters, numbers and hyphens. Add the floor plan later.',
+  'Usá minúsculas, números y guiones para el nombre del hogar.':
+    'Use lowercase letters, numbers and hyphens for the home name.',
 };

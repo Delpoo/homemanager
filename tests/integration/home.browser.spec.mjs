@@ -111,12 +111,12 @@ test('New home can be cancelled or left through Plan without losing the previous
   for (const exit of ['Cancelar', 'Plano']) {
     await openCardMenu(page);
     await app.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
-    await expect(app.getByLabel('ID del hogar', { exact: true })).toBeVisible();
-    await app.getByLabel('ID del hogar', { exact: true }).fill('sin-crear');
+    await expect(app.getByLabel('Nombre del hogar', { exact: true })).toBeVisible();
+    await app.getByLabel('Nombre del hogar', { exact: true }).fill('sin-crear');
     await expect(homeCard).toBeHidden();
     if (exit === 'Plano') await openCardMenu(page);
     await app.getByRole('button', { name: exit, exact: true }).click();
-    await expect(app.getByLabel('ID del hogar', { exact: true })).toBeHidden();
+    await expect(app.getByLabel('Nombre del hogar', { exact: true })).toBeHidden();
     await expect(homeCard).toBeVisible();
     expect(
       await page.evaluate(
@@ -292,7 +292,7 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   });
   const app = page.locator('homemanager-app');
   await expect(app.getByText('Todavía no hay hogares')).toBeVisible();
-  await app.getByLabel('ID del hogar', { exact: true }).fill('mi-casa');
+  await app.getByLabel('Nombre del hogar', { exact: true }).fill('mi-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
   await expect(app.locator('homemanager-card').locator('.shell > .status')).toContainText(
     '«mi-casa» todavía no existe',
