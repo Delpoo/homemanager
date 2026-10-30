@@ -2,6 +2,17 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.8.0-beta.2 — beta
+
+Segunda parte de la etapa 0.8 de [docs/roadmap.md](docs/roadmap.md): la pantalla de cada dispositivo y la columna *Ahora*.
+
+- **Pantalla del dispositivo:** tocar un sensor, un medidor, un equipo o infraestructura abre su pantalla, con hasta 3 valores destacados, todas sus lecturas útiles agrupadas, sus controles, actividad y diagnóstico plegados. En escritorio ocupa la columna derecha; en el móvil, una hoja que se desliza.
+- Un medidor de 6 canales se ve como una tabla: *Ahora* y *Hoy* por canal.
+- Un aire muestra la temperatura objetivo, sus modos y el encendido. Si Home Assistant sólo **supone** su estado (aires IR o RF), la pantalla dice *Estado estimado* y no marca ningún modo como actual.
+- **Ahora:** alertas, clima por espacio, equipos activos con apagado rápido y energía; sólo aparecen las secciones con datos, y se filtra por el espacio elegido.
+- **⋮ → Apariencia:** Automático (sigue a Home Assistant), Claro u Oscuro. La elección queda en este navegador.
+- *Abrir en Home Assistant* sólo para administradores.
+
 ## 0.8.0-beta.1 — beta
 
 Primera parte de la etapa 0.8 de [docs/roadmap.md](docs/roadmap.md): dispositivos primero, con nombres de persona.
