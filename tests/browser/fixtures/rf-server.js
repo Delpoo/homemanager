@@ -1,5 +1,6 @@
 /** Fictional RF service, shared by behavioral tests and CP6 visual checks. */
-export async function mountRfFixture(initial) {
+/** `version` is the package being tested, so the YAML to paste never pins an old release. */
+export async function mountRfFixture(initial, version = '0.0.0-test') {
   const { hass } = window.testHarness;
   const calls = [];
   const library = structuredClone(initial);
@@ -52,7 +53,7 @@ export async function mountRfFixture(initial) {
             },
           ],
           default_receiver: defaultReceiver,
-          package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.3',
+          package: `github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v${version}`,
           builder_url: '/hassio/ingress/5c53de3b_esphome',
         };
       case 'homemanager/rf/default_receiver':
