@@ -44,6 +44,33 @@ for (const name of ['catalog', 'configuration', 'runtime-state'])
   );
 const schema = ajv.getSchema('configuration.schema.json');
 
+test('CP4 alert rules and highlighting agree between JS and JSON Schema without changing old plans', () => {
+  const cases = JSON.parse(readFileSync(new URL('../fixtures/alert-rules.json', import.meta.url)));
+  for (const fields of cases.valid) {
+    const configuration = make();
+    Object.assign(configuration.catalog.devices[0].display, fields);
+    const before = structuredClone(configuration);
+    assert.equal(schema(configuration), true, JSON.stringify(fields));
+    assert.deepEqual(assertConfiguration(configuration), before);
+    assert.deepEqual(configuration, before);
+  }
+  for (const fields of cases.invalid) {
+    const configuration = make();
+    Object.assign(configuration.catalog.devices[0].display, fields);
+    assert.equal(schema(configuration), false, JSON.stringify(fields));
+    assert.throws(() => assertConfiguration(configuration), undefined, JSON.stringify(fields));
+  }
+  for (const field of ['below', 'above', 'forMinutes'])
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      const configuration = make();
+      configuration.catalog.devices[0].display.alerts = [
+        { reading: 'sensor.test', level: 'warning', [field]: invalid },
+      ];
+      assert.equal(schema(configuration), false);
+      assert.throws(() => assertConfiguration(configuration));
+    }
+});
+
 test('0.8 registry and additional readings round-trip; entity-only 0.7 documents remain unchanged', () => {
   const legacy = make(),
     before = structuredClone(legacy);

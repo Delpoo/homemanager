@@ -12,6 +12,32 @@ from .conftest import PLAN, configuration
 NOW = datetime(2026, 10, 29, tzinfo=UTC)
 
 
+def test_cp4_alert_rules_match_the_shared_contract_cases() -> None:
+    from copy import deepcopy
+    import json
+    from pathlib import Path
+
+    cases = json.loads((Path(__file__).parents[1] / "fixtures" / "alert-rules.json").read_text())
+    for fields in cases["valid"]:
+        value = presentation_configuration()
+        value["catalog"]["devices"][0]["display"].update(fields)
+        before = deepcopy(value)
+        assert validate_configuration(value) == before == value
+    for fields in cases["invalid"]:
+        value = presentation_configuration()
+        value["catalog"]["devices"][0]["display"].update(fields)
+        with pytest.raises(ModelError):
+            validate_configuration(value)
+    for field in ("below", "above", "forMinutes"):
+        for invalid in (float("nan"), float("inf"), float("-inf")):
+            value = presentation_configuration()
+            value["catalog"]["devices"][0]["display"]["alerts"] = [
+                {"reading": "sensor.test", "level": "warning", field: invalid}
+            ]
+            with pytest.raises(ModelError):
+                validate_configuration(value)
+
+
 def presentation_configuration() -> dict:
     value = configuration()
     value["catalog"]["devices"] = [{

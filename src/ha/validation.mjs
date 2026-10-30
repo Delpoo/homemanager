@@ -46,6 +46,8 @@ export const SYMBOL_ARCHETYPES = Object.freeze([
   'infrastructure',
 ]);
 export const SYMBOL_SHOW = Object.freeze(['icon', 'value', 'both']);
+export const MAX_ALERT_RULES = 4;
+export const ALERT_RULE_LEVELS = Object.freeze(['alert', 'warning']);
 /** What the person chose (D21); it decides the archetype and the sheet's sections. */
 export const DEVICE_CATEGORIES = Object.freeze([
   'switch',
@@ -113,6 +115,20 @@ function entity(value, path) {
 }
 function one(value, values, path) {
   if (!values.includes(value)) invalid(path, 'unsupported value');
+}
+function alertRules(value, path) {
+  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, 'array of at most 4 alert rules required');
+  value.forEach((rule, index) => {
+    const at = `${path}[${index}]`;
+    fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes'], at);
+    entity(rule.reading, `${at}.reading`);
+    one(rule.level, ALERT_RULE_LEVELS, `${at}.level`);
+    for (const key of ['below', 'above', 'forMinutes'])
+      if (Object.hasOwn(rule, key) && (typeof rule[key] !== 'number' || !Number.isFinite(rule[key])))
+        invalid(`${at}.${key}`, 'finite number required');
+    if (Object.hasOwn(rule, 'forMinutes') && rule.forMinutes < 0)
+      invalid(`${at}.forMinutes`, 'nonnegative duration required');
+  });
 }
 /** D22: a space's own rectangle, normalized to the plan like device positions. */
 function roomShape(value, path) {
@@ -282,7 +298,12 @@ function shape(configuration) {
     one(device.kind, KINDS, `${path}.kind`);
     one(device.mobility, ['fixed', 'editable', 'portable'], `${path}.mobility`);
     position(device.position, `${path}.position`);
-    fields(device.display, ['label', 'icon'], ['size', 'pinned', 'archetype', 'show', 'category'], `${path}.display`);
+    fields(
+      device.display,
+      ['label', 'icon'],
+      ['size', 'pinned', 'archetype', 'show', 'category', 'alerts', 'highlight'],
+      `${path}.display`,
+    );
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
     if (Object.hasOwn(device.display, 'size')) one(device.display.size, SYMBOL_SIZES, `${path}.display.size`);
@@ -291,6 +312,9 @@ function shape(configuration) {
     if (Object.hasOwn(device.display, 'show')) one(device.display.show, SYMBOL_SHOW, `${path}.display.show`);
     if (Object.hasOwn(device.display, 'category'))
       one(device.display.category, DEVICE_CATEGORIES, `${path}.display.category`);
+    if (Object.hasOwn(device.display, 'alerts')) alertRules(device.display.alerts, `${path}.display.alerts`);
+    if (Object.hasOwn(device.display, 'highlight') && typeof device.display.highlight !== 'boolean')
+      invalid(`${path}.display.highlight`, 'boolean required');
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],

@@ -3,6 +3,14 @@ export type Archetype = 'actuator' | 'equipment' | 'sensor' | 'meter' | 'remote'
 export type DisplayShow = 'icon' | 'value' | 'both';
 export type Category = 'switch' | 'equipment' | 'remote' | 'meter' | 'plant' | 'alert' | 'presence' | 'infrastructure';
 export type ModelConfidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
+/** CP4: configured conditions; observations and timers never belong in the plan. */
+export interface AlertRuleConfig {
+  reading: string;
+  below?: number;
+  above?: number;
+  forMinutes?: number;
+  level: 'alert' | 'warning';
+}
 export interface ModelEntity {
   state: string;
   attributes?: Record<string, unknown>;
@@ -11,6 +19,7 @@ export interface ModelEntity {
 }
 export interface ModelHass {
   states: Record<string, ModelEntity>;
+  connection?: { connected?: boolean };
   locale?: { language?: string };
   language?: string;
   entities?: Record<string, RegistryEntity>;
@@ -50,6 +59,8 @@ export interface ModelDevice {
     archetype?: Archetype;
     show?: DisplayShow;
     category?: Category;
+    alerts?: AlertRuleConfig[];
+    highlight?: boolean;
   };
   bindings: {
     entityId: string | null;

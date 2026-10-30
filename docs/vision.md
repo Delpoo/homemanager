@@ -342,7 +342,8 @@ En la integración:
 | `bindings.deviceId` | ID del registro de dispositivos de HA |
 | `display.archetype` | `actuator`, `equipment`, `sensor`, `meter`, `remote`, `infrastructure` |
 | `display.show` | `icon`, `value`, `both` |
-| `bindings.alerts` | umbrales y reglas activadas, validados como los demás campos |
+| `display.alerts` | hasta cuatro reglas de lectura; ver §12 |
+| `display.highlight` | resaltado de presencia, elegido explícitamente; ver §12 |
 
 Los tres validadores (`validation.mjs`, `validation.py` y el JSON Schema) cambian juntos, como siempre.
 

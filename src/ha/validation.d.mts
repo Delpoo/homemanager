@@ -15,6 +15,8 @@ export const CONTROL_STEPS: Readonly<Record<ControlType, readonly [number, numbe
 export const MAX_CONTROLS: number;
 export const MAX_PINNED: number;
 export const MAX_READINGS: number;
+export const MAX_ALERT_RULES: number;
+export const ALERT_RULE_LEVELS: readonly ('alert' | 'warning')[];
 export const SYMBOL_SIZES: readonly SymbolSize[];
 export const SYMBOL_ARCHETYPES: readonly SymbolArchetype[];
 export const SYMBOL_SHOW: readonly SymbolShow[];
