@@ -107,3 +107,11 @@ Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. Cambia un
 ## D20 — Panel de control, arquetipos y canal de respuesta
 
 Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. La pantalla principal se separa de la administración. Una barra superior lleva el logo, la barra de actividad, las alertas y un menú para todo lo demás. Los espacios se representan con iconos. Cada dispositivo tiene un **arquetipo** (actuador, equipo, sensor, medidor, mando, infraestructura) que decide su forma en el plano y lo que hace un toque. Todos los arquetipos comparten una gramática: anillo = activo; insignia = alertas; marca de salud = sólo si hay un problema. Toda decisión de presentación sale de funciones puras (`symbolSpec`, `alertsOf`) con pruebas. Detalle: [vision.md](vision.md) y [roadmap.md](roadmap.md).
+
+## D21 — Categorías de dispositivo elegibles
+
+**Aprobada por el propietario el 30/10/2026.** La persona elige una de ocho **categorías**: interruptor, equipo, control remoto, medidor, planta, alerta, presencia y aperturas, e infraestructura. La categoría decide el arquetipo de D20, lo que hace un toque y las secciones de la ficha: un medidor no tiene editor de botones, y una planta y una alerta tienen sus propias reglas de aviso. La app propone la categoría al vincular un dispositivo y la deja escrita en la ficha. Campo opcional `display.category`; `display.archetype` sigue siendo válido. Detalle: [vision.md §12](vision.md#12-categorías).
+
+## D22 — Espacios propios de la app y vista por espacio
+
+**Aprobada por el propietario el 30/10/2026.** Cada espacio tiene una forma propia (`rooms[].shape`), copiada de la zona del SVG al importarlo o dibujada en la app. Un SVG nuevo nunca la pisa, y un SVG sin zonas también sirve. Sobre esas formas, una **vista por espacio** encuadra un espacio al 100 % y navega con flechas que apuntan al centro de cada destino: mantener muestra el nombre, tirar viaja y deslizar empuja el plano. Flechas y deslizar se activan por separado. Detalle: [vision.md §13–§14](vision.md#13-vista-por-espacio).

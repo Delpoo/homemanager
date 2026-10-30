@@ -99,7 +99,7 @@ Objetivo: el día a día se ve profesional, cada símbolo dice qué es, y todo t
 - unitarias de `planImportReport` y `mergeRoom`: espacio vacío, dispositivos en una sola zona o repartidos, ambiguo, fuera, zonas nuevas e IDs sin cambios;
 - navegador: importación de zonas que se fusionan, revisión del plano guardado, espacios desde el riel y posición fija; capturas de Revisar cambios a 1440×900 y 390×844.
 
-## Etapa 0.8 · Dispositivos primero (pista A)
+## Etapa 0.8 · Dispositivos primero (pista A) · publicada como 0.8.0-beta.1 y 0.8.0-beta.2
 
 Objetivo: vincular y consultar **dispositivos**, con nombres de persona. Nadie vuelve a buscar en una lista de 80 entidades con guiones bajos. Maqueta: secciones [7](vision-mockup.html#s7) y [8](vision-mockup.html#s8).
 
@@ -144,36 +144,45 @@ Se publica en dos betas, para que el propietario pruebe el selector cuanto antes
 - unitarias de `names` (con y sin `has_entity_name`, con prefijos, con nombres del usuario y en varios idiomas) y de `device-screen`;
 - de navegador del selector, la pantalla del dispositivo y *Ahora*, en escritorio y móvil, con un registro sintético de al menos 15 dispositivos y 80 entidades.
 
-## Etapa 0.9 · El mismo diseño en todas las pantallas (pista A)
+## Etapa 0.9 · Categorías, espacios propios y el mismo diseño (pista A)
 
-Objetivo: **ninguna pantalla conserva el aspecto de 0.6**. Hoy sólo el panel principal sigue la maqueta. La ficha, Ajustes del plano, los controles RF, los paneles nativos y los diálogos tienen estilos propios. Maqueta: secciones [3](vision-mockup.html#s3), [6](vision-mockup.html#s6), [9](vision-mockup.html#s9), [10](vision-mockup.html#s10) y [11](vision-mockup.html#s11).
+Se hace en **checkpoints**: un PR chico por punto, auditado y probado antes de abrir el siguiente. Cada PR dice qué pedidos del propietario cumple, y la auditoría los comprueba uno por uno, no sólo las pruebas. Diseño: [vision.md §12–§14](vision.md#12-categorías) y maqueta [§12](vision-mockup.html#s12), [§13](vision-mockup.html#s13) y [§14](vision-mockup.html#s14). D21 y D22 están aprobadas.
 
-1. **Componentes** (`src/ui/`), como la maqueta §6:
-   - botones (principal, secundario, discreto, destructivo, de icono), campo, búsqueda, selector, pestañas, interruptor, casilla, opción, fila de lista, grupo, estado, aviso, estado vacío, plegable, diálogo y hoja;
-   - una página de prueba los muestra todos, en claro y en oscuro;
-   - ninguna pantalla define colores, bordes, radios ni tamaños propios: sólo tokens y estos componentes. Una prueba falla si aparece un color literal o un `<style>` con reglas propias fuera de `src/ui/`.
-2. **Inspector acoplado** en lugar de la ficha (maqueta §3):
-   - 360 px a la derecha en escritorio; en el móvil, hoja de hasta el 55 % de la altura; la cámara lleva el símbolo al área visible;
-   - escribe en el `draft`, y el símbolo se redibuja con cada cambio; ✓, ✕ (revertir ese dispositivo), deshacer y rehacer;
-   - secciones por arquetipo ([vision.md §7](vision.md#7-editar-es-ver)); *Alertas* trae sus reglas editables.
-3. **Ajustes del plano como página** (maqueta §9): secciones a la izquierda, los problemas arriba, el plano con su miniatura, y los espacios en una lista que se ordena arrastrando y se toca para editar.
-4. **Controles RF y Equipos ESPHome** (maqueta §10), incluido el diseñador del control:
-   - la lista de controles; el control con sus botones aprendidos;
-   - el aprendizaje, un botón por vez, con los detalles técnicos plegados;
-   - los equipos, con un estado y una acción cada uno.
-5. **Paneles nativos** del dispositivo, **diálogos** (maqueta §11), *Almacenamiento*, *Nuevo hogar* y *Revisar cambios*, con los mismos componentes. Nunca un diálogo sobre otro.
+| CP | Quién | Qué | Beta |
+|---|---|---|---|
+| 1 | Claude | Diseño: maqueta §12–§14, vision §12–§14, D21 y D22. Sólo documentos | — |
+| 3 | Claude | **Categoría elegible** en el inspector acoplado (maqueta §3 y §12). Secciones por categoría; sin `kind` técnico; `display.category` en los tres validadores | 0.9.0-beta.1 |
+| 4 | ChatGPT | **Reglas de aviso** por categoría (`display.alerts`, `display.highlight`): planta, alerta, presencia y medidor. Modelo puro y secciones del inspector | 0.9.0-beta.2 |
+| 5 | Claude | **Espacios propios**: `rooms[].shape`, copia desde las zonas del SVG, migración; los consumidores de zonas pasan a la forma | (con beta.2) |
+| 6 | ChatGPT | **Controles RF, Equipos RF y diálogos** con el diseño de la maqueta §10–§11. Sin cambios de comportamiento | (con beta.2) |
+| 7 | Claude | **Vista por espacio**: botón, encuadre, flechas-vector, mantener, tirar, deslizar e interruptores (`navTargets`, `swipeTarget`) | 0.9.0-beta.3 |
+| 8 | Claude | **Editor de espacios**: forma, encuadre, flechas por destino y *saltear* | 0.9.0-beta.4 |
+| 9 | ChatGPT | **SVG sin zonas**: dibujar espacios. **Ajustes del plano como página** (maqueta §9) | 0.9.0-beta.5 |
 
-**Aceptación:**
-- [ ] Cada pantalla de la lista de abajo tiene en el PR su captura a 1440×900 y a 390×844, al lado de su sección de la maqueta.
-- [ ] Mientras se edita, el símbolo editado siempre está visible. Un cambio de tamaño o un control fijado se ve antes de tocar ✓, y ✕ devuelve el dispositivo a como estaba.
+CP2 (los 7 espacios de la vivienda) es del repositorio privado y no se describe acá.
+
+**Diseño en todas las pantallas** (sigue vigente; cada checkpoint lo cumple en lo que toca):
+1. **Componentes** (`src/ui/`), como la maqueta §6. Ninguna pantalla define colores, bordes, radios ni tamaños propios. Una prueba falla si aparece un color literal o un `<style>` con reglas propias fuera de `src/ui/`.
+2. **Inspector acoplado** en lugar de la ficha (maqueta §3), en CP3: 360 px a la derecha en escritorio y, en el móvil, una hoja de hasta el 55 % de la altura. Escribe en el `draft`, y el símbolo se redibuja con cada cambio. Tiene ✓, ✕ (revertir ese dispositivo), deshacer y rehacer.
+3. **Ajustes del plano como página** (maqueta §9), en CP9.
+4. **Controles RF y Equipos ESPHome** (maqueta §10), en CP6.
+5. **Paneles nativos, diálogos** (maqueta §11), *Almacenamiento*, *Nuevo hogar* y *Revisar cambios*, en CP6 y CP9. Nunca un diálogo sobre otro.
+
+**Aceptación de la etapa:**
+- [ ] Cada categoría muestra su símbolo, su toque y sólo sus secciones, como en la maqueta §12. Un medidor no tiene editor de botones.
+- [ ] Un plano de 0.8 carga igual, y su categoría se deduce de su arquetipo.
+- [ ] Un SVG nuevo nunca cambia una forma sin que la persona lo elija. Un SVG sin zonas permite crear todos los espacios.
+- [ ] En la vista por espacio, las flechas cumplen las reglas de vision §13, que una prueba unitaria comprueba con un plano inventado. Tocar una flecha no viaja; tirar de ella, sí.
+- [ ] *Flechas* y *Deslizar* se activan por separado y se recuerdan.
+- [ ] Cada pantalla de la lista tiene en su PR una captura a 1440×900 y otra a 390×844, junto a su sección de la maqueta.
 - [ ] La prueba de estilos no encuentra colores literales ni estilos propios fuera de `src/ui/`.
-- [ ] Todas las pantallas funcionan con el tema claro y el oscuro de Home Assistant.
+- [ ] Todas las pantallas funcionan con el tema claro y el oscuro.
 
 **Pantallas que se revisan:**
-- panel principal, *Ahora*, pantalla del dispositivo, inspector y selector;
-- Ajustes del plano (cada sección), Revisar cambios y acciones del espacio;
+- panel principal, vista por espacio, *Ahora*, pantalla del dispositivo, inspector y selector;
+- Ajustes del plano (cada sección), el editor de espacios, *Revisar cambios* y acciones del espacio;
 - Controles RF (lista, control, aprendizaje, diseñador) y Equipos ESPHome;
-- paneles nativos, confirmar, Almacenamiento, Nuevo hogar y estado vacío.
+- paneles nativos, confirmar, *Almacenamiento*, *Nuevo hogar* y el estado vacío.
 
 ## Pista B · ESPHome sin copiar y pegar
 
