@@ -199,3 +199,19 @@ test('identical conditions deduplicate deterministically and an active alarm win
   device.display.alerts.reverse();
   assert.deepEqual(alertsOf(device, hass, now), first);
 });
+
+test('a leak, smoke or gas sensor alerts whatever category it was given, as in 0.7', () => {
+  const { device, hass } = plant([]);
+  device.bindings.entityId = 'binary_sensor.test_alarm';
+  hass.states['binary_sensor.test_alarm'] = {
+    state: 'on',
+    attributes: { device_class: 'smoke' },
+    last_changed: new Date(now).toISOString(),
+  };
+  for (const category of [undefined, 'alert', 'presence', 'meter', 'switch']) {
+    device.display.category = category;
+    const alerts = alertsOf(device, hass, now);
+    assert.equal(alerts.length, 1, String(category));
+    assert.equal(alerts[0].level, 'critical');
+  }
+});

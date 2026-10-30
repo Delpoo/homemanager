@@ -81,7 +81,8 @@ export function alertsOf(
     });
   const deviceClass = String(entity.attributes?.device_class ?? '');
   const alarmCategory = categoryOf(device, hass) === 'alert';
-  const legacyCritical = device.display.category === undefined && Object.hasOwn(CRITICAL, deviceClass);
+  // Safety classes (leak, smoke, gas…) alert whatever category the person chose, as in 0.7.
+  const legacyCritical = Object.hasOwn(CRITICAL, deviceClass);
   if (
     entityId.startsWith('binary_sensor.') &&
     entity.state === 'on' &&
