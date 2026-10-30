@@ -244,8 +244,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--hm-accent);outl
   }
   private update(): void {
     this.root.querySelector('.trigger ha-icon')?.setAttribute('icon', this.value || 'mdi:shape');
+    // The icon itself is the value people see; its mdi: name is technical.
     const name = this.root.querySelector('.name');
-    if (name) name.textContent = this.value;
+    if (name) name.textContent = t('Cambiar icono');
   }
   private paint(query: string): void {
     const icons = searchIcons(query, this.extra);
