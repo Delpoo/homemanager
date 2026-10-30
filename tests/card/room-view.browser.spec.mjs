@@ -97,13 +97,24 @@ test('arrows and swipe are switched off separately and remembered in this browse
   await expect(button(page, 'Flechas')).toHaveAttribute('aria-pressed', 'false');
   await expect(arrows(page)).toHaveCount(0);
   await button(page, 'Deslizar').click();
+  // With swipe off a quick drag only pans: nothing travels. (Panning may still make the
+  // space at the centre the current one, which is not a journey.)
+  await page.evaluate(() => {
+    const card = window.testHarness.card;
+    const travel = card.travel;
+    window.journeys = 0;
+    card.travel = id => {
+      window.journeys++;
+      travel(id);
+    };
+  });
   const viewport = await centre(card(page).locator('.viewport'));
   await page.mouse.move(viewport.x, viewport.y - 80);
   await page.mouse.down();
   await page.mouse.move(viewport.x, viewport.y + 60, { steps: 3 });
   await page.mouse.up();
   await page.waitForTimeout(400);
-  expect(await current(page)).toBe('office');
+  expect(await page.evaluate(() => window.journeys)).toBe(0);
   await page.reload();
   await page.waitForFunction(() => window.testHarnessReady);
   await button(page, 'Vista por espacio').click();
