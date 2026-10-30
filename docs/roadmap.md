@@ -202,7 +202,7 @@ Problema: el plano y los espacios se corrigieron muchas veces en copias (el SVG,
 | 3 | **Una sola fuente:** Home Assistant es la única verdad; el repositorio privado deja de ser fuente de datos. La casa del propietario se ordena con su plano 2.5 | esta entrega |
 | 4 | **Plano vinculado:** el dibujo se actualiza sin volver a subirlo. Sin conflictos se aplica solo y se puede deshacer; con conflictos, pregunta | esta entrega |
 | 5 | **Áreas de Home Assistant:** el asistente *Conectar mi casa* asocia zonas y áreas, y propone los dispositivos por área. Ofrece crear las áreas que faltan | esta entrega |
-| 6 | **Limpieza** de copias y de lo que ya no se use | |
+| 6 | **Limpieza** de copias y de lo que ya no se use | esta entrega |
 
 ## Pista B · ESPHome sin copiar y pegar
 
