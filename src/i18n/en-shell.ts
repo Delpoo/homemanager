@@ -235,4 +235,13 @@ export const enShell: Record<string, string> = {
     'Draw each space with rectangles on the plan and name it. Zones can be changed whenever you like.',
   'Editar zonas': 'Edit zones',
   'Terminá de editar las zonas: Aplicar o Cancelar.': 'Finish editing the zones: Apply or Cancel.',
+  'Este archivo reemplaza todo el hogar, no sólo el dibujo.':
+    'This file replaces the whole home, not just the drawing.',
+  'Perderían su vínculo con Home Assistant': 'Would lose their link to Home Assistant',
+  'Perderían sus avisos': 'Would lose their alerts',
+  'Acciones que se pierden': 'Actions lost',
+  'Paneles que se pierden': 'Panels lost',
+  'Espacios que aparecen': 'Spaces that appear',
+  'Para cambiar sólo el dibujo, importá el SVG. Para aplicar este archivo, exportá antes una copia actual.':
+    'To change only the drawing, import the SVG. To apply this file, export a current copy first.',
 };
