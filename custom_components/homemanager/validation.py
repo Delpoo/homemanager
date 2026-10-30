@@ -284,7 +284,21 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         if "show" in display and display["show"] not in SYMBOL_SHOW:
             _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings"})
+        if "deviceId" in bindings:
+            _text(bindings["deviceId"])
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", bindings["deviceId"]) or bindings["deviceId"] in UNSAFE:
+                _fail()
+        if "readings" in bindings:
+            readings = bindings["readings"]
+            if not isinstance(readings, list) or len(readings) > 3:
+                _fail()
+            for reading in readings:
+                _entity(reading)
+            if len(set(readings)) != len(readings) or bindings["entityId"] in readings:
+                _fail()
+            if readings and not bindings.get("deviceId"):
+                _fail()
         for name in ("entityId", "primaryAction", "advancedPopupId", "remoteId"):
             if bindings.get(name) is not None:
                 (_entity if name == "entityId" else _id)(bindings[name])

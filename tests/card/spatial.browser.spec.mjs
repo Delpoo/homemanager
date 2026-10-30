@@ -1,4 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 // Spatial interaction and capability-aware panels, on the synthetic harness.
@@ -117,10 +118,7 @@ test('in edit mode a device added from an entity is placed by tapping the plan',
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
-  const quick = card(page).getByLabel('Agregar dispositivo desde Home Assistant', { exact: true });
-  await quick.click();
-  await quick.pressSequentially('spare');
-  await card(page).locator('.quick [role=option]', { hasText: 'Synthetic spare light' }).click();
+  await chooseAnyEntity(page, 'light.synthetic_spare', { adding: true });
   await expect(card(page).locator('.placing-hint')).toContainText('Tocá el plano para ubicar');
   await expect(card(page).locator('.placing-hint')).toBeInViewport();
   // A tap beside the drawing is ignored; a tap inside the second space places it there.

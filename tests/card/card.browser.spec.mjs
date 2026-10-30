@@ -1,4 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -174,7 +175,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
     .click();
   await select(page);
   await page.getByText('Más opciones', { exact: true }).click();
-  await page.getByLabel('Entidad del dispositivo', { exact: true }).fill('light.synthetic_spare');
+  await chooseAnyEntity(page, 'light.synthetic_spare');
   const sheet = page.locator('homemanager-editor');
   await sheet.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
@@ -397,7 +398,7 @@ test('normal and editing layouts fit the viewport without horizontal page overfl
   await select(page);
   await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).scrollIntoViewIfNeeded();
   expect(await fits()).toBe(true);
-  const field = await page.getByLabel('Entidad del dispositivo', { exact: true }).boundingBox();
+  const field = await page.getByRole('button', { name: 'Vincular dispositivo', exact: true }).boundingBox();
   expect(field.width).toBeGreaterThan(100);
   expect(field.x).toBeGreaterThanOrEqual(0);
   expect(field.x + field.width).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth + 1));

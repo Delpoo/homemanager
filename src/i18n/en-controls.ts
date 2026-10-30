@@ -82,6 +82,7 @@ export const enControls: Record<string, string> = {
   '{label}: {step}': '{label}: {step}',
   '{label}: tocar envía {step}': '{label}: tap sends {step}',
   'Buscar icono': 'Search icon',
+  'Cambiar icono': 'Change icon',
   'Buscar: luz, ventilador, mdi:…': 'Search: light, fan, mdi:…',
   Iconos: 'Icons',
   'Sin coincidencias. Escribí el nombre completo, p. ej. mdi:sofa.': 'No matches. Type the full name, e.g. mdi:sofa.',

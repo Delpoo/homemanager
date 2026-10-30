@@ -51,6 +51,17 @@ function configuration() {
   };
 }
 
+test('editing preserves registry bindings and clones additional readings without mutating input', () => {
+  const input = device();
+  input.bindings.deviceId = 'registry-device';
+  input.bindings.readings = ['sensor.extra'];
+  const next = upsertDevice(configuration(), input, { previousId: input.id });
+  assert.equal(next.catalog.devices[0].bindings.deviceId, 'registry-device');
+  assert.deepEqual(next.catalog.devices[0].bindings.readings, ['sensor.extra']);
+  input.bindings.readings.push('sensor.later');
+  assert.deepEqual(next.catalog.devices[0].bindings.readings, ['sensor.extra']);
+});
+
 test('editing preserves optional 0.7 presentation and room icons', () => {
   const original = configuration();
   original.rooms[0].icon = 'mdi:sofa';

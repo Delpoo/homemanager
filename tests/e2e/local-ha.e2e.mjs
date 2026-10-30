@@ -236,10 +236,10 @@ await step('a real entity is added by name and placed by tapping its space', asy
   // Since 0.5 adding starts from the floating + on the plan.
   await card.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
   await card.getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
-  const quick = card.getByLabel('Agregar dispositivo desde Home Assistant', { exact: true });
-  await quick.click();
-  await quick.pressSequentially('spot');
-  await card.locator('.quick [role=option]', { hasText: 'E2E spot' }).click();
+  const picker = card.locator('homemanager-device-picker');
+  await picker.getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
+  await picker.getByRole('searchbox').fill('light.e2e_spot');
+  await picker.getByRole('button', { name: 'Usar esta entidad', exact: true }).click();
   await card.locator('.placing-hint').filter({ hasText: 'Tocá el plano' }).waitFor();
   const zone = await card.locator('#room-cocina').boundingBox();
   await page.mouse.click(zone.x + zone.width * 0.5, zone.y + zone.height * 0.7);

@@ -58,8 +58,19 @@ export function symbolSpec(
   const estimated = entity?.attributes?.assumed_state === true || runtime?.confidence === 'sent';
   const iconPair = archetype === 'sensor' ? SENSOR_ICONS[String(entity?.attributes?.device_class ?? '')] : undefined;
   const icon = iconPair && ['on', 'off'].includes(live) ? iconPair[live === 'on' ? 1 : 0] : device.display.icon;
-  const fullValue = show !== 'icon' ? formattedValue(entity, hass) : null;
-  const bodyValue = fullValue && fullValue.length > 9 ? `${fullValue.slice(0, 8)}…` : fullValue;
+  const extraId = archetype === 'meter' ? device.bindings.readings?.[0] : undefined;
+  const extra =
+    extraId &&
+    device.bindings.deviceId &&
+    hass?.entities?.[extraId]?.device_id === device.bindings.deviceId &&
+    !!device.bindings.entityId &&
+    hass.entities[device.bindings.entityId]?.device_id === device.bindings.deviceId
+      ? hass.states[extraId]
+      : undefined;
+  const fullValue =
+    show !== 'icon' ? `${formattedValue(entity, hass)}${extra ? ` · ${formattedValue(extra, hass)}` : ''}` : null;
+  const max = extra ? 25 : 9;
+  const bodyValue = fullValue && fullValue.length > max ? `${fullValue.slice(0, max - 1)}…` : fullValue;
   const ringAllowed = archetype === 'actuator' || archetype === 'equipment';
   const confidence = runtime?.confidence;
   // A sent/unknown command never manufactures activity from the requested action.

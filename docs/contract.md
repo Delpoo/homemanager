@@ -44,7 +44,14 @@ Desde 0.7 (D20), hay dos campos de presentación **opcionales**:
 - `display.archetype`: `actuator`, `equipment`, `sensor`, `meter`, `remote` o `infrastructure`. Si falta, las funciones puras de `src/model/` lo resuelven a partir del tipo y de la entidad, sin cambiar el documento guardado. El arquetipo describe la presentación, nunca autoriza servicios ni confirma estados.
 - `display.show`: `icon`, `value` o `both`. Si falta, los medidores muestran el valor y los demás arquetipos el icono.
 
-Los tres campos nuevos (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita. El vínculo al registro de dispositivos (`bindings.deviceId`) y la configuración de reglas de alerta (`bindings.alerts`) pertenecen a etapas posteriores y continúan rechazándose.
+Los campos de presentación (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita. La configuración de reglas de alerta (`bindings.alerts`) sigue reservada para una etapa posterior.
+
+### Vínculo opcional al dispositivo (0.8 en revisión)
+
+- `bindings.deviceId`: identificador del registro de dispositivos de HA, string de hasta 240 caracteres alfanuméricos, guiones o guiones bajos. No es el ID del símbolo del plano ni se deriva de un nombre.
+- `bindings.readings`: lista opcional de cero a tres identificadores explícitos de entidades adicionales del mismo dispositivo. No repite entidades ni la principal (`entityId`). Una lista no vacía requiere `deviceId`.
+
+Los tres validadores comprueban formato, longitud, unicidad y presencia del dispositivo para las adicionales. Excluir la principal es una regla semántica de JS/Python, igual que otras referencias cruzadas del contrato; JSON Schema lo documenta. La pertenencia a un dispositivo sólo se puede comprobar con el registro vivo de HA: si cambia o falta una entidad, se informa sin romper ni reescribir el plano. Un documento de 0.7 sin estos campos conserva su vínculo anterior.
 
 ## Configuración persistente y estado efímero
 

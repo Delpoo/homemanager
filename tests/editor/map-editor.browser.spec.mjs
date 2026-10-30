@@ -1,4 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 const card = page => page.locator('homemanager-card');
@@ -26,9 +27,7 @@ test('automatic binding preserves a colliding reusable action and does not inven
   });
   await begin(page);
   await select(page, 'Temperatura de prueba');
-  const entity = editor(page).getByLabel('Entidad del dispositivo', { exact: true });
-  await entity.fill('light.synthetic_spare');
-  await entity.press('Tab');
+  await chooseAnyEntity(page, 'light.synthetic_spare');
   // A device without controls gets the ones its new entity suggests, shown before saving.
   await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toHaveValue('power');
   await button(page, 'Guardar dispositivo').click();
@@ -55,8 +54,7 @@ test('automatic binding preserves a colliding reusable action and does not inven
     window.testHarness.card.hass = { ...hass };
   });
   await select(page, 'Temperatura de prueba');
-  await entity.fill('script.needs_input');
-  await entity.press('Tab');
+  await chooseAnyEntity(page, 'script.needs_input');
   await button(page, 'Guardar dispositivo').click();
   // A script that needs input is not run by a tap: its panel asks for the fields.
   expect((await draft(page)).catalog.devices[2].bindings).toMatchObject({ primaryAction: null, tap: null });
@@ -99,11 +97,7 @@ test('linking an existing icon suggests its controls only in the draft, then a t
 }) => {
   await begin(page);
   await select(page, 'Temperatura de prueba');
-  const entity = editor(page).getByLabel('Entidad del dispositivo', { exact: true });
-  await entity.fill('spare');
-  await editor(page)
-    .getByRole('option', { name: /Synthetic spare light/ })
-    .click();
+  await chooseAnyEntity(page, 'light.synthetic_spare');
   await button(page, 'Guardar dispositivo').click();
   const configuration = await draft(page);
   const device = configuration.catalog.devices.find(item => item.id === 'synthetic-sensor');
@@ -171,10 +165,10 @@ test('plan settings and field help open without cluttering the map, and Move use
     await expect(settings.getByText(name, { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await select(page);
-  await editor(page).getByRole('button', { name: 'Ayuda: Entidad del dispositivo', exact: true }).click();
+  await editor(page).getByRole('button', { name: 'Ayuda: Dispositivo de Home Assistant', exact: true }).click();
   await expect(
     editor(page).getByText(
-      'El equipo de Home Assistant que representa este símbolo. Sus acciones aparecen como sugerencias en los controles.',
+      'Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.',
       { exact: true },
     ),
   ).toBeVisible();

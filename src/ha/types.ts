@@ -80,6 +80,10 @@ export interface Device {
   };
   bindings: {
     entityId: string | null;
+    /** Optional HA registry device; absent preserves a 0.7 entity-only binding. */
+    deviceId?: string;
+    /** Up to three additional entities of that registry device. */
+    readings?: string[];
     primaryAction: string | null;
     advancedPopupId: string | null;
     /** @deprecated 0.5 hold menu; read as button controls, replaced on edit. */

@@ -38,6 +38,58 @@ for (const name of ['catalog', 'configuration', 'runtime-state'])
   );
 const schema = ajv.getSchema('configuration.schema.json');
 
+test('0.8 registry and additional readings round-trip; entity-only 0.7 documents remain unchanged', () => {
+  const legacy = make(),
+    before = structuredClone(legacy);
+  assert.deepEqual(assertConfiguration(legacy), before);
+  assert(schema(legacy));
+  for (const readings of [
+    [],
+    ['sensor.sample_temperature'],
+    ['sensor.sample_temperature', 'sensor.sample_humidity', 'sensor.sample_power'],
+  ]) {
+    const value = make();
+    Object.assign(value.catalog.devices[0].bindings, { deviceId: '0011aaBB-device_1', readings });
+    assert.deepEqual(assertConfiguration(value), value);
+    assert(schema(value), JSON.stringify(schema.errors));
+  }
+});
+test('0.8 JS and schema reject malformed registry IDs and unsafe additional-reading lists', () => {
+  const invalid = [
+    ...['', null, false, 1, {}, [], 'device.id', 'device/id', ' bad', 'bad\n', 'constructor', 'x'.repeat(241)].map(
+      value => ['deviceId', value],
+    ),
+    ...[
+      null,
+      false,
+      'sensor.a',
+      {},
+      [null],
+      ['sensor.all'],
+      ['sensor.a\n'],
+      ['sensor.a', 'sensor.a'],
+      ['sensor.a', 'sensor.b', 'sensor.c', 'sensor.d'],
+    ].map(value => ['readings', value]),
+  ];
+  for (const [field, value] of invalid) {
+    const input = make();
+    input.catalog.devices[0].bindings.deviceId = 'registry-device';
+    input.catalog.devices[0].bindings[field] = value;
+    assert.throws(() => assertConfiguration(input), undefined, `${field}: ${JSON.stringify(value)}`);
+    assert.equal(schema(input), false, `${field}: ${JSON.stringify(value)}`);
+  }
+  const missing = make();
+  missing.catalog.devices[0].bindings.readings = ['sensor.sample'];
+  assert.throws(() => assertConfiguration(missing));
+  assert.equal(schema(missing), false);
+  const duplicatePrincipal = make();
+  Object.assign(duplicatePrincipal.catalog.devices[0].bindings, {
+    deviceId: 'registry-device',
+    readings: ['light.sample'],
+  });
+  assert.throws(() => assertConfiguration(duplicatePrincipal));
+});
+
 test('0.7 presentation fields are optional, preserve 0.6 documents and round-trip without defaults', () => {
   const legacy = make();
   const input = structuredClone(legacy);
@@ -116,9 +168,6 @@ test('JS and JSON Schema reject the same unsafe 0.7 fields, types and unknown pr
     },
     c => {
       c.catalog.devices[0].display.iconUrl = 'https://example.test/icon.svg';
-    },
-    c => {
-      c.catalog.devices[0].bindings.deviceId = 'future-device';
     },
     c => {
       c.catalog.devices[0].bindings.alerts = {};

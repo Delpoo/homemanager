@@ -20,4 +20,12 @@ test('only exact reviewed fictional PNG bytes are admitted; changes and other me
   assert.equal(reviewedScreenshot(path, Buffer.concat([bytes, Buffer.of(2)]), manifest), false);
   assert.equal(reviewedScreenshot('docs/private.png', bytes, manifest), false);
   assert.equal(reviewedScreenshot(path, bytes, { schemaVersion: 1, assets: [] }), false);
+  const pickerPath = 'docs/evidence/0.8-picker/mobile-readings.png';
+  const pickerManifest = structuredClone(manifest);
+  pickerManifest.assets[0].path = pickerPath;
+  pickerManifest.assets[0].source = 'tests/browser/fixtures/picker.html';
+  assert.equal(reviewedScreenshot(pickerPath, bytes, pickerManifest), true);
+  pickerManifest.assets[0].source = 'docs/vision-mockup.html';
+  assert.equal(reviewedScreenshot(pickerPath, bytes, pickerManifest), false);
+  assert.equal(reviewedScreenshot('docs/evidence/0.8-picker/private.png', bytes, pickerManifest), false);
 });

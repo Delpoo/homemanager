@@ -12,8 +12,30 @@ export interface ModelHass {
   states: Record<string, ModelEntity>;
   locale?: { language?: string };
   language?: string;
-  entities?: Record<string, { device_id?: string | null }>;
+  entities?: Record<string, RegistryEntity>;
+  devices?: Record<string, RegistryDevice>;
+  areas?: Record<string, { name?: string }>;
   formatEntityState?(entity: ModelEntity): string;
+}
+export interface RegistryEntity {
+  device_id?: string | null;
+  area_id?: string | null;
+  name?: string | null;
+  original_name?: string | null;
+  has_entity_name?: boolean;
+  entity_category?: string | null;
+  hidden?: boolean;
+  hidden_by?: string | null;
+  disabled?: boolean;
+  disabled_by?: string | null;
+  platform?: string;
+}
+export interface RegistryDevice {
+  name_by_user?: string | null;
+  name?: string | null;
+  area_id?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
 }
 export interface ModelDevice {
   id: string;
@@ -28,6 +50,8 @@ export interface ModelDevice {
   };
   bindings: {
     entityId: string | null;
+    deviceId?: string;
+    readings?: string[];
     primaryAction?: string | null;
     remoteId?: string | null;
     tap?: string | null;

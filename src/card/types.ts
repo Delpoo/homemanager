@@ -38,6 +38,8 @@ export interface Device {
   };
   bindings: {
     entityId: string | null;
+    deviceId?: string;
+    readings?: string[];
     primaryAction: string | null;
     advancedPopupId: string | null;
     /** @deprecated 0.5 hold menu; read as button controls, replaced on edit. */
@@ -109,11 +111,8 @@ export interface Hass {
   };
   config?: { components?: string[] };
   /** Registries exposed by HA's frontend: used to show and match areas. */
-  entities?: Record<
-    string,
-    { area_id?: string | null; device_id?: string | null; entity_category?: string | null; hidden?: boolean }
-  >;
-  devices?: Record<string, { area_id?: string | null }>;
+  entities?: Record<string, import('../model/types.js').RegistryEntity>;
+  devices?: Record<string, import('../model/types.js').RegistryDevice>;
   areas?: Record<string, { name?: string }>;
   language?: string;
   locale?: { language?: string };

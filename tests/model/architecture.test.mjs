@@ -12,3 +12,9 @@ test('pure models have no DOM or imports from other layers; the card stays below
     readFileSync(new URL('../../src/card/home-manager-card.ts', import.meta.url), 'utf8').split('\n').length < 600,
   );
 });
+
+test('the 0.8 picker owns no styles or literal colors; all its visual pieces come from ui', () => {
+  const source = readFileSync(new URL('../../src/editor/device-picker.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /<style\b|style\s*=|#[0-9a-f]{3,8}\b|\b(?:rgb|hsl)a?\s*\(/i);
+  assert.match(source, /from ['"]\.\.\/ui\/components\.js['"]/);
+});
