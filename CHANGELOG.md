@@ -2,6 +2,18 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.10.0-beta.1 — beta
+
+Primera parte de la etapa 0.10 de [docs/roadmap.md](docs/roadmap.md), *Una sola casa*: **el SVG es sólo una imagen de fondo y las zonas son de la app**.
+
+- **Editor de zonas** (*Ajustes del plano → Editar zonas*, el `+` de la barra o *Editar forma en el plano*): el dibujo de fondo y todas las zonas encima. *Nueva zona*, *Agregar rectángulo*, *Quitar rectángulo*, mover y cambiar de tamaño, renombrar, *Fusionar con…* y *Eliminar zona*. Los bordes se enganchan con los cercanos.
+- **Aplicar** es un solo paso de deshacer y antes muestra qué dispositivos cambian de espacio, para destildar los que deban quedarse. **Cancelar** deja el plano como estaba.
+- **Una zona puede tener forma de L:** se arma con varios rectángulos fusionados y se ve como una sola, sin costura. Un punto en el hueco de la L no le pertenece. Al importar un SVG, cada zona se convierte en rectángulos. Campo opcional `rooms[].rects`; un plano anterior sigue igual.
+- **Diagnóstico** en *Ajustes del plano*: qué plano y qué datos hay guardados, cada problema con su arreglo, y un botón para aplicar los arreglos seguros.
+- **Corregido:** mover un icono ya no impide guardar. Las posiciones se guardan en una grilla fina, sin decimales infinitos.
+- **Corregido:** la barra ya no muestra, en el uso diario, un espacio sin forma y sin dispositivos. En modo edición siguen todos, para poder arreglarlos.
+- *Nuevo espacio* y *Editar forma en el plano* abren ahora el editor de zonas, que reemplaza al rectángulo suelto anterior.
+
 ## 0.9.0-beta.5 — beta
 
 Quinta parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **avisos por categoría** (D21).
