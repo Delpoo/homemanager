@@ -19,12 +19,18 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/0\.9-cp4\/(?:desktop|mobile)-(?:light|dark)-(?:now|device|alerts|inspector-(?:plant|meter|alarm|presence|rule)|reference-(?:categories|device|now|components))\.png$/.test(
       relative,
     );
-  if (!legacy && !picker && !deviceScreen && !rfDialogs && !alertRules) return false;
+  const activityHeights =
+    /^docs\/evidence\/0\.9-activity-heights\/(?:desktop|mobile)-(?:light|dark)-(?:plan|activity|edit|inspector|sidebar|reference-plan|reference-edit)\.png$/.test(
+      relative,
+    );
+  if (!legacy && !picker && !deviceScreen && !rfDialogs && !alertRules && !activityHeights) return false;
   if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.assets)) return false;
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (/-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories)?\.png$/.test(relative)
+      (/-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
+        relative,
+      )
         ? 'docs/vision-mockup.html'
         : picker
           ? 'tests/browser/fixtures/picker.html'
