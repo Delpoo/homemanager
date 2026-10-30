@@ -10,7 +10,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 |---|---|---|---|---|---|---|---|
 | [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 137 funciones entregado con evidencia por fila |
 | [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e01-ficha-lateral` · [PR #51](https://github.com/Delpoo/homemanager/pull/51) | 2026-10-31 | Auditoría y validación; 250 pruebas de código y 11 de navegador pasan; teléfono real, suite completa y E2E HA pendientes |
-| [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | en curso | ChatGPT | `chatgpt/rediseno-e02-pantallas` · PR borrador por abrir | 2026-10-31 | Clasificar aperturas y presentar propuestas antes de convertir pantallas |
+| [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | pausada | ChatGPT | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-10-31 | Validar clasificación y Vincular; incorporar capturas y comprobar maqueta publicada; después convertir pantallas una por una |
 | [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | pendiente | — | — | — | Todo |
 | [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | pendiente | — | — | — | Todo |
 | [E05](etapas/E05-modulos.md) | Símbolos por módulos, sin categorías que limiten | E01 | pendiente | — | — | — | Todo |
@@ -49,6 +49,8 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
 
 ## Bitácora
+
+- 2026-10-31 · ChatGPT · E02 · Pausada en la parada de validación de diseño, PR #52: clasificación de 12 aperturas, usos del helper y propuesta HTML. Recomienda Vincular en ficha de escritorio y pantalla completa móvil. Sin convertir src/. Capturas locales anteriores y comprobación del HTML publicado pendientes de incorporar/repetir; no se dan por aprobadas. Reporte en entregas/E02-2026-10-31.md.
 
 - 2026-10-31 · ChatGPT · E02 · Reclamada por «continua con eo1 y eo2». Rama creada desde main 764a9e0 e integrada con E01, PR apilado para evitar mezclar etapas. Alcance inicial: clasificación y maquetas; parada de validación obligatoria antes del código de conversión.
 
