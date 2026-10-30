@@ -179,3 +179,17 @@ test('settings surface plan conflicts outside the folded sections', async ({ pag
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
   await expect(editor(page).locator('.plan-conflicts')).toHaveCount(0);
 });
+
+test('a zone with nothing in it is offered, but only becomes a space if chosen', async ({ page }) => {
+  const before = await draft(page);
+  // The plan keeps its zones and adds one that holds no device.
+  const svg = before.architecture.content.replace(
+    '</svg>',
+    '<rect id="room-trastero" x="11" y="21" width="2" height="2"/></svg>',
+  );
+  await upload(page, svg);
+  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  await expect(review.locator('[data-zone="trastero"]')).not.toBeChecked();
+  await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  expect((await draft(page)).rooms.some(room => room.id === 'trastero')).toBe(false);
+});

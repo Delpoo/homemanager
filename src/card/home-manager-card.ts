@@ -27,6 +27,7 @@ import { symbolSpec } from '../model/symbol-spec.js';
 import { ActivityLog, activityIsRecent } from '../model/activity.js';
 import { RuntimeFeed } from '../shell/runtime-feed.js';
 import * as roomView from './room-view.js';
+import * as linkedPlan from './linked-plan.js';
 import * as zoneEditor from './zone-editor.js';
 import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
 import { renderRoomRail } from '../shell/room-rail.js';
@@ -121,6 +122,11 @@ export class HomeManagerCard extends HTMLElement {
   /** The zone editor (stage 2b of 0.10): open only while its draft is not applied. */
   zoneEdit?: zoneEditor.ZoneEdit;
   zonelessOffered = false;
+  /** Stage 4 of 0.10: the drawing kept as a file in Home Assistant. */
+  linkedNotice?: linkedPlan.LinkedNotice;
+  linkedClosed?: string;
+  linkedAt = 0;
+  linkedBusy = false;
   enabledLayers = new Set(['controls', 'sensors', 'energy']);
   pointers = new Map<number, { x: number; y: number }>();
   gesture?:
@@ -250,6 +256,7 @@ export class HomeManagerCard extends HTMLElement {
         this.feed.update(this._hass, this.runtime, this.verifiedFeedbackEntities, Date.now());
         this.refreshState();
         this.updateShell();
+        void this.checkLinkedPlan();
       }
     }, 1000);
     if (this.root.childElementCount && !this.shellUnsubscribe) this.shellUnsubscribe = bindTopBar(this.root);
@@ -303,10 +310,10 @@ export class HomeManagerCard extends HTMLElement {
     this.panel?.close();
     this.shellUnsubscribe?.();
     const layers = layerItems().filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
-    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
+    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
     this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
@@ -314,6 +321,7 @@ export class HomeManagerCard extends HTMLElement {
     this.root.addEventListener('click', this.onClick);
     this.bindNav();
     this.bindZoneEdit();
+    this.renderLinkedNote();
     this.root.addEventListener('keydown', this.key as EventListener);
     const viewport = this.viewport;
     viewport.addEventListener('pointerdown', this.pointerDown);
@@ -367,6 +375,11 @@ export class HomeManagerCard extends HTMLElement {
   zoneKey: OmitThisParameter<typeof zoneEditor.zoneKey> = zoneEditor.zoneKey.bind(this);
   zoneCommand: OmitThisParameter<typeof zoneEditor.zoneCommand> = zoneEditor.zoneCommand.bind(this);
   offerFirstSpace: OmitThisParameter<typeof zoneEditor.offerFirstSpace> = zoneEditor.offerFirstSpace.bind(this);
+  checkLinkedPlan: OmitThisParameter<typeof linkedPlan.checkLinkedPlan> = linkedPlan.checkLinkedPlan.bind(this);
+  reviewLinkedPlan: OmitThisParameter<typeof linkedPlan.reviewLinkedPlan> = linkedPlan.reviewLinkedPlan.bind(this);
+  linkedSaved: OmitThisParameter<typeof linkedPlan.linkedSaved> = linkedPlan.linkedSaved.bind(this);
+  linkedCommand: OmitThisParameter<typeof linkedPlan.linkedCommand> = linkedPlan.linkedCommand.bind(this);
+  renderLinkedNote: OmitThisParameter<typeof linkedPlan.renderLinkedNote> = linkedPlan.renderLinkedNote.bind(this);
   /** What a space's window needs from the plan; editing its shape closes plan settings. */
   roomViewFor(room: string) {
     return {
@@ -417,6 +430,10 @@ export class HomeManagerCard extends HTMLElement {
     }
     const command = target.dataset.command;
     if (!command) return;
+    if (command.startsWith('linked-')) {
+      void this.linkedCommand(command);
+      return;
+    }
     if (command.startsWith('zone-')) {
       this.zoneCommand(command, target);
       return;

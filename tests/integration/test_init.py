@@ -1,6 +1,7 @@
 """Integration setup, websocket API, permissions, persistence and frontend registration."""
 
 import asyncio
+from pathlib import Path
 import pytest
 
 from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL, DATA_PANELS
@@ -173,3 +174,85 @@ async def test_revoking_a_viewer_stops_existing_subscription_events(hass, setup_
         await asyncio.wait_for(reader.receive_json(), 0.05)
     await reader.send_json_auto_id({"type": "homemanager/home/get", "home_id": "home"})
     assert (await reader.receive_json())["error"]["code"] == "unauthorized"
+
+
+LINKED_SVG = "<svg xmlns='http://www.w3.org/2000/svg'><title>Plano</title></svg>"
+
+
+def _linked_file(hass: HomeAssistant, home_id: str = "home"):
+    return Path(hass.config.path("homemanager", f"{home_id}.svg"))
+
+
+async def _linked(client, home_id="home", content=False):
+    await client.send_json_auto_id({"type": "homemanager/plan/linked", "home_id": home_id, "content": content})
+    return await client.receive_json()
+
+
+async def test_setup_creates_the_linked_plan_folder(hass: HomeAssistant, setup_integration) -> None:
+    assert await hass.async_add_executor_job(_linked_file(hass).parent.is_dir)
+
+
+async def test_linked_plan_reports_the_file_without_touching_the_home(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:
+    client = await hass_ws_client(hass)
+    await _save(client)
+    missing = (await _linked(client))["result"]
+    assert missing["state"] == "missing" and missing["seen_sha256"] is None
+    assert missing["path"] == str(_linked_file(hass))
+    path = _linked_file(hass)
+    await hass.async_add_executor_job(path.write_text, LINKED_SVG, "utf-8")
+    ready = (await _linked(client))["result"]
+    assert ready["state"] == "ready" and len(ready["sha256"]) == 64 and "content" not in ready
+    assert (await _linked(client, content=True))["result"]["content"] == LINKED_SVG
+    # Looking never edits: the plan and the revision stay.
+    await client.send_json_auto_id({"type": "homemanager/home/get", "home_id": "home"})
+    home = (await client.receive_json())["result"]
+    assert home["revision"] == 1 and home["configuration"]["architecture"]["content"] == PLAN
+
+
+async def test_linked_plan_refuses_what_cannot_be_used(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:
+    client = await hass_ws_client(hass)
+    await _save(client)
+    path = _linked_file(hass)
+    await hass.async_add_executor_job(path.write_bytes, b"\xff\xfe not text")
+    assert (await _linked(client))["result"]["state"] == "unreadable"
+    await hass.async_add_executor_job(path.write_bytes, b"x" * (3 * 1024 * 1024 + 1))
+    assert (await _linked(client))["result"]["state"] == "too_large"
+    outside = path.parent.parent / "outside.svg"
+    await hass.async_add_executor_job(outside.write_text, LINKED_SVG, "utf-8")
+    await hass.async_add_executor_job(path.unlink)
+    await hass.async_add_executor_job(path.symlink_to, outside)
+    result = (await _linked(client, content=True))["result"]
+    assert result["state"] == "unreadable" and "content" not in result
+
+
+async def test_linked_plan_needs_a_real_home_and_an_administrator(hass: HomeAssistant, setup_integration, hass_ws_client, hass_read_only_access_token) -> None:
+    client = await hass_ws_client(hass)
+    await _save(client)
+    # A home ID never reaches the disk unchecked.
+    for home_id in ("../secrets", "unknown"):
+        response = await _linked(client, home_id=home_id)
+        assert response["success"] is False
+    reader = await hass_ws_client(hass, hass_read_only_access_token)
+    assert (await _linked(reader))["error"]["code"] == "unauthorized"
+    await reader.send_json_auto_id({"type": "homemanager/plan/linked/seen", "home_id": "home", "sha256": "a" * 64})
+    assert (await reader.receive_json())["error"]["code"] == "unauthorized"
+    await client.send_json_auto_id({"type": "homemanager/plan/linked/seen", "home_id": "home", "sha256": "not-a-digest"})
+    assert (await client.receive_json())["success"] is False
+
+
+async def test_a_settled_version_survives_saves_and_restarts_without_a_new_revision(hass: HomeAssistant, setup_integration, hass_ws_client, hass_storage) -> None:
+    client = await hass_ws_client(hass)
+    await _save(client)
+    digest = "a" * 64
+    await client.send_json_auto_id({"type": "homemanager/plan/linked/seen", "home_id": "home", "sha256": digest})
+    assert (await client.receive_json())["success"]
+    await client.send_json_auto_id({"type": "homemanager/home/get", "home_id": "home"})
+    assert (await client.receive_json())["result"]["revision"] == 1
+    assert (await _save(client, expected=1, value=configuration(label="Otra")))["success"]
+    assert (await _linked(client))["result"]["seen_sha256"] == digest
+    assert hass_storage[STORAGE_KEY]["data"]["homes"]["home"]["linked_seen"] == digest
+    assert await hass.config_entries.async_unload(setup_integration.entry_id)
+    assert await hass.config_entries.async_setup(setup_integration.entry_id)
+    await hass.async_block_till_done()
+    client = await hass_ws_client(hass)
+    assert (await _linked(client))["result"]["seen_sha256"] == digest

@@ -5,7 +5,7 @@ from __future__ import annotations
 DOMAIN = "homemanager"
 
 STORAGE_VERSION = 1
-STORAGE_MINOR_VERSION = 2
+STORAGE_MINOR_VERSION = 3
 STORAGE_KEY = "homemanager.homes"
 PLAN_STORAGE_KEY_PREFIX = "homemanager.plans."
 
@@ -13,6 +13,9 @@ PLAN_STORAGE_KEY_PREFIX = "homemanager.plans."
 # sent to every viewer over the websocket, whose frames are limited to 4 MiB.
 MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024
 MAX_PLAN_BYTES = 1024 * 1024
+# A drawing as it comes from a program, before sanitizing, must still fit a websocket frame.
+MAX_LINKED_PLAN_BYTES = 3 * 1024 * 1024
+LINKED_PLAN_FOLDER = "homemanager"
 MAX_HOMES = 20
 MAX_PLAN_HISTORY = 10
 MAX_TITLE_LENGTH = 240

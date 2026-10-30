@@ -39,6 +39,9 @@ async function setup(page) {
       homes,
       calls,
       retained,
+      /** The drawing file kept in the config folder, and the last version settled per home. */
+      file: null,
+      seen: new Map(),
       base: v2(original.configuration),
       put(id, configuration, title = null) {
         const revision = (homes.get(id)?.revision ?? 0) + 1;
@@ -62,6 +65,20 @@ async function setup(page) {
           if (message.confirm !== true || homes.has(message.home_id)) throw fail('home_in_use', 'Home is active');
           retained.delete(message.home_id);
           return {};
+        case 'homemanager/plan/linked': {
+          if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
+          const common = {
+            path: `/config/homemanager/${message.home_id}.svg`,
+            seen_sha256: server.seen.get(message.home_id) ?? null,
+          };
+          if (!server.file) return { ...common, state: 'missing' };
+          const { content, ...about } = server.file;
+          return { ...common, state: 'ready', ...about, ...(message.content ? { content } : {}) };
+        }
+        case 'homemanager/plan/linked/seen':
+          if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
+          server.seen.set(message.home_id, message.sha256);
+          return null;
         case 'homemanager/homes':
           return { homes: [...homes].map(([id, item]) => summary(id, item)) };
         case 'homemanager/home/get':
@@ -341,4 +358,168 @@ test('storage maintenance requires explicit confirmation before purging retained
   await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Eliminar historial', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => window.homeServer.retained.has('deleted-home'))).toBe(false);
+});
+
+// Synthetic drawings: the same plan with a mark that changes no zone, and without a zone.
+const decorated = () =>
+  window.homeServer.base.architecture.content.replace(
+    '</svg>',
+    '<rect x="1" y="1" width="2" height="2" fill="#abcdef"/></svg>',
+  );
+const SHA_A = 'a'.repeat(64);
+const SHA_B = 'b'.repeat(64);
+const openHome = async page => {
+  await setup(page);
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base, 'Casa');
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
+  });
+  await expect(card(page).getByRole('button', { name: 'Luz de prueba', exact: true })).toBeVisible();
+};
+/** The panel looks once a minute; a test does not wait for it. */
+const look = page => page.evaluate(() => window.testHarness.card.checkLinkedPlan(true));
+const putFile = (page, sha, change) =>
+  page.evaluate(
+    ([sha, change]) => {
+      const content = new Function('plan', change)(window.homeServer.base.architecture.content);
+      window.homeServer.file = {
+        content,
+        sha256: sha,
+        bytes: content.length,
+        modified_at: '2026-10-31T00:00:00+00:00',
+      };
+    },
+    [sha, change],
+  );
+const stored = page => page.evaluate(() => window.homeServer.homes.get('casa'));
+const seen = page => page.evaluate(() => window.homeServer.seen.get('casa') ?? null);
+const note = page => card(page).locator('.linked-note');
+const DECORATE = `return plan.replace('</svg>', '<rect x="1" y="1" width="2" height="2" fill="#abcdef"/></svg>');`;
+const NO_ZONE = `return plan.replace(/id="room-office"/, 'id="part-office"');`;
+const BIGGER = `return plan.replace(/viewBox="[^"]+"/, 'viewBox="0 0 3000 3000"');`;
+
+test('a new drawing that changes no space applies by itself, once, and one tap undoes it', async ({ page }) => {
+  await openHome(page);
+  const before = (await stored(page)).configuration;
+  await look(page);
+  await expect(note(page)).toBeHidden();
+  await putFile(page, SHA_A, DECORATE);
+  await look(page);
+  await expect(note(page)).toContainText('se actualizó desde su archivo');
+  const applied = await stored(page);
+  expect(applied.revision).toBe(2);
+  expect(applied.configuration.architecture.content).toContain('abcdef');
+  expect(applied.configuration.catalog.devices).toEqual(before.catalog.devices);
+  expect(await seen(page)).toBe(SHA_A);
+  await expect(card(page).locator('.architecture')).toBeVisible();
+  // The same file is not applied again.
+  await look(page);
+  expect((await stored(page)).revision).toBe(2);
+  await note(page).getByRole('button', { name: 'Deshacer', exact: true }).click();
+  await expect(note(page)).toBeHidden();
+  expect((await stored(page)).configuration.architecture.content).not.toContain('abcdef');
+  expect((await stored(page)).revision).toBe(3);
+  // Undone means undone: the file stays there, and is not applied over it.
+  await look(page);
+  expect((await stored(page)).revision).toBe(3);
+  await expect(note(page)).toBeHidden();
+});
+
+for (const [name, change] of [
+  ['takes a space away', NO_ZONE],
+  ['changes the coordinates', BIGGER],
+]) {
+  test(`a drawing that ${name} asks first, and nothing changes until it is saved`, async ({ page }) => {
+    await openHome(page);
+    const before = await stored(page);
+    await putFile(page, SHA_A, change);
+    await look(page);
+    await expect(note(page)).toContainText('afecta espacios o dispositivos');
+    expect(await stored(page)).toEqual(before);
+    expect(await seen(page)).toBe(null);
+    // Asked once per version, not once a minute.
+    await look(page);
+    await expect(note(page)).toHaveCount(1);
+    await note(page).getByRole('button', { name: 'Ignorar esta versión', exact: true }).click();
+    await expect(note(page)).toBeHidden();
+    expect(await stored(page)).toEqual(before);
+    expect(await seen(page)).toBe(SHA_A);
+    await look(page);
+    await expect(note(page)).toBeHidden();
+    // A later version asks again.
+    await putFile(page, SHA_B, change);
+    await look(page);
+    await expect(note(page)).toBeVisible();
+  });
+}
+
+test('Revisar takes a conflicting drawing through the import review, and saving settles it', async ({ page }) => {
+  await openHome(page);
+  await putFile(page, SHA_A, NO_ZONE);
+  await look(page);
+  await note(page).getByRole('button', { name: 'Revisar', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  await expect(review).toBeVisible();
+  await expect(note(page)).toBeHidden();
+  await review.getByRole('button', { name: 'Importar sólo el plano', exact: true }).click();
+  // Reviewed but not saved: the version is still open.
+  expect(await seen(page)).toBe(null);
+  await card(page).locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  await expect(card(page).locator('.shell > .status')).toContainText('Guardado');
+  expect((await stored(page)).configuration.architecture.content).toContain('part-office');
+  await expect.poll(() => seen(page)).toBe(SHA_A);
+});
+
+test('a file that is not a drawing changes nothing, says so, and stays closed', async ({ page }) => {
+  await openHome(page);
+  const before = await stored(page);
+  await putFile(page, SHA_A, `return 'esto no es un dibujo';`);
+  await look(page);
+  await expect(note(page)).toContainText('no se pudo usar');
+  expect(await stored(page)).toEqual(before);
+  await note(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await look(page);
+  await expect(note(page)).toBeHidden();
+});
+
+test('nobody but an administrator looks at the file, and never while editing', async ({ page }) => {
+  await openHome(page);
+  await putFile(page, SHA_A, DECORATE);
+  await page.evaluate(() => {
+    window.homeServer.calls.length = 0;
+    window.testHarness.hass.user.is_admin = false;
+  });
+  await look(page);
+  const linkedCalls = () =>
+    page.evaluate(() => window.homeServer.calls.filter(call => call.type.startsWith('homemanager/plan/linked')).length);
+  expect(await linkedCalls()).toBe(0);
+  await page.evaluate(() => {
+    window.testHarness.hass.user.is_admin = true;
+  });
+  await card(page).locator('.hm-menu > summary').click();
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).waitFor();
+  await look(page);
+  expect(await linkedCalls()).toBe(0);
+  expect((await stored(page)).revision).toBe(1);
+});
+
+test('plan settings say where the file goes and offer a version that is still open', async ({ page }) => {
+  await openHome(page);
+  await card(page).locator('.hm-menu > summary').click();
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  const editor = card(page).locator('homemanager-editor');
+  await editor.locator('[data-settings="import-section"]').click();
+  const box = editor.locator('.linked-box');
+  await expect(box).toContainText('/config/homemanager/casa.svg');
+  await expect(box).toContainText('Todavía no hay ningún archivo');
+  await putFile(page, SHA_A, NO_ZONE);
+  await editor.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await editor.locator('[data-settings="import-section"]').click();
+  await expect(box).toContainText('sin aplicar');
+  await box.getByRole('button', { name: 'Revisar', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Revisar cambios', exact: true })).toBeVisible();
 });
