@@ -13,7 +13,7 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
   if (event.button !== 0 || this.saving) return;
   const target = event.target as Element;
   // Floating controls inside the plan keep their own clicks (no pan capture).
-  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note')) return;
+  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer')) return;
   // Pinned controls keep their own gestures (a slider drags, not the plan).
   if (!this.editing && target.closest('.pins')) return;
   const p = this.point(event);
@@ -57,7 +57,7 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
     marker.classList.add('dragging');
   } else if (this.pointers.size === 2) {
     this.beginPinch();
-  } else this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera } };
+  } else this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera }, at: performance.now() };
   this.viewport.setPointerCapture(event.pointerId);
 }
 
@@ -117,7 +117,9 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
   if (g?.kind === 'pan' && this.pointers.size === 1) {
     const p = this.point(event);
     const still = Math.hypot(p.x - g.x, p.y - g.y) < 6;
-    if (still && this.placing) this.place(this.placing, p);
+    if (!still && this.swipeNav({ x: p.x - g.x, y: p.y - g.y }, performance.now() - g.at)) {
+      // A swipe in room view travels (or bounces); it is not a pan.
+    } else if (still && this.placing) this.place(this.placing, p);
     else if (still) {
       const now = performance.now();
       if (
@@ -129,7 +131,7 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
         this.currentRoom = null;
         this.moveCamera(zoomCamera(this.camera, 1.8, p, this.baseScale * 0.5, this.baseScale * 16));
       } else this.lastTap = { time: now, x: p.x, y: p.y };
-    }
+    } else if (this.roomView) this.settleRoom();
   }
   this.pointers.delete(event.pointerId);
   if (this.viewport.hasPointerCapture(event.pointerId)) this.viewport.releasePointerCapture(event.pointerId);
@@ -155,7 +157,7 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
   if (g?.kind === 'device') this.frameAboveSheet();
   if (this.pointers.size === 1) {
     const p = [...this.pointers.values()][0];
-    this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera } };
+    this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera }, at: 0 };
   }
 }
 
@@ -332,6 +334,7 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     this.fit(null);
   } else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
     event.preventDefault();
+    if (this.keyNav(event.key)) return;
     this.camera.x += event.key === 'ArrowLeft' ? shift : event.key === 'ArrowRight' ? -shift : 0;
     this.camera.y += event.key === 'ArrowUp' ? shift : event.key === 'ArrowDown' ? -shift : 0;
     this.queuePosition();

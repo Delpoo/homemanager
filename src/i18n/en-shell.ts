@@ -137,4 +137,11 @@ export const enShell: Record<string, string> = {
   Valor: 'Value',
   'Los dos': 'Both',
   'Qué muestra el símbolo': 'What the symbol shows',
+  'Vista por espacio': 'Room view',
+  'Navegación por espacios': 'Room navigation',
+  Flechas: 'Arrows',
+  Deslizar: 'Swipe',
+  'Ir a {room}': 'Go to {room}',
+  'Tirá de la flecha hacia atrás para ir a {room}.': 'Pull the arrow back to go to {room}.',
+  'Este plano todavía no tiene espacios con zona o forma.': 'This plan has no spaces with a zone or shape yet.',
 };
