@@ -128,6 +128,16 @@ test('0.7 presentation fields are optional, preserve 0.6 documents and round-tri
   assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.archetype.enum, SYMBOL_ARCHETYPES);
   assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.show.enum, SYMBOL_SHOW);
   assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.category.enum, DEVICE_CATEGORIES);
+  for (const room of [
+    { shape: { x: 0, y: 0, width: 1, height: 1 } },
+    { shape: { x: 0.25, y: 0.5, width: 0.5, height: 0.25 }, shapeSource: 'svg' },
+    { shape: { x: 0.1, y: 0.1, width: 0.2, height: 0.3 }, shapeSource: 'app' },
+  ]) {
+    const configuration = make();
+    Object.assign(configuration.rooms[0], room);
+    assert.deepEqual(assertConfiguration(configuration), configuration);
+    assert(schema(configuration), JSON.stringify(schema.errors));
+  }
   for (const category of DEVICE_CATEGORIES) {
     const configuration = make();
     Object.assign(configuration.catalog.devices[0].display, { category, archetype: 'actuator', show: 'icon' });
@@ -464,5 +474,25 @@ test('device controls, the tap, pinned controls and the symbol size are optional
     assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify([bindings, display]));
     // Counts per type and references between fields are semantic: only some cases are schema errors.
     if (bySchema) assert.equal(schema(bad), false, JSON.stringify([bindings, display]));
+  }
+});
+
+test('a space shape is a rectangle with an area inside the plan, and its source needs it', () => {
+  const invalid = [
+    { shape: null },
+    { shape: { x: 0, y: 0, width: 0, height: 0.5 } },
+    { shape: { x: 0.6, y: 0, width: 0.5, height: 0.5 } },
+    { shape: { x: 0, y: 0.9, width: 0.5, height: 0.2 } },
+    { shape: { x: -0.1, y: 0, width: 0.5, height: 0.5 } },
+    { shape: { x: 0, y: 0, width: 0.5, height: 0.5, kind: 'rect' } },
+    { shape: { x: 0, y: 0, width: '0.5', height: 0.5 } },
+    { shape: { x: 0, y: 0, width: 0.5 } },
+    { shapeSource: 'svg' },
+    { shape: { x: 0, y: 0, width: 0.5, height: 0.5 }, shapeSource: 'user' },
+  ];
+  for (const room of invalid) {
+    const configuration = make();
+    Object.assign(configuration.rooms[0], room);
+    assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify(room));
   }
 });

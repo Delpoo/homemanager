@@ -19,6 +19,7 @@ export const SYMBOL_SIZES: readonly SymbolSize[];
 export const SYMBOL_ARCHETYPES: readonly SymbolArchetype[];
 export const SYMBOL_SHOW: readonly SymbolShow[];
 export const DEVICE_CATEGORIES: readonly DeviceCategory[];
+export const ROOM_SHAPE_SOURCES: readonly ('svg' | 'app')[];
 export interface ConfigurationIssue {
   path: string;
   code: string;

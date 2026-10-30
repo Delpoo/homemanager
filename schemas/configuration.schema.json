@@ -72,8 +72,22 @@
       "properties": {
         "id": { "$ref": "catalog.schema.json#/$defs/roomId" },
         "label": { "$ref": "catalog.schema.json#/$defs/text" },
-        "icon": { "$ref": "catalog.schema.json#/$defs/mdiIcon", "$comment": "Optional MDI icon for the space rail." }
-      }
+        "icon": { "$ref": "catalog.schema.json#/$defs/mdiIcon", "$comment": "Optional MDI icon for the space rail." },
+        "shape": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          },
+          "$comment": "D22: the space's own rectangle, normalized to the plan. x + width and y + height stay within 1 (semantic rule)."
+        },
+        "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." }
+      },
+      "dependentRequired": { "shapeSource": ["shape"] }
     },
     "mapKey": {
       "allOf": [

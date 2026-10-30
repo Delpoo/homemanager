@@ -93,6 +93,35 @@ def test_09_category_round_trips(category: str) -> None:
     assert validate_configuration(value) == value
 
 
+@pytest.mark.parametrize("room", [
+    {"shape": {"x": 0, "y": 0, "width": 1, "height": 1}},
+    {"shape": {"x": 0.25, "y": 0.5, "width": 0.5, "height": 0.25}, "shapeSource": "svg"},
+    {"shape": {"x": 0.1, "y": 0.1, "width": 0.2, "height": 0.3}, "shapeSource": "app"},
+])
+def test_09_room_shape_round_trips(room: dict) -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update(room)
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("room", [
+    {"shape": None},
+    {"shape": {"x": 0, "y": 0, "width": 0, "height": 0.5}},
+    {"shape": {"x": 0.6, "y": 0, "width": 0.5, "height": 0.5}},
+    {"shape": {"x": -0.1, "y": 0, "width": 0.5, "height": 0.5}},
+    {"shape": {"x": 0, "y": 0, "width": 0.5, "height": 0.5, "kind": "rect"}},
+    {"shape": {"x": 0, "y": 0, "width": True, "height": 0.5}},
+    {"shapeSource": "svg"},
+    {"shape": {"x": 0, "y": 0, "width": 0.5, "height": 0.5}, "shapeSource": "user"},
+])
+def test_09_room_shape_rejects_invalid_values(room: dict) -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update(room)
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
 @pytest.mark.parametrize("category", [None, False, 1, [], {}, "", "Switch", "actuator", "planta", "plant\n"])
 def test_09_category_rejects_unknown_values(category) -> None:
     value = presentation_configuration()

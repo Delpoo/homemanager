@@ -283,6 +283,13 @@ test('import summary distinguishes new/deleted/changed icons and excludes live s
   assert.equal(summary.architectureChanged, true);
   assert.deepEqual(summarizeImport(after, before).removed, ['new-device']);
 });
+test('renaming a space keeps its own shape and where it came from (D22)', () => {
+  const shape = { x: 0.1, y: 0.2, width: 0.3, height: 0.4 };
+  let config = upsertRoom(configuration(), { id: 'attic', label: 'Attic', shape, shapeSource: 'app' });
+  config = upsertRoom(config, { id: 'attic', label: 'Loft', icon: 'mdi:sofa' }, { previousId: 'attic' });
+  assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Loft', icon: 'mdi:sofa', shape, shapeSource: 'app' });
+  assert.notEqual(config.rooms.at(-1).shape, shape);
+});
 test('spaces are created, renamed, reordered and removed without touching devices or bindings', () => {
   let config = upsertRoom(configuration(), { id: 'attic', label: '  Attic  ' });
   assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Attic' });

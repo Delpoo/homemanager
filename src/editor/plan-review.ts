@@ -1,35 +1,58 @@
 import { t } from '../i18n/index.js';
-import { detectZones, roomsAt, sanitizeArchitecture } from '../card/geometry.js';
+import { detectZones, roomsAt, sanitizeArchitecture, zoneShapes } from '../card/geometry.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
+import { ownsShape, shapeContains, withZoneShapes } from '../model/room-shapes.js';
 
 /** Hit testing needs mounted SVG coordinate matrices; the model only receives IDs. */
-export function reportForPlan(configuration: Configuration): PlanImportReport {
-  const { svg, box } = sanitizeArchitecture(configuration.architecture.content),
-    zones = detectZones(svg);
+function mounted<T>(configuration: Configuration, read: (plan: ReturnType<typeof sanitizeArchitecture>) => T): T {
+  const plan = sanitizeArchitecture(configuration.architecture.content);
   const host = document.createElement('div');
-  host.style.cssText = `position:fixed;left:-100000px;top:0;width:${box.width}px;height:${box.height}px;opacity:0;pointer-events:none`;
-  host.append(svg);
+  host.style.cssText = `position:fixed;left:-100000px;top:0;width:${plan.box.width}px;height:${plan.box.height}px;opacity:0;pointer-events:none`;
+  host.append(plan.svg);
   document.body.append(host);
   try {
+    return read(plan);
+  } finally {
+    host.remove();
+  }
+}
+/** Spaces with their own shape (D22) answer by it and are never left without a zone. */
+export function reportForPlan(configuration: Configuration): PlanImportReport {
+  return mounted(configuration, ({ svg, box }) => {
+    const zones = detectZones(svg);
+    const shaped = configuration.rooms.filter(
+      room => room.shape && (ownsShape(room) || !zones.some(zone => zone.id === room.id)),
+    );
+    const zoneIds = zones.map(zone => zone.id).filter(id => !shaped.some(room => room.id === id));
     return planImportReport(
       configuration,
       Object.fromEntries(
         configuration.catalog.devices.map(device => [
           device.id,
-          roomsAt(
-            svg,
-            device.position,
-            box,
-            zones.map(zone => zone.id),
-          ),
+          [
+            ...roomsAt(svg, device.position, box, zoneIds),
+            ...shaped.filter(room => shapeContains(room.shape!, device.position)).map(room => room.id),
+          ],
         ]),
       ),
-      zones,
+      [...zones.filter(zone => zoneIds.includes(zone.id)), ...shaped.map(room => ({ id: room.id, label: room.label }))],
     );
-  } finally {
-    host.remove();
-  }
+  });
+}
+/** After an import, every space that follows the SVG keeps a copy of its zone (D22). */
+export function withPlanShapes(configuration: Configuration): Configuration {
+  return mounted(configuration, ({ svg, box }) => ({
+    ...configuration,
+    rooms: withZoneShapes(
+      configuration.rooms,
+      zoneShapes(
+        svg,
+        box,
+        configuration.rooms.map(room => room.id),
+      ),
+    ),
+  }));
 }
 export function hasPlanChanges(report: PlanImportReport): boolean {
   return Object.values(report).some(items => items.length > 0);
