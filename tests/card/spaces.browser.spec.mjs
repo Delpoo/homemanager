@@ -78,9 +78,7 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
   await begin(page);
   const upload = async () => {
     await button(page, 'Ajustes del plano').click();
-    await editor(page)
-      .locator('#import-section')
-      .evaluate(node => (node.open = true));
+    await editor(page).locator('[data-settings="import-section"]').click();
     const svg = (await draft(page)).architecture.content;
     await editor(page)
       .getByLabel('Importar JSON o SVG', { exact: true })
@@ -102,4 +100,37 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
   const taken = await office();
   expect(taken.shapeSource).toBe('svg');
   expect(taken.shape).not.toEqual(drawn);
+});
+
+test('plan settings list the spaces: reorder with the keyboard or by dragging, open one, or draw a new one', async ({
+  page,
+}) => {
+  await begin(page);
+  await button(page, 'Ajustes del plano').click();
+  const settings = editor(page).getByRole('dialog', { name: 'Ajustes del plano' });
+  const ids = async () => (await draft(page)).rooms.map(room => room.id);
+  const first = (await draft(page)).rooms[0];
+  await settings.getByRole('button', { name: `Mover ${first.label}: flechas arriba y abajo`, exact: true }).focus();
+  await page.keyboard.press('ArrowDown');
+  expect(await ids()).toEqual(['kitchen', 'living', 'office']);
+  // Dragging the last grip to the top.
+  const grips = settings.locator('[data-room-grip]');
+  const last = await grips.nth(2).boundingBox();
+  const top = await grips.nth(0).boundingBox();
+  await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(top.x + top.width / 2, top.y + 2, { steps: 6 });
+  await page.mouse.up();
+  expect(await ids()).toEqual(['office', 'kitchen', 'living']);
+  const office = (await draft(page)).rooms[0].label;
+  await settings.getByRole('button', { name: `Editar ${office}`, exact: true }).click();
+  await expect(editor(page).getByRole('dialog', { name: office, exact: true })).toBeVisible();
+  await editor(page)
+    .getByRole('dialog', { name: office, exact: true })
+    .getByRole('button', { name: 'Cancelar', exact: true })
+    .click();
+  await settings.getByRole('button', { name: 'Nuevo espacio', exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  await draw(page, 'Garaje');
+  expect(await ids()).toEqual(['office', 'kitchen', 'living', 'garaje']);
 });
