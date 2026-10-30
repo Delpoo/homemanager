@@ -395,40 +395,6 @@ export interface ImportSummary {
   roomsAdded: string[];
   roomsRemoved: string[];
 }
-/** What a whole-home JSON would take away from what is saved now. An old copy looks harmless until it is applied. */
-export interface ImportLosses {
-  /** Labels of devices that would lose a link they have now, or disappear with it. */
-  unlinked: string[];
-  /** Labels of devices that would lose their alert rules. */
-  alerts: string[];
-  actions: number;
-  panels: number;
-  /** Labels of spaces this file brings that the plan does not have now. */
-  roomsBack: string[];
-}
-const filled = (value: unknown): boolean =>
-  Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== '';
-export function importLosses(before: Configuration, after: Configuration): ImportLosses {
-  const incoming = new Map(after.catalog.devices.map(device => [device.id, device]));
-  const gone = (old: Record<string, unknown>, next: Record<string, unknown>) =>
-    Object.keys(old).filter(key => !Object.hasOwn(next, key)).length;
-  return {
-    unlinked: before.catalog.devices
-      .filter(device => {
-        const next = incoming.get(device.id)?.bindings as Record<string, unknown> | undefined;
-        return Object.entries(device.bindings).some(([key, value]) => filled(value) && !filled(next?.[key]));
-      })
-      .map(device => device.display.label),
-    alerts: before.catalog.devices
-      .filter(device => device.display.alerts?.length && !incoming.get(device.id)?.display.alerts?.length)
-      .map(device => device.display.label),
-    actions: gone(before.actions, after.actions),
-    panels: gone(before.panels, after.panels),
-    roomsBack: after.rooms.filter(room => !before.rooms.some(old => old.id === room.id)).map(room => room.label),
-  };
-}
-export const losesData = (losses: ImportLosses): boolean =>
-  !!(losses.unlinked.length || losses.alerts.length || losses.actions || losses.panels || losses.roomsBack.length);
 export function summarizeImport(before: Configuration, after: Configuration): ImportSummary {
   const previous = new Map(before.catalog.devices.map(device => [device.id, device]));
   const incoming = new Map(after.catalog.devices.map(device => [device.id, device]));

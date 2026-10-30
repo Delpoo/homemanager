@@ -32,8 +32,6 @@ import {
   removeDevice,
   removeRoom,
   summarizeImport,
-  importLosses,
-  losesData,
   upsertAction,
   upsertDevice,
   upsertPanel,
@@ -114,15 +112,6 @@ function value(form: FormData, name: string): string {
   return (item ?? '').trim();
 }
 
-/** A whole-home JSON replaces what is saved; say what would go before it can be applied. */
-function importLossNote(losses: ReturnType<typeof importLosses>): string {
-  if (!losesData(losses)) return '';
-  const line = (text: string, names: readonly string[]) =>
-    names.length ? `<li>${esc(text)}: ${names.map(esc).join(', ')}</li>` : '';
-  const count = (text: string, value: number) => (value ? `<li>${esc(text)}: ${value}</li>` : '');
-  return `<div class="note pending import-losses"><strong>${esc(t('Este archivo reemplaza todo el hogar, no sólo el dibujo.'))}</strong><ul>${line(t('Perderían su vínculo con Home Assistant'), losses.unlinked)}${line(t('Perderían sus avisos'), losses.alerts)}${count(t('Acciones que se pierden'), losses.actions)}${count(t('Paneles que se pierden'), losses.panels)}${line(t('Espacios que aparecen'), losses.roomsBack)}</ul><p>${esc(t('Para cambiar sólo el dibujo, importá el SVG. Para aplicar este archivo, exportá antes una copia actual.'))}</p></div>`;
-}
-
 /** Configuration-only editor. It never calls an HA action or interprets an imported command. */
 /** New devices without an entity get a kind that matches their category. */
 const CATEGORY_KIND: Record<Category, Device['kind']> = {
@@ -165,7 +154,6 @@ export class HomeManagerEditor extends HTMLElement {
   private imported?: {
     configuration: Configuration;
     summary: ReturnType<typeof summarizeImport>;
-    losses: ReturnType<typeof importLosses>;
     viewBoxChanged: boolean;
     backedUp: boolean;
     from: Box;
@@ -972,7 +960,7 @@ export class HomeManagerEditor extends HTMLElement {
       this.homeId && integrationAvailable(this._hass)
         ? `<div class="plans-box">${this.plans ? (this.plans.length ? `<div class="plans">${this.plans.map(plan => `<div class="plan"><span>${esc(new Date(plan.created_at).toLocaleString(getLanguage()))} · ${esc(t('revisión {n}', { n: plan.revision }))} · ${Math.ceil(plan.bytes / 1024)} KiB</span><button type="button" data-command="restore-plan" data-plan="${esc(plan.plan_id)}">${esc(t('Restaurar'))}</button></div>`).join('')}</div>` : `<p class="note">${esc(t('Todavía no hay planos anteriores.'))}</p>`) : `<button type="button" data-command="plans">${esc(t('Planos anteriores'))}</button>`}</div>`
         : '';
-    return `${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${importLossNote(imported.losses)}${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${(imported.viewBoxChanged || losesData(imported.losses)) && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
+    return `${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${imported.viewBoxChanged && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
   }
   private captureRows(): NativePanel['controls'] {
     const form = this.root.querySelector<HTMLFormElement>('#panel-form');
@@ -1449,7 +1437,6 @@ export class HomeManagerEditor extends HTMLElement {
       this.imported = {
         configuration: clean,
         summary: summarizeImport(this.configuration, clean),
-        losses: importLosses(this.configuration, clean),
         // Only a plan replacement moves devices: a JSON export already carries
         // positions that belong to its own plan and must be applied unchanged.
         viewBoxChanged,

@@ -115,11 +115,3 @@ Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. La pantal
 ## D22 — Espacios propios de la app y vista por espacio
 
 **Aprobada por el propietario el 30/10/2026.** Cada espacio tiene una forma propia (`rooms[].shape`), copiada de la zona del SVG al importarlo o dibujada en la app. Un SVG nuevo nunca la pisa, y un SVG sin zonas también sirve. Sobre esas formas, una **vista por espacio** encuadra un espacio al 100 % y navega con flechas que apuntan al centro de cada destino: mantener muestra el nombre, tirar viaja y deslizar empuja el plano. Flechas y deslizar se activan por separado. Detalle: [vision.md §13–§14](vision.md#13-vista-por-espacio).
-
-## D23 — Home Assistant es la única verdad del hogar
-
-**Decisión del propietario del 30/10/2026; se aplica en la etapa 3 de 0.10.** Lo que se ve y se guarda vive en Home Assistant, y sus copias de seguridad lo incluyen. Un usuario trae una sola cosa de afuera: el dibujo de su casa. Un catálogo o una configuración en un repositorio no son una fuente: sirven de referencia y envejecen.
-
-- Importar un **SVG** sólo cambia el dibujo y conserva dispositivos, vínculos y acciones.
-- Importar un **JSON** reemplaza todo el hogar. Si eso quita vínculos, avisos, acciones o paneles, o trae espacios que hoy no están, la vista previa lo dice y no se puede aplicar sin exportar antes una copia actual.
-- *Exportar JSON* es una copia de respaldo, no un formato de trabajo.

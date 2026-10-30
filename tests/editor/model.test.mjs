@@ -3,8 +3,6 @@ globalThis.__homemanagerLanguage = 'es';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  importLosses,
-  losesData,
   moveRoom,
   newDeviceId,
   pendingReferences,
@@ -398,42 +396,4 @@ test('renaming a zone keeps its merged rectangles; dropping its shape drops them
     { previousId: 'attic' },
   );
   assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Loft' });
-});
-
-test('an old whole-home file says what it would take away: links, alerts, actions, panels, and spaces it brings back', () => {
-  const linked = device('linked', {
-    bindings: { ...device().bindings, entityId: 'light.synthetic' },
-    display: {
-      label: 'Con vínculo',
-      icon: 'mdi:lightbulb',
-      alerts: [{ reading: 'state', above: 1, level: 'warning' }],
-    },
-  });
-  const now = upsertDevice(configuration(), linked);
-  now.actions = { 'synthetic-on': {} };
-  now.panels = { 'synthetic-panel': {} };
-  assert.equal(losesData(importLosses(now, structuredClone(now))), false);
-  // A new link or a changed one is not a loss.
-  const relinked = structuredClone(now);
-  relinked.catalog.devices.at(-1).bindings.entityId = 'light.other';
-  assert.deepEqual(importLosses(now, relinked).unlinked, []);
-  const old = structuredClone(now);
-  const copy = old.catalog.devices.at(-1);
-  copy.bindings.entityId = null;
-  delete copy.display.alerts;
-  old.actions = {};
-  old.panels = {};
-  old.rooms.push({ id: 'vieja', label: 'Cuarto viejo' });
-  assert.deepEqual(importLosses(now, old), {
-    unlinked: ['Con vínculo'],
-    alerts: ['Con vínculo'],
-    actions: 1,
-    panels: 1,
-    roomsBack: ['Cuarto viejo'],
-  });
-  // Disappearing altogether also loses the link.
-  const without = structuredClone(now);
-  without.catalog.devices = without.catalog.devices.filter(item => item.id !== 'linked');
-  assert.deepEqual(importLosses(now, without).unlinked, ['Con vínculo']);
-  assert.equal(losesData(importLosses(now, without)), true);
 });
