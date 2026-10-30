@@ -2,6 +2,19 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.9.0-beta.3 — beta
+
+Tercera parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **editor de espacios** (D22).
+
+- En modo edición, tocar un espacio en la barra abre su ventana con:
+  - **Encuadre al 100 %**: Ajustado, Normal o Amplio, para la vista por espacio;
+  - **Saltear al navegar**: un espacio de paso, como un pasillo, no recibe flechas ni deslizamientos;
+  - **Flechas desde este espacio**: un interruptor por destino, para quitar las que sobran;
+  - **Editar forma en el plano**: un rectángulo con ocho tiradores, que también se mueve con el teclado; *Aplicar forma* o *Cancelar*, y se deshace con *Deshacer*;
+  - **Volver a la zona del SVG**, para un espacio dibujado a mano.
+- La vista por espacio respeta el encuadre, los espacios salteados y las flechas ocultas.
+- Campos opcionales `rooms[].frame` y `rooms[].nav`. Un plano anterior sigue igual.
+
 ## 0.9.0-beta.2 — beta
 
 Segunda parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **espacios propios y vista por espacio** (D22).
