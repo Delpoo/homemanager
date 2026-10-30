@@ -1,6 +1,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
-import { tokens } from './theme.js';
+import { installDialogComponents, panelDialog } from './panel-components.js';
+import { uiButton } from './components.js';
 
 /** Native modal confirmation: await the result, then mutate. Cancel is focused;
  * the browser traps focus and Esc cancels. The trigger is restored on close. */
@@ -12,7 +13,20 @@ export function confirmDialog(
   const dialog = document.createElement('dialog');
   dialog.setAttribute('aria-labelledby', 'hm-confirm-title');
   dialog.setAttribute('aria-describedby', 'hm-confirm-message');
-  dialog.innerHTML = `<style>${tokens}dialog{width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--hm-line);border-radius:20px;padding:24px;color:var(--hm-text);background:var(--hm-bg);box-shadow:var(--hm-shadow)}dialog::backdrop{background:#10251d77}h2{font-size:19px;margin:0 0 12px;overflow-wrap:anywhere}p{line-height:1.5;margin:0}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}.danger{background:var(--hm-error);border-color:var(--hm-error);color:var(--hm-on-accent)}</style><h2 id="hm-confirm-title">${e(options.title)}</h2><p id="hm-confirm-message">${e(options.message)}</p><div class="actions"><button type="button" autofocus>${e(t('Cancelar'))}</button><button type="button" class="danger">${e(options.confirm ?? t('Eliminar'))}</button></div>`;
+  installDialogComponents(host);
+  const markup = panelDialog(
+    options.title,
+    `<p id="hm-confirm-message">${e(options.message)}</p>`,
+    uiButton(t('Cancelar'), 'cancel') + uiButton(options.confirm ?? t('Eliminar'), 'confirm', 'danger solid-danger'),
+    { descriptionId: 'hm-confirm-message' },
+  );
+  const template = document.createElement('template');
+  template.innerHTML = markup;
+  dialog.className = 'k-dialog';
+  dialog.innerHTML = template.content.querySelector('dialog')!.innerHTML;
+  dialog.setAttribute('aria-labelledby', 'hm-panel-title');
+  dialog.querySelector('button')!.setAttribute('autofocus', '');
+
   return new Promise(resolve => {
     dialog.querySelector('button')!.onclick = () => dialog.close();
     dialog.querySelector<HTMLButtonElement>('.danger')!.onclick = () => dialog.close('confirmed');

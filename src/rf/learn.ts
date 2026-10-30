@@ -1,8 +1,9 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import { tokens } from '../ui/theme.js';
+import { installPanelComponents, panelIconAction } from '../ui/panel-components.js';
+import { rfLearnStyles, rfText } from '../ui/rf-components.js';
 import { ROLES, rf, type RfAbout, type RfCandidate, type RfRemote, type RfTransmitter } from '../integration/rf.js';
-import { BUTTON_ICONS, buttonSuggestions, icon, roleLabel } from './catalog.js';
+import { BUTTON_ICONS, buttonSuggestions, icon, roleLabel, iconLabel } from './catalog.js';
 
 /** Learning buttons, in any order. The receiver listens while this panel is
  * open; each code heard is shown as it arrives, with why it is or is not
@@ -28,43 +29,6 @@ const WINDOW_SECONDS = 60;
 // A "signal not recognised" notice stays this long after the last one.
 const NOISE_MS = 3000;
 
-const css = `${tokens}
-:host{display:block}
-.sheet{display:grid;gap:12px;padding:16px;border-radius:var(--hm-radius);border:2px solid color-mix(in srgb,var(--hm-accent) 40%,transparent);background:var(--hm-bg)}
-.head{display:flex;align-items:center;gap:8px}
-.head h3{margin:0;flex:1;font-size:16px}
-label{display:grid;gap:4px;font-size:13px;color:var(--hm-muted)}
-.listen{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--hm-surface)}
-.listen .text{flex:1;display:grid;gap:2px}
-.listen strong{font-size:15px}
-.pulse{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);flex:0 0 14px}
-.pulse.on{background:var(--hm-accent)}
-.pulse.ok{background:var(--hm-confirmed)}
-.pulse.warn{background:var(--hm-estimated)}
-@media (prefers-reduced-motion:no-preference){.pulse.on{animation:hm-pulse 1.2s ease-in-out infinite}}
-@keyframes hm-pulse{50%{opacity:.25;transform:scale(.7)}}
-.muted{color:var(--hm-muted);font-size:13px;margin:0;line-height:1.5}
-.code{display:grid;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--hm-line)}
-.badge{justify-self:start;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
-.badge.ok{background:color-mix(in srgb,var(--hm-confirmed) 18%,transparent);color:var(--hm-confirmed)}
-.badge.warn{background:color-mix(in srgb,var(--hm-estimated) 18%,transparent);color:var(--hm-estimated)}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
-.chips button{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:999px;font-size:13px}
-.chips button[aria-pressed=true]{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent)}
-.icons button{width:40px;padding:0}
-.icons ha-icon{--mdc-icon-size:20px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.row>*{flex:1 1 160px}
-.row>button{flex:0 0 auto}
-.question{display:grid;gap:8px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--hm-accent) 8%,transparent)}
-.question p{margin:0}
-.attempts{display:grid;gap:2px;font-size:12px;color:var(--hm-muted);margin:0;padding:0;list-style:none}
-.status{font-size:13px;line-height:1.5;margin:0}
-.status.error{color:var(--hm-error)}
-.status:empty{display:none}
-@media(max-width:600px){.row>button{flex:1 1 auto}}
-`;
-
 export class HomeManagerRfLearn extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   hass?: Hass;
@@ -89,6 +53,11 @@ export class HomeManagerRfLearn extends HTMLElement {
   private attempts: Attempt[] = [];
   private message = '';
   private failed = false;
+
+  constructor() {
+    super();
+    installPanelComponents(this.root, 'rf-learn', rfLearnStyles, false);
+  }
 
   /** Starts listening with this receiver. */
   start(receiver: string): void {
@@ -122,7 +91,7 @@ export class HomeManagerRfLearn extends HTMLElement {
   }
 
   private transmitterName(id: string): string {
-    return this.transmitters.find(item => item.id === id)?.name ?? id;
+    return rfText(this.transmitters.find(item => item.id === id)?.name, t('Receptor'));
   }
 
   private async capture(): Promise<void> {
@@ -169,7 +138,7 @@ export class HomeManagerRfLearn extends HTMLElement {
     this.failed = true;
     this.message =
       code === 'invalid_code'
-        ? t('Este código no encaja con los de este control (otro protocolo o largo). ¿Es del mismo control?')
+        ? t('Esta señal no coincide con las de este control. ¿Es del mismo control?')
         : code === 'candidate_not_found'
           ? t('La lectura venció. Pulsá el botón otra vez.')
           : message
@@ -190,11 +159,12 @@ export class HomeManagerRfLearn extends HTMLElement {
     const receivers = this.transmitters.filter(item => item.can_capture);
     const options = receivers
       .map(
-        item => `<option value="${e(item.id)}"${item.id === this.listen ? ' selected' : ''}>${e(item.name)}</option>`,
+        item =>
+          `<option value="${e(item.id)}"${item.id === this.listen ? ' selected' : ''}>${e(rfText(item.name))}</option>`,
       )
       .join('');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
-    this.root.innerHTML = `<style>${css}</style><section class="sheet" aria-labelledby="learn-title"><div class="head"><h3 id="learn-title">${e(t('Aprender botones'))}</h3><button type="button" data-command="close">${e(t('Listo'))}</button></div>
+    this.root.innerHTML = `<section class="sheet" aria-labelledby="learn-title"><div class="head"><h3 id="learn-title">${e(t('Aprender botones'))}</h3>${panelIconAction(t('Listo'), 'data-command="close"', 'mdi:check')}</div>
 <label>${e(t('Escucha'))}<select name="listen">${options}</select></label>
 ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</section>`;
     this.bind();
@@ -216,15 +186,15 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       detail = '';
     } else if (c?.confirmed) {
       dot = 'ok';
-      title = t('Código confirmado');
+      title = t('Señal reconocida');
       detail =
         c.confirmed_by === 'frames'
-          ? t('{frames} tramas iguales en una pulsación.', { frames: c.burst_frames })
-          : t('El mismo código en {bursts} pulsaciones.', { bursts: c.bursts });
+          ? t('{frames} señales iguales en una pulsación.', { frames: c.burst_frames })
+          : t('La misma señal en {bursts} pulsaciones.', { bursts: c.bursts });
     } else if (c) {
       dot = 'warn';
-      title = t('Recibido, falta confirmar');
-      detail = t('{frames} trama(s). Mantené pulsado un momento o pulsalo otra vez.', { frames: c.frames });
+      title = t('Recibido, falta repetir');
+      detail = t('{frames} señal(es). Mantené pulsado un momento o pulsalo otra vez.', { frames: c.frames });
     } else if (Date.now() - this.noiseAt < NOISE_MS) {
       dot = 'warn';
       title = t('Llega señal, pero no se reconoce');
@@ -240,7 +210,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
   private roleOptions(): string {
     const parts = this.remote?.parts ?? [];
     if (!parts.length) return '';
-    const name = (id: string) => this.remote?.buttons.find(button => button.id === id)?.name ?? id;
+    const name = (id: string) => this.remote?.buttons.find(button => button.id === id)?.name ?? t('Botón');
     const groups = parts
       .map(part => {
         const highest = Object.keys(part.roles).reduce(
@@ -258,7 +228,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
             return `<option value="${e(value)}"${value === this.assign ? ' selected' : ''}>${e(roleLabel(role) + now)}</option>`;
           })
           .join('');
-        return `<optgroup label="${e(part.name)}">${options}</optgroup>`;
+        return `<optgroup label="${e(rfText(part.name))}">${options}</optgroup>`;
       })
       .join('');
     return `<label>${e(t('En Home Assistant (opcional)'))}<select name="role"><option value="">${e(t('Botón suelto'))}</option>${groups}</select></label>`;
@@ -267,11 +237,11 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
   private renderCandidate(): string {
     const c = this.candidate!;
     const badge = c.confirmed
-      ? `<span class="badge ok">✓ ${e(t('Confirmado'))}</span>`
+      ? `<span class="badge ok">✓ ${e(t('Lista para aprender'))}</span>`
       : `<span class="badge warn">${e(t('Sin confirmar'))}</span>`;
-    const details = `<p class="muted">${e(t('Protocolo {protocol} · {bits} bits · pulso medido de la señal: {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p>`;
+    const details = `<details class="signal-details"><summary>${e(t('Detalles de la señal'))}</summary><p class="muted">${e(t('Tipo {protocol} · tamaño {bits} · pulso medido de la señal: {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p></details>`;
     const known = c.known_as.length
-      ? `<p class="muted">${e(t('Ya está guardado como: {names}', { names: c.known_as.join(', ') }))}</p>`
+      ? `<p class="muted">${e(t('Ya está guardado como: {names}', { names: c.known_as.map(value => rfText(value)).join(', ') }))}</p>`
       : '';
     if (!c.confirmed) return `<div class="code">${badge}${details}${known}</div>`;
     const suggestions = buttonSuggestions()
@@ -282,7 +252,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       .join('');
     const icons = BUTTON_ICONS.map(
       glyph =>
-        `<button type="button" data-glyph="${e(glyph)}" aria-pressed="${glyph === this.glyph}" aria-label="${e(glyph.slice(4))}" title="${e(glyph.slice(4))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
+        `<button type="button" data-glyph="${e(glyph)}" aria-pressed="${glyph === this.glyph}" aria-label="${e(iconLabel(glyph))}" title="${e(iconLabel(glyph))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
     ).join('');
     const form = `<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label>
 <div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>
@@ -406,7 +376,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       ...this.transmitters.map(item => ({
         ...base,
         transmitter: item.id,
-        reason: t('Otro transmisor: {name}', { name: item.name }),
+        reason: t('Otro transmisor: {name}', { name: rfText(item.name) }),
       })),
       { ...base, pulse_us: base.pulse_us + 50, reason: t('Pulso más largo (+50 µs)') },
       { ...base, pulse_us: Math.max(50, base.pulse_us - 50), reason: t('Pulso más corto (−50 µs)') },
@@ -415,7 +385,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
         ...base,
         transmitter: item.id,
         repeats: 10,
-        reason: t('{name} con más repeticiones', { name: item.name }),
+        reason: t('{name} con más repeticiones', { name: rfText(item.name) }),
       })),
     ];
     const next = variants.find(item => !tried(item));

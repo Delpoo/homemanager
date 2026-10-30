@@ -3,201 +3,29 @@ import { test, expect } from '@playwright/test';
 // Synthetic stand-in for the RF websocket API of custom_components/homemanager
 // (rf_websocket.py, exercised against real HA in tests/integration/test_rf.py).
 // No code ever travels: captures are candidate ids, buttons fingerprints.
-async function setup(page, { remotes = [] } = {}) {
-  await page.goto('/tests/browser/fixtures/card.html');
-  await page.waitForFunction(() => window.testHarnessReady);
-  await page.evaluate(async initial => {
-    const { hass } = window.testHarness;
-    const calls = [];
-    const library = structuredClone(initial);
-    let capture = null;
-    let defaultReceiver = null;
-    const slug = name =>
-      name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    const find = id => library.find(remote => remote.id === id);
-    const lovelace = hass.callWS.bind(hass);
-    hass.callWS = async message => {
-      if (!message.type.startsWith('homemanager/rf/')) return lovelace(message);
-      calls.push(structuredClone(message));
-      switch (message.type) {
-        case 'homemanager/rf/library':
-          return { remotes: structuredClone(library) };
-        case 'homemanager/rf/transmitters':
-          return {
-            transmitters: [
-              { id: 'tx_a', name: 'Emisor A', device_id: 'a', can_capture: true },
-              { id: 'tx_b', name: 'Emisor B', device_id: 'b', can_capture: true },
-            ],
-          };
-        case 'homemanager/rf/devices':
-          return {
-            devices: [
-              {
-                id: 'tx_a',
-                name: 'Emisor A',
-                device_id: 'a',
-                manufacturer: 'Athom',
-                model: 'RF IR Remote',
-                online: true,
-                has_package: true,
-                can_capture: true,
-              },
-              {
-                id: 'sensor_b',
-                name: 'Sensor B',
-                device_id: 'c',
-                manufacturer: 'Espressif',
-                model: 'ESP32',
-                online: true,
-                has_package: false,
-                can_capture: false,
-              },
-            ],
-            default_receiver: defaultReceiver,
-            package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.3',
-            builder_url: '/hassio/ingress/5c53de3b_esphome',
-          };
-        case 'homemanager/rf/default_receiver':
-          defaultReceiver = message.receiver;
-          return null;
-        case 'homemanager/rf/test':
-          return { result: 'sent', transmitter: message.transmitter, pulse_us: message.pulse_us };
-        case 'homemanager/rf/remote/save': {
-          const existing = message.remote_id && find(message.remote_id);
-          if (existing) return Object.assign(existing, message.remote);
-          const remote = {
-            id: slug(message.remote.name),
-            icon: null,
-            description: null,
-            protocol: 1,
-            nbits: 24,
-            pulse_us: 350,
-            repeats: 5,
-            wait_us: 0,
-            measured_pulse_us: null,
-            ...message.remote,
-            buttons: [],
-            parts: [],
-            layout: null,
-          };
-          library.push(remote);
-          return remote;
-        }
-        case 'homemanager/rf/button/save': {
-          const remote = find(message.remote_id);
-          let button = remote.buttons.find(item => item.id === message.button_id);
-          if (button) Object.assign(button, message.button);
-          else {
-            button = { id: slug(message.button.name), icon: null, ...message.button, fingerprint: 'abcd1234' };
-            remote.buttons.push(button);
-          }
-          if (message.role)
-            remote.parts.find(part => part.id === message.role.part).roles[message.role.role] = button.id;
-          return button;
-        }
-        case 'homemanager/rf/parts/save': {
-          const remote = find(message.remote_id);
-          remote.parts = message.parts.map(part => ({ ...part, id: part.id ?? slug(part.name) }));
-          return remote;
-        }
-        case 'homemanager/rf/layout/save': {
-          const remote = find(message.remote_id);
-          remote.layout = message.layout;
-          return structuredClone(remote);
-        }
-        case 'homemanager/rf/press':
-          return { result: 'sent' };
-      }
-      throw Object.assign(new Error(message.type), { code: 'unknown_command' });
-    };
-    hass.connection.subscribeMessage = async (callback, message) => {
-      calls.push(structuredClone(message));
-      capture = callback;
-      return () => (capture = null);
-    };
-    window.rfServer = {
-      calls,
-      library,
-      send: event => capture?.(event),
-      heard: candidate =>
-        capture?.({
-          candidate: {
-            candidate_id: 'c1',
-            transmitter: 'tx_a',
-            protocol: 1,
-            nbits: 24,
-            pulse_us: 400,
-            frames: 1,
-            bursts: 1,
-            burst_frames: 1,
-            confirmed: false,
-            confirmed_by: null,
-            fingerprint: 'abcd1234',
-            known_as: [],
-            ...candidate,
-          },
-        }),
-    };
-    await customElements.whenDefined('homemanager-rf');
-    const element = document.createElement('homemanager-rf');
-    document.querySelector('#mount').replaceChildren(element);
-    element.hass = hass;
-  }, remotes);
-  return page.locator('homemanager-rf');
-}
-
-const button = (id, name, icon = null) => ({ id, name, icon, fingerprint: 'abcd1234' });
-const ceiling = (extra = {}) => ({
-  id: 'techo',
-  name: 'Techo',
-  icon: 'mdi:ceiling-fan-light',
-  description: null,
-  transmitter: 'tx_a',
-  protocol: 1,
-  nbits: 24,
-  pulse_us: 400,
-  repeats: 5,
-  wait_us: 0,
-  measured_pulse_us: 400,
-  buttons: [
-    button('off', 'Apagar'),
-    button('v1', 'Velocidad 1'),
-    button('v2', 'Velocidad 2'),
-    button('v3', 'Velocidad 3'),
-    button('luz', 'Luz'),
-    button('luz-off', 'Luz off'),
-  ],
-  parts: [],
-  layout: null,
-  ...extra,
-});
-const calls = (page, type) => page.evaluate(type => window.rfServer.calls.filter(call => call.type === type), type);
+import { setup, ceiling, calls } from '../browser/rf-helpers.mjs';
 
 test('a new remote is a name and an icon; any button is learned, tried and saved', async ({ page }) => {
   const rf = await setup(page);
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
   await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
-  await rf.getByRole('button', { name: 'ceiling-fan', exact: true }).click();
+  await rf.getByRole('button', { name: 'Ventilador de techo', exact: true }).click();
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();
   await expect(rf.getByText('Todavía no está guardado')).toBeVisible();
 
   // One frame is not trusted yet; the reason is on screen.
   await page.evaluate(() => window.rfServer.heard({ frames: 1 }));
-  await expect(rf.getByText('Recibido, falta confirmar')).toBeVisible();
-  await expect(rf.getByText('1 trama(s). Mantené pulsado un momento o pulsalo otra vez.')).toBeVisible();
+  await expect(rf.getByText('Recibido, falta repetir')).toBeVisible();
+  await expect(rf.getByText('1 señal(es). Mantené pulsado un momento o pulsalo otra vez.')).toBeVisible();
   // Three identical frames of the same press confirm it.
   await page.evaluate(() =>
     window.rfServer.heard({ frames: 3, burst_frames: 3, confirmed: true, confirmed_by: 'frames' }),
   );
-  await expect(rf.getByText('Código confirmado')).toBeVisible();
-  await expect(rf.getByText('3 tramas iguales en una pulsación.')).toBeVisible();
-  await expect(rf.getByText('Protocolo 1 · 24 bits · pulso medido de la señal: 400 µs')).toBeVisible();
+  await expect(rf.getByText('Señal reconocida')).toBeVisible();
+  await expect(rf.getByText('3 señales iguales en una pulsación.')).toBeVisible();
+  await rf.locator('homemanager-rf-learn summary').click();
+  await expect(rf.getByText('Tipo 1 · tamaño 24 · pulso medido de la señal: 400 µs')).toBeVisible();
 
   await rf.getByRole('button', { name: 'Velocidad 1', exact: true }).click();
   await expect(rf.getByLabel('Nombre del botón')).toHaveValue('Velocidad 1');
@@ -262,7 +90,7 @@ test('learning says when a signal is not recognised and listens with the chosen 
   await page.evaluate(() =>
     window.rfServer.heard({ bursts: 2, confirmed: true, confirmed_by: 'presses', known_as: ['Techo · Luz'] }),
   );
-  await expect(rf.getByText('El mismo código en 2 pulsaciones.')).toBeVisible();
+  await expect(rf.getByText('La misma señal en 2 pulsaciones.')).toBeVisible();
   await expect(rf.getByText('Ya está guardado como: Techo · Luz')).toBeVisible();
 });
 
@@ -376,8 +204,8 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
   const rf = await setup(page);
   await rf.getByRole('tab', { name: 'Equipos RF' }).click();
   const devices = rf.locator('homemanager-rf-devices');
-  await expect(devices.getByText('Listo para RF')).toBeVisible();
-  await expect(devices.getByText('Sin paquete')).toBeVisible();
+  await expect(devices.getByText('Listo')).toBeVisible();
+  await expect(devices.getByText('Falta el paquete')).toBeVisible();
   const sensor = devices.locator('[data-device=sensor_b]');
   await sensor.getByRole('button', { name: 'Cómo agregarlo' }).click();
   await expect(sensor.locator('pre')).toHaveText(
@@ -399,11 +227,13 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
 
   // The device with the package can be the default receiver and be checked.
   const athom = devices.locator('[data-device=tx_a]');
+  await athom.locator('summary').click();
   await athom.getByRole('button', { name: 'Usar para aprender' }).click();
+  await athom.locator('summary').click();
   await expect(athom.getByRole('button', { name: 'Receptor por defecto' })).toHaveAttribute('aria-pressed', 'true');
   await athom.getByRole('button', { name: 'Probar recepción' }).click();
   await page.evaluate(() => window.rfServer.heard({ confirmed: true }));
-  await expect(athom.getByText('✓ Recibe bien: protocolo 1, 24 bits, pulso 400 µs.')).toBeVisible();
+  await expect(athom.getByText('✓ Recibe bien: tipo 1, tamaño 24, pulso 400 µs.')).toBeVisible();
 });
 
 test('speed stops send on tap, including the current stop, and once per drag', async ({ page }) => {
