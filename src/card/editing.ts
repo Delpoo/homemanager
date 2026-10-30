@@ -4,8 +4,17 @@ import { VERSION } from '../version.js';
 import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
 import { clone, escapeHTML as e, type CardConfig, type Configuration } from './types.js';
+import { cameraForEditedDevice } from '../model/editor-session.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
+function commitPreview(card: HomeManagerCard): void {
+  const before = card.editorPreviewBase;
+  card.editorPreviewBase = undefined;
+  if (!before || same(before, card.draft)) return;
+  card.history.push(before);
+  if (card.history.length > 40) card.history.shift();
+  card.future = [];
+}
 export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
   if (this.editing) {
@@ -100,6 +109,8 @@ export function mountEditor(this: HomeManagerCard) {
     this.renderMarkers();
   });
   this.editor.addEventListener('homemanager-editor-close', () => {
+    commitPreview(this);
+    this.positionEditor();
     const marker =
       this.selected && this.root.querySelector<HTMLElement>(`[data-id="${CSS.escape(this.selected)}"] .primary`);
     (this.editorFocus?.isConnected
@@ -107,6 +118,23 @@ export function mountEditor(this: HomeManagerCard) {
       : marker || this.root.querySelector<HTMLElement>('[data-command=add-device]')
     )?.focus();
   });
+  this.editor.addEventListener('homemanager-editor-surface', () => {
+    this.positionEditor();
+    requestAnimationFrame(() => this.frameAboveSheet());
+  });
+  this.editor.addEventListener('homemanager-device-preview', (event: Event) => {
+    event.stopPropagation();
+    if (!this.editing || this.saving) return;
+    const next = validateConfiguration((event as CustomEvent<{ configuration: Configuration }>).detail.configuration, {
+      allowPending: true,
+    });
+    if (same(next, this.draft)) return;
+    this.editorPreviewBase ??= clone(this.draft!);
+    this.draft = next;
+    this.renderMarkers();
+    this.updateControls();
+  });
+  this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
   this.editor.addEventListener('config-changed', (event: Event) => {
     event.stopPropagation();
     if (!this.editing || this.saving) return;
@@ -118,35 +146,42 @@ export function mountEditor(this: HomeManagerCard) {
 
 export function select(this: HomeManagerCard, id: string) {
   this.editorFocus = undefined;
+  if (this.editor && !this.editor.selectDevice(id)) return;
   this.selected = id;
-  if (this.editor) this.editor.selectedDeviceId = id;
   this.renderMarkers();
   this.positionEditor();
   this.frameAboveSheet();
+  requestAnimationFrame(() => this.editor?.focusFirstField());
 }
 
 export function frameAboveSheet(this: HomeManagerCard) {
-  if (!matchMedia('(max-width:650px)').matches || !this.editor || this.editor.hidden) return;
+  if (!this.editing || !this.editor || this.editor.hidden || this.editor.surfaceMode !== 'device') return;
   const device = this.draft?.catalog.devices.find(item => item.id === this.selected);
   const host = this.root.querySelector<HTMLElement>('.workspace > .editor');
   if (!device || !host) return;
-  const visibleHeight = this.viewport.clientHeight - host.clientHeight;
-  if (visibleHeight < 60) return;
-  cancelAnimationFrame(this.animation);
-  this.animation = 0;
-  this.camera.y += visibleHeight / 2 - this.screen(device.position).y;
-  this.queuePosition();
+  const viewport = this.viewport.getBoundingClientRect();
+  const sheet = host.getBoundingClientRect();
+  const covers = sheet.left < viewport.right && sheet.right > viewport.left && sheet.top < viewport.bottom;
+  const coveredBottom = covers ? Math.max(0, viewport.bottom - Math.max(viewport.top, sheet.top)) : 0;
+  if (!viewport.width || viewport.height - coveredBottom < 32) return;
+  this.moveCamera(
+    cameraForEditedDevice(this.camera, this.box, device.position, {
+      width: viewport.width,
+      height: viewport.height,
+      coveredBottom,
+    }),
+  );
 }
 
 export function positionEditor(this: HomeManagerCard) {
-  const host = this.root.querySelector<HTMLElement>('.editor');
-  if (!host || !this.editing || matchMedia('(max-width:650px)').matches) return;
-  const device = this.draft?.catalog.devices.find(item => item.id === this.selected);
-  const point = device ? this.screen(device.position) : { x: 16, y: 16 };
-  const width = Math.min(340, this.viewport.clientWidth - 24);
-  const left = device && point.x + width + 40 > this.viewport.clientWidth ? point.x - width - 34 : point.x + 34;
-  host.style.left = `${Math.max(12, Math.min(this.viewport.clientWidth - width - 12, left))}px`;
-  host.style.top = `${Math.max(12, Math.min(this.viewport.clientHeight - Math.min(this.editor?.offsetHeight ?? 0, this.viewport.clientHeight - 24) - 12, point.y - 24))}px`;
+  const host = this.root.querySelector<HTMLElement>('.workspace > .editor');
+  if (!host) return;
+  host.hidden = !this.editing || !this.editor || this.editor.hidden;
+  host.dataset.surface = this.editor?.surfaceMode ?? '';
+  host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
+  this.editor?.setNarrow(this.getBoundingClientRect().width <= 650);
+  host.style.removeProperty('left');
+  host.style.removeProperty('top');
 }
 
 export function updateSelection(this: HomeManagerCard) {
@@ -159,6 +194,7 @@ export function updateSelection(this: HomeManagerCard) {
 }
 
 export function change(this: HomeManagerCard, next: Configuration, syncEditor = true) {
+  commitPreview(this);
   try {
     const valid = validateConfiguration(next, { allowPending: true });
     if (same(valid, this.draft)) return;
@@ -186,6 +222,7 @@ export function change(this: HomeManagerCard, next: Configuration, syncEditor = 
 
 export function discard(this: HomeManagerCard) {
   if (!this.saved || this.saving) return;
+  this.editorPreviewBase = undefined;
   this.draft = clone(this.saved);
   this.history = [];
   this.future = [];
@@ -198,6 +235,7 @@ export function discard(this: HomeManagerCard) {
 }
 
 export function undo(this: HomeManagerCard) {
+  commitPreview(this);
   if (!this.history.length || this.saving) return;
   this.future.push(clone(this.draft!));
   this.draft = this.history.pop()!;
@@ -205,6 +243,7 @@ export function undo(this: HomeManagerCard) {
 }
 
 export function redo(this: HomeManagerCard) {
+  commitPreview(this);
   if (!this.future.length || this.saving) return;
   this.history.push(clone(this.draft!));
   this.draft = this.future.pop()!;
@@ -220,6 +259,8 @@ export function syncDraft(this: HomeManagerCard) {
 }
 
 export async function save(this: HomeManagerCard, reviewed = false) {
+  if (this.editing && !this.saving && this.editor && !this.editor.flushDevice()) return;
+  commitPreview(this);
   if (!this.editing || !this.dirty || this.saving || !this.store) return;
   const changes = this.draft!.catalog.devices.filter(d =>
     this.saved!.catalog.devices.some(old => old.id === d.id && old.roomId !== d.roomId),

@@ -69,6 +69,8 @@ import '../ui/alert-editor.js';
 import type { Category } from '../model/types.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
+import { editorSheetStyles } from '../ui/editor-components.js';
+import { restoreEditedDevice } from '../model/editor-session.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
@@ -101,6 +103,7 @@ import {
   editCommand,
   editField,
   renderControlsEditor,
+  renderSymbolSize,
   resolveSheet,
   sheetFromDevice,
   suggestedSheet,
@@ -109,11 +112,12 @@ import {
 } from './controls-editor.js';
 export * from './model.js';
 
-const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
+const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
+const css = cssBase + editorSheetStyles;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
@@ -176,6 +180,12 @@ export class HomeManagerEditor extends HTMLElement {
   private _embedded = false;
   private adding = false;
   private allowFixedPosition = false;
+  private openedConfiguration?: Configuration;
+  private previewQueued = false;
+  private previewFingerprint = '';
+  private expanded = false;
+  private handleDrag?: { id: number; y: number };
+  private skipHandleClick = false;
   private actionId = '';
   private panelId = '';
   private panelRows: NativePanel['controls'] = [];
@@ -233,6 +243,30 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('pointerdown', event => this.dragRoom(event as PointerEvent));
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
+    this.root.addEventListener('input', event => {
+      const target = event.target as HTMLElement;
+      if (target.dataset.ctl !== undefined || target.dataset.sheet) this.onChange(event);
+      this.schedulePreview();
+    });
+    this.root.addEventListener('change', () => this.schedulePreview());
+    this.root.addEventListener('click', () => this.schedulePreview());
+    this.root.addEventListener('pointerdown', event => {
+      if (!(event instanceof PointerEvent)) return;
+      const handle = (event.target as Element).closest<HTMLElement>('.sheet-handle');
+      if (!handle) return;
+      this.handleDrag = { id: event.pointerId, y: event.clientY };
+      handle.setPointerCapture(event.pointerId);
+    });
+    this.root.addEventListener('pointerup', event => {
+      if (!(event instanceof PointerEvent) || !this.handleDrag || this.handleDrag.id !== event.pointerId) return;
+      const distance = event.clientY - this.handleDrag.y;
+      this.handleDrag = undefined;
+      if (Math.abs(distance) > 24) {
+        this.skipHandleClick = true;
+        this.setExpanded(distance < 0);
+      }
+    });
+    this.root.addEventListener('pointercancel', () => (this.handleDrag = undefined));
     this.root.addEventListener('keydown', event => {
       const grip = (event.target as Element).closest?.<HTMLElement>('[data-room-grip]');
       const key = (event as KeyboardEvent).key;
@@ -295,6 +329,7 @@ export class HomeManagerEditor extends HTMLElement {
     };
     if (this.config && JSON.stringify(this.config) === JSON.stringify(next)) return;
     this.config = next;
+    this.openedConfiguration = undefined;
     if (
       !this._embedded &&
       (!this._selectedDeviceId ||
@@ -328,6 +363,8 @@ export class HomeManagerEditor extends HTMLElement {
       }
     }
     if (first) this.loadRemotes();
+    for (const picker of this.root.querySelectorAll<HTMLElement>('homemanager-icon-picker'))
+      picker.dataset.theme = this.dataset.theme ?? '';
     if (first && (this.homeConfig || integrationAvailable(hass))) {
       void this.refreshHomes();
       if (this.config && !this._embedded) this.render();
@@ -337,14 +374,21 @@ export class HomeManagerEditor extends HTMLElement {
     return this._hass;
   }
   set selectedDeviceId(id: string | null) {
-    if (id === this._selectedDeviceId && (id === null || this.surface === 'device')) return;
+    this.selectDevice(id);
+  }
+  /** A different symbol cannot silently discard an invalid field. */
+  selectDevice(id: string | null): boolean {
+    if (id === this._selectedDeviceId && (id === null || this.surface === 'device')) return true;
+    if (id !== this._selectedDeviceId && !this.flushDevice()) return false;
     this.surface = id ? 'device' : null;
     this._selectedDeviceId = id;
     this.adding = false;
     this.allowFixedPosition = false;
     this.sheet = undefined;
+    this.openedConfiguration = this.config ? clone(this.configuration) : undefined;
 
     this.render();
+    return true;
   }
   get selectedDeviceId(): string | null {
     return this._selectedDeviceId;
@@ -357,6 +401,99 @@ export class HomeManagerEditor extends HTMLElement {
   }
   get embedded(): boolean {
     return this._embedded;
+  }
+  get surfaceMode(): 'device' | 'add' | 'settings' | null {
+    return this.surface;
+  }
+  get sheetExpanded(): boolean {
+    return this.expanded;
+  }
+  setNarrow(narrow: boolean): void {
+    this.dataset.narrow = String(narrow);
+  }
+  focusFirstField(): void {
+    this.root.querySelector<HTMLInputElement>('#device-form [name=label]')?.focus({ preventScroll: true });
+  }
+  private notifySurface(): void {
+    this.dispatchEvent(new CustomEvent('homemanager-editor-surface', { bubbles: true, composed: true }));
+  }
+  private setExpanded(value: boolean): void {
+    this.expanded = value;
+    const handle = this.root.querySelector<HTMLElement>('.sheet-handle');
+    handle?.setAttribute('aria-expanded', String(value));
+    handle?.setAttribute('aria-label', value ? t('Reducir ficha') : t('Ampliar ficha'));
+    this.notifySurface();
+  }
+  private schedulePreview(): void {
+    if (this.previewQueued || !this._embedded || this.surface !== 'device' || this.adding) return;
+    this.previewQueued = true;
+    queueMicrotask(() => {
+      this.previewQueued = false;
+      if (!this.isConnected || this.surface !== 'device' || this.adding) return;
+      const form = this.root.querySelector<HTMLFormElement>('#device-form');
+      if (!form?.checkValidity()) return;
+      const fingerprint = this.deviceFingerprint();
+      if (fingerprint === this.previewFingerprint) return;
+      try {
+        const { next, device } = this.deviceChange(form);
+        const clean = validateConfiguration(persistentConfiguration(next), { allowPending: true });
+        if (JSON.stringify(clean) === JSON.stringify(this.configuration)) return;
+        this.config = { ...this.config!, configuration: clean };
+        this.previewFingerprint = fingerprint;
+        const title = this.root.querySelector('.sheet-header h2');
+        if (title) title.textContent = device.display.label;
+        this.root.querySelector('.sheet-glyph ha-icon')?.setAttribute('icon', device.display.icon);
+        this.dispatchEvent(
+          new CustomEvent('homemanager-device-preview', {
+            bubbles: true,
+            composed: true,
+            detail: { configuration: clone(clean) },
+          }),
+        );
+      } catch {
+        // Incomplete fields stay in the sheet. Never apply or persist an invalid preview.
+      }
+    });
+  }
+  /** Explicit confirmation uses the same validation as preview, before a global save or navigation. */
+  flushDevice(close = false): boolean {
+    if (!this._embedded || this.surface !== 'device') return true;
+    const form = this.root.querySelector<HTMLFormElement>('#device-form');
+    if (!form) return true;
+    if (!form.reportValidity()) return false;
+    try {
+      if (!this.adding && this.deviceFingerprint() === this.previewFingerprint) {
+        this.dispatchEvent(new CustomEvent('homemanager-preview-finish', { bubbles: true, composed: true }));
+        if (close) this.closeSurface(false);
+        return true;
+      }
+      this.applyDeviceForm(form, close);
+      return true;
+    } catch (error) {
+      this.notice(error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  }
+  private deviceFingerprint(): string {
+    const form = this.root.querySelector<HTMLFormElement>('#device-form');
+    return JSON.stringify({ fields: form ? [...new FormData(form)] : [], sheet: this.sheet, alerts: this.alertDraft });
+  }
+  private revertDevice(): void {
+    if (!this.openedConfiguration || !this._selectedDeviceId) return;
+    const next = restoreEditedDevice(this.configuration, this.openedConfiguration, this._selectedDeviceId);
+    this.config = { ...this.config!, configuration: next };
+    this.sheet = undefined;
+    this.alertDraft = alertSettingsDraft(this.device());
+    this.allowFixedPosition = false;
+    this.render();
+    this.dispatchEvent(
+      new CustomEvent('homemanager-device-preview', {
+        bubbles: true,
+        composed: true,
+        detail: { configuration: clone(next) },
+      }),
+    );
+    this.focusFirstField();
   }
   getConfiguration(): Configuration | undefined {
     return this.config ? persistentConfiguration(this.config.configuration) : undefined;
@@ -448,12 +585,15 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** Called by the map toolbar; all surfaces edit the same draft. */
   openAdd(): void {
+    if (!this.flushDevice()) return;
     this.surface = 'add';
+    this.openedConfiguration = undefined;
     this.fromEntity = false;
     this.render();
     this.root.querySelector<HTMLButtonElement>('[data-command=from-entity]')?.focus();
   }
   openSettings(): void {
+    if (!this.flushDevice()) return;
     this.surface = 'settings';
     this.linked = undefined;
     this.render();
@@ -498,9 +638,11 @@ export class HomeManagerEditor extends HTMLElement {
       this.configuration,
     );
   }
-  closeSurface(): void {
+  closeSurface(commit = true): void {
+    if (commit && !this.flushDevice()) return;
     this.surface = null;
     this.sheet = undefined;
+    this.openedConfiguration = undefined;
     this.render();
     this.dispatchEvent(new CustomEvent('homemanager-editor-close', { bubbles: true, composed: true }));
   }
@@ -624,6 +766,7 @@ export class HomeManagerEditor extends HTMLElement {
     }
     const configuration = this.configuration,
       selected = this.adding ? undefined : this.device();
+    if (selected && this.surface === 'device') this.openedConfiguration ??= clone(configuration);
     const key = selected?.id ?? '';
     if (!this.sheet || this.sheet.key !== key) {
       this.sheet = sheetFromDevice(selected, key, configuration);
@@ -633,10 +776,13 @@ export class HomeManagerEditor extends HTMLElement {
     const toolbar = this._embedded
       ? ''
       : `<div class="toolbar"><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select>${iconButton('add', t('Agregar dispositivo'), 'plus')}${iconButton('settings', t('Ajustes del plano'), 'settings')}</div>`;
-    const header = (title: string) =>
-      `<div class="sheet-header"><h2>${esc(title)}</h2>${iconButton('close', t('Cerrar'), 'close')}</div>`;
-    const device = `${header(selected?.display.label ?? t('Dispositivo vacío'))}${this.deviceForm(selected)}<div class="sheet-tools">${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}` : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}<span class="spacer"></span>${submitIconButton('device-form', t('Guardar dispositivo'), 'check')}</div>`;
-    const add = `${header(t('Agregar dispositivo'))}<div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}`;
+    const header = (title: string, glyph?: string) =>
+      `<div class="sheet-header">${glyph ? `<span class="sheet-glyph" aria-hidden="true"><ha-icon icon="${esc(glyph)}"></ha-icon></span>` : ''}<h2>${esc(title)}</h2>${iconButton('close', t('Cerrar'), 'close')}</div>`;
+    const handle = this._embedded
+      ? `<button class="sheet-handle" type="button" data-command="sheet-expand" aria-label="${esc(this.expanded ? t('Reducir ficha') : t('Ampliar ficha'))}" aria-expanded="${this.expanded}"><span aria-hidden="true"></span></button>`
+      : '';
+    const device = `${handle}${header(selected?.display.label ?? t('Dispositivo vacío'), selected?.display.icon ?? 'mdi:circle-outline')}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}</div>`;
+    const add = `${handle}${header(t('Agregar dispositivo'))}<div class="sheet-body"><div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}</div>`;
     const settings =
       this.surface === 'settings'
         ? `<dialog class="settings-dialog" aria-label="${esc(t('Ajustes del plano'))}">${header(t('Ajustes del plano'))}${this.settingsForm()}<div class="status" role="status" aria-live="polite"></div></dialog>`
@@ -659,6 +805,10 @@ export class HomeManagerEditor extends HTMLElement {
       this.root.append(review);
       review.showModal();
     }
+    this.setAttribute('role', 'region');
+    this.setAttribute('aria-label', t('Ficha de edición'));
+    this.previewFingerprint = this.deviceFingerprint();
+    this.notifySurface();
   }
   private roomOptions(selected: string): string {
     return (
@@ -715,17 +865,20 @@ export class HomeManagerEditor extends HTMLElement {
       ],
       device?.display.show ?? 'value',
     )}</div>`;
-    return `<form id="device-form"><div class="basic">${uiChoices(
+    const categoryBody = uiChoices(
       t('Categoría'),
       'category',
       CATEGORIES.map(value => ({ value, ...categoryInfo(value) })),
       category,
-    )}<input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
-      <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
-      <div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>
-      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div>${show}<homemanager-alert-editor></homemanager-alert-editor>${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${remotes}</div>` : ''}</div></form>
-      <div class="ctl-host" data-section="controls"${sections.controls ? '' : ' hidden'}>${this.controlsSection()}</div>
-      <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
+    );
+    const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>`;
+    return `<form id="device-form"><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
+      <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
+      <div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${show}</div>
+      <details class="section sheet-category" id="device-category"${this.openSections.has('device-category') ? ' open' : ''}><summary>${esc(t('Categoría'))}<small>${esc(categoryInfo(category).label)}</small></summary><div class="section-body">${categoryBody}</div></details>
+      ${this.section('device-binding', t('Dispositivo de Home Assistant'), binding)}${this.section('device-alerts', t('Avisos'), '<homemanager-alert-editor></homemanager-alert-editor>')}${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${this.section('device-remote', t('Control RF en el panel'), remotes)}</div>` : ''}</form>
+      <div data-section="controls"${sections.controls ? '' : ' hidden'}>${this.section('device-controls-section', t('Controles'), `<div class="ctl-host">${this.controlsSection()}</div>`)}</div>
+      <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
   private sheetCategory(device?: Device): Category {
@@ -805,6 +958,8 @@ export class HomeManagerEditor extends HTMLElement {
     const host = this.root.querySelector<HTMLElement>('.ctl-host');
     if (!host || !this.sheet) return;
     host.innerHTML = this.controlsSection();
+    const sizes = this.root.querySelector('.size-host');
+    if (sizes) sizes.innerHTML = renderSymbolSize(this.sheet.size);
     this.wirePickers();
   }
   private wirePickers(): void {
@@ -821,8 +976,10 @@ export class HomeManagerEditor extends HTMLElement {
           .filter((icon): icon is string => typeof icon === 'string'),
       ),
     ].slice(0, 300);
-    for (const picker of this.root.querySelectorAll<HTMLElement & { extra: string[] }>('homemanager-icon-picker'))
+    for (const picker of this.root.querySelectorAll<HTMLElement & { extra: string[] }>('homemanager-icon-picker')) {
       picker.extra = extra;
+      picker.dataset.theme = this.dataset.theme ?? '';
+    }
   }
   private bindingSummary(bindings?: Device['bindings'] | DeviceSelection): string {
     const entityId = bindings?.entityId,
@@ -1164,7 +1321,7 @@ export class HomeManagerEditor extends HTMLElement {
   private onClick = (event: Event): void => {
     const button = (event.target as Element).closest<HTMLButtonElement>('button[data-command]');
     if (!button || button.disabled || !this.config) return;
-    if (this.sheet && button.closest('.ctl-host')) {
+    if (this.sheet && button.closest('.ctl-host, .size-host')) {
       const icon = this.root.querySelector<HTMLInputElement>('#device-form [name=icon]')?.value ?? 'mdi:shape';
       if (editCommand(this.sheet, button, this.suggestions(), icon)) {
         this.paintControls();
@@ -1172,7 +1329,11 @@ export class HomeManagerEditor extends HTMLElement {
           ? this.root.querySelector<HTMLElement>(
               `.ctl-host [data-command="${button.dataset.command}"][data-ctl="${button.dataset.ctl}"]`,
             )
-          : this.root.querySelector<HTMLElement>(`.ctl-host [data-command="${button.dataset.command}"]`);
+          : this.root.querySelector<HTMLElement>(
+              button.dataset.size
+                ? `.size-host [data-size="${button.dataset.size}"]`
+                : `.ctl-host [data-command="${button.dataset.command}"]`,
+            );
         (again ?? this.root.querySelector<HTMLElement>('.ctl-host .ctl:last-of-type input'))?.focus();
       }
       return;
@@ -1213,6 +1374,13 @@ export class HomeManagerEditor extends HTMLElement {
           this.render();
           this.root.querySelector<HTMLElement>('[data-settings="import-section"]')?.focus();
           break;
+        case 'sheet-expand':
+          if (this.skipHandleClick) this.skipHandleClick = false;
+          else this.setExpanded(!this.expanded);
+          break;
+        case 'revert-device':
+          this.revertDevice();
+          break;
         case 'reset':
           void confirmDialog(this.root, {
             title: t('¿Restablecer los valores sugeridos?'),
@@ -1245,6 +1413,7 @@ export class HomeManagerEditor extends HTMLElement {
           break;
         case 'move':
           if (this._selectedDeviceId) {
+            if (!this.flushDevice()) break;
             this.dispatchEvent(
               new CustomEvent('homemanager-place', {
                 bubbles: true,
@@ -1384,6 +1553,8 @@ export class HomeManagerEditor extends HTMLElement {
       // Chosen by the person: a new entity no longer proposes another one.
       target.closest('fieldset')?.setAttribute('data-chosen', '');
       this.applySections(target.value as Category);
+      const label = this.root.querySelector('#device-category summary small');
+      if (label) label.textContent = categoryInfo(target.value as Category).label;
       return;
     }
     if (target.hasAttribute('data-room-icon')) {
@@ -1440,6 +1611,96 @@ export class HomeManagerEditor extends HTMLElement {
     else if (target.getAttribute('name') === 'position-mode' && this.imported)
       this.imported.positionMode = target.value === 'relative' ? 'relative' : 'drawing';
   };
+  /** Validated configuration from the same fields for preview and explicit confirmation. */
+  private deviceChange(form: HTMLFormElement): { next: Configuration; device: Device } {
+    const data = new FormData(form);
+    if (!this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid())
+      throw new Error(t('Revisá los límites y la duración de los avisos.'));
+    let alertDisplay: ReturnType<typeof alertSettingsDisplay>;
+    try {
+      alertDisplay = alertSettingsDisplay(this.alertDraft ?? { rules: [] });
+    } catch (error) {
+      throw new Error(t((error as Error).message));
+    }
+    const previous = this.adding ? undefined : this.device(),
+      label = value(data, 'label');
+    const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;
+    if (!fixed && (!value(data, 'x') || !value(data, 'y'))) throw new Error(t('Completá las dos coordenadas.'));
+    const id = previous?.id ?? (value(data, 'id') || newDeviceId(label, this.configuration));
+    const held = resolveSheet(this.sheet!, this.configuration, id, this.suggestions());
+    if (held.incomplete.length)
+      throw new Error(
+        t('Completá las acciones de: {names}. O quitá ese control.', { names: held.incomplete.join(', ') }),
+      );
+    const tap = held.controls.find(control => control.id === held.tap);
+    const category = (CATEGORIES as readonly string[]).includes(value(data, 'category'))
+      ? (value(data, 'category') as Category)
+      : this.sheetCategory(previous);
+    const entityId = value(data, 'entityId');
+    const suggested = entityId ? suggestPresentation(entityId, this._hass?.states[entityId]).kind : '';
+    // The technical kind is no longer chosen: kept, else suggested by the entity or the category.
+    const kind = (value(data, 'kind') ||
+      ((KINDS as readonly string[]).includes(suggested) ? suggested : CATEGORY_KIND[category])) as Device['kind'];
+    // Without RF remotes the field is not shown: keep what the device had.
+    const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
+    const device: Device = {
+      id,
+      display: {
+        label,
+        icon: value(data, 'icon'),
+        ...(held.size !== 'm' ? { size: held.size } : {}),
+        ...(held.pinned.length ? { pinned: held.pinned } : {}),
+        ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
+        ...(sectionsOf(category).show
+          ? { show: value(data, 'show') as NonNullable<Device['display']['show']> }
+          : previous?.display.show
+            ? { show: previous.display.show }
+            : {}),
+        category,
+        ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
+          ? { alerts: alertDisplay.alerts }
+          : {}),
+        ...(alertDisplay.highlight !== undefined ? { highlight: alertDisplay.highlight } : {}),
+      },
+      kind,
+      roomId: value(data, 'roomId') || null,
+      mobility: value(data, 'mobility') as Device['mobility'],
+      position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },
+      bindings: {
+        entityId: value(data, 'entityId') || null,
+        ...(value(data, 'deviceId') ? { deviceId: value(data, 'deviceId') } : {}),
+        ...(value(data, 'readings') ? { readings: JSON.parse(value(data, 'readings')) as string[] } : {}),
+        // Kept for readers before 0.6: a tap that is a single button.
+        primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
+        advancedPopupId: value(data, 'panelId') || null,
+        ...(remoteId ? { remoteId } : {}),
+        ...(held.controls.length ? { controls: held.controls } : {}),
+        tap: held.tap,
+      },
+      state: { value: 'unknown', confidence: 'unknown' },
+    };
+    const next = upsertDevice(held.configuration, device, {
+      previousId: previous?.id,
+      allowFixedPosition: this.allowFixedPosition,
+    });
+
+    return { next, device };
+  }
+  private applyDeviceForm(form: HTMLFormElement, close: boolean): void {
+    const { next, device } = this.deviceChange(form);
+    const newlyAdded = this.adding;
+    this._selectedDeviceId = device.id;
+    this.surface = 'device';
+    this.adding = false;
+    this.allowFixedPosition = false;
+    this.sheet = undefined;
+    this.emit(next);
+    if (newlyAdded && this._embedded)
+      this.dispatchEvent(
+        new CustomEvent('homemanager-place', { bubbles: true, composed: true, detail: { deviceId: device.id } }),
+      );
+    if (close && this._embedded) this.closeSurface(false);
+  }
   private onSubmit = (event: Event): void => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
@@ -1466,87 +1727,7 @@ export class HomeManagerEditor extends HTMLElement {
         return;
       }
       if (formId === 'device-form') {
-        if (!this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid()) return;
-        let alertDisplay: ReturnType<typeof alertSettingsDisplay>;
-        try {
-          alertDisplay = alertSettingsDisplay(this.alertDraft ?? { rules: [] });
-        } catch (error) {
-          throw new Error(t((error as Error).message));
-        }
-        const previous = this.adding ? undefined : this.device(),
-          label = value(data, 'label');
-        const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;
-        if (!fixed && (!value(data, 'x') || !value(data, 'y'))) throw new Error(t('Completá las dos coordenadas.'));
-        const id = previous?.id ?? (value(data, 'id') || newDeviceId(label, this.configuration));
-        const held = resolveSheet(this.sheet!, this.configuration, id, this.suggestions());
-        if (held.incomplete.length)
-          throw new Error(
-            t('Completá las acciones de: {names}. O quitá ese control.', { names: held.incomplete.join(', ') }),
-          );
-        const tap = held.controls.find(control => control.id === held.tap);
-        const category = (CATEGORIES as readonly string[]).includes(value(data, 'category'))
-          ? (value(data, 'category') as Category)
-          : this.sheetCategory(previous);
-        const entityId = value(data, 'entityId');
-        const suggested = entityId ? suggestPresentation(entityId, this._hass?.states[entityId]).kind : '';
-        // The technical kind is no longer chosen: kept, else suggested by the entity or the category.
-        const kind = (value(data, 'kind') ||
-          ((KINDS as readonly string[]).includes(suggested) ? suggested : CATEGORY_KIND[category])) as Device['kind'];
-        // Without RF remotes the field is not shown: keep what the device had.
-        const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
-        const device: Device = {
-          id,
-          display: {
-            label,
-            icon: value(data, 'icon'),
-            ...(held.size !== 'm' ? { size: held.size } : {}),
-            ...(held.pinned.length ? { pinned: held.pinned } : {}),
-            ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
-            ...(sectionsOf(category).show
-              ? { show: value(data, 'show') as NonNullable<Device['display']['show']> }
-              : previous?.display.show
-                ? { show: previous.display.show }
-                : {}),
-            category,
-            ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
-              ? { alerts: alertDisplay.alerts }
-              : {}),
-            ...(alertDisplay.highlight !== undefined ? { highlight: alertDisplay.highlight } : {}),
-          },
-          kind,
-          roomId: value(data, 'roomId') || null,
-          mobility: value(data, 'mobility') as Device['mobility'],
-          position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },
-          bindings: {
-            entityId: value(data, 'entityId') || null,
-            ...(value(data, 'deviceId') ? { deviceId: value(data, 'deviceId') } : {}),
-            ...(value(data, 'readings') ? { readings: JSON.parse(value(data, 'readings')) as string[] } : {}),
-            // Kept for readers before 0.6: a tap that is a single button.
-            primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
-            advancedPopupId: value(data, 'panelId') || null,
-            ...(remoteId ? { remoteId } : {}),
-            ...(held.controls.length ? { controls: held.controls } : {}),
-            tap: held.tap,
-          },
-          state: { value: 'unknown', confidence: 'unknown' },
-        };
-        let next = upsertDevice(held.configuration, device, {
-          previousId: previous?.id,
-          allowFixedPosition: this.allowFixedPosition,
-        });
-        const newlyAdded = this.adding;
-        this._selectedDeviceId = device.id;
-        this.surface = 'device';
-        this.adding = false;
-        this.allowFixedPosition = false;
-        this.sheet = undefined;
-        this.emit(next);
-        if (newlyAdded && this._embedded)
-          this.dispatchEvent(
-            new CustomEvent('homemanager-place', { bubbles: true, composed: true, detail: { deviceId: device.id } }),
-          );
-        // Saving a sheet closes it, back to the plan.
-        if (this._embedded) this.closeSurface();
+        this.applyDeviceForm(form, true);
       } else if (formId === 'action-form') {
         const targets = value(data, 'targets')
           .split(',')
