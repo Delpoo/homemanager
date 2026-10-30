@@ -13,6 +13,8 @@ export interface NowRow {
   icon: string;
   off?: Command;
   tone?: 'alert' | 'warning';
+  /** HA assumes the value (IR/RF): it is the last command, not a reading. */
+  estimated?: boolean;
 }
 export interface NowSection {
   id: 'alerts' | 'climate' | 'active' | 'energy';
@@ -70,6 +72,9 @@ export function nowSections(
         ...base,
         detail: room,
         value: friendlyState({ ...entity, state: value }, hass),
+        ...(observed?.confidence !== 'confirmed' && entity?.attributes?.assumed_state === true
+          ? { estimated: true }
+          : {}),
         ...(toggle?.kind === 'toggle' ? { off: toggle.off } : {}),
       });
     }

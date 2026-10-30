@@ -19,7 +19,8 @@ export interface DeviceScreen {
   icon: string;
   room: string;
   age: number | null;
-  health: 'online' | 'unavailable' | 'unknown';
+  /** `estimated`: HA assumes the state (IR/RF); what was sent is not shown as confirmed. */
+  health: 'online' | 'estimated' | 'unavailable' | 'unknown';
   values: CatalogReading[];
   readings: CatalogReading[];
   readingGroups: { name: string; readings: CatalogReading[] }[];
@@ -133,10 +134,13 @@ export function deviceScreen(
     .map(value => Date.parse(value ?? ''))
     .filter(Number.isFinite);
   const stamp = stamps[0];
+  const estimated = entity?.attributes?.assumed_state === true;
   const controls = capabilities
     .filter(control => control.kind !== 'reading')
     .map(control => ({
       ...control,
+      // An assumed on/off, mode or speed is only the last command: nothing is marked as current.
+      ...(estimated && ['toggle', 'select', 'steps'].includes(control.kind) ? { value: null } : {}),
       label: personName(control.label),
       ...(control.kind === 'select'
         ? {
@@ -175,7 +179,13 @@ export function deviceScreen(
     room: personName(rooms.find(room => room.id === device.roomId)?.label),
     age: Number.isFinite(stamp) && Number.isFinite(now) ? Math.max(0, now - stamp) : null,
     health:
-      !entity || entity.state === 'unknown' ? 'unknown' : entity.state === 'unavailable' ? 'unavailable' : 'online',
+      !entity || entity.state === 'unknown'
+        ? 'unknown'
+        : entity.state === 'unavailable'
+          ? 'unavailable'
+          : estimated
+            ? 'estimated'
+            : 'online',
     values,
     readings: remaining,
     readingGroups: [...readingGroups].map(([deviceClass, readings]) => ({

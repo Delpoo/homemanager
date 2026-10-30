@@ -125,4 +125,7 @@ export const enShell: Record<string, string> = {
   Seco: 'Dry',
   Ventilar: 'Fan only',
   'Sin dato': 'No data',
+  'En línea': 'Online',
+  'Estado estimado': 'Estimated state',
+  estimado: 'estimated',
 };

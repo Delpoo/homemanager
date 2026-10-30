@@ -184,7 +184,13 @@ export class DeviceScreenView extends HTMLElement {
   }
   private deviceContent(screen: DeviceScreen): string {
     const health = t(
-      screen.health === 'online' ? 'En línea' : screen.health === 'unavailable' ? 'No disponible' : 'Sin dato',
+      screen.health === 'online'
+        ? 'En línea'
+        : screen.health === 'estimated'
+          ? 'Estado estimado'
+          : screen.health === 'unavailable'
+            ? 'No disponible'
+            : 'Sin dato',
     );
     return (
       uiDeviceHeader(screen.name, screen.room, screen.icon, health, screen.health) +
@@ -324,7 +330,7 @@ export class DeviceScreenView extends HTMLElement {
           : commandFor(control, value);
       if (command) await this.send(this.screen.id, command);
     } catch (error) {
-      this.feedback(error instanceof Error ? error.message : t('No se pudo enviar'));
+      this.feedback(error instanceof Error ? t(error.message) : t('No se pudo enviar'));
     }
   }
   private refreshAvailability(): void {

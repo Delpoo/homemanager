@@ -65,6 +65,32 @@ test('climate exposes live setpoint, bounds and human mode options without optim
   hass.states['climate.synthetic_air'].state = 'unavailable';
   assert.equal(deviceScreen(device, hass, rooms, now).controls.length, 0);
 });
+test('an assumed (IR/RF) state is estimated: the last command is never marked as the current mode or power', () => {
+  const hass = syntheticRegistry();
+  hass.states['climate.synthetic_air'].state = 'cool';
+  hass.states['climate.synthetic_air'].attributes = {
+    supported_features: 385,
+    min_temp: 16,
+    max_temp: 30,
+    temperature: 22,
+    hvac_modes: ['off', 'cool', 'heat'],
+    assumed_state: true,
+  };
+  const device = { ...meter(), kind: 'ac', bindings: { deviceId: 'device-3', entityId: 'climate.synthetic_air' } };
+  const screen = deviceScreen(device, hass, rooms, now);
+  assert.equal(screen.health, 'estimated');
+  assert.equal(screen.controls.find(control => control.id === 'hvac').value, null);
+  assert.equal(screen.controls.find(control => control.kind === 'toggle')?.value ?? null, null);
+  const air = { ...device, roomId: 'living' };
+  const active = nowSections([air], rooms, hass, now).find(section => section.id === 'active');
+  assert.equal(active.rows[0].estimated, true);
+  // The setpoint is what was asked for, and is labelled as a target.
+  assert.equal(screen.controls.find(control => control.kind === 'stepper').value, 22);
+  delete hass.states['climate.synthetic_air'].attributes.assumed_state;
+  const live = deviceScreen(device, hass, rooms, now);
+  assert.equal(live.health, 'online');
+  assert.equal(live.controls.find(control => control.id === 'hvac').value, 'cool');
+});
 test('legacy primary infers a registry device for reading only; missing/excluded/reassigned entities never leak', () => {
   const hass = syntheticRegistry(),
     device = meter();
