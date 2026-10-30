@@ -87,6 +87,7 @@ export class HomeManagerCard extends HTMLElement {
           ),
         })),
         this.currentRoom,
+        this.editing,
       );
   }
   insights?: DeviceScreenView;
@@ -131,7 +132,9 @@ export class HomeManagerCard extends HTMLElement {
   };
   navHinted = false;
   /** CP8: the shape being edited on the plan, and the handle being dragged. */
+  /** An empty id draws a new space (CP9). */
   shapeEdit?: { id: string; shape: import('../model/room-shapes.js').RoomShape };
+  zonelessOffered = false;
   shapeDrag?: {
     handle: string;
     x: number;
@@ -378,6 +381,7 @@ export class HomeManagerCard extends HTMLElement {
   renderShapeEdit: OmitThisParameter<typeof shapeEdit.renderShapeEdit> = shapeEdit.renderShapeEdit.bind(this);
   endShapeEdit: OmitThisParameter<typeof shapeEdit.endShapeEdit> = shapeEdit.endShapeEdit.bind(this);
   bindShapeEdit: OmitThisParameter<typeof shapeEdit.bindShapeEdit> = shapeEdit.bindShapeEdit.bind(this);
+  offerFirstSpace: OmitThisParameter<typeof shapeEdit.offerFirstSpace> = shapeEdit.offerFirstSpace.bind(this);
   onClick = (event: Event) => {
     const target = (event.target as Element).closest<HTMLElement>('button');
     if (!target) return;
@@ -475,6 +479,9 @@ export class HomeManagerCard extends HTMLElement {
         break;
       case 'shape-cancel':
         this.endShapeEdit(false);
+        break;
+      case 'room-new':
+        this.startShapeEdit('');
         break;
       case 'in':
         this.zoom(1.3);

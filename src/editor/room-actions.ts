@@ -4,7 +4,8 @@ import { mergeRoom } from '../model/plan-import.js';
 import { suggestedRoomIcon } from '../model/archetype.js';
 import { upsertRoom } from './model.js';
 import { iconPicker } from '../ui/icon-picker.js';
-import { uiSegmented } from '../ui/components.js';
+import { uiButton, uiIcon, uiSegmented } from '../ui/components.js';
+import { installDialogComponents, panelDialog, panelField } from '../ui/panel-components.js';
 
 /** What the card knows about a space's geometry, for the room view section (CP8). */
 export interface RoomViewChoices {
@@ -15,7 +16,9 @@ export interface RoomViewChoices {
   /** Leaves the dialog and edits the shape on the plan. */
   editShape: () => void;
 }
+type Room = Configuration['rooms'][number];
 
+/** A space's window (mockup §11 and §14): name, icon, room view, shape and what happens to its devices. */
 export function openRoomActions(
   root: ShadowRoot,
   configuration: Configuration,
@@ -25,14 +28,22 @@ export function openRoomActions(
 ): void {
   const room = configuration.rooms.find(item => item.id === id);
   if (!room) return;
+  installDialogComponents(root);
+  adoptRoomStyles(root);
   const count = configuration.catalog.devices.filter(device => device.roomId === id).length;
   const others = configuration.rooms.filter(item => item.id !== id);
-  const dialog = document.createElement('dialog');
-  dialog.className = 'room-actions';
-  dialog.style.cssText =
-    'width:480px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;padding:20px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink)';
-  dialog.innerHTML = `<h2 id="room-actions-title">${e(room.label)}</h2><label>${e(t('Renombrar'))}<input name="room-name" aria-label="${e(t('Nombre del espacio'))}" value="${e(room.label)}" maxlength="240"></label><div class="field"><span>${e(t('Icono'))}</span>${iconPicker(room.icon ?? suggestedRoomIcon(room.label), t('Icono del espacio'), 'data-room-icon')}</div><p>${e(t('{count} dispositivos', { count }))}</p><label>${e(t('Fusionar en…'))}<select name="merge-room" aria-label="${e(t('Fusionar en…'))}"><option value="">${e(t('Conservar espacio'))}</option>${others.map(item => `<option value="${e(item.id)}">${e(item.label)}</option>`).join('')}</select></label><button type="button" data-room-action="merge">${e(t('Fusionar'))}</button>${count ? `<label>${e(t('Al quitar este espacio'))}<select name="remove-room" aria-label="${e(t('Al quitar este espacio'))}"><option value="keep">${e(t('Conservar espacio'))}</option><option value="unassign">${e(t('Dejarlos sin espacio'))}</option>${others.map(item => `<option value="${e(item.id)}">${e(t('Fusionar en {room}', { room: item.label }))}</option>`).join('')}</select></label>` : ''}${view ? roomViewSection(room, view) : ''}<p class="room-error" role="alert" style="color:var(--hm-alert)"></p><div class="actions"><button type="button" data-room-action="cancel">${e(t('Cancelar'))}</button><button type="button" data-room-action="remove">${e(t('Quitar'))}</button><button type="button" data-room-action="apply">${e(t('Aplicar'))}</button></div>`;
-  dialog.setAttribute('aria-labelledby', 'room-actions-title');
+  const options = (first: string, firstLabel: string, items: string) =>
+    `<option value="${first}">${e(firstLabel)}</option>${items}`;
+  const body = `<div class="room-basic">${panelField(t('Nombre del espacio'), `<input name="room-name" value="${e(room.label)}" maxlength="240">`)}<div class="k-field"><span class="k-field-title">${e(t('Icono'))}</span>${iconPicker(room.icon ?? suggestedRoomIcon(room.label), t('Icono del espacio'), 'wide data-room-icon')}</div></div>${view ? roomViewSection(room, view) : ''}<section class="room-section" aria-labelledby="room-devices-title"><h3 id="room-devices-title">${e(t('{count} dispositivos', { count }))}</h3>${panelField(t('Fusionar en…'), `<select name="merge-room">${options('', t('Conservar espacio'), others.map(item => `<option value="${e(item.id)}">${e(item.label)}</option>`).join(''))}</select>`)}${uiButton(t('Fusionar'), 'merge')}${count ? panelField(t('Al quitar este espacio'), `<select name="remove-room">${options('keep', t('Conservar espacio'), `<option value="unassign">${e(t('Dejarlos sin espacio'))}</option>${others.map(item => `<option value="${e(item.id)}">${e(t('Fusionar en {room}', { room: item.label }))}</option>`).join('')}`)}</select>`) : ''}</section><p class="room-error" role="alert"></p>`;
+  const footer = `${uiButton(t('Quitar'), 'remove', 'danger')}<span class="room-spacer"></span>${uiButton(t('Cancelar'), 'cancel')}${uiButton(t('Aplicar'), 'apply', 'primary')}`;
+  const template = document.createElement('template');
+  template.innerHTML = panelDialog(room.label, body, footer, { className: 'room-actions' });
+  const dialog = template.content.querySelector('dialog')!;
+  dialog.removeAttribute('aria-labelledby');
+  dialog.setAttribute('aria-label', room.label);
+  // Each arrow's direction, as it points on the plan.
+  for (const icon of dialog.querySelectorAll<HTMLElement>('.room-direction'))
+    icon.style.transform = `rotate(${Number(icon.dataset.angle)}rad)`;
   const previous = root.activeElement as HTMLElement | null;
   dialog.addEventListener(
     'close',
@@ -43,7 +54,7 @@ export function openRoomActions(
     { once: true },
   );
   dialog.addEventListener('click', event => {
-    const action = (event.target as Element).closest<HTMLElement>('[data-room-action]')?.dataset.roomAction;
+    const action = (event.target as Element).closest<HTMLElement>('button[data-action]')?.dataset.action;
     if (!action) return;
     try {
       if (action === 'cancel') {
@@ -56,16 +67,17 @@ export function openRoomActions(
         return;
       }
       let next: Configuration;
+      const name = dialog.querySelector<HTMLInputElement>('[name=room-name]')!.value;
       if (action === 'apply')
         next = upsertRoom(
           configuration,
           {
             ...room,
-            label: dialog.querySelector<HTMLInputElement>('[name=room-name]')!.value,
+            label: name,
             // An emptied picker falls back to the suggestion instead of failing validation.
             icon:
               (dialog.querySelector<HTMLElement & { value?: string }>('[data-room-icon]')?.value ?? '').trim() ||
-              suggestedRoomIcon(dialog.querySelector<HTMLInputElement>('[name=room-name]')!.value),
+              suggestedRoomIcon(name),
             ...(view ? roomViewInput(dialog) : {}),
           },
           { previousId: id },
@@ -77,11 +89,11 @@ export function openRoomActions(
         const target = dialog.querySelector<HTMLSelectElement>('[name=merge-room]')!.value;
         if (!target) throw new Error(t('Elegí el espacio de destino.'));
         next = mergeRoom(configuration, id, target);
-      } else {
+      } else if (action === 'remove') {
         const target = count ? dialog.querySelector<HTMLSelectElement>('[name=remove-room]')!.value : 'unassign';
         if (target === 'keep') throw new Error(t('Elegí fusionar los dispositivos o dejarlos sin espacio.'));
         next = mergeRoom(configuration, id, target === 'unassign' ? null : target);
-      }
+      } else return;
       dialog.close();
       apply(next);
     } catch (error) {
@@ -92,17 +104,17 @@ export function openRoomActions(
   dialog.showModal();
 }
 
-function roomViewSection(room: Configuration['rooms'][number], view: RoomViewChoices): string {
+function roomViewSection(room: Room, view: RoomViewChoices): string {
   const hidden = new Set(room.nav?.hidden ?? []);
   const arrows = view.arrows.length
-    ? `<fieldset class="room-arrows" style="border:0;padding:0;margin:12px 0 0"><legend style="padding:0;margin-bottom:6px">${e(t('Flechas desde este espacio'))}</legend>${view.arrows
+    ? `<fieldset class="room-arrows"><legend>${e(t('Flechas desde este espacio'))}</legend>${view.arrows
         .map(
           arrow =>
-            `<label class="check"><input type="checkbox" name="room-arrow" value="${e(arrow.id)}"${hidden.has(arrow.id) ? '' : ' checked'}><ha-icon icon="mdi:arrow-right" aria-hidden="true" style="transform:rotate(${arrow.angle}rad)"></ha-icon>${e(arrow.label)}</label>`,
+            `<label class="k-row room-arrow"><input class="k-checkbox" type="checkbox" name="room-arrow" value="${e(arrow.id)}"${hidden.has(arrow.id) ? '' : ' checked'}><span class="room-direction" data-angle="${arrow.angle}">${uiIcon('mdi:arrow-right')}</span><span class="txt"><b>${e(arrow.label)}</b></span></label>`,
         )
         .join('')}</fieldset>`
     : '';
-  return `<section class="room-view-section" aria-labelledby="room-view-title"><h3 id="room-view-title">${e(t('Vista por espacio'))}</h3>${uiSegmented(
+  return `<section class="room-section" aria-labelledby="room-view-title"><h3 id="room-view-title">${e(t('Vista por espacio'))}</h3>${uiSegmented(
     t('Encuadre al 100 %'),
     'room-frame',
     [
@@ -111,9 +123,9 @@ function roomViewSection(room: Configuration['rooms'][number], view: RoomViewCho
       { value: 'wide', label: t('Amplio') },
     ],
     room.frame ?? 'normal',
-  )}<label class="check"><input type="checkbox" name="room-skip"${room.nav?.skip ? ' checked' : ''}>${e(t('Saltear al navegar'))}</label>${arrows}<div class="actions"><button type="button" data-room-action="shape">${e(t('Editar forma en el plano'))}</button>${room.shapeSource === 'app' && view.hasZone ? `<button type="button" data-room-action="zone">${e(t('Volver a la zona del SVG'))}</button>` : ''}</div></section>`;
+  )}<label class="k-row room-arrow"><input class="k-checkbox" type="checkbox" name="room-skip"${room.nav?.skip ? ' checked' : ''}><span class="txt"><b>${e(t('Saltear al navegar'))}</b><span>${e(t('Como un pasillo: se pasa de largo'))}</span></span></label>${arrows}<div class="room-shape">${uiButton(t('Editar forma en el plano'), 'shape', 'secondary', 'mdi:vector-rectangle')}${room.shapeSource === 'app' && view.hasZone ? uiButton(t('Volver a la zona del SVG'), 'zone', 'ghost') : ''}</div></section>`;
 }
-function roomViewInput(dialog: HTMLDialogElement): Pick<Configuration['rooms'][number], 'frame' | 'nav'> {
+function roomViewInput(dialog: HTMLDialogElement): Pick<Room, 'frame' | 'nav'> {
   const frame = dialog.querySelector<HTMLInputElement>('[name=room-frame]:checked')?.value as
     | 'tight'
     | 'normal'
@@ -125,3 +137,25 @@ function roomViewInput(dialog: HTMLDialogElement): Pick<Configuration['rooms'][n
   const skip = dialog.querySelector<HTMLInputElement>('[name=room-skip]')?.checked === true;
   return { frame, nav: { ...(skip ? { skip } : {}), ...(hidden.length ? { hidden } : {}) } };
 }
+
+const adopted = new WeakSet<ShadowRoot>();
+function adoptRoomStyles(root: ShadowRoot): void {
+  if (adopted.has(root)) return;
+  adopted.add(root);
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(roomActionsStyles);
+  root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+}
+/** Styles of the space window; the dialog itself comes from the shared components. */
+export const roomActionsStyles = `
+.room-actions{width:480px}.room-actions .k-dialog-body{gap:18px}
+.room-basic{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.room-section{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--hm-line)}.room-section h3{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--hm-muted);font-weight:600}
+.room-arrows{border:0;margin:0;padding:0;display:grid;gap:0;border:1px solid var(--hm-line);border-radius:14px;overflow:hidden}.room-arrows legend{font-size:13px;color:var(--hm-muted);padding:0;margin-bottom:6px}
+.room-arrow{cursor:pointer;min-height:48px}.room-arrows .room-arrow:first-of-type{border-top:0}
+.room-direction{display:grid;place-items:center;width:28px;height:28px;color:var(--hm-brand)}.room-direction ha-icon{--mdc-icon-size:20px}
+.room-shape{display:flex;gap:8px;flex-wrap:wrap}
+.room-error{margin:0;color:var(--hm-alert);font-size:13px}.room-error:empty{display:none}
+.room-actions .k-dialog-foot .room-spacer{flex:1}
+@media(max-width:650px){.room-basic{grid-template-columns:1fr}}
+`;

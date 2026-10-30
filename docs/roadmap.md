@@ -158,7 +158,8 @@ Se hace en **checkpoints**: un PR chico por punto, auditado y probado antes de a
 | 6 | ChatGPT | **Controles RF, Equipos RF y diálogos** con el diseño de la maqueta §10–§11. Sin cambios de comportamiento | (con beta.2) |
 | 7 | Claude | **Vista por espacio**: botón, encuadre, flechas-vector, mantener, tirar, deslizar e interruptores (`navTargets`, `swipeTarget`) | 0.9.0-beta.3 |
 | 8 | Claude | **Editor de espacios**: forma, encuadre, flechas por destino y *saltear* | 0.9.0-beta.4 |
-| 9 | ChatGPT | **SVG sin zonas**: dibujar espacios nuevos. **Ajustes del plano como página** (maqueta §9), con la ventana de cada espacio rediseñada. Al importar un SVG, ofrecer que un espacio dibujado a mano tome la zona nueva | 0.9.0-beta.5 |
+| 9a | Claude | **SVG sin zonas**: dibujar espacios nuevos (*Nuevo espacio* en la barra y el aviso *Este plano no tiene zonas*). La ventana de cada espacio con los componentes. Al importar un SVG, ofrecer que un espacio dibujado a mano tome la zona nueva | 0.9.0-beta.4 |
+| 9b | Claude | **Ajustes del plano como página** (maqueta §9) | 0.9.0-beta.5 |
 
 CP2 (los 7 espacios de la vivienda) es del repositorio privado y no se describe acá.
 

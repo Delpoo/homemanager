@@ -18,6 +18,8 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.editor?.closeSurface();
     this.updateControls();
     this.renderMarkers();
+    this.mountArchitecture();
+    this.updateShell();
     return;
   }
   if (!this.config || this._hass?.user?.is_admin !== true) {
@@ -61,6 +63,8 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.mountArchitecture();
     this.fit(null);
     this.renderMarkers();
+    this.updateShell();
+    this.offerFirstSpace();
     this.status(
       this.home?.revision === null ? `Hogar nuevo: «${this.home.homeId}» se creará en la integración al guardar.` : '',
     );
