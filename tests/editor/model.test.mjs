@@ -382,3 +382,18 @@ test('import summary reports added and removed spaces', () => {
   assert.deepEqual(summary.roomsAdded, ['garage']);
   assert.deepEqual(summary.roomsRemoved, ['kitchen']);
 });
+
+test('renaming a zone keeps its merged rectangles; dropping its shape drops them too', () => {
+  const part = { x: 0, y: 0, width: 0.2, height: 0.2 };
+  const shape = { x: 0, y: 0, width: 0.4, height: 0.2 };
+  const rects = [part, { ...part, x: 0.2 }];
+  let config = upsertRoom(configuration(), { id: 'attic', label: 'Attic', shape, rects, shapeSource: 'app' });
+  config = upsertRoom(config, { id: 'attic', label: 'Loft' }, { previousId: 'attic' });
+  assert.deepEqual(config.rooms.at(-1).rects, rects);
+  config = upsertRoom(
+    config,
+    { id: 'attic', label: 'Loft', shape: undefined, shapeSource: undefined },
+    { previousId: 'attic' },
+  );
+  assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Loft' });
+});

@@ -552,3 +552,25 @@ test('a space framing and room view navigation are optional, closed and well for
     assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify(room));
   }
 });
+
+test('a zone of merged rectangles needs its box, at least two parts and at most twelve', () => {
+  const part = { x: 0, y: 0, width: 0.2, height: 0.2 };
+  const room = rects => ({ shape: { x: 0, y: 0, width: 0.5, height: 0.5 }, rects, shapeSource: 'app' });
+  const configuration = make();
+  Object.assign(configuration.rooms[0], room([part, { ...part, x: 0.2 }]));
+  assert.deepEqual(assertConfiguration(configuration), configuration);
+  assert(schema(configuration), JSON.stringify(schema.errors));
+  const invalid = [
+    room([part]),
+    room([]),
+    room(Array.from({ length: 13 }, () => part)),
+    room([part, { ...part, x: 0.9 }]),
+    room('rects'),
+    { rects: [part, part] },
+  ];
+  for (const value of invalid) {
+    const bad = make();
+    Object.assign(bad.rooms[0], value);
+    assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify(value));
+  }
+});

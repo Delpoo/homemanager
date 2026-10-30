@@ -3,7 +3,7 @@ import { detectZones, roomsAt, sanitizeArchitecture, spaceAt, zoneShapes } from 
 import { planHealth, type PlanHealth } from '../model/plan-health.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
-import { ownsShape, shapeContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
+import { ownsShape, roomContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
 
 /** The import report plus the spaces drawn by hand whose zone the new plan redraws (D22). */
 export type PlanReview = PlanImportReport & { drawn?: { roomId: string; label: string }[] };
@@ -46,7 +46,7 @@ export function reportForPlan(configuration: Configuration): PlanReview {
           device.id,
           [
             ...roomsAt(svg, device.position, box, zoneIds),
-            ...shaped.filter(room => shapeContains(room.shape!, device.position)).map(room => room.id),
+            ...shaped.filter(room => roomContains(room, device.position)).map(room => room.id),
           ],
         ]),
       ),
@@ -194,6 +194,7 @@ export function openPlanReview(
           const room = next.rooms.find(entry => entry.id === item.roomId);
           if (room) {
             delete room.shape;
+            delete room.rects;
             delete room.shapeSource;
           }
         }

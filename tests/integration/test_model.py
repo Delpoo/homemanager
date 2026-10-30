@@ -148,6 +148,32 @@ def test_09_room_shape_rejects_invalid_values(room: dict) -> None:
     assert error.value.code == "invalid_configuration"
 
 
+RECT = {"x": 0, "y": 0, "width": 0.2, "height": 0.2}
+BOX = {"x": 0, "y": 0, "width": 0.5, "height": 0.5}
+
+
+def test_10_merged_rectangles_round_trip() -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update({"shape": BOX, "rects": [RECT, {**RECT, "x": 0.2}], "shapeSource": "app"})
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("room", [
+    {"shape": BOX, "rects": [RECT]},
+    {"shape": BOX, "rects": []},
+    {"shape": BOX, "rects": [RECT] * 13},
+    {"shape": BOX, "rects": [RECT, {**RECT, "x": 0.9}]},
+    {"shape": BOX, "rects": "rects"},
+    {"rects": [RECT, RECT]},
+])
+def test_10_merged_rectangles_reject_invalid_values(room: dict) -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update(room)
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
 @pytest.mark.parametrize("room", [{"frame": "tight"}, {"frame": "wide", "nav": {"skip": True}}, {"nav": {"hidden": ["kitchen", "office"]}}])
 def test_09_room_view_fields_round_trip(room: dict) -> None:
     value = presentation_configuration()

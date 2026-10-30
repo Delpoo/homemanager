@@ -1,6 +1,16 @@
 import { t } from '../i18n/index.js';
 import { type Room, type RoomId } from './types.js';
-import { ownsShape, planToShape, roomAtPoint, shapeToPlan, type RoomShape } from '../model/room-shapes.js';
+import {
+  ownsShape,
+  planToShape,
+  rectsFromCells,
+  rectsOf,
+  roomAtPoint,
+  shapeToPlan,
+  unionOutline,
+  type ZoneCopy,
+} from '../model/room-shapes.js';
+import { MAX_ROOM_RECTS } from '../ha/validation.mjs';
 
 export interface ViewBox {
   x: number;
@@ -756,18 +766,32 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
     return mode => roomDrawing(svg, zone, mode, `${prefix}${mode}-`);
   });
 }
-/** The same overlay for a space's own rectangle (D22), in plan coordinates. */
-export function createRectHighlight(svg: SVGSVGElement, bounds: ViewBox): SVGSVGElement {
+/** The same overlay for a space's own rectangles (D22), in plan coordinates: merged, without seams. */
+export function createRectHighlight(svg: SVGSVGElement, rects: readonly ViewBox[]): SVGSVGElement {
   return highlightOverlay(svg, () => mode => {
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    for (const [name, value] of Object.entries(bounds)) rect.setAttribute(name, String(value));
-    rect.setAttribute('fill', mode === 'mask' ? '#000' : 'none');
-    rect.setAttribute('stroke', mode === 'mask' ? 'none' : 'var(--hm-brand)');
-    if (mode === 'contour') {
-      rect.setAttribute('stroke-width', '2');
-      rect.setAttribute('vector-effect', 'non-scaling-stroke');
+    const group = document.createElementNS(SVG_NS, 'g');
+    if (mode === 'mask')
+      for (const bounds of rects) {
+        const rect = document.createElementNS(SVG_NS, 'rect');
+        for (const [name, value] of Object.entries(bounds)) rect.setAttribute(name, String(value));
+        rect.setAttribute('fill', '#000');
+        group.append(rect);
+      }
+    else {
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute(
+        'd',
+        unionOutline(rects)
+          .map(([a, b]) => `M${a.x} ${a.y}L${b.x} ${b.y}`)
+          .join(''),
+      );
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--hm-brand)');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('vector-effect', 'non-scaling-stroke');
+      group.append(path);
     }
-    return rect;
+    return group;
   });
 }
 function highlightOverlay(
@@ -831,34 +855,33 @@ export function roomsAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roo
     normalized.y > 1
   )
     return [];
-  const point = new DOMPoint(box.x + normalized.x * box.width, box.y + normalized.y * box.height),
-    matches = new Set<RoomId>();
-  for (const id of roomIds) {
+  const point = new DOMPoint(box.x + normalized.x * box.width, box.y + normalized.y * box.height);
+  return roomIds.filter(id => {
     const zone = roomZone(svg, id);
-    if (!zone) continue;
-    const shapes =
-      zone instanceof SVGGeometryElement
-        ? [zone]
-        : [...zone.querySelectorAll('*')].filter(
-            (element): element is SVGGeometryElement => element instanceof SVGGeometryElement,
-          );
-    for (const shape of shapes)
-      try {
-        const matrix = shape.getCTM(),
-          rootMatrix = svg.getCTM();
-        if (
-          matrix &&
-          rootMatrix &&
-          shape.isPointInFill(point.matrixTransform(rootMatrix.inverse().multiply(matrix).inverse()))
-        ) {
-          matches.add(id);
-          break;
-        }
-      } catch {
-        /* No guess from a rectangle. */
-      }
-  }
-  return [...matches];
+    return !!zone && zoneHolds(svg, zone, point);
+  });
+}
+/** Whether a plan point falls in a zone's real geometry; no guess from a rectangle. */
+function zoneHolds(svg: SVGSVGElement, zone: SVGGraphicsElement, point: DOMPoint): boolean {
+  const shapes =
+    zone instanceof SVGGeometryElement
+      ? [zone]
+      : [...zone.querySelectorAll('*')].filter(
+          (element): element is SVGGeometryElement => element instanceof SVGGeometryElement,
+        );
+  return shapes.some(shape => {
+    try {
+      const matrix = shape.getCTM(),
+        rootMatrix = svg.getCTM();
+      return (
+        !!matrix &&
+        !!rootMatrix &&
+        shape.isPointInFill(point.matrixTransform(rootMatrix.inverse().multiply(matrix).inverse()))
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId | null {
   const matches = roomsAt(svg, normalized, box, roomIds);
@@ -881,18 +904,52 @@ export function spaceAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roo
 }
 export function createSpaceHighlight(svg: SVGSVGElement, room: Room, box: ViewBox): SVGSVGElement | null {
   if (!ownsShape(room) && roomZone(svg, room.id)) return createRoomHighlight(svg, room.id);
-  return room.shape ? createRectHighlight(svg, shapeToPlan(room.shape, box)) : null;
+  return room.shape
+    ? createRectHighlight(
+        svg,
+        rectsOf(room).map(rect => shapeToPlan(rect, box)),
+      )
+    : null;
+}
+/** Cells per side when a zone is measured: fine enough for a wall's width on a home plan. */
+const ZONE_GRID = 48;
+/**
+ * A zone of a mounted plan as editable rectangles, whatever the SVG drew: its box, plus
+ * its parts when it is not a plain rectangle. A shape too intricate stays as its box.
+ */
+function zoneCopy(svg: SVGSVGElement, box: ViewBox, id: RoomId): ZoneCopy | null {
+  const bounds = roomBounds(svg, id),
+    zone = roomZone(svg, id);
+  const shape = bounds && planToShape(bounds, box);
+  if (!bounds || !zone || !shape) return null;
+  const width = bounds.width / ZONE_GRID,
+    height = bounds.height / ZONE_GRID;
+  const cells = Array.from({ length: ZONE_GRID }, (_, row) =>
+    Array.from({ length: ZONE_GRID }, (_, column) =>
+      zoneHolds(svg, zone, new DOMPoint(bounds.x + (column + 0.5) * width, bounds.y + (row + 0.5) * height)),
+    ),
+  );
+  const parts = rectsFromCells(cells);
+  if (parts.length < 2 || parts.length > MAX_ROOM_RECTS) return shape;
+  const rects = parts.flatMap(part => {
+    const rect = planToShape(
+      {
+        x: bounds.x + part.x * width,
+        y: bounds.y + part.y * height,
+        width: part.width * width,
+        height: part.height * height,
+      },
+      box,
+    );
+    return rect ? [rect] : [];
+  });
+  return rects.length < 2 ? shape : { ...shape, rects };
 }
 /** Normalized copies of the zones of a mounted plan, for `withZoneShapes`. */
 export function zoneShapes(
   svg: SVGSVGElement,
   box: ViewBox,
   roomIds: readonly RoomId[],
-): Record<RoomId, RoomShape | null> {
-  return Object.fromEntries(
-    roomIds.map(id => {
-      const bounds = roomBounds(svg, id);
-      return [id, bounds ? planToShape(bounds, box) : null];
-    }),
-  );
+): Record<RoomId, ZoneCopy | null> {
+  return Object.fromEntries(roomIds.map(id => [id, zoneCopy(svg, box, id)]));
 }

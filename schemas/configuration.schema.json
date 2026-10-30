@@ -65,6 +65,18 @@
     "commandTtlSeconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
   },
   "$defs": {
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      },
+      "$comment": "A rectangle normalized to the plan. x + width and y + height stay within 1 (semantic rule)."
+    },
     "room": {
       "type": "object",
       "additionalProperties": false,
@@ -73,17 +85,13 @@
         "id": { "$ref": "catalog.schema.json#/$defs/roomId" },
         "label": { "$ref": "catalog.schema.json#/$defs/text" },
         "icon": { "$ref": "catalog.schema.json#/$defs/mdiIcon", "$comment": "Optional MDI icon for the space rail." },
-        "shape": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["x", "y", "width", "height"],
-          "properties": {
-            "x": { "type": "number", "minimum": 0, "maximum": 1 },
-            "y": { "type": "number", "minimum": 0, "maximum": 1 },
-            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
-          },
-          "$comment": "D22: the space's own rectangle, normalized to the plan. x + width and y + height stay within 1 (semantic rule)."
+        "shape": { "$ref": "#/$defs/rect", "$comment": "D22: the space's own rectangle; with rects, the box around them." },
+        "rects": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 12,
+          "items": { "$ref": "#/$defs/rect" },
+          "$comment": "A zone of merged rectangles: an L is two."
         },
         "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." },
         "frame": { "enum": ["tight", "normal", "wide"], "$comment": "Room view framing around the space; normal when absent." },
@@ -102,7 +110,7 @@
           }
         }
       },
-      "dependentRequired": { "shapeSource": ["shape"] }
+      "dependentRequired": { "shapeSource": ["shape"], "rects": ["shape"] }
     },
     "mapKey": {
       "allOf": [

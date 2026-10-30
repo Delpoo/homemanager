@@ -134,3 +134,47 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   await draw(page, 'Garaje');
   expect(await ids()).toEqual(['office', 'kitchen', 'living', 'garaje']);
 });
+
+test('an L-shaped zone of the SVG becomes two rectangles, and its hole belongs to the neighbour', async ({ page }) => {
+  await begin(page);
+  await button(page, 'Ajustes del plano').click();
+  await editor(page).locator('[data-settings="import-section"]').click();
+  // viewBox 10 20 1000 700. Living is an L: full left column, top right part. Office fills the hole.
+  const plan =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><path id="room-living" d="M10 20H1010V370H510V720H10Z"/><rect id="room-office" x="510" y="370" width="500" height="350"/><rect id="room-kitchen" x="1009" y="719" width="1" height="1"/></svg>';
+  await editor(page)
+    .getByLabel('Importar JSON o SVG', { exact: true })
+    .setInputFiles({ name: 'l.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(plan) });
+  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  const rooms = (await draft(page)).rooms;
+  const living = rooms.find(room => room.id === 'living');
+  expect(living.rects).toHaveLength(2);
+  expect(living.shape).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+  expect(living.shapeSource).toBe('svg');
+  // The sum of its parts is the L: three quarters of the plan.
+  const area = living.rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
+  expect(area).toBeGreaterThan(0.72);
+  expect(area).toBeLessThan(0.78);
+  // A plain zone has no parts.
+  expect(rooms.find(room => room.id === 'office').rects).toBeUndefined();
+});
+
+test('a zone drawn as two rectangles is framed and highlighted as one, without a seam', async ({ page }) => {
+  await replace(
+    page,
+    `const room = configuration.rooms.find(item => item.id === 'living');
+     room.shape = { x: 0, y: 0, width: 0.5, height: 0.8 };
+     room.rects = [{ x: 0, y: 0, width: 0.5, height: 0.4 }, { x: 0, y: 0.4, width: 0.25, height: 0.4 }];
+     room.shapeSource = 'app';`,
+  );
+  const label = (await draft(page)).rooms.find(room => room.id === 'living').label;
+  await card(page)
+    .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
+    .click();
+  const highlight = card(page).locator('.room-highlight');
+  await expect(highlight).toHaveAttribute('data-room', 'living');
+  // One outline: a single path, not a rectangle per part.
+  await expect(highlight.locator('.room-contour path')).toHaveCount(1);
+  await expect(highlight.locator('.room-contour rect')).toHaveCount(0);
+});
