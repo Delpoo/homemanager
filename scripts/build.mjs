@@ -62,6 +62,8 @@ await build({
     'src/card/device-controls.ts',
     'src/model/archetype.ts',
     'src/model/names.ts',
+    'src/model/device-screen.ts',
+    'src/model/now.ts',
     'src/model/device-catalog.ts',
     'src/model/symbol-spec.ts',
     'src/model/alerts.ts',

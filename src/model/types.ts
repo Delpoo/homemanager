@@ -15,6 +15,7 @@ export interface ModelHass {
   entities?: Record<string, RegistryEntity>;
   devices?: Record<string, RegistryDevice>;
   areas?: Record<string, { name?: string }>;
+  services?: Record<string, Record<string, { fields?: unknown }>>;
   formatEntityState?(entity: ModelEntity): string;
 }
 export interface RegistryEntity {
@@ -53,6 +54,7 @@ export interface ModelDevice {
     deviceId?: string;
     readings?: string[];
     primaryAction?: string | null;
+    advancedPopupId?: string | null;
     remoteId?: string | null;
     tap?: string | null;
   };

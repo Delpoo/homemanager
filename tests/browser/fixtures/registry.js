@@ -35,7 +35,7 @@ export function syntheticRegistry() {
     add(
       'meter-six',
       `energy_meter_6ch_channel_${channel}_energy`,
-      `Energy_meter_6ch_Channel_${channel}_Energy`,
+      `Energy_meter_6ch_Channel_${channel}_Energía de hoy`,
       'energy',
       String(channel * 0.4),
       'kWh',
