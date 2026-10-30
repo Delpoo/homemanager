@@ -184,12 +184,15 @@ Las alertas salen de reglas por **clase de dispositivo**, no por modelo:
    - Se busca por nombre, área, fabricante o modelo.
    - Cada resultado muestra el icono de la integración y cuántas entidades tiene.
    - Con el campo vacío, sugiere los dispositivos del espacio y los que todavía no están en el plano.
-2. **Entidad principal:**
-   - Lista sólo las entidades de ese dispositivo, agrupadas por clase.
-   - Viene preseleccionada según el arquetipo: el medidor de energía, la potencia total; el sensor de clima, la temperatura.
+2. **Qué mostrar:**
+   - Lista sólo las lecturas útiles de ese dispositivo: nunca las de diagnóstico o configuración, ni las ocultas o desactivadas.
+   - La **lectura principal** viene preseleccionada según el arquetipo: en el medidor de energía, la potencia total; en el sensor de clima, la temperatura.
+   - Se pueden sumar **hasta 3 lecturas adicionales** (`bindings.readings`, opcional). Se ven en la pantalla del dispositivo y, la primera, junto al valor en el plano.
    - Un enlace *Buscar cualquier entidad* mantiene la búsqueda actual para casos especiales.
 
-El navegador ya tiene esta información sin pedir nada nuevo: `hass.devices`, `hass.entities[*].device_id` y `hass.areas`.
+**Nombres de persona.** Un dispositivo se llama como el usuario lo nombró en Home Assistant (si no, con su nombre de fábrica). Una lectura se llama sin repetir el nombre de su dispositivo (*Canal 1 · Potencia*), o por su clase traducida si no tiene nombre propio. Un `entity_id`, o un nombre con `_`, sólo aparece dentro de *Buscar cualquier entidad*. Maqueta: [§7](vision-mockup.html#s7).
+
+El navegador ya tiene esta información sin pedir nada nuevo: `hass.devices`, `hass.entities[*].device_id`, `hass.entities[*].entity_category` y `hass.areas`.
 
 **Pantalla del dispositivo.** Es la que se abre al tocar un sensor, un medidor, un equipo o infraestructura. Muestra:
 - encabezado: icono, nombre, espacio y salud;

@@ -140,6 +140,143 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .actions{display:flex;gap:8px;justify-content:flex-end}
 .btn{height:38px;padding:0 16px;border-radius:19px;border:1px solid #DDE2D8;display:flex;align-items:center;font-weight:500}
 .btn.primary{background:#4F7A5A;border-color:#4F7A5A;color:#fff}
+/* Index */
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+.toc a{font-size:12px;color:#1F2A24;text-decoration:none;background:#fff;border:1px solid #DDE2D8;border-radius:14px;padding:4px 10px}
+.toc a.new{border-color:#4F7A5A;color:#4F7A5A;font-weight:600}
+/* Component kit: every screen is built only from these pieces. */
+.kit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.kit-pane{background:var(--hm-bg);color:var(--hm-ink);border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(31,42,36,.08);display:flex;flex-direction:column;gap:14px;min-width:0}
+.kit-pane h4{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--hm-muted);font-weight:600}
+.kit-line{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.k-btn{height:40px;padding:0 16px;border-radius:20px;border:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);display:inline-flex;align-items:center;gap:8px;font-weight:500;font-size:13px;white-space:nowrap}
+.k-btn.primary{background:var(--hm-brand);border-color:var(--hm-brand);color:#fff}
+.k-btn.ghost{background:transparent;border-color:transparent;color:var(--hm-brand)}
+.k-btn.danger{color:var(--hm-alert);border-color:color-mix(in srgb,var(--hm-alert) 40%,var(--hm-line))}
+.k-btn.danger.solid{background:var(--hm-alert);border-color:var(--hm-alert);color:#fff}
+.k-icon{width:40px;height:40px;border-radius:50%;border:1px solid var(--hm-line);background:var(--hm-surface);display:inline-grid;place-items:center;color:var(--hm-muted);flex:none}
+.k-icon.solid{background:var(--hm-brand);border-color:var(--hm-brand);color:#fff}
+.dark .k-btn.primary,.dark .k-icon.solid,.dark .k-check.on,.dark .k-steps i.on,.dark .listen .core{color:#121714}
+.k-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--hm-muted);min-width:0}
+.k-input{height:42px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--hm-ink);font-size:14px;min-width:0}
+.k-input.focus{border-color:var(--hm-brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--hm-brand) 22%,transparent)}
+.k-input .ph{color:var(--hm-muted)}
+.k-input .end{margin-left:auto;color:var(--hm-muted);display:flex}
+.k-help{font-size:12px;color:var(--hm-muted)}
+.k-switch{width:40px;height:24px;border-radius:12px;background:var(--hm-line);position:relative;flex:none}
+.k-switch::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.k-switch.on{background:var(--hm-brand)}
+.k-switch.on::after{left:19px}
+.k-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--hm-line);display:grid;place-items:center;flex:none;color:#fff}
+.k-check.on{background:var(--hm-brand);border-color:var(--hm-brand)}
+.k-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--hm-line);flex:none;position:relative}
+.k-radio.on{border-color:var(--hm-brand)}
+.k-radio.on::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--hm-brand)}
+.k-list{background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:14px;overflow:hidden}
+.k-row{display:flex;align-items:center;gap:12px;padding:10px 14px;min-height:56px;border-top:1px solid var(--hm-line);color:var(--hm-ink)}
+.k-row:first-child{border-top:0}
+.k-row.sel{background:color-mix(in srgb,var(--hm-brand) 9%,transparent)}
+.k-row .ico{width:36px;height:36px;border-radius:11px;background:color-mix(in srgb,var(--hm-brand) 11%,transparent);color:var(--hm-brand);display:grid;place-items:center;flex:none}
+.k-row .ico.warm{background:color-mix(in srgb,var(--hm-active) 16%,transparent);color:#9A6412}
+.k-row .ico.cool{background:color-mix(in srgb,var(--hm-cool) 14%,transparent);color:var(--hm-cool)}
+.k-row .ico.grey{background:color-mix(in srgb,var(--hm-unknown) 18%,transparent);color:var(--hm-muted)}
+.k-row .txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.k-row .txt b{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-row .txt span{font-size:12px;color:var(--hm-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-row .val{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.k-row .chev{color:var(--hm-muted);display:flex}
+.k-group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--hm-muted);font-weight:600;padding:14px 4px 6px}
+.k-status{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:11px;font-size:11px;font-weight:600;white-space:nowrap}
+.k-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.k-status.ok{color:var(--hm-ok);background:color-mix(in srgb,var(--hm-ok) 12%,transparent)}
+.k-status.warn{color:#A8650F;background:color-mix(in srgb,var(--hm-warn) 16%,transparent)}
+.k-status.alert{color:var(--hm-alert);background:color-mix(in srgb,var(--hm-alert) 12%,transparent)}
+.k-status.off{color:var(--hm-muted);background:color-mix(in srgb,var(--hm-unknown) 16%,transparent)}
+.k-status.brand{color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 12%,transparent)}
+.k-notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45}
+.k-notice svg{flex:none;margin-top:1px}
+.k-notice .grow{flex:1}
+.k-notice.info{background:color-mix(in srgb,var(--hm-brand) 10%,transparent)}
+.k-notice.warn{background:color-mix(in srgb,var(--hm-warn) 14%,transparent)}
+.k-notice.alert{background:color-mix(in srgb,var(--hm-alert) 11%,transparent);color:var(--hm-alert)}
+.k-empty{border:1.5px dashed var(--hm-line);border-radius:14px;padding:22px;text-align:center;color:var(--hm-muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.k-empty b{color:var(--hm-ink);font-size:14px}
+.k-tabs{display:flex;gap:2px;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--hm-ink) 6%,transparent)}
+.k-tabs span{flex:1;text-align:center;padding:7px 12px;border-radius:9px;font-size:13px;color:var(--hm-muted);white-space:nowrap}
+.k-tabs span.on{background:var(--hm-surface);color:var(--hm-ink);font-weight:500;box-shadow:0 1px 2px rgba(31,42,36,.12)}
+.k-dialog{background:var(--hm-surface);color:var(--hm-ink);border-radius:18px;box-shadow:0 18px 50px rgba(31,42,36,.25);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.k-dialog .dh{display:flex;align-items:center;gap:12px;padding:16px 18px 6px}
+.k-dialog .dh b{font-size:17px;flex:1}
+.k-dialog .db{padding:6px 18px 14px;display:flex;flex-direction:column;gap:12px;font-size:14px}
+.k-dialog .df{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--hm-line);flex-wrap:wrap}
+.k-steps{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--hm-muted)}
+.k-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:600;font-size:11px;border:1.5px solid var(--hm-line)}
+.k-steps i.on{background:var(--hm-brand);border-color:var(--hm-brand);color:#fff}
+.k-steps i.done{border-color:var(--hm-brand);color:var(--hm-brand)}
+.k-steps hr{width:24px;border:0;border-top:1.5px solid var(--hm-line);margin:0}
+.k-sub{font-size:13px;color:var(--hm-muted)}
+/* Screens built with the kit */
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:start}
+.screen{display:flex;flex-direction:column;gap:8px;min-width:0}
+.screen>.cap{font-size:12px;color:#5F6E66}
+.pane{background:var(--hm-bg);color:var(--hm-ink);border-radius:16px;box-shadow:0 10px 30px rgba(31,42,36,.14);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.pane-head{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--hm-surface);border-bottom:1px solid var(--hm-line)}
+.pane-head b{flex:1;font-size:16px}
+.pane-body{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.pane-foot{display:flex;gap:8px;padding:12px 16px;background:var(--hm-surface);border-top:1px solid var(--hm-line);justify-content:flex-end}
+.hero{display:flex;align-items:center;gap:14px;padding:16px;background:var(--hm-surface);border-bottom:1px solid var(--hm-line)}
+.hero .ico{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand)}
+.hero .ico svg.i{width:28px;height:28px}
+.hero .t{flex:1;min-width:0}
+.hero .t b{display:block;font-size:18px}
+.hero .t span{font-size:13px;color:var(--hm-muted)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi{background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi span{display:block;font-size:11px;color:var(--hm-muted)}
+.kpi b{font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi b small{font-size:12px;color:var(--hm-muted);font-weight:400}
+.k-table{width:100%;border-collapse:collapse;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:14px;overflow:hidden;font-size:13px}
+.k-table th{font-size:11px;font-weight:600;color:var(--hm-muted);text-align:right;padding:9px 12px;border-bottom:1px solid var(--hm-line)}
+.k-table th:first-child,.k-table td:first-child{text-align:left}
+.k-table td{padding:9px 12px;border-top:1px solid var(--hm-line);text-align:right;font-variant-numeric:tabular-nums}
+.k-table .bar{display:inline-block;height:6px;border-radius:3px;background:var(--hm-active);vertical-align:middle;margin-right:6px}
+.fold{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:14px;font-size:13px;color:var(--hm-muted)}
+.fold b{color:var(--hm-ink);font-weight:500;flex:1}
+/* Settings page */
+.page{display:grid;grid-template-columns:230px 1fr;min-height:0}
+.side{background:var(--hm-surface);border-right:1px solid var(--hm-line);padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.side span{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;font-size:13px;color:var(--hm-muted)}
+.side span.on{background:color-mix(in srgb,var(--hm-brand) 13%,transparent);color:var(--hm-ink);font-weight:500}
+.side span .k-status{margin-left:auto}
+.content{padding:18px 22px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.content h3{margin:0;font-size:18px}
+.plan-card{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:center;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:14px;padding:12px}
+.plan-card .thumb{height:120px;border-radius:10px;background:color-mix(in srgb,var(--hm-ink) 3%,var(--hm-bg));position:relative;overflow:hidden}
+.plan-card .thumb svg.plan{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px)}
+.grip{color:var(--hm-unknown);display:flex}
+/* RF */
+.rf{display:grid;grid-template-columns:280px 1fr 320px;min-height:0}
+.rf .list{background:var(--hm-surface);border-right:1px solid var(--hm-line);padding:12px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.rf .detail{padding:18px 20px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.rf .learn{background:var(--hm-surface);border-left:1px solid var(--hm-line);padding:16px;display:flex;flex-direction:column;gap:12px}
+.remote-face{align-self:center;width:280px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:30px;padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;box-shadow:0 6px 18px rgba(31,42,36,.1)}
+.rb{height:48px;border-radius:14px;background:var(--hm-bg);border:1px solid var(--hm-line);display:grid;place-items:center;font-size:11px;color:var(--hm-ink);position:relative}
+.rb.wide{grid-column:span 3;height:44px}
+.rb.learned::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--hm-ok)}
+.rb.now{border-color:var(--hm-brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--hm-brand) 25%,transparent)}
+.listen{display:grid;place-items:center;height:130px;border-radius:14px;background:color-mix(in srgb,var(--hm-brand) 8%,transparent);position:relative}
+.listen .ring1,.listen .ring2{position:absolute;border-radius:50%;border:2px solid color-mix(in srgb,var(--hm-brand) 45%,transparent)}
+.listen .ring1{width:70px;height:70px}
+.listen .ring2{width:104px;height:104px;opacity:.5}
+.listen .core{width:44px;height:44px;border-radius:50%;background:var(--hm-brand);color:#fff;display:grid;place-items:center}
+.frames{display:flex;gap:4px;justify-content:center}
+.frames i{width:28px;height:6px;border-radius:3px;background:var(--hm-line)}
+.frames i.on{background:var(--hm-ok)}
+.dialogs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
+@media (max-width:760px){
+  .kit{grid-template-columns:1fr}
+  .screens{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -176,6 +313,22 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
     <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></symbol>
     <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="chevdown" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="back" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+    <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/></symbol>
+    <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="signal" viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0M8 12a4 4 0 0 1 8 0"/><circle cx="12" cy="13" r="1.4"/><path d="M12 15v5"/></symbol>
+    <symbol id="chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+    <symbol id="thermo" viewBox="0 0 24 24"><path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></symbol>
+    <symbol id="gauge" viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="m12 16 4-5"/></symbol>
+    <symbol id="upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    <symbol id="layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+    <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="history" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 4v4.6h4.6M12 8v4l3 2"/></symbol>
   </defs>
 </svg>
 <!-- Generic plan reused by every frame. -->
@@ -201,9 +354,10 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 
 <main>
   <h1>HomeManager · maqueta del panel de control</h1>
-  <p class="lead">Referencia visual de <a href="vision.md">vision.md</a>. Es un dibujo, no código, y muestra una casa inventada. Colores, tamaños y textos son los propuestos; los iconos definitivos son los de MDI.</p>
+  <p class="lead">Referencia visual de <a href="vision.md">vision.md</a>. Es un dibujo, no código, y muestra una casa inventada. Colores, tamaños y textos son los propuestos; los iconos definitivos son los de MDI. <b>Cada pantalla de HomeManager tiene que parecerse a una de estas</b>: si una pantalla no está acá, se arma sólo con las piezas de la sección 6.</p>
+  <nav class="toc"><a href="#s1">1 · Panel de control</a><a href="#s2">2 · Símbolos</a><a href="#s3">3 · Editar es ver</a><a href="#s4">4 · Móvil y pared</a><a href="#s5">5 · ESPHome</a><a class="new" href="#s6">6 · Componentes</a><a class="new" href="#s7">7 · Vincular un dispositivo</a><a class="new" href="#s8">8 · Pantalla del dispositivo</a><a class="new" href="#s9">9 · Ajustes del plano</a><a class="new" href="#s10">10 · Controles RF</a><a class="new" href="#s11">11 · Diálogos</a></nav>
 
-  <h2>1 · Panel de control en escritorio</h2>
+  <h2 id="s1">1 · Panel de control en escritorio</h2>
   <p class="note">El día a día y nada más: arriba la barra de actividad y las alertas; los espacios como iconos; a la derecha, lo que pasa ahora. La administración vive en ⋮.</p>
   <div class="scroll">
     <div class="app" id="desk">
@@ -247,11 +401,11 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
     </div>
   </div>
 
-  <h2>2 · Gramática de los símbolos</h2>
+  <h2 id="s2">2 · Gramática de los símbolos</h2>
   <p class="note">Seis arquetipos, una sola gramática. Cada señal tiene un único lugar y un único significado: el anillo es actividad, la insignia son alertas, y la marca abajo es salud, sólo si hay un problema.</p>
   <div class="grammar" id="grammar"></div>
 
-  <h2>3 · Editar es ver</h2>
+  <h2 id="s3">3 · Editar es ver</h2>
   <p class="note">El inspector se acopla a la derecha y no tapa el plano. La cámara lleva el símbolo elegido al centro, y cada cambio, como un control fijado o un tamaño, se ve en el plano mientras se edita.</p>
   <div class="scroll">
     <div class="app edit">
@@ -292,7 +446,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
     </div>
   </div>
 
-  <h2>4 · Móvil y modo pared</h2>
+  <h2 id="s4">4 · Móvil y modo pared</h2>
   <p class="note">En el móvil, la barra superior se reduce a logo, actividad y alertas; los espacios van abajo, y <em>Ahora</em> es una hoja que se desliza. El modo pared es el mismo panel en oscuro y a pantalla completa.</p>
   <div class="phones">
     <div class="phone" id="phone">
@@ -309,7 +463,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
     </div>
   </div>
 
-  <h2>5 · Preparar un equipo ESPHome</h2>
+  <h2 id="s5">5 · Preparar un equipo ESPHome</h2>
   <p class="note">Sin copiar ni pegar: HomeManager muestra exactamente qué cambia, guarda una copia, instala por OTA y vuelve atrás si algo falla.</p>
   <div class="wizard">
     <h3>Preparar «Puente RF» para HomeManager</h3>
@@ -320,6 +474,291 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 <span class="add">  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.8.0</span></div>
     <div class="steps"><span class="done">Copia de seguridad guardada</span><span class="done">Líneas agregadas</span><span class="run">Compilando… 62 %</span><span>Instalando por OTA</span><span>Comprobando que responde</span></div>
     <div class="actions"><span class="btn">Cancelar</span><span class="btn primary">Agregar e instalar</span></div>
+  </div>
+
+  <h2 id="s6">6 · Componentes</h2>
+  <p class="note">Las únicas piezas con las que se arma cualquier pantalla: el plano, la ficha, los ajustes, los controles RF y los diálogos. Ningún panel define sus propios colores, bordes ni tamaños. Lo mismo en claro y en oscuro.</p>
+  <div class="kit">
+    <div class="kit-pane" data-kit></div>
+    <div class="kit-pane dark" data-kit></div>
+  </div>
+  <template id="kit">
+    <h4>Botones</h4>
+    <div class="kit-line"><span class="k-btn primary">Guardar</span><span class="k-btn">Cancelar</span><span class="k-btn ghost">Más opciones</span><span class="k-btn danger">Eliminar</span><span class="k-icon"><svg class="i"><use href="#undo"/></svg></span><span class="k-icon"><svg class="i"><use href="#gear"/></svg></span><span class="k-icon solid"><svg class="i"><use href="#check"/></svg></span></div>
+    <h4>Campos</h4>
+    <div class="k-field">Nombre<span class="k-input">Ventilador Living</span></div>
+    <div class="k-field">Buscar<span class="k-input focus"><svg class="i" style="color:var(--hm-muted)"><use href="#search"/></svg><span class="ph">Dispositivo o espacio</span></span></div>
+    <div class="k-field">Espacio<span class="k-input">Living<span class="end"><svg class="i"><use href="#chevdown"/></svg></span></span><span class="k-help">Agrupa el símbolo en el plano. No cambia el área en Home Assistant.</span></div>
+    <h4>Elegir</h4>
+    <div class="k-tabs"><span>Chico</span><span class="on">Mediano</span><span>Grande</span></div>
+    <div class="kit-line"><span class="k-switch on"></span><span class="k-switch"></span><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="k-check"></span><span class="k-radio on"></span><span class="k-radio"></span></div>
+    <h4>Filas</h4>
+    <div class="k-list">
+      <div class="k-row"><span class="ico warm"><svg class="i"><use href="#bulb"/></svg></span><span class="txt"><b>Lámpara de pie</b><span>Living · Luz</span></span><span class="k-status brand">En el plano</span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+      <div class="k-row"><span class="ico"><svg class="i"><use href="#thermo"/></svg></span><span class="txt"><b>Temperatura</b><span>Sensor de ambiente</span></span><span class="val">23,4 °C</span></div>
+      <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Canal 1 · Potencia</b><span>Medidor de energía</span></span><span class="val">640 W</span></div>
+    </div>
+    <h4>Estados y avisos</h4>
+    <div class="kit-line"><span class="k-status ok">En línea</span><span class="k-status warn">Falta el paquete</span><span class="k-status alert">Sin respuesta</span><span class="k-status off">Sin vincular</span><span class="k-status brand">En el plano</span></div>
+    <div class="k-notice info"><svg class="i" style="color:var(--hm-brand)"><use href="#info"/></svg><span class="grow">Los cambios quedan en el borrador hasta tocar <b>Guardar</b>.</span></div>
+    <div class="k-notice warn"><svg class="i" style="color:var(--hm-warn)"><use href="#warn"/></svg><span class="grow">2 espacios no tienen zona en el plano.</span><span class="k-btn" style="height:32px">Revisar</span></div>
+    <div class="k-notice alert"><svg class="i"><use href="#drop"/></svg><span class="grow">Fuga detectada · Cocina</span></div>
+    <h4>Vacío</h4>
+    <div class="k-empty"><svg class="i" style="width:28px;height:28px"><use href="#remote"/></svg><b>Todavía no hay controles</b>Aprendé un control RF botón por botón.<span class="k-btn primary">Nuevo control</span></div>
+  </template>
+
+  <h2 id="s7">7 · Vincular un dispositivo</h2>
+  <p class="note">Se elige un <b>dispositivo</b> de Home Assistant, no una entidad. La lista muestra nombres de persona, agrupados por espacio; nunca un <code>entity_id</code> ni guiones bajos. Después se decide qué se ve: una lectura principal y hasta 3 adicionales. Lo técnico (diagnóstico, configuración, ocultas) no aparece. En el móvil, cada paso ocupa la pantalla como hoja.</p>
+  <div class="screens">
+    <div class="screen">
+      <div class="pane">
+        <div class="pane-head"><b>Vincular dispositivo</b><span class="k-steps"><i class="on">1</i><hr><i>2</i></span></div>
+        <div class="pane-body">
+          <span class="k-input focus"><svg class="i" style="color:var(--hm-muted)"><use href="#search"/></svg><span class="ph">Buscar dispositivo o espacio</span></span>
+          <div class="k-tabs"><span class="on">Todos · 23</span><span>Sin ubicar · 6</span></div>
+          <div class="k-group">Cocina</div>
+          <div class="k-list">
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#bolt"/></svg></span><span class="txt"><b>Medidor de energía</b><span>6 canales · 14 lecturas</span></span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#drop"/></svg></span><span class="txt"><b>Detector de fuga</b><span>Fuga · batería</span></span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+          </div>
+          <div class="k-group">Living</div>
+          <div class="k-list">
+            <div class="k-row"><span class="ico cool"><svg class="i"><use href="#ac"/></svg></span><span class="txt"><b>Aire acondicionado</b><span>Clima · 4 lecturas</span></span><span class="k-status brand">En el plano</span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#thermo"/></svg></span><span class="txt"><b>Sensor de ambiente</b><span>Temperatura y humedad</span></span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+          </div>
+          <div class="k-group">Sin espacio en Home Assistant</div>
+          <div class="k-list">
+            <div class="k-row"><span class="ico grey"><svg class="i"><use href="#signal"/></svg></span><span class="txt"><b>Puente RF</b><span>Transmisor 433 MHz</span></span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+          </div>
+        </div>
+        <div class="pane-foot" style="justify-content:space-between"><span class="k-btn ghost">Buscar cualquier entidad</span><span class="k-btn">Cancelar</span></div>
+      </div>
+      <span class="cap">Paso 1. Primero lo que todavía no está en el plano. La búsqueda mira el nombre del dispositivo, su espacio y su fabricante.</span>
+    </div>
+    <div class="screen">
+      <div class="pane">
+        <div class="pane-head"><span class="k-icon" style="width:34px;height:34px"><svg class="i"><use href="#back"/></svg></span><b>Medidor de energía</b><span class="k-steps"><i class="done">1</i><hr><i class="on">2</i></span></div>
+        <div class="pane-body">
+          <div class="k-group" style="padding-top:4px">Lectura principal · se ve en el símbolo</div>
+          <div class="k-list">
+            <div class="k-row sel"><span class="k-radio on"></span><span class="txt"><b>Potencia total</b><span>Sugerida</span></span><span class="val">1,79 kW</span></div>
+            <div class="k-row"><span class="k-radio"></span><span class="txt"><b>Energía de hoy</b></span><span class="val">8,4 kWh</span></div>
+          </div>
+          <div class="k-group">Lecturas adicionales · hasta 3</div>
+          <div class="k-list">
+            <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Canal 1 · Potencia</b></span><span class="val">640 W</span></div>
+            <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Canal 2 · Potencia</b></span><span class="val">410 W</span></div>
+            <div class="k-row"><span class="k-check"></span><span class="txt"><b>Tensión</b></span><span class="val">228 V</span></div>
+            <div class="k-row"><span class="k-check"></span><span class="txt"><b>Corriente</b></span><span class="val">7,8 A</span></div>
+          </div>
+          <div class="fold"><svg class="i"><use href="#chev"/></svg><b>Otras lecturas (10)</b>plegadas</div>
+          <div class="k-notice info"><svg class="i" style="color:var(--hm-brand)"><use href="#info"/></svg><span class="grow">Diagnóstico y configuración (9) no se muestran.</span></div>
+        </div>
+        <div class="pane-foot"><span class="k-btn">Cancelar</span><span class="k-btn primary">Vincular</span></div>
+      </div>
+      <span class="cap">Paso 2. La principal viene elegida. Las adicionales aparecen en su pantalla y, la primera, junto al valor en el plano.</span>
+    </div>
+    <div class="screen">
+      <div class="pane">
+        <div class="pane-head"><b>Cómo se escriben los nombres</b></div>
+        <div class="pane-body">
+          <div class="k-group" style="padding-top:4px">Hoy</div>
+          <div class="k-list">
+            <div class="k-row"><span class="txt"><b style="font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--hm-alert);text-decoration:line-through">sensor.energy_meter_6ch_channel_1_power</b><span style="text-decoration:line-through">Energy Meter 6CH Channel 1 Power</span></span></div>
+          </div>
+          <div class="k-group">Desde 0.8</div>
+          <div class="k-list">
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#bolt"/></svg></span><span class="txt"><b>Medidor de energía</b><span>el nombre del dispositivo en Home Assistant</span></span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#gauge"/></svg></span><span class="txt"><b>Canal 1 · Potencia</b><span>sin repetir el nombre del dispositivo</span></span></div>
+          </div>
+          <div class="k-sub">1. El nombre que el usuario le dio al dispositivo; si no, el de fábrica.<br>2. La lectura sin el prefijo del dispositivo; si no tiene nombre, su tipo traducido (Potencia, Temperatura).<br>3. El <code>entity_id</code> sólo dentro de <i>Buscar cualquier entidad</i>.</div>
+        </div>
+      </div>
+      <span class="cap">La regla, para que ningún panel vuelva a mostrar nombres técnicos.</span>
+    </div>
+  </div>
+
+  <h2 id="s8">8 · Pantalla del dispositivo</h2>
+  <p class="note">Tocar un sensor, un medidor o un equipo abre su pantalla en el lugar de <em>Ahora</em>, sin tapar el plano: arriba lo esencial, después sus lecturas en orden y lo técnico plegado. En el móvil es una hoja.</p>
+  <div class="scroll">
+    <div class="app" style="height:720px">
+      <header class="top">
+        <span class="brand"><svg class="i" style="width:24px;height:24px;color:var(--hm-brand)"><use href="#logo"/></svg>HomeManager <small>· Casa</small></span>
+        <span class="activity">Sin actividad reciente</span>
+        <span class="clock">18:44</span>
+        <span class="kebab"><svg class="i"><use href="#dots"/></svg></span>
+      </header>
+      <div class="body" style="grid-template-columns:72px 1fr 420px">
+        <nav class="rail">
+          <span class="room"><svg class="i"><use href="#home"/></svg></span>
+          <span class="room"><svg class="i"><use href="#sofa"/></svg></span>
+          <span class="room on"><svg class="i"><use href="#pot"/></svg></span>
+          <span class="room"><svg class="i"><use href="#desk"/></svg></span>
+          <span class="room"><svg class="i"><use href="#bed"/></svg></span>
+        </nav>
+        <section class="map" data-plan></section>
+        <aside class="inspector">
+          <div class="hero"><span class="ico"><svg class="i"><use href="#bolt"/></svg></span><span class="t"><b>Medidor de energía</b><span>Cocina · hace 5 s</span></span><span class="k-status ok">En línea</span><span class="k-icon" style="width:34px;height:34px"><svg class="i"><use href="#x"/></svg></span></div>
+          <div class="ins-body" style="display:flex;flex-direction:column;gap:10px;padding-top:14px">
+            <div class="kpis"><div class="kpi"><span>Ahora</span><b>1,79 <small>kW</small></b></div><div class="kpi"><span>Hoy</span><b>8,4 <small>kWh</small></b></div><div class="kpi"><span>Tensión</span><b>228 <small>V</small></b></div></div>
+            <table class="k-table"><thead><tr><th>Canal</th><th>Ahora</th><th>Hoy</th></tr></thead><tbody>
+              <tr><td>1 · Aire Living</td><td><span class="bar" style="width:42px"></span>640 W</td><td>3,1 kWh</td></tr>
+              <tr><td>2 · Cocina</td><td><span class="bar" style="width:27px"></span>410 W</td><td>2,2 kWh</td></tr>
+              <tr><td>3 · Lavarropas</td><td><span class="bar" style="width:22px"></span>330 W</td><td>1,4 kWh</td></tr>
+              <tr><td>4 · Oficina</td><td><span class="bar" style="width:14px"></span>210 W</td><td>0,9 kWh</td></tr>
+              <tr><td>5 · Dormitorio</td><td><span class="bar" style="width:9px"></span>140 W</td><td>0,6 kWh</td></tr>
+              <tr><td>6 · Libre</td><td><span class="bar" style="width:4px"></span>60 W</td><td>0,2 kWh</td></tr>
+            </tbody></table>
+            <div class="fold"><svg class="i"><use href="#history"/></svg><b>Actividad</b>últimas 24 h</div>
+            <div class="fold"><svg class="i"><use href="#chip"/></svg><b>Diagnóstico</b>9 lecturas</div>
+          </div>
+          <div class="ins-foot" style="justify-content:space-between"><span class="k-btn ghost"><svg class="i" style="width:16px;height:16px"><use href="#ext"/></svg>Abrir en Home Assistant</span><span class="k-btn">Editar</span></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <div class="phones" style="margin-top:20px">
+    <div class="phone">
+      <header class="top"><svg class="i" style="width:22px;height:22px;color:var(--hm-brand)"><use href="#logo"/></svg><span class="activity"><b>Enviado</b> · Aire Dormitorio · 22°</span></header>
+      <section class="map" data-plan data-phone data-top></section>
+      <nav class="bottom"><span class="room"><svg class="i"><use href="#home"/></svg></span><span class="room"><svg class="i"><use href="#sofa"/></svg></span><span class="room"><svg class="i"><use href="#pot"/></svg></span><span class="room on"><svg class="i"><use href="#bed"/></svg></span><span class="room"><svg class="i"><use href="#shower"/></svg></span></nav>
+      <div class="sheet" style="height:470px;padding:8px 0 0;display:flex;flex-direction:column">
+        <div class="grab"></div>
+        <div class="hero" style="padding:4px 16px 12px"><span class="ico" style="background:color-mix(in srgb,var(--hm-cool) 14%,transparent);color:var(--hm-cool)"><svg class="i"><use href="#ac"/></svg></span><span class="t"><b>Aire Dormitorio</b><span>Enfriando · consigna 22°</span></span><span class="k-switch on" style="background:var(--hm-cool)"></span></div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:center;gap:22px"><span class="k-icon"><svg class="i"><use href="#minus"/></svg></span><span style="font-size:46px;font-weight:300;font-variant-numeric:tabular-nums">22°</span><span class="k-icon"><svg class="i"><use href="#plus"/></svg></span></div>
+          <div class="k-tabs"><span class="on">Frío</span><span>Calor</span><span>Seco</span><span>Ventilar</span></div>
+          <div class="k-list">
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#thermo"/></svg></span><span class="txt"><b>Temperatura</b></span><span class="val">24,1 °C</span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#drop"/></svg></span><span class="txt"><b>Humedad</b></span><span class="val">55 %</span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#bolt"/></svg></span><span class="txt"><b>Consumo</b></span><span class="val">820 W</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="s9">9 · Ajustes del plano</h2>
+  <p class="note">Una página con secciones a la izquierda, no un diálogo de secciones plegadas. Los problemas se ven arriba, antes que nada. Los espacios se ordenan arrastrando y se tocan para renombrar, cambiar el icono, fusionar o quitar.</p>
+  <div class="scroll">
+    <div class="app">
+      <header class="top">
+        <span class="k-icon" style="width:36px;height:36px"><svg class="i"><use href="#back"/></svg></span>
+        <span class="brand">Ajustes del plano <small>· Casa</small></span>
+        <span class="activity">Cambios sin guardar · 1</span>
+        <span class="k-btn primary">Guardar</span>
+      </header>
+      <div class="page">
+        <nav class="side">
+          <span class="on"><svg class="i"><use href="#layers"/></svg>Plano y espacios<span class="k-status warn">2</span></span>
+          <span><svg class="i"><use href="#link"/></svg>Acciones</span>
+          <span><svg class="i"><use href="#list"/></svg>Paneles</span>
+          <span><svg class="i"><use href="#warn"/></svg>Referencias pendientes<span class="k-status off">0</span></span>
+          <span><svg class="i"><use href="#upload"/></svg>Importar y exportar</span>
+          <span><svg class="i"><use href="#history"/></svg>Versiones guardadas</span>
+        </nav>
+        <div class="content">
+          <h3>Plano y espacios</h3>
+          <div class="k-notice warn"><svg class="i" style="color:var(--hm-warn)"><use href="#warn"/></svg><span class="grow"><b>2 espacios sin zona</b> en el plano y <b>1 zona</b> sin espacio.</span><span class="k-btn" style="height:32px">Revisar</span></div>
+          <div class="plan-card"><div class="thumb" data-thumb></div><div style="display:flex;flex-direction:column;gap:8px"><b>Plano de la casa</b><span class="k-sub">8 zonas · actualizado el 29/10</span><div class="kit-line"><span class="k-btn"><svg class="i" style="width:16px;height:16px"><use href="#upload"/></svg>Reemplazar plano</span><span class="k-btn ghost">Exportar</span></div></div></div>
+          <div class="k-list">
+            <div class="k-row"><span class="grip"><svg class="i"><use href="#grip"/></svg></span><span class="ico"><svg class="i"><use href="#sofa"/></svg></span><span class="txt"><b>Living</b><span>5 dispositivos</span></span><span class="k-status ok">En el plano</span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+            <div class="k-row"><span class="grip"><svg class="i"><use href="#grip"/></svg></span><span class="ico"><svg class="i"><use href="#pot"/></svg></span><span class="txt"><b>Cocina</b><span>3 dispositivos</span></span><span class="k-status ok">En el plano</span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+            <div class="k-row"><span class="grip"><svg class="i"><use href="#grip"/></svg></span><span class="ico grey"><svg class="i"><use href="#sofa"/></svg></span><span class="txt"><b>Comedor</b><span>2 dispositivos</span></span><span class="k-status warn">Sin zona</span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+            <div class="k-row"><span class="grip"><svg class="i"><use href="#grip"/></svg></span><span class="ico grey"><svg class="i"><use href="#door"/></svg></span><span class="txt"><b>Pasillo</b><span>Sin dispositivos</span></span><span class="k-status warn">Sin zona</span><span class="chev"><svg class="i"><use href="#chev"/></svg></span></div>
+          </div>
+          <div class="kit-line"><span class="k-btn"><svg class="i" style="width:16px;height:16px"><use href="#plus"/></svg>Agregar espacio</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="s10">10 · Controles RF</h2>
+  <p class="note">Los controles a la izquierda, el control elegido en el centro con sus botones aprendidos, y el aprendizaje a la derecha, un botón por vez. Los detalles técnicos de la señal existen pero quedan plegados. Debajo, los equipos ESPHome con su estado y una sola acción cada uno.</p>
+  <div class="scroll">
+    <div class="app">
+      <header class="top">
+        <span class="brand"><svg class="i" style="width:24px;height:24px;color:var(--hm-brand)"><use href="#logo"/></svg>Controles RF</span>
+        <span class="activity"><b>Aprendiendo</b> · Ventilador Living · Temporizador</span>
+        <span class="kebab"><svg class="i"><use href="#dots"/></svg></span>
+      </header>
+      <div class="rf">
+        <div class="list">
+          <div class="k-tabs"><span class="on">Controles</span><span>Equipos</span></div>
+          <div class="k-list">
+            <div class="k-row sel"><span class="ico warm"><svg class="i"><use href="#fan"/></svg></span><span class="txt"><b>Ventilador Living</b><span>8 de 9 botones</span></span></div>
+            <div class="k-row"><span class="ico warm"><svg class="i"><use href="#bulb"/></svg></span><span class="txt"><b>Luz del balcón</b><span>2 botones</span></span></div>
+            <div class="k-row"><span class="ico"><svg class="i"><use href="#curtain"/></svg></span><span class="txt"><b>Cortina Dormitorio</b><span>3 botones</span></span></div>
+          </div>
+          <span class="k-btn ghost"><svg class="i" style="width:16px;height:16px"><use href="#plus"/></svg>Nuevo control</span>
+        </div>
+        <div class="detail">
+          <div style="display:flex;align-items:center;gap:10px"><b style="font-size:18px;flex:1">Ventilador Living</b><span class="k-status ok">Puente RF · en línea</span></div>
+          <div class="remote-face">
+            <span class="rb learned">Encender</span><span class="rb learned">Apagar</span><span class="rb learned">Luz</span>
+            <span class="rb learned">Vel. 1</span><span class="rb learned">Vel. 2</span><span class="rb learned">Vel. 3</span>
+            <span class="rb learned">Vel. 4</span><span class="rb learned">Vel. 5</span><span class="rb now">Temporizador</span>
+            <span class="rb wide">+ Agregar botón</span>
+          </div>
+          <div class="k-notice info"><svg class="i" style="color:var(--hm-brand)"><use href="#info"/></svg><span class="grow">Cuando un receptor oye el envío, la actividad dice <b>en el aire</b>: la señal salió, pero no prueba que el equipo la recibió.</span></div>
+        </div>
+        <div class="learn">
+          <span class="k-steps"><i class="done">1</i><hr><i class="on">2</i><hr><i>3</i></span>
+          <b style="font-size:16px">Aprender «Temporizador»</b>
+          <div class="listen"><span class="ring2"></span><span class="ring1"></span><span class="core"><svg class="i"><use href="#signal"/></svg></span></div>
+          <span class="k-sub">Apuntá el control al Puente RF y mantené pulsado <b>Temporizador</b>.</span>
+          <div class="frames"><i class="on"></i><i class="on"></i><i></i></div>
+          <span class="k-sub" style="text-align:center">2 de 3 señales iguales</span>
+          <div class="fold"><svg class="i"><use href="#chev"/></svg><b>Detalles de la señal</b></div>
+          <div class="kit-line" style="margin-top:auto;justify-content:flex-end"><span class="k-btn ghost">Saltar</span><span class="k-btn">Cancelar</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" style="max-width:720px;margin-top:20px">
+    <div class="pane-head"><b>Equipos ESPHome</b><span class="k-sub">3 equipos</span></div>
+    <div class="pane-body">
+      <div class="k-list">
+        <div class="k-row"><span class="ico"><svg class="i"><use href="#signal"/></svg></span><span class="txt"><b>Puente RF</b><span>Living · emite y escucha</span></span><span class="k-status ok">Listo</span><span class="k-btn ghost">Probar</span></div>
+        <div class="k-row"><span class="ico"><svg class="i"><use href="#chip"/></svg></span><span class="txt"><b>Enchufe del balcón</b><span>Balcón · tiene receptor RF</span></span><span class="k-status warn">Falta el paquete</span><span class="k-btn primary">Preparar</span></div>
+        <div class="k-row"><span class="ico grey"><svg class="i"><use href="#bolt"/></svg></span><span class="txt"><b>Medidor de energía</b><span>Cocina</span></span><span class="k-status off">Sin RF</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="s11">11 · Diálogos</h2>
+  <p class="note">Los mismos tres tamaños y el mismo pie para todos: la acción principal a la derecha, la destructiva en rojo y siempre una salida. Nunca un diálogo sobre otro.</p>
+  <div class="dialogs">
+    <div class="k-dialog">
+      <div class="dh"><b>¿Quitar «Lámpara de pie»?</b></div>
+      <div class="db"><span>Se quita del plano. El dispositivo sigue en Home Assistant y podés deshacerlo hasta guardar.</span></div>
+      <div class="df"><span class="k-btn">Cancelar</span><span class="k-btn danger solid">Quitar</span></div>
+    </div>
+    <div class="k-dialog">
+      <div class="dh"><b>Revisar cambios del plano</b></div>
+      <div class="db">
+        <span class="k-sub">Nada se aplica hasta tocar <b>Aplicar</b>, y todo se deshace en un paso.</span>
+        <div class="k-group" style="padding:2px 0 0">Cambian de espacio · 2</div>
+        <div class="k-list">
+          <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Luz del comedor</b><span>Comedor → Living</span></span></div>
+          <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Aire del comedor</b><span>Comedor → Living</span></span></div>
+        </div>
+        <div class="k-group" style="padding:2px 0 0">Espacios sin zona · 2</div>
+        <div class="k-list">
+          <div class="k-row"><span class="txt"><b>Comedor</b><span>Queda vacío</span></span><span class="k-input" style="height:34px;font-size:13px">Fusionar en Living<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chevdown"/></svg></span></span></div>
+          <div class="k-row"><span class="txt"><b>Pasillo</b><span>Sin dispositivos</span></span><span class="k-input" style="height:34px;font-size:13px">Quitar<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chevdown"/></svg></span></span></div>
+        </div>
+      </div>
+      <div class="df"><span class="k-btn">Cancelar</span><span class="k-btn ghost">Sólo el plano</span><span class="k-btn primary">Aplicar</span></div>
+    </div>
+    <div class="k-dialog">
+      <div class="dh"><b>Nuevo hogar</b></div>
+      <div class="db">
+        <div class="k-field">Nombre<span class="k-input focus">Casa de campo</span><span class="k-help">Se guarda como <code>casa-de-campo</code>.</span></div>
+        <div class="k-empty"><svg class="i" style="width:26px;height:26px"><use href="#upload"/></svg><b>Plano SVG</b>Arrastralo acá o elegilo. Podés hacerlo después.</div>
+      </div>
+      <div class="df"><span class="k-btn">Cancelar</span><span class="k-btn primary">Crear hogar</span></div>
+    </div>
   </div>
 </main>
 <script>
@@ -363,6 +802,9 @@ for (const host of document.querySelectorAll('[data-plan]')) {
   layer.style.cssText = `position:absolute;top:${inset[0]}px;left:${inset[3]}px;right:${inset[1]}px;bottom:${inset[2]}px`;
   host.prepend(document.getElementById('plan').content.cloneNode(true));
   const plan = host.querySelector('svg.plan');
+  // A sheet covers the lower half: draw the plan from the top.
+  const top = host.hasAttribute('data-top');
+  if (top) plan.setAttribute('preserveAspectRatio', 'xMidYMin meet');
   plan.style.inset = `${inset[0]}px ${inset[1]}px ${inset[2]}px ${inset[3]}px`;
   plan.style.width = `calc(100% - ${inset[1] + inset[3]}px)`;
   plan.style.height = `calc(100% - ${inset[0] + inset[2]}px)`;
@@ -371,7 +813,7 @@ for (const host of document.querySelectorAll('[data-plan]')) {
   const place = () => {
     const r = layer.getBoundingClientRect();
     const scale = Math.min(r.width / 600, r.height / 400);
-    const ox = (r.width - 600 * scale) / 2, oy = (r.height - 400 * scale) / 2;
+    const ox = (r.width - 600 * scale) / 2, oy = top ? 0 : (r.height - 400 * scale) / 2;
     layer.querySelectorAll('.sym').forEach(el => {
       el.style.left = `${ox + Number(el.dataset.x) * scale}px`;
       el.style.top = `${oy + Number(el.dataset.y) * scale}px`;
@@ -414,6 +856,8 @@ const grammar = [
 document.getElementById('grammar').innerHTML = grammar
   .map(([title, html, text]) => `<div class="g"><div class="stage"><span class="sym">${html}</span></div><b>${title}</b><span>${text}</span></div>`)
   .join('');
+for (const pane of document.querySelectorAll('[data-kit]')) pane.append(document.getElementById('kit').content.cloneNode(true));
+for (const thumb of document.querySelectorAll('[data-thumb]')) thumb.append(document.getElementById('plan').content.cloneNode(true));
 </script>
 </body>
 </html>
