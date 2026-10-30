@@ -244,4 +244,27 @@ export const enShell: Record<string, string> = {
   'Espacios que aparecen': 'Spaces that appear',
   'Para cambiar sólo el dibujo, importá el SVG. Para aplicar este archivo, exportá antes una copia actual.':
     'To change only the drawing, import the SVG. To apply this file, export a current copy first.',
+  'No se pudo leer el archivo del plano.': 'The plan file could not be read.',
+  'Se ignoró esta versión del archivo. El plano sigue como estaba.':
+    'This version of the file was ignored. The plan stays as it was.',
+  'El plano cambió después de esa actualización. Las versiones anteriores están en Importar y exportar.':
+    'The plan changed after that update. Earlier versions are in Import and export.',
+  'Volvió el plano anterior. Esa versión del archivo no se aplica de nuevo.':
+    'The previous plan is back. That version of the file will not be applied again.',
+  'El plano se actualizó desde su archivo. Espacios y dispositivos no cambiaron.':
+    'The plan was updated from its file. Spaces and devices did not change.',
+  'El archivo del plano cambió, y esta versión afecta espacios o dispositivos.':
+    'The plan file changed, and this version affects spaces or devices.',
+  'El archivo del plano no se pudo usar. El plano sigue como estaba.':
+    'The plan file could not be used. The plan stays as it was.',
+  'Ignorar esta versión': 'Ignore this version',
+  'Todavía no hay ningún archivo ahí.': 'There is no file there yet.',
+  'El archivo es demasiado grande: admite hasta 3 MiB.': 'The file is too large: up to 3 MiB.',
+  'El archivo no se pudo leer.': 'The file could not be read.',
+  'Hay una versión del archivo sin aplicar.': 'There is a version of the file not applied yet.',
+  'La última versión del archivo ya se aplicó o se ignoró.':
+    'The latest version of the file was already applied or ignored.',
+  'Plano vinculado': 'Linked plan',
+  'Guardá el dibujo en este archivo de Home Assistant. Si no afecta espacios ni dispositivos se aplica solo, y si los afecta te pregunta.':
+    'Keep the drawing in this Home Assistant file. If it does not affect spaces or devices it applies by itself; if it does, you are asked.',
 };

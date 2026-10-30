@@ -57,6 +57,8 @@ class Home:
     updated_at: str
     updated_by: str | None
     configuration: dict[str, Any]
+    # The linked file's last version that was applied or set aside.
+    linked_seen: str | None = None
 
     def summary(self) -> dict[str, Any]:
         configuration = self.configuration
@@ -77,6 +79,7 @@ class Home:
             "updated_at": self.updated_at,
             "updated_by": self.updated_by,
             "configuration": self.configuration,
+            **({"linked_seen": self.linked_seen} if self.linked_seen else {}),
         }
 
     @classmethod
@@ -84,7 +87,11 @@ class Home:
         if not isinstance(data, dict) or type(data["revision"]) is not int or data["revision"] < 1 or not isinstance(data["updated_at"], str):
             raise ModelError("storage_error", "invalid stored home metadata")
         datetime.fromisoformat(data["updated_at"])
-        return cls(home_id, validate_title(data.get("title")), data["revision"], data["updated_at"], data.get("updated_by"), validate_configuration(data["configuration"]))
+        home = cls(home_id, validate_title(data.get("title")), data["revision"], data["updated_at"], data.get("updated_by"), validate_configuration(data["configuration"]))
+        seen = data.get("linked_seen")
+        # A hint, not data: an odd value only means the file is looked at again.
+        home.linked_seen = seen if isinstance(seen, str) and re.fullmatch(r"[0-9a-f]{64}", seen) else None
+        return home
 
 
 @dataclass
@@ -143,6 +150,7 @@ class Homes:
             now.isoformat(),
             user_id,
             clean,
+            current.linked_seen if current else None,
         )
         self.homes[home_id] = home
         return home, plan_changed

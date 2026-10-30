@@ -49,6 +49,23 @@ export function subscribeHome(
     return () => {};
   });
 }
+/** The drawing file kept for a home in Home Assistant's config folder (administrators only). */
+export interface LinkedPlanStatus {
+  state: 'missing' | 'ready' | 'too_large' | 'unreadable';
+  path: string;
+  seen_sha256: string | null;
+  sha256?: string;
+  bytes?: number;
+  modified_at?: string;
+  content?: string;
+}
+export function fetchLinkedPlan(hass: Hass, homeId: string, content = false): Promise<LinkedPlanStatus> {
+  if (!hass.callWS) throw new Error(t('La sesión de Home Assistant no está conectada.'));
+  return hass.callWS<LinkedPlanStatus>({ type: 'homemanager/plan/linked', home_id: homeId, content });
+}
+export async function markLinkedSeen(hass: Hass, homeId: string, sha256: string): Promise<void> {
+  await hass.callWS?.({ type: 'homemanager/plan/linked/seen', home_id: homeId, sha256 });
+}
 export function describeError(error: unknown): string {
   const { code, message } = (error ?? {}) as WsError;
   if (code === 'revision_conflict')

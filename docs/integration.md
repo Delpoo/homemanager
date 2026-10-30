@@ -60,3 +60,12 @@ Errores adicionales: `storage_quota`, `storage_error`, `subscription_limit`, `ho
 - `tests/e2e/local-ha.e2e.mjs`: 11 comprobaciones en Chrome contra instancias **reales y desechables** de HA 2026.2.3 y 2026.10.4 (procedimiento en [testing.md](testing.md)).
 
 `hacs.json` declara `homeassistant: 2026.2.0`; probado en 2026.2.3 y 2026.10.4. Hay que validar la versión de la instalación real antes de publicar.
+
+## Plano vinculado
+
+Al cargar, la integración crea la carpeta `homemanager/` dentro de la configuración de Home Assistant. Quien administra puede guardar ahí el dibujo como `<hogar>.svg`, con el identificador del hogar. Queda en las copias de seguridad de Home Assistant como cualquier archivo de esa carpeta.
+
+- `homemanager/plan/linked` (administración): dice si el archivo está y cuál es su huella, y entrega el contenido sólo si se pide. La ruta sale de un identificador validado; un enlace simbólico, un archivo de más de 3 MiB o uno que no sea texto se informan como estado y no se leen como plano.
+- `homemanager/plan/linked/seen` (administración): recuerda la última versión aplicada o ignorada. No crea una revisión del hogar.
+- La integración no vigila la carpeta ni interpreta el archivo: el panel lo sanea y lo guarda por `homemanager/home/save`, con las mismas validaciones y el mismo historial de planos que una importación.
+

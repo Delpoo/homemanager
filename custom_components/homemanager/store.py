@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections import OrderedDict
 from collections.abc import Callable
+from dataclasses import replace
 import logging
 from typing import Any
 from pathlib import Path
@@ -140,6 +141,17 @@ class HomeManagerStore:
             self._sizes = sizes
             self._notify(home_id, home.revision)
             return home
+
+    async def async_mark_linked_seen(self, home_id: str, sha256: str) -> None:
+        """Not an edit of the home: no new revision, and nobody needs to reload."""
+        async with self._lock:
+            home = self.state.get(home_id)
+            candidate = Homes({**self.state.homes, home_id: replace(home, linked_seen=sha256)})
+            try:
+                await self._store.async_save(self._document(candidate, self._sizes))
+            except Exception as error:
+                raise ModelError("storage_error", "HomeManager could not save; reload before retrying") from error
+            self.state = candidate
 
     async def async_delete(self, home_id: str, expected_revision: int) -> None:
         async with self._lock:
