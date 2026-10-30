@@ -2,6 +2,16 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.9.0-beta.4 — beta
+
+Cuarta parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **el mismo diseño en RF y Ajustes, y espacios creados en la app**.
+
+- **Controles RF, Equipos ESPHome, la confirmación y *Nuevo hogar*** con el diseño de la maqueta, en claro y oscuro. El comportamiento, los envíos y el YAML para pegar no cambian; *enviado* y *en el aire* siguen sin confirmar la reacción del equipo. En el móvil, los botones del control ya no cortan sus nombres.
+- **Ajustes del plano como página:** secciones al costado (arriba en el móvil), los problemas siempre arriba, el plano con su miniatura y los espacios en una lista que muestra dónde está cada uno, se toca para editarlo y se ordena arrastrando o con las flechas del teclado.
+- **Nuevo espacio:** en modo edición, el `+` de la barra de espacios (o *Nuevo espacio* en Ajustes) dibuja un rectángulo sobre el plano; se ajusta y se crea con su nombre. Un plano con dibujo pero sin zonas lo ofrece al entrar en edición.
+- **Importar un SVG** que trae otra zona para un espacio dibujado a mano ofrece usarla, desmarcado por defecto.
+- La ventana de cada espacio, con el diseño nuevo.
+
 ## 0.9.0-beta.3 — beta
 
 Tercera parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **editor de espacios** (D22).
