@@ -2,6 +2,16 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.9.0-beta.1 — beta
+
+Primera parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **categorías** (D21).
+
+- **Categoría de cada dispositivo**, elegible arriba de la ficha: Interruptor, Equipo, Control remoto, Medidor, Planta, Alerta, Presencia o Infraestructura. Arranca con la que sugiere la app, y al vincular otro dispositivo propone la suya, salvo que ya hayas elegido una.
+- La categoría decide cómo se ve el símbolo y qué hace tocarlo, y **la ficha muestra sólo lo suyo**: un medidor o una planta eligen qué muestra el símbolo (icono, valor o los dos) y no tienen editor de botones; Interruptor, Equipo y Control remoto conservan sus controles y el control RF.
+- Lo que una categoría oculta no se borra.
+- Desaparece el campo técnico *Tipo de dispositivo*.
+- Campo opcional `display.category`. Un plano de 0.8 sigue igual.
+
 ## 0.8.0-beta.2 — beta
 
 Segunda parte de la etapa 0.8 de [docs/roadmap.md](docs/roadmap.md): la pantalla de cada dispositivo y la columna *Ahora*.
