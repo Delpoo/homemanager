@@ -1650,6 +1650,48 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-31",
       "sha256": "39b5356f926294dcb462784e80ee7f2b435d7fec3d09f76086d57cd2249cce54"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/desktop-dark-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "1af89c576ac89c05cef665171a54d0777ea520807c081930b19f38f2c9c82544"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/desktop-dark-sidebar.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "bc85db35665c1c1f58df5b8d203e2d260b1d308208c555511f07c29ca759fd85"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/desktop-light-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "ad769372011019601e1067c16c778852bfc06fb63a5d2710d003421672180255"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/mobile-dark-ampliada.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "a8eea42e82cf9d6613c8a041189fda64765737021481a4495ffa15ba1cb0ca30"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/mobile-dark-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "3f43f96dda10b7ff16b718ac02719fa58d39cc26903d4b99f8aafa6a4a6388fa"
+    },
+    {
+      "path": "docs/evidence/rediseno-e01/mobile-light-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "60f9aee169037afd6a6168639ca8b0f16d52679b23f7dd4988d6289927eee051"
     }
   ]
 }

@@ -44,6 +44,10 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
     }
     const d = this.draft?.catalog.devices.find(d => d.id === marker.dataset.id);
     if (!d) return;
+    if (this.editor && !this.editor.flushDevice()) {
+      this.pointers.delete(event.pointerId);
+      return;
+    }
     this.selected = d.id;
     this.updateSelection();
     if (d.mobility === 'fixed' && this.fixedPermit !== d.id) {
@@ -154,7 +158,7 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
       }
       this.fixedPermit = null;
     }
-    if (!g.moved && this.editor) this.editor.selectedDeviceId = g.id;
+    if (!g.moved && this.editor) this.select(g.id);
     this.renderMarkers();
     this.updateControls();
   }

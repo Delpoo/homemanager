@@ -40,13 +40,19 @@ Todas las funciones de `deviceForm` y de su pie, según [inventario.md](../inven
 
 ## Aceptación
 
-- [ ] En 1440×900 y en 1278×900 (barra lateral de Home Assistant abierta), la ficha no tapa el plano y la página no se desplaza.
-- [ ] En 390×844, el símbolo elegido queda visible sobre la hoja.
-- [ ] El símbolo elegido llega al centro de lo visible, con transición, y sin transición con movimiento reducido.
-- [ ] Cada cambio se ve en el plano antes de guardar.
-- [ ] Salir sin guardar no conserva cambios.
-- [ ] Todas las funciones de la ficha siguen disponibles (lista en el reporte).
-- [ ] Teclado: el foco entra a la ficha, se recorre en orden y `Esc` la cierra.
-- [ ] Sin cambios en el contrato.
+- [x] En 1440×900 y en 1278×900 (barra lateral de Home Assistant abierta), la ficha no tapa el plano y la página no se desplaza.
+- [x] En 390×844, el símbolo elegido queda visible sobre la hoja.
+- [x] El símbolo elegido llega al centro de lo visible, con transición, y sin transición con movimiento reducido.
+- [x] Cada cambio se ve en el plano antes de guardar.
+- [x] Salir sin guardar no conserva cambios.
+- [x] Todas las funciones de la ficha siguen disponibles (lista en el reporte).
+- [x] Teclado: el foco entra a la ficha, se recorre en orden y `Esc` la cierra.
+- [x] Sin cambios en el contrato.
 
 ## Registro
+
+### 2026-10-31 — ChatGPT — terminada
+- **Hecho:** ficha derecha de 380 px, hoja inferior 55% ampliable con tirador/botón, cámara centrada, vista previa validada sin persistir, agrupación de campos y deshacer sólo el dispositivo/fuente. Se mantienen categorías, avisos, controles y opciones avanzadas. 25 funciones cotejadas con método en el reporte.
+- **Falta:** auditoría y validación del propietario; suite completa del navegador (timeout antes de los casos), teléfono/teclado/lector reales y E2E en HA desechable. No se marcan esos recorridos como aprobados.
+- **Dónde quedó:** rama chatgpt/rediseno-e01-ficha-lateral, PR #51; implementación d5e585da6b6037bf5f44707f6b7c6dcb8dd8bd85, árbol 23e194b84cfa2beff73bae589bea41228ea428a0. Reporte en ../entregas/E01-2026-10-31.md.
+- **Para quien siga:** npm run check pasa (250), formato pasa; npm run test:editor-dock ejecuta la app ficticia en Chrome sin socket del servidor: 11 pasan y 1 móvil de pantalla completa se omite. Aceptación de campos conservados cotejada también por código/modelo, no implica recorrido en app de las 25 funciones; ver tabla. Movimiento/260 ms y movimiento reducido mantienen la cámara existente; centrado y reduced motion ejecutados. Datos/copias previas sin migración. Restablecer sugerencias está en Más opciones y sigue siendo distinto del deshacer local. E02 va en otra rama y se detiene antes de convertir pantallas.

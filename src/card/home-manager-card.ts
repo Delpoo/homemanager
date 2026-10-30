@@ -99,6 +99,8 @@ export class HomeManagerCard extends HTMLElement {
   fixedPermit: string | null = null;
   history: Configuration[] = [];
   future: Configuration[] = [];
+  /** A live sheet edit is one undo step, never a persisted physical state. */
+  editorPreviewBase?: Configuration;
   box: ViewBox = { x: 0, y: 0, width: 1000, height: 700 };
   camera: Camera = { x: 0, y: 0, scale: 1 };
   fitted?: { camera: Camera; width: number };

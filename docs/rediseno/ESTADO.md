@@ -9,7 +9,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | Etapa | Qué deja lista | Depende de | Estado | Agente | Rama / PR | Actualizada | Falta |
 |---|---|---|---|---|---|---|---|
 | [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 137 funciones entregado con evidencia por fila |
-| [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | pendiente | — | — | — | Todo |
+| [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e01-ficha-lateral` · [PR #51](https://github.com/Delpoo/homemanager/pull/51) | 2026-10-31 | Auditoría y validación; 250 pruebas de código y 11 de navegador pasan; teléfono real, suite completa y E2E HA pendientes |
 | [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | pendiente | — | — | — | Todo |
 | [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | pendiente | — | — | — | Todo |
 | [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | pendiente | — | — | — | Todo |
@@ -49,6 +49,10 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
 
 ## Bitácora
+
+- 2026-10-31 · ChatGPT · E01 · Implementada para revisión en #51: dock de 380 px, hoja móvil ampliable, vista previa sin guardar y deshacer local. 25 funciones cotejadas con método por fila; 250 pruebas de código y 11 de navegador pasan, 1 omitida. Seis capturas nuevas. Suite completa sin iniciar por timeout del servidor; teléfono y E2E HA pendientes. E02 autorizada aparte por el propietario, sin saltar su parada de diseño.
+
+- 2026-10-31 · ChatGPT · E01 · Reclamada por instrucción del propietario «continua con eo1 y eo2». Rama creada desde main 764a9e0 e integrada con E00 (#49), sin fusionar a main ni aprobar por cuenta propia sus decisiones. E02 se preparará después en otra rama, respetando su parada de validación de pantallas.
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 

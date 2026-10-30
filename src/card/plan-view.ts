@@ -99,6 +99,10 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
 
 /** A height-only resize (edit bar, status line) must not undo a camera the person moved. */
 export function refit(this: HomeManagerCard) {
+  if (this.editing && this.selected && this.editor?.surfaceMode === 'device') {
+    this.frameAboveSheet();
+    return;
+  }
   const { fitted, camera } = this;
   const r = this.viewport.getBoundingClientRect();
   const moved =

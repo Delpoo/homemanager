@@ -18,7 +18,8 @@
     "test:integration": "python -m pytest -q",
     "package": "npm run build && python scripts/package_integration.py",
     "format": "prettier --write \"src/**/*.{ts,mjs,mts}\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" playwright.config.mjs",
-    "format:check": "prettier --check \"src/**/*.{ts,mjs,mts}\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" playwright.config.mjs"
+    "format:check": "prettier --check \"src/**/*.{ts,mjs,mts}\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" playwright.config.mjs",
+    "test:editor-dock": "npm run build && playwright test --config=playwright.editor.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

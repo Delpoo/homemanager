@@ -1,5 +1,10 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  Avisos: 'Alerts',
+  'Ampliar ficha': 'Expand editor',
+  'Reducir ficha': 'Collapse editor',
+  'Deshacer cambios de este dispositivo': 'Undo changes to this device',
+  'Ficha de edición': 'Device editor',
   'Sin vincular': 'Not linked',
   'Usar esta entidad': 'Use this entity',
   'Vincular dispositivo': 'Link device',
