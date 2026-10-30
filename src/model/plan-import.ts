@@ -74,3 +74,17 @@ export function mergeRoom<T extends ImportConfiguration>(configuration: T, from:
   next.rooms = next.rooms.filter(room => room.id !== from);
   return next;
 }
+
+/** What a plan brings that was not already there: an old problem is no reason to ask about a new drawing. */
+export function newProblems<T extends PlanImportReport>(before: T, after: T): T {
+  const key = (item: object) => ('id' in item ? String(item.id) : JSON.stringify(item));
+  const fresh = Object.fromEntries(
+    Object.entries(after).map(([name, items]) => {
+      const known = new Set(((before as unknown as Record<string, object[] | undefined>)[name] ?? []).map(key));
+      return [name, (items as object[]).filter(item => !known.has(key(item)))];
+    }),
+  );
+  return fresh as unknown as T;
+}
+export const hasProblems = (report: PlanImportReport): boolean =>
+  Object.values(report).some(items => (items as unknown[]).length > 0);

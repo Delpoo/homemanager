@@ -6,6 +6,7 @@ over the authenticated websocket of the current HA session.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -13,8 +14,9 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DOMAIN
+from .const import DOMAIN, LINKED_PLAN_FOLDER
 from .model import ModelError, RevisionConflict
+from .plan_link import read_linked
 from .store import HomeManagerStore
 
 HOME_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -50,7 +52,7 @@ def _read_allowed(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_storage_status, ws_history_purge):
+    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge):
         websocket_api.async_register_command(hass, command)
 
 
@@ -174,6 +176,46 @@ async def ws_plan_get(hass: HomeAssistant, connection: websocket_api.ActiveConne
             connection.send_result(msg["id"], {**plan.summary(), "content": plan.content})
             return
     connection.send_error(msg["id"], "plan_not_found", "unknown plan")
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "homemanager/plan/linked",
+        vol.Required("home_id"): HOME_ID,
+        vol.Optional("content", default=False): bool,
+    }
+)
+@websocket_api.async_response
+async def ws_plan_linked(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """The drawing file kept for this home in the config folder, if any. Only an
+    administrator sees it, and the home ID was validated before it becomes a path."""
+    try:
+        home = _store(hass).state.get(msg["home_id"])
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+        return
+    path = Path(hass.config.path(LINKED_PLAN_FOLDER, f"{home.home_id}.svg"))
+    result = await hass.async_add_executor_job(read_linked, path, msg["content"])
+    connection.send_result(msg["id"], {**result, "path": str(path), "seen_sha256": home.linked_seen})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "homemanager/plan/linked/seen",
+        vol.Required("home_id"): HOME_ID,
+        vol.Required("sha256"): vol.All(str, vol.Match(r"^[0-9a-f]{64}$")),
+    }
+)
+@websocket_api.async_response
+async def ws_plan_linked_seen(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        await _store(hass).async_mark_linked_seen(msg["home_id"], msg["sha256"])
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+        return
+    connection.send_result(msg["id"])
 
 
 @websocket_api.require_admin

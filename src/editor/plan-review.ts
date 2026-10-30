@@ -121,6 +121,12 @@ export function openPlanReview(
     const previous = before?.catalog.devices.find(item => item.id === device.id);
     return previous && JSON.stringify(previous.position) !== JSON.stringify(device.position);
   });
+  // The drawing does not decide which spaces a home has (D23). A zone is offered ticked only
+  // in a home with no spaces yet, or when a device would end up in it.
+  const wanted = (id: string) =>
+    !candidate.rooms.length ||
+    report.moves.some(move => move.to === id) ||
+    report.orphans.some(orphan => orphan.suggestion === id);
   dialog.innerHTML = `<style>.plan-review{width:660px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;padding:20px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink)}.plan-review[open]{display:flex;flex-direction:column}.review-content{overflow:auto;min-height:0;flex:1}.plan-review h2{margin-top:0}.plan-review h3{margin:18px 0 8px}.plan-review label{display:flex;gap:8px;align-items:center;margin:10px 0}.plan-review label select{flex:1}.plan-review input[type=checkbox]{flex:none;width:20px}.plan-review .review-row{border-bottom:1px solid var(--hm-line);padding:8px 0}.plan-review .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:18px}.plan-review .review-error{color:var(--hm-alert)}@media(max-width:650px){.plan-review .review-row label{display:block}.plan-review .actions button{flex:1 1 100%}}</style><h2 id="plan-review-title">${e(t('Revisar cambios'))}</h2><p>${e(t('Revisá los cambios antes de aplicarlos al borrador. Guardar los persiste; Deshacer devuelve todo.'))}</p>
   <div class="review-content">${positions.length ? `<h3>${e(t('Cambios de posición'))}</h3><ul>${positions.map(device => `<li>${e(device.display.label)}: ${e(JSON.stringify(before!.catalog.devices.find(item => item.id === device.id)!.position))} → ${e(JSON.stringify(device.position))}</li>`).join('')}</ul>` : ''}
   ${report.moves.length ? `<h3>${e(t('Dispositivos que cambian de espacio'))}</h3>${report.moves.map(move => `<label><input type="checkbox" data-move="${e(move.deviceId)}" checked><span>${e(label(move.deviceId))}: ${e(name(move.from))} → ${e(name(move.to))}</span></label>`).join('')}` : ''}
@@ -142,7 +148,7 @@ export function openPlanReview(
           .join('')}`
       : ''
   }
-  ${report.newZones.length ? `<h3>${e(t('Zonas nuevas'))}</h3>${report.newZones.map(zone => `<label><input type="checkbox" data-zone="${e(zone.id)}" checked><span>${e(t('Agregar como espacio'))}: ${e(zone.label)}</span></label>`).join('')}` : ''}
+  ${report.newZones.length ? `<h3>${e(t('Zonas nuevas'))}</h3>${report.newZones.map(zone => `<label><input type="checkbox" data-zone="${e(zone.id)}"${wanted(zone.id) ? ' checked' : ''}><span>${e(t('Agregar como espacio'))}: ${e(zone.label)}</span></label>`).join('')}` : ''}
   ${report.drawn?.length ? `<h3>${e(t('Espacios dibujados a mano'))}</h3><p>${e(t('El plano nuevo trae otra zona para estos espacios. Se conservan como los dibujaste, salvo que elijas la zona.'))}</p>${report.drawn.map(item => `<label><input type="checkbox" data-drawn="${e(item.roomId)}"><span>${e(t('Usar la zona del plano: {room}', { room: item.label }))}</span></label>`).join('')}` : ''}
   ${report.ambiguous.length ? `<h3>${e(t('Dispositivos ambiguos: conservan su espacio'))}</h3><ul>${report.ambiguous.map(item => `<li>${e(label(item.deviceId))}: ${item.zones.map(id => e(name(id))).join(', ')}</li>`).join('')}</ul>` : ''}
   ${report.outside.length ? `<h3>${e(t('Fuera de zona: conservan su espacio'))}</h3><ul>${report.outside.map(item => `<li>${e(label(item.deviceId))}</li>`).join('')}</ul>` : ''}

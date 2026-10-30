@@ -19,7 +19,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .plan_link import ensure_folder
 from .rf import RfManager
 from .rf_websocket import DATA_RF, async_register as async_register_rf
 from .store import HomeManagerStore
@@ -37,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await store.async_load()
     store.viewer_user_ids = set(entry.options.get(CONF_VIEWER_USER_IDS, []))
     hass.data[DOMAIN] = store
+    await hass.async_add_executor_job(ensure_folder, Path(hass.config.path(LINKED_PLAN_FOLDER)))
     rf = RfManager(hass)
     await rf.async_load()
     hass.data[DATA_RF] = rf
