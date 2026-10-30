@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planImportReport, mergeRoom } from '../../.work/model/plan-import.js';
+import { planImportReport, mergeRoom, hasProblems, newProblems } from '../../.work/model/plan-import.js';
 
 const config = () => ({
   schemaVersion: 2,
@@ -101,4 +101,31 @@ test('empty removal, explicit unassignment, same-room no-op and invalid destinat
   assert.deepEqual(mergeRoom(config(), 'one', 'one'), config());
   assert.throws(() => mergeRoom(config(), 'missing', 'two'), /unknown-source/);
   assert.throws(() => mergeRoom(config(), 'one', 'missing'), /unknown-target/);
+});
+
+test('a new drawing is judged by what it brings, not by problems that were already there', () => {
+  const old = {
+    moves: [],
+    orphans: [{ roomId: 'a', label: 'A', devices: [], suggestion: null }],
+    newZones: [{ id: 'z', label: 'Z' }],
+    ambiguous: [],
+    outside: [],
+  };
+  // The same old problems, even with a zone's title reworded: nothing new, nothing to ask.
+  const same = { ...structuredClone(old), newZones: [{ id: 'z', label: 'Otro título' }] };
+  assert.equal(hasProblems(newProblems(old, same)), false);
+  const moved = { ...structuredClone(old), moves: [{ deviceId: 'd', from: 'a', to: 'b' }] };
+  assert.deepEqual(newProblems(old, moved).moves, [{ deviceId: 'd', from: 'a', to: 'b' }]);
+  const zone = {
+    ...structuredClone(old),
+    newZones: [
+      { id: 'z', label: 'Z' },
+      { id: 'y', label: 'Y' },
+    ],
+  };
+  assert.deepEqual(newProblems(old, zone).newZones, [{ id: 'y', label: 'Y' }]);
+  assert.equal(hasProblems(old), true);
+  // The extra list of a review counts too.
+  const drawn = { ...structuredClone(old), drawn: [{ roomId: 'r', label: 'R' }] };
+  assert.equal(hasProblems(newProblems(old, drawn)), true);
 });

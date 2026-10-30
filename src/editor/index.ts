@@ -7,6 +7,8 @@ import {
   integrationAvailable,
   listHomes,
   type HomeSummary,
+  fetchLinkedPlan,
+  type LinkedPlanStatus,
 } from '../integration/store.js';
 import { detectZones, sanitizeArchitecture } from '../card/geometry.js';
 import {
@@ -181,6 +183,9 @@ export class HomeManagerEditor extends HTMLElement {
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
   editZones?: () => void;
+  /** Set by the card: reviews the home's linked drawing. */
+  linkedReview?: () => void;
+  private linked?: LinkedPlanStatus | null;
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
   private homeConfig?: { type: string; card_id: string; home_id: string; title?: string };
   private homes?: HomeSummary[];
@@ -426,6 +431,7 @@ export class HomeManagerEditor extends HTMLElement {
   }
   openSettings(): void {
     this.surface = 'settings';
+    this.linked = undefined;
     this.render();
   }
   openRoom(id: string, view?: RoomViewChoices): void {
@@ -576,6 +582,7 @@ export class HomeManagerEditor extends HTMLElement {
     });
   }
   private render(): void {
+    const review = this.root.querySelector<HTMLDialogElement>('dialog.plan-review');
     // Native toggle events can arrive after a change event has already repainted
     // the editor. Read the current DOM before replacing it so disclosures keep
     // their actual state even when a device is changed immediately after opening.
@@ -620,6 +627,12 @@ export class HomeManagerEditor extends HTMLElement {
         this.closeSurface();
       });
       dialog.showModal();
+    }
+    // A repaint, such as the list of homes arriving, must not lose a review in progress.
+    if (review) {
+      review.removeAttribute('open');
+      this.root.append(review);
+      review.showModal();
     }
   }
   private roomOptions(selected: string): string {
@@ -966,13 +979,57 @@ export class HomeManagerEditor extends HTMLElement {
         '',
       )}</select></label><form id="panel-form"><div class="grid">${input('panelId', t('ID de panel'), this.panelId, this.panelId ? 'required readonly' : 'required')}${input('title', t('Título del panel'), panel?.title ?? '', 'required')}<label class="field">${esc(t('Tipo de panel'))}<select name="kind" aria-label="${esc(t('Tipo de panel'))}">${option('device-controls', t('Controles de dispositivo'), panel?.kind ?? 'device-controls')}${option('rf-fan', t('Ventilador RF mediante scripts HA'), panel?.kind ?? 'device-controls')}</select></label></div><div class="controls" role="group" aria-label="${esc(t('Controles del panel'))}">${this.controlRows()}</div><button type="button" data-command="add-control">${esc(t('Agregar control'))}</button><div class="actions"><button type="submit" class="primary">${esc(t('Aplicar panel'))}</button></div></form>`;
   }
+  /** Where to keep the drawing so it updates by itself (stage 4 of 0.10). */
+  private linkedBox(): string {
+    if (!this.homeId || !this.linkedReview || !integrationAvailable(this._hass) || this._hass?.user?.is_admin !== true)
+      return '';
+    if (this.linked === undefined) {
+      this.linked = null;
+      void this.loadLinked();
+    }
+    const linked = this.linked;
+    if (!linked) return '';
+    const pending = linked.state === 'ready' && linked.sha256 !== linked.seen_sha256;
+    const text =
+      linked.state === 'missing'
+        ? t('Todavía no hay ningún archivo ahí.')
+        : linked.state === 'too_large'
+          ? t('El archivo es demasiado grande: admite hasta 3 MiB.')
+          : linked.state === 'unreadable'
+            ? t('El archivo no se pudo leer.')
+            : pending
+              ? t('Hay una versión del archivo sin aplicar.')
+              : t('La última versión del archivo ya se aplicó o se ignoró.');
+    return `<div class="linked-box"><h3>${esc(t('Plano vinculado'))}</h3><p>${esc(t('Guardá el dibujo en este archivo de Home Assistant. Si no afecta espacios ni dispositivos se aplica solo, y si los afecta te pregunta.'))}</p><code>${esc(linked.path)}</code><p class="note">${esc(text)}</p>${pending ? `<button type="button" data-command="linked-review">${esc(t('Revisar'))}</button>` : ''}</div>`;
+  }
+  private async loadLinked(): Promise<void> {
+    if (!this._hass || !this.homeId) return;
+    try {
+      this.linked = await fetchLinkedPlan(this._hass, this.homeId);
+      this.render();
+    } catch {
+      // An older integration simply has no linked plan to show.
+    }
+  }
+  /** A drawing that did not come from a file input: same preview as any import. */
+  importPlanSource(source: string): void {
+    this.surface = 'settings';
+    this.settingsSection = 'import-section';
+    // First: rendering would take away the review dialog the preview may open.
+    this.render();
+    try {
+      this.previewImport(source, true);
+    } catch (error) {
+      this.notice(error instanceof Error ? error.message : String(error));
+    }
+  }
   private importForm(): string {
     const imported = this.imported;
     const history =
       this.homeId && integrationAvailable(this._hass)
         ? `<div class="plans-box">${this.plans ? (this.plans.length ? `<div class="plans">${this.plans.map(plan => `<div class="plan"><span>${esc(new Date(plan.created_at).toLocaleString(getLanguage()))} · ${esc(t('revisión {n}', { n: plan.revision }))} · ${Math.ceil(plan.bytes / 1024)} KiB</span><button type="button" data-command="restore-plan" data-plan="${esc(plan.plan_id)}">${esc(t('Restaurar'))}</button></div>`).join('')}</div>` : `<p class="note">${esc(t('Todavía no hay planos anteriores.'))}</p>`) : `<button type="button" data-command="plans">${esc(t('Planos anteriores'))}</button>`}</div>`
         : '';
-    return `${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${importLossNote(imported.losses)}${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${(imported.viewBoxChanged || losesData(imported.losses)) && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
+    return `${this.linkedBox()}${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${importLossNote(imported.losses)}${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${(imported.viewBoxChanged || losesData(imported.losses)) && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
   }
   private captureRows(): NativePanel['controls'] {
     const form = this.root.querySelector<HTMLFormElement>('#panel-form');
@@ -1018,6 +1075,9 @@ export class HomeManagerEditor extends HTMLElement {
           this.openRoom(id, this.roomView?.(id));
           break;
         }
+        case 'linked-review':
+          this.linkedReview?.();
+          break;
         case 'zones-edit':
           this.closeSurface();
           this.editZones?.();

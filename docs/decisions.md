@@ -123,6 +123,8 @@ Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. La pantal
 - Importar un **SVG** sólo cambia el dibujo y conserva dispositivos, vínculos y acciones.
 - Importar un **JSON** reemplaza todo el hogar. Si eso quita vínculos, avisos, acciones o paneles, o trae espacios que hoy no están, la vista previa lo dice y no se puede aplicar sin exportar antes una copia actual.
 - *Exportar JSON* es una copia de respaldo, no un formato de trabajo.
+- **Plano vinculado:** el dibujo puede vivir en un archivo de Home Assistant, en `homemanager/<hogar>.svg` dentro de la carpeta de configuración. Una versión nueva se aplica sola si no agrega problemas de espacios o dispositivos, y se puede deshacer; si los agrega, o si cambian las coordenadas del plano, pregunta y nada cambia hasta guardar. Sólo mira el panel abierto de una persona administradora, nunca durante la edición. Un archivo inválido no cambia nada.
+- Una zona del dibujo no se convierte en espacio por sí sola: al revisar un plano queda marcada sólo en un hogar sin espacios o si un dispositivo quedaría adentro.
 
 ## D24 — Símbolos por módulos
 

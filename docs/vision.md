@@ -426,6 +426,7 @@ Maqueta: [§14](vision-mockup.html#s14).
 - Si el SVG trae zonas `room-…`, al importarlo se **copian** como formas. Desde ahí, el SVG es sólo el dibujo.
 - Un SVG nuevo nunca pisa una forma: *Revisar cambios* ofrece actualizar, una por una, las formas que vinieron del SVG. Las que se editaron a mano se conservan.
 - Un **JSON** reemplaza todo el hogar, no sólo el dibujo. Si quita vínculos, avisos, acciones o paneles, o trae espacios que hoy no están, la vista previa lo dice y pide exportar antes una copia actual (D23).
+- **Plano vinculado:** el dibujo puede guardarse en `homemanager/<hogar>.svg`, dentro de la carpeta de configuración de Home Assistant, y *Importar y exportar* muestra la ruta exacta. Una versión que no afecta espacios ni dispositivos se aplica sola y se ofrece *Deshacer*. Las demás se avisan con *Revisar* e *Ignorar esta versión*.
 - Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando rectángulos sobre el plano.
 - Todo lo que hoy usa zonas del SVG pasa a usar la forma: el encuadre, el resaltado, *¿en qué espacio cayó este dispositivo?*, la barra de espacios, la revisión del plano y el aviso de espacios sin zona.
 

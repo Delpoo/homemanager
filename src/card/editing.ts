@@ -82,6 +82,7 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor.embedded = true;
   this.editor.roomView = id => this.roomViewFor(id);
   this.editor.editZones = () => this.startZoneEdit();
+  this.editor.linkedReview = () => void this.reviewLinkedPlan();
   this.editor.homeId = this.home?.homeId;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });
@@ -258,6 +259,7 @@ export async function save(this: HomeManagerCard, reviewed = false) {
       if (!this.homeUnsubscribe && this._hass) this.watchHome(this.home);
     }
     this.status(t('Guardado en Home Assistant.'));
+    this.linkedSaved(next);
     this.activity.record({ type: 'saved', id: String(Date.now()), at: Date.now() });
     this.dispatchEvent(
       new CustomEvent('homemanager-saved', { detail: { configuration: clone(next) }, bubbles: true, composed: true }),
@@ -279,6 +281,7 @@ export function updateControls(this: HomeManagerCard) {
   }
   const wrap = this.root.querySelector<HTMLElement>('.editor-wrap');
   if (wrap) wrap.hidden = !this.editing;
+  this.renderLinkedNote();
   for (const item of this.root.querySelectorAll<HTMLElement>('.edit-add, .workspace > .editor'))
     item.hidden = !this.editing;
   this.root.querySelector('.shell')?.classList.toggle('is-editing', this.editing);
