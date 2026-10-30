@@ -2,6 +2,16 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.9.0-beta.2 — beta
+
+Segunda parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **espacios propios y vista por espacio** (D22).
+
+- **Vista por espacio:** un botón junto al zoom encuadra al 100 % el espacio que está en el centro. Fuera de su borde, unas flechas sin fondo apuntan al centro de cada espacio al que se puede ir, con su ángulo real, y son más chicas y tenues cuanto más lejos está. *Casa* vuelve al plano completo.
+- **Tocar** una flecha no hace nada; **mantenerla** muestra el nombre; **tirar de ella hacia atrás** viaja, con una transición y sin recargar. Un **deslizamiento** rápido del plano trae el espacio del otro lado, o rebota si no hay ninguno. Enter y las flechas del teclado también viajan.
+- *Flechas* y *Deslizar* se activan por separado y quedan recordados en el navegador.
+- **Cada espacio puede tener su forma propia** (`rooms[].shape`). Al importar un plano, cada zona del SVG se guarda como forma de su espacio: un plano posterior sin esa zona ya no deja espacios huérfanos. Mientras la zona existe, se sigue usando su contorno exacto.
+- Renombrar un espacio ya no borra su forma.
+
 ## 0.9.0-beta.1 — beta
 
 Primera parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **categorías** (D21).
