@@ -46,6 +46,10 @@ Desde 0.7 (D20), hay dos campos de presentación **opcionales**:
 
 Los campos de presentación (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita.
 
+### Área de un espacio (0.10)
+
+- `rooms[].areaId`, opcional: el identificador del área de Home Assistant que representa ese espacio. Lo escribe *Conectar mi casa*. Un área que ya no existe no rompe nada: se vuelve a ofrecer elegir una.
+
 ### Reglas de aviso por categoría (CP4)
 
 - `display.alerts`, opcional: hasta cuatro reglas `{ reading, below?, above?, forMinutes?, level }`. `reading` es una entidad explícita; `level` es `alert` o `warning`. Los límites y la duración son números finitos, y la duración no puede ser negativa. Sin límites, una regla describe un sensor binario activo; una lectura numérica necesita al menos un límite para generar un aviso. Los límites son estrictos e independientes: menor que `below` o mayor que `above`.

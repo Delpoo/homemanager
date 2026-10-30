@@ -258,7 +258,9 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"}, {"icon", "shape", "rects", "shapeSource", "frame", "nav"})
+        _fields(room, {"id", "label"}, {"icon", "shape", "rects", "shapeSource", "frame", "nav", "areaId"})
+        if "areaId" in room:
+            _text(room["areaId"])
         _id(room["id"])
         _text(room["label"])
         if "icon" in room:

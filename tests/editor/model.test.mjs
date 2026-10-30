@@ -437,3 +437,11 @@ test('an old whole-home file says what it would take away: links, alerts, action
   assert.deepEqual(importLosses(now, without).unlinked, ['Con vínculo']);
   assert.equal(losesData(importLosses(now, without)), true);
 });
+
+test('renaming a space keeps its area; giving it as undefined takes it away', () => {
+  let config = upsertRoom(configuration(), { id: 'attic', label: 'Attic', areaId: 'area_attic' });
+  config = upsertRoom(config, { id: 'attic', label: 'Loft' }, { previousId: 'attic' });
+  assert.equal(config.rooms.at(-1).areaId, 'area_attic');
+  config = upsertRoom(config, { id: 'attic', label: 'Loft', areaId: undefined }, { previousId: 'attic' });
+  assert.equal('areaId' in config.rooms.at(-1), false);
+});

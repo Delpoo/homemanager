@@ -8,6 +8,7 @@ import { isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-heal
 export type SettingsSection =
   | 'health-section'
   | 'rooms-section'
+  | 'connect-section'
   | 'actions-section'
   | 'panels-section'
   | 'pending-section'
@@ -25,6 +26,7 @@ export interface SettingsPage {
 
 const SECTIONS: { id: SettingsSection; title: () => string; icon: string }[] = [
   { id: 'rooms-section', title: () => t('Plano y espacios'), icon: 'mdi:floor-plan' },
+  { id: 'connect-section', title: () => t('Conectar mi casa'), icon: 'mdi:home-automation' },
   { id: 'health-section', title: () => t('Diagnóstico'), icon: 'mdi:stethoscope' },
   { id: 'actions-section', title: () => t('Acciones lógicas'), icon: 'mdi:link-variant' },
   { id: 'panels-section', title: () => t('Paneles nativos'), icon: 'mdi:view-list-outline' },

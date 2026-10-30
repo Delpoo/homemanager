@@ -574,3 +574,15 @@ test('a zone of merged rectangles needs its box, at least two parts and at most 
     assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify(value));
   }
 });
+
+test('a space may name its Home Assistant area', () => {
+  const configuration = make();
+  configuration.rooms[0].areaId = 'area_synthetic';
+  assert.deepEqual(assertConfiguration(configuration), configuration);
+  assert(schema(configuration), JSON.stringify(schema.errors));
+  for (const value of ['', 7, null, {}]) {
+    const bad = make();
+    bad.rooms[0].areaId = value;
+    assert.equal(inspectConfiguration(bad).valid, false, JSON.stringify(value));
+  }
+});
