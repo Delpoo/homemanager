@@ -2,6 +2,20 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.7.0-beta.1 — beta
+
+Etapa 0.7 de [docs/roadmap.md](docs/roadmap.md): base visual, tipos de símbolo y respuesta a cada toque (D20).
+
+- **Aspecto propio:** paleta clara y oscura de HomeManager (salvia, marfil y grafito) y logo; el azul de Home Assistant ya no aparece dentro del plano.
+- **Barra superior:** logo, nombre del hogar, barra de actividad, alertas, reloj y menú ⋮. La administración (editar, ajustes, hogares, almacenamiento, controles RF) pasa al menú y sólo la ven los administradores.
+- **Riel de espacios** con iconos: a la izquierda en pantallas anchas y abajo en el móvil, con un contador rojo de alertas y un punto si algo está encendido. Elegir un espacio oscurece el resto del plano y dibuja su contorno real.
+- **Símbolos por tipo** (actuador, equipo, sensor, medidor, mando, infraestructura): los medidores muestran su valor (*23,4°*, *1,79 kW*); un anillo indica lo encendido; la marca de salud aparece sólo si hay un problema. Campos opcionales `rooms[].icon`, `display.archetype` y `display.show`.
+- **Alertas:** fuga, humo, gas, CO y problema; batería baja y equipos no disponibles hace más de 10 minutos. Se ven en el símbolo, en su espacio y en la barra; tocar la alerta encuadra el equipo.
+- **Actividad:** cada comando ocupa una línea que pasa de *Enviado* a *en el aire* y a *confirmado* sólo con una medición independiente, o a *No se pudo enviar*. Historial de los últimos 50.
+- **Capas** con icono y nombre; *Infraestructura* empieza apagada.
+- **Importar un plano** muestra *Revisar cambios* antes de aplicar: dispositivos que cambian de espacio, espacios sin zona (fusionar, conservar o quitar), zonas nuevas, ambiguos y fuera de zona. *Revisar espacios con el plano* repara el plano guardado, y Ajustes avisa si hay espacios sin zona. Todo se deshace en un paso y se guarda con *Guardar*.
+- **Espacios desde el riel** en modo edición: renombrar, icono, fusionar en otro y quitar. Un dispositivo fijo bloquea su posición, pero su espacio se puede cambiar desde la ficha.
+
 ## 0.6.0-beta.1 — beta, sin publicar
 
 Los símbolos del plano se usan por cómo se tocan, no por formularios (D18).
