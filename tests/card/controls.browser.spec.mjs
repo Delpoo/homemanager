@@ -1,3 +1,4 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 // Device controls (contract V2, optional): what a tap runs, the controls of the
@@ -240,10 +241,11 @@ test('the note says when the RF signal was heard on air, without claiming the de
     };
     window.testHarness.card.hass = { ...hass };
   });
-  await expect(note).toHaveText('Enviado: 1H · en el aire ✓');
+  await expect(note).toHaveText('Enviado: 1H · en el aire');
 });
 
 test('the sheet builds controls from suggestions, by how they are used, and saving closes it', async ({ page }) => {
+  await openCardMenu(page);
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
@@ -302,6 +304,7 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
 });
 
 test('a control left without its actions is reported instead of being saved half done', async ({ page }) => {
+  await openCardMenu(page);
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
@@ -314,6 +317,7 @@ test('a control left without its actions is reported instead of being saved half
 test('icon and entity choosers offer suggestions with nothing typed, filter while typing and scroll', async ({
   page,
 }) => {
+  await openCardMenu(page);
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');

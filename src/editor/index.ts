@@ -48,6 +48,9 @@ import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-butto
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
+import { suggestRoomIcon } from '../shell/room-rail.js';
+import { reportForPlan, hasPlanChanges, openPlanReview } from './plan-review.js';
+import { openRoomActions } from './room-actions.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -69,7 +72,7 @@ const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
-:host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
+:host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
@@ -115,6 +118,7 @@ export class HomeManagerEditor extends HTMLElement {
     missingZones: string[];
     newZones: string[];
     positionMode: PositionMode;
+    spatial?: boolean;
   };
   private openSections = new Set<string>();
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
@@ -195,6 +199,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.render();
   }
   set hass(hass: Hass) {
+    if (typeof hass.themes?.darkMode === 'boolean') this.dataset.theme = hass.themes.darkMode ? 'dark' : 'light';
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
@@ -328,6 +333,40 @@ export class HomeManagerEditor extends HTMLElement {
     this.surface = 'settings';
     this.render();
   }
+  openRoom(id: string): void {
+    this.openSettings();
+    openRoomActions(this.root, this.configuration, id, next => {
+      this.emit(next);
+      this.closeSurface();
+    });
+  }
+  private reviewCandidate(candidate: Configuration): void {
+    const report = reportForPlan(candidate);
+    const positionsChanged = candidate.catalog.devices.some(device => {
+      const old = this.configuration.catalog.devices.find(item => item.id === device.id);
+      return old && JSON.stringify(old.position) !== JSON.stringify(device.position);
+    });
+    if (!hasPlanChanges(report) && !positionsChanged) {
+      this.emit(candidate);
+      return;
+    }
+    openPlanReview(
+      this.root,
+      candidate,
+      report,
+      (next, planOnly) => {
+        this.emit(next);
+        this.notice(
+          planOnly
+            ? t(
+                'Se importó sólo el plano. Los espacios y dispositivos conservan su asignación; revisá los conflictos pendientes.',
+              )
+            : t('Cambios aplicados al borrador. Guardá para persistirlos.'),
+        );
+      },
+      this.configuration,
+    );
+  }
   closeSurface(): void {
     this.surface = null;
     this.sheet = undefined;
@@ -336,7 +375,12 @@ export class HomeManagerEditor extends HTMLElement {
   }
   private settingsForm(): string {
     const pending = pendingReferences(this.configuration, this._hass?.states);
-    return `${this.section('rooms-section', t('Espacios ({count})', { count: this.configuration.rooms.length }), this.roomsForm())}
+    // Conflicts with the plan are surfaced above the folded sections, where they cannot be missed.
+    const zoneIds = new Set(this.zones().map(zone => zone.id));
+    const zoneless = this.configuration.rooms.filter(room => !zoneIds.has(room.id)).length;
+    const unclaimed = [...zoneIds].filter(id => !this.configuration.rooms.some(room => room.id === id)).length;
+    const conflicts = zoneIds.size && (zoneless || unclaimed);
+    return `${conflicts ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>` : ''}${this.section('rooms-section', t('Espacios ({count})', { count: this.configuration.rooms.length }), this.roomsForm())}
       ${this.section('actions-section', t('Acciones lógicas'), this.actionForm())}
       ${this.section('panels-section', t('Paneles nativos'), this.panelForm())}
       ${this.section('pending-section', t('Referencias pendientes ({count})', { count: pending.length }), pending.length ? `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : `<p class="note">${esc(t('No hay referencias pendientes.'))}</p>`)}
@@ -408,10 +452,10 @@ export class HomeManagerEditor extends HTMLElement {
     const rows = rooms
       .map(
         (room, index) =>
-          `<div class="room-row"><label class="field">Nombre de ${esc(room.id)}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}>↑</button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}">×</button></div>`,
+          `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
       )
       .join('');
-    return `<p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
+    return `<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button><p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
       ${rooms.length ? `<form id="rooms-form">${rows}<div class="actions"><button type="submit" class="primary">${esc(t('Aplicar nombres'))}</button></div></form>` : `<p class="note">${esc(t('Todavía no hay espacios.'))}</p>`}
       ${candidates.length ? `<h3>${esc(t('Zonas detectadas en el plano'))}</h3><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">Agregar ${esc(zone.label ?? zone.id)}</button>`).join('')}<button type="button" data-command="room-add-all">Agregar todas (${candidates.length})</button></div>` : ''}
       <form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form>`;
@@ -435,7 +479,7 @@ export class HomeManagerEditor extends HTMLElement {
     return `<form id="device-form"><div class="basic">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
       <div class="field">${help(t('Entidad del dispositivo'), t('El equipo de Home Assistant que representa este símbolo. Sus acciones aparecen como sugerencias en los controles.'))}<input name="entityId" aria-label="${esc(t('Entidad del dispositivo'))}" value="${esc(device?.bindings.entityId ?? '')}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></div>
-      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}" data-location${fixed ? ' disabled' : ''}>${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
+      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
       <div class="ctl-host">${this.controlsSection()}</div>
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
   }
@@ -749,9 +793,13 @@ export class HomeManagerEditor extends HTMLElement {
                 note = ` ${remapped.clamped.length} dispositivo(s) quedaron fuera del nuevo plano y se ubicaron en su borde: revisalos.`;
             }
             this.imported = undefined;
-            this.emit(next);
+            if (imported.spatial) this.reviewCandidate(next);
+            else this.emit(next);
             if (note) this.notice(t('Importación aplicada al borrador.') + note);
           }
+          break;
+        case 'review-spaces':
+          this.reviewCandidate(this.configuration);
           break;
         case 'plans':
           void this.loadPlans();
@@ -803,6 +851,12 @@ export class HomeManagerEditor extends HTMLElement {
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (!this.config) return;
+    if (target.hasAttribute('data-room-icon')) {
+      const index = target.dataset.roomIcon!;
+      const hidden = this.root.querySelector<HTMLInputElement>(`[name="room-icon-${index}"]`);
+      if (hidden) hidden.value = target.value;
+      return;
+    }
     if (this.sheet && (target.dataset.ctl !== undefined || target.dataset.sheet)) {
       if (editField(this.sheet, target)) this.paintControls();
       return;
@@ -890,9 +944,11 @@ export class HomeManagerEditor extends HTMLElement {
             icon: value(data, 'icon'),
             ...(held.size !== 'm' ? { size: held.size } : {}),
             ...(held.pinned.length ? { pinned: held.pinned } : {}),
+            ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
+            ...(previous?.display.show ? { show: previous.display.show } : {}),
           },
           kind: value(data, 'kind') as Device['kind'],
-          roomId: fixed ? previous.roomId : value(data, 'roomId') || null,
+          roomId: value(data, 'roomId') || null,
           mobility: value(data, 'mobility') as Device['mobility'],
           position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },
           bindings: {
@@ -957,7 +1013,9 @@ export class HomeManagerEditor extends HTMLElement {
         let next = this.configuration;
         this.configuration.rooms.forEach((room, index) => {
           const label = value(data, `room-label-${index}`);
-          if (label !== room.label) next = upsertRoom(next, { id: room.id, label }, { previousId: room.id });
+          const icon = value(data, `room-icon-${index}`);
+          if (label !== room.label || icon !== (room.icon ?? ''))
+            next = upsertRoom(next, { id: room.id, label, ...(icon ? { icon } : {}) }, { previousId: room.id });
         });
         this.emit(next);
       } else if (formId === 'room-add-form') {
@@ -1007,12 +1065,18 @@ export class HomeManagerEditor extends HTMLElement {
       const previous = sanitizeArchitecture(this.configuration.architecture.content),
         incoming = sanitizeArchitecture(clean.architecture.content);
       const zones = detectZones(incoming.svg).map(zone => zone.id);
+      const viewBoxChanged = svg && JSON.stringify(previous.box) !== JSON.stringify(incoming.box);
+      if (svg && !viewBoxChanged) {
+        this.reviewCandidate(clean);
+        return;
+      }
       this.imported = {
         configuration: clean,
         summary: summarizeImport(this.configuration, clean),
         // Only a plan replacement moves devices: a JSON export already carries
         // positions that belong to its own plan and must be applied unchanged.
-        viewBoxChanged: svg && JSON.stringify(previous.box) !== JSON.stringify(incoming.box),
+        viewBoxChanged,
+        spatial: svg,
         backedUp: false,
         from: previous.box,
         to: incoming.box,

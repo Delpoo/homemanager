@@ -23,6 +23,8 @@ export type DeviceKind =
 export interface Room {
   id: RoomId;
   label: string;
+  /** Optional MDI icon for space navigation; absent keeps the suggested icon. */
+  icon?: string;
 }
 export type Confidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
 export interface Position {
@@ -56,6 +58,8 @@ export interface DeviceControl {
   orientation?: 'vertical' | 'horizontal';
 }
 export type SymbolSize = 's' | 'm' | 'l';
+export type SymbolArchetype = 'actuator' | 'equipment' | 'sensor' | 'meter' | 'remote' | 'infrastructure';
+export type SymbolShow = 'icon' | 'value' | 'both';
 export interface Device {
   id: string;
   roomId: RoomId | null;
@@ -67,6 +71,10 @@ export interface Device {
     icon: string;
     /** Symbol size on the plan; m when absent (V2, optional). */
     size?: SymbolSize;
+    /** Optional presentation override. Inferred from kind and entity when absent. */
+    archetype?: SymbolArchetype;
+    /** Optional body content. Meters default to value; all other archetypes to icon. */
+    show?: SymbolShow;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };

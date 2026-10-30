@@ -15,6 +15,7 @@ from .svg import validate_svg
 UNSAFE = frozenset({"__proto__", "prototype", "constructor"})
 ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 ENTITY = re.compile(r"[a-z][a-z0-9_]*\.[a-z0-9_]+\Z")
+MDI_ICON = re.compile(r"mdi:[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 RESERVED = re.compile(r"(?:entity_id|device_id|area_id|rf_codes?|ir_codes?|codes?|protocol|pulse_length|raw(?:_data)?|rc_switch|commands?|command_type)\Z", re.I)
 EXECUTABLE = re.compile(r"{{|{%|<\s*script\b|javascript\s*:|\b(?:eval|Function)\s*\(", re.I)
 KINDS = frozenset("light fan curtain ac sensor switch robot purifier plant infra energy media lock camera appliance other".split())
@@ -31,6 +32,8 @@ SERVICES = {
 CONTROL_STEPS = {"button": (1, 1), "cycle": (2, 4), "slider": (0, 12), "updown": (2, 2), "select": (2, 8)}
 MAX_CONTROLS = 8
 MAX_PINNED = 3
+SYMBOL_ARCHETYPES = ("actuator", "equipment", "sensor", "meter", "remote", "infrastructure")
+SYMBOL_SHOW = ("icon", "value", "both")
 
 
 def _fail() -> None:
@@ -240,9 +243,13 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"})
+        _fields(room, {"id", "label"}, {"icon"})
         _id(room["id"])
         _text(room["label"])
+        if "icon" in room:
+            _text(room["icon"])
+            if not MDI_ICON.fullmatch(room["icon"]):
+                _fail()
         if room["id"] in room_ids:
             _fail()
         room_ids.add(room["id"])
@@ -267,10 +274,14 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show"})
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
+            _fail()
+        if "archetype" in display and display["archetype"] not in SYMBOL_ARCHETYPES:
+            _fail()
+        if "show" in display and display["show"] not in SYMBOL_SHOW:
             _fail()
         bindings = device["bindings"]
         _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap"})

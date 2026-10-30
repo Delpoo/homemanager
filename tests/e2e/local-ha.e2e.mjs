@@ -148,6 +148,9 @@ async function applyImport() {
     await download;
   }
   await apply.click();
+  const review = card.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  if (await review.isVisible())
+    await review.getByRole('button', { name: 'Importar sólo el plano', exact: true }).click();
 }
 async function importFile(name, content, type) {
   await card
@@ -191,6 +194,7 @@ await step('an administrator creates a home and imports a plan with its devices'
   await app.getByLabel('ID del hogar', { exact: true }).fill('e2e-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
   await status.filter({ hasText: 'todavía no existe' }).waitFor();
+  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await status.filter({ hasText: 'se creará' }).waitFor();
   await openImport();
@@ -227,6 +231,7 @@ await step('the native panel offers brightness and sends it to HA without claimi
   await dialog.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
 });
 await step('a real entity is added by name and placed by tapping its space', async () => {
+  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   // Since 0.5 adding starts from the floating + on the plan.
   await card.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
@@ -267,6 +272,7 @@ await step('the cycle sends its next step on each tap and the symbol says what i
       .filter({ hasText: /^Enviado: (Encender|Apagar)$/ })
       .waitFor();
   }
+  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
 });
 await step(
@@ -404,6 +410,7 @@ await step('the RF remotes tab is served and explains a missing transmitter', as
   assert.deepEqual((await ws({ type: 'homemanager/rf/transmitters' })).result, { transmitters: [] });
   await page.setViewportSize({ width: 1400, height: 950 });
   await page.goto(`${base}/homemanager`);
+  await app.locator('.hm-menu > summary:visible').click();
   await app.getByRole('button', { name: 'Controles RF', exact: true }).click();
   const rf = app.locator('homemanager-rf');
   await rf.getByText('Primero prepará un equipo RF').waitFor({ timeout: 30000 });

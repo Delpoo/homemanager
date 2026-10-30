@@ -214,6 +214,8 @@ export class HomeManagerPanel extends HTMLElement {
     this.renderState();
   }
   configure(options: PanelOptions): void {
+    const theme = (options.returnFocus?.getRootNode() as ShadowRoot | undefined)?.host?.getAttribute('data-theme');
+    if (theme) this.setAttribute('data-theme', theme);
     this.options = options;
     this.panel = options.panel ? structuredClone(options.panel) : null;
     this.device = structuredClone(options.device);

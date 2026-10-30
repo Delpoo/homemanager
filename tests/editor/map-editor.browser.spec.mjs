@@ -1,10 +1,14 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
 const button = (page, name) => card(page).getByRole('button', { name, exact: true });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
-const begin = page => button(page, 'Editar plano').click();
+const begin = async page => {
+  await openCardMenu(page);
+  await button(page, 'Editar plano').click();
+};
 // In edit mode a tap on the symbol opens its sheet.
 const select = (page, name = 'Luz de prueba') => button(page, name).click();
 
@@ -212,16 +216,13 @@ test('the device sheet fits the viewport with advanced fields collapsed and uses
   });
   await page.evaluate(() => {
     const el = document.querySelector('homemanager-card');
-    el.style.setProperty('--ha-card-background', '#17221d');
-    el.style.setProperty('--primary-text-color', '#edf4f0');
-    el.style.setProperty('--secondary-text-color', '#b1c2b7');
-    el.style.setProperty('--secondary-background-color', '#22342a');
-    el.style.setProperty('--divider-color', '#54695d');
+    window.testHarness.hass.themes = { darkMode: true };
+    el.hass = { ...window.testHarness.hass };
   });
-  expect(await editor(page).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(23, 34, 29)');
+  expect(await editor(page).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(18, 23, 20)');
   await expect(editor(page).getByRole('button', { name: 'Cerrar', exact: true })).toHaveCSS(
     'background-color',
-    'rgb(23, 34, 29)',
+    'rgb(18, 23, 20)',
   );
   await page.screenshot({
     path: testInfo.outputPath(`editor-${testInfo.project.name}-dark.png`),

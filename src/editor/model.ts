@@ -84,9 +84,7 @@ export function upsertDevice(
   if (
     previous?.mobility === 'fixed' &&
     !options.allowFixedPosition &&
-    (previous.position.x !== input.position.x ||
-      previous.position.y !== input.position.y ||
-      previous.roomId !== input.roomId)
+    (previous.position.x !== input.position.x || previous.position.y !== input.position.y)
   )
     fail(t('Usá la acción explícita de corregir ubicación para un elemento fijo.'));
   if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.display.icon)) fail(t('El icono debe ser un nombre mdi: válido.'));
@@ -110,6 +108,8 @@ export function upsertDevice(
       icon: input.display.icon,
       ...(input.display.size && input.display.size !== 'm' ? { size: input.display.size } : {}),
       ...(input.display.pinned?.length ? { pinned: [...input.display.pinned] } : {}),
+      ...(input.display.archetype ? { archetype: input.display.archetype } : {}),
+      ...(input.display.show ? { show: input.display.show } : {}),
     },
     bindings: {
       entityId: input.bindings.entityId,
@@ -150,8 +150,11 @@ export function upsertRoom(
     fail(t('El ID de un espacio existente es inmutable; creá uno nuevo y mové los dispositivos.'));
   if (index < 0 && next.rooms.some(room => room.id === id)) fail(t('Ese espacio ya existe.'));
   if (index < 0 && next.rooms.length >= 200) fail(t('Se admite un máximo de 200 espacios.'));
-  if (index >= 0) next.rooms[index] = { id, label };
-  else next.rooms.push({ id, label });
+  if (input.icon !== undefined && (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.icon) || input.icon.length > 240))
+    fail(t('El icono debe ser un nombre mdi: válido.'));
+  const room: Room = { id, label, ...(input.icon !== undefined ? { icon: input.icon } : {}) };
+  if (index >= 0) next.rooms[index] = room;
+  else next.rooms.push(room);
   return next;
 }
 /** Removing a space never deletes devices: they stay on the plan without a space. */

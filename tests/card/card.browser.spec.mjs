@@ -1,3 +1,4 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -15,6 +16,7 @@ async function backend(page) {
   return page.evaluate(() => window.testHarness.config.configuration);
 }
 async function begin(page) {
+  await openCardMenu(page);
   await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(save(page)).toBeVisible();
 }
@@ -255,12 +257,10 @@ test('remote changes are not overwritten or retried automatically', async ({ pag
 
 test('nonadministrators cannot save through a local fallback', async ({ page }) => {
   await page.evaluate(() => window.testHarness.setAdmin(false));
+  await openCardMenu(page);
   const edit = page.getByRole('button', { name: 'Editar plano', exact: true });
-  if (await edit.isEnabled()) {
-    await edit.click();
-    await expect(save(page)).toBeHidden();
-    await expect(page.getByRole('status')).toContainText(/administradora/i);
-  } else await expect(edit).toBeDisabled();
+  await expect(edit).toHaveCount(0);
+  await expect(save(page)).toBeHidden();
   expect(
     await page.evaluate(() => window.testHarness.wsCalls.filter(m => m.type === 'lovelace/config/save').length),
   ).toBe(0);
@@ -271,6 +271,7 @@ test('nonadministrators cannot save through a local fallback', async ({ page }) 
 
 test('YAML dashboards remain read only', async ({ page }) => {
   await page.evaluate(() => window.testHarness.setMode('yaml'));
+  await openCardMenu(page);
   const edit = page.getByRole('button', { name: 'Editar plano', exact: true });
   if (await edit.isEnabled()) {
     await edit.click();
@@ -421,7 +422,10 @@ test('space navigation comes from the instance configuration', async ({ page }) 
   await page.goto(fixture);
   await page.waitForFunction(() => window.testHarnessReady);
   // The harness ships a V1 document; its legacy room_labels become V2 space names.
-  await expect(page.getByRole('button', { name: 'Encuadrar Espacio A', exact: true })).toHaveText('Espacio A');
+  await expect(page.getByRole('button', { name: 'Encuadrar Espacio A', exact: true })).toHaveAttribute(
+    'title',
+    'Espacio A',
+  );
   await page.evaluate(() => {
     const config = structuredClone(window.testHarness.config);
     const v2 = {
@@ -438,7 +442,9 @@ test('space navigation comes from the instance configuration', async ({ page }) 
     window.testHarness.card.setConfig({ ...config, configuration: v2 });
   });
   const nav = page.getByRole('navigation', { name: 'Espacios' });
-  await expect(nav.getByRole('button')).toHaveText(['Todo', 'Comedor', 'Cocina', 'Garage']);
+  expect(
+    await nav.getByRole('button').evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label'))),
+  ).toEqual(['Encuadrar todo', 'Encuadrar Comedor', 'Encuadrar Cocina', 'Encuadrar Garage']);
   await page.getByRole('button', { name: 'Encuadrar Garage', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Encuadrar Garage', exact: true })).toHaveAttribute(
     'aria-pressed',

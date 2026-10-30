@@ -51,6 +51,21 @@ function configuration() {
   };
 }
 
+test('editing preserves optional 0.7 presentation and room icons', () => {
+  const original = configuration();
+  original.rooms[0].icon = 'mdi:sofa';
+  original.catalog.devices[0].display = {
+    ...original.catalog.devices[0].display,
+    archetype: 'equipment',
+    show: 'both',
+  };
+  const next = upsertDevice(original, original.catalog.devices[0], { previousId: 'test-light' });
+  assert.equal(next.catalog.devices[0].display.archetype, 'equipment');
+  assert.equal(next.catalog.devices[0].display.show, 'both');
+  const renamed = upsertRoom(next, { ...next.rooms[0], label: 'Renamed' }, { previousId: 'living' });
+  assert.equal(renamed.rooms[0].icon, 'mdi:sofa');
+});
+
 test('device edits keep IDs, HA bindings and shared logical maps when room changes', () => {
   const original = configuration(),
     before = structuredClone(original),
@@ -67,9 +82,16 @@ test('immutable existing ID and duplicate new ID are rejected', () => {
   assert.throws(() => upsertDevice(configuration(), device('renamed'), { previousId: 'test-light' }), /inmutable/);
   assert.throws(() => upsertDevice(configuration(), device()), /ya existe/);
 });
-test('fixed room/coordinate correction requires explicit authorization, including a mobility change', () => {
+test('fixed devices can change room while position correction still requires explicit authorization', () => {
   const config = configuration();
   config.catalog.devices[0].mobility = 'fixed';
+  const reassigned = upsertDevice(
+    config,
+    { ...config.catalog.devices[0], roomId: 'kitchen' },
+    { previousId: 'test-light' },
+  );
+  assert.equal(reassigned.catalog.devices[0].roomId, 'kitchen');
+  assert.deepEqual(reassigned.catalog.devices[0].position, config.catalog.devices[0].position);
   const moved = device('test-light', { position: { x: 0.7, y: 0.8 }, mobility: 'portable' });
   assert.throws(() => upsertDevice(config, moved, { previousId: 'test-light' }), /corregir ubicación/);
   assert.equal(

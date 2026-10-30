@@ -6,22 +6,16 @@ import { setLanguage, languageFromHass } from '../i18n/index.js';
 import type { HomeManagerCard } from '../card/home-manager-card.js';
 import '../rf/manager.js';
 import type { HomeManagerRf } from '../rf/manager.js';
+import { bindTopBar, renderTopBar, topBarStyles, type AppShellContext } from '../shell/top-bar.js';
+import { ActivityLog } from '../model/activity.js';
 
 /** The HomeManager sidebar panel, registered by the integration
  * (custom_components/homemanager). It hosts the same card in full height and
  * lets the user switch homes; administrators can start a new one. */
 const css = `${tokens}
-:host{display:block;min-height:100dvh;background:var(--primary-background-color,var(--hm-surface))}
-.toolbar{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 12px;background:var(--app-header-background-color,var(--hm-accent));color:var(--app-header-text-color,var(--hm-on-accent))}
-.toolbar h1{font-size:20px;font-weight:500;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.toolbar button,.toolbar select{color:inherit;background:transparent;border:1px solid currentColor;min-height:40px;width:auto}
-.toolbar select option{color:var(--hm-text);background:var(--hm-bg)}
-.tabs{display:flex;gap:4px}
-.toolbar .tabs button{border-color:transparent;opacity:.8}
-.toolbar .tabs button[aria-pressed=true]{border-color:currentColor;opacity:1;font-weight:600}
-.menu{width:40px;padding:0!important;border:0!important;font-size:22px}
-.content{padding:12px;max-width:1600px;margin:auto}
-homemanager-card{--hm-viewport-height:calc(100dvh - 210px);--hm-title-display:none}
+:host{display:block;min-height:100dvh;background:var(--hm-bg)}
+.content{padding:0;margin:0}
+homemanager-card{--hm-viewport-height:calc(100dvh - 58px)}
 .empty{max-width:520px;margin:48px auto;padding:24px;border-radius:var(--hm-radius);background:var(--hm-bg);line-height:1.6;box-shadow:var(--hm-shadow)}
 .empty form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .empty input{flex:1;min-width:180px}
@@ -29,9 +23,9 @@ homemanager-card{--hm-viewport-height:calc(100dvh - 210px);--hm-title-display:no
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
 .maintenance ul{padding-left:20px}.maintenance li{margin:12px 0}.maintenance button{margin-left:8px}
-@media(max-width:650px){.toolbar{flex-wrap:wrap;padding:8px 12px;gap:8px}.toolbar h1{flex:1 0 calc(100% - 56px)}.toolbar select{flex:1 1 100px;max-width:100%}.toolbar .new,.toolbar .storage{flex:1 1 auto}.content{padding:0}homemanager-card{--hm-viewport-height:calc(100dvh - 240px)}
-.tabs{order:1;flex:1 0 100%}.tabs button{flex:1}.toolbar select,.toolbar .new,.toolbar .storage{order:2}
-:host([data-tabs]) homemanager-card{--hm-viewport-height:calc(100dvh - 290px)}}`;
+${topBarStyles}
+@media(max-width:1099px){homemanager-card{--hm-viewport-height:calc(100dvh - 122px)}}
+@media(max-width:650px){homemanager-card{--hm-viewport-height:calc(100dvh - 114px)}}`;
 const STORAGE_KEY = 'homemanager-app-home';
 function remembered(): string | null {
   try {
@@ -49,6 +43,7 @@ function remember(id: string): void {
 }
 
 export class HomeManagerApp extends HTMLElement {
+  private readonly activity = new ActivityLog();
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
   private _narrow = false;
@@ -60,21 +55,29 @@ export class HomeManagerApp extends HTMLElement {
   private tab: 'plan' | 'rf' = 'plan';
   private creating = false;
   private rfElement?: HomeManagerRf;
+  private unbindShell?: () => void;
 
   set hass(hass: Hass) {
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
+    const dark = (hass as Hass & { themes?: { darkMode?: boolean } }).themes?.darkMode;
+    if (dark !== undefined) this.dataset.theme = dark ? 'dark' : 'light';
     if (this.card) this.card.hass = hass;
     if (this.rfElement) this.rfElement.hass = hass;
     if (first) void this.refresh();
+    else if (this.root.querySelector('.toolbar')) {
+      if (this.tab === 'rf' && hass.user?.is_admin !== true) this.tab = 'plan';
+      this.renderHeader();
+      this.applyTab();
+    }
   }
   get hass(): Hass | undefined {
     return this._hass;
   }
   set narrow(value: boolean) {
     this._narrow = value;
-    this.root.querySelector<HTMLElement>('.menu')?.toggleAttribute('hidden', !value);
+    this.renderHeader();
   }
   get narrow(): boolean {
     return this._narrow;
@@ -85,6 +88,15 @@ export class HomeManagerApp extends HTMLElement {
 
   connectedCallback(): void {
     if (!this.root.childElementCount) this.render();
+    if (!this.unbindShell) this.unbindShell = bindTopBar(this.root);
+    this.root.addEventListener('homemanager-shell-command', this.shellCommand);
+    this.root.addEventListener('click', this.headerCommand);
+  }
+  disconnectedCallback(): void {
+    this.unbindShell?.();
+    this.unbindShell = undefined;
+    this.root.removeEventListener('homemanager-shell-command', this.shellCommand);
+    this.root.removeEventListener('click', this.headerCommand);
   }
 
   private async refresh(): Promise<void> {
@@ -117,7 +129,7 @@ export class HomeManagerApp extends HTMLElement {
   }
   private render(): void {
     if (!this.root.querySelector('.toolbar')) {
-      this.root.innerHTML = `<style>${css}</style><header class="toolbar"></header><main class="content"><div class="messages"></div><div class="card-host"></div><div class="rf-host" hidden></div></main>`;
+      this.root.innerHTML = `<style>${css}</style><div class="toolbar"></div><main class="content"><div class="messages"></div><div class="card-host"></div><div class="rf-host" hidden></div></main>`;
     }
     this.renderHeader();
     this.renderMessages();
@@ -138,47 +150,74 @@ export class HomeManagerApp extends HTMLElement {
     }
   }
   private renderHeader(): void {
-    const header = this.root.querySelector('.toolbar');
+    const header = this.root.querySelector<HTMLElement>('.toolbar');
     if (!header) return;
-    const homes = this.homes,
-      admin = this._hass?.user?.is_admin === true;
-    const missing = this.selected && homes && !homes.some(home => home.home_id === this.selected);
-    const selector =
-      homes && homes.length + (missing ? 1 : 0) > 1
-        ? `<select aria-label="${e(t('Hogar'))}" class="home-select">${homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === this.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}${missing ? `<option value="${e(this.selected!)}" selected>${e(this.selected!)} · nuevo</option>` : ''}</select>`
-        : '';
-    const title = homes?.find(home => home.home_id === this.selected)?.title ?? t('HomeManager');
-    // On narrow screens the tabs take their own row (see the media query).
-    this.toggleAttribute('data-tabs', admin);
-    const tabs = admin
-      ? `<div class="tabs" role="group" aria-label="${e(t('Secciones'))}"><button type="button" data-tab="plan" aria-pressed="${this.tab === 'plan'}">${e(t('Plano'))}</button><button type="button" data-tab="rf" aria-pressed="${this.tab === 'rf'}">${e(t('Controles RF'))}</button></div>`
-      : '';
-    const plan = this.tab === 'plan';
-    header.innerHTML = `<button type="button" class="menu" aria-label="${e(t('Menú'))}"${this._narrow ? '' : ' hidden'}>☰</button><h1>${e(plan ? title : t('Controles RF'))}</h1>${tabs}${plan ? selector : ''}${admin && plan ? `<button type="button" class="storage">${e(t('Almacenamiento'))}</button>` : ''}${admin && homes?.length && plan ? `<button type="button" class="new">${e(t('Nuevo hogar'))}</button>` : ''}`;
-    header.querySelector('.storage')?.addEventListener('click', () => void this.openStorage());
-    header.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.tab = button.dataset.tab as 'plan' | 'rf';
-        if (this.tab === 'plan' && this.creating) this.cancelCreate();
-        this.renderHeader();
-        this.applyTab();
-      }),
-    );
-    header
-      .querySelector('.menu')
-      ?.addEventListener('click', () =>
-        this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })),
-      );
-    header
-      .querySelector('.home-select')
-      ?.addEventListener('change', event => this.select((event.target as HTMLSelectElement).value));
-    header.querySelector('.new')?.addEventListener('click', () => {
-      this.creating = true;
-      this.root.querySelector<HTMLElement>('.card-host')!.hidden = true;
-      this.renderMessages(true);
-      this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
-    });
+    const context = this.shellContext();
+    const title = context.homes.find(home => home.home_id === this.selected)?.title ?? t('HomeManager');
+    header.hidden = !!this.selected && this.tab === 'plan' && !this.creating;
+    header.innerHTML = header.hidden
+      ? ''
+      : renderTopBar({
+          title: this.tab === 'rf' ? t('Controles RF') : title,
+          admin: this._hass?.user?.is_admin === true,
+          app: context,
+        });
+    this.card?.setShellContext(context);
   }
+  private shellContext(): AppShellContext {
+    const homes: AppShellContext['homes'] = (this.homes ?? []).map(home => ({
+      home_id: home.home_id,
+      ...(home.title ? { title: home.title } : {}),
+    }));
+    if (this.selected && !homes.some(home => home.home_id === this.selected))
+      homes.push({ home_id: this.selected, title: this.selected });
+    return { homes, selected: this.selected, narrow: this._narrow };
+  }
+  private shellCommand = (event: Event): void => {
+    const { command, homeId } = (event as CustomEvent<{ command: string; homeId?: string }>).detail;
+    if (command === 'home' && homeId) {
+      this.select(homeId);
+      return;
+    }
+    if (command === 'ha-menu') {
+      this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true }));
+      return;
+    }
+    if (command === 'plan') {
+      this.tab = 'plan';
+      if (this.creating) this.cancelCreate();
+    } else if (this._hass?.user?.is_admin === true) {
+      if (command === 'rf') this.tab = 'rf';
+      else if (command === 'storage') {
+        void this.openStorage();
+        return;
+      } else if (command === 'new') {
+        this.creating = true;
+        this.tab = 'plan';
+        this.renderMessages(true);
+      }
+    }
+    this.renderHeader();
+    this.applyTab();
+    if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
+  };
+  /** The same menu remains usable while the RF manager or empty view is open. */
+  private headerCommand = (event: Event): void => {
+    const target = (event.target as Element).closest<HTMLElement>('.toolbar [data-command]');
+    if (!target) return;
+    const command = target.dataset.command;
+    if (command === 'fullscreen') {
+      void this.requestFullscreen?.();
+      return;
+    }
+    if (command === 'info' && !this.card) return;
+    if (!this.card || !command) return;
+    this.tab = 'plan';
+    this.creating = false;
+    this.renderHeader();
+    this.applyTab();
+    this.card.shadowRoot?.querySelector<HTMLButtonElement>(`[data-command="${command}"]`)?.click();
+  };
   private async openStorage(): Promise<void> {
     if (!this._hass?.callWS || this._hass.user?.is_admin !== true) return;
     const hass = this._hass;
@@ -229,8 +268,9 @@ export class HomeManagerApp extends HTMLElement {
     this.creating = false;
     this.error = '';
     this.renderMessages();
+    this.renderHeader();
     this.applyTab();
-    this.root.querySelector<HTMLButtonElement>('.new')?.focus();
+    this.card?.shadowRoot?.querySelector<HTMLElement>('.hm-menu summary')?.focus();
   }
   private renderMessages(creating = this.creating): void {
     const host = this.root.querySelector('.messages');
@@ -279,6 +319,9 @@ export class HomeManagerApp extends HTMLElement {
       this.card.addEventListener('homemanager-saved', () => void this.refreshHeader());
     }
     if (this._hass) this.card.hass = this._hass;
+    this.card.setShellContext(this.shellContext());
+    this.card.setActivityLog(this.activity);
+    this.card.setShellContext(this.shellContext());
     if (this.card.parentElement !== host) host.replaceChildren(this.card);
   }
 }

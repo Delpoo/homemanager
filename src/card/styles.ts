@@ -2,10 +2,13 @@ import { controlViewStyles } from '../ui/control-view.js';
 import { tokens } from '../ui/theme.js';
 import { iconButtonStyles } from '../ui/icon-button.js';
 import { fabStyles } from '../ui/fab.js';
+import { topBarStyles } from '../shell/top-bar.js';
+import { roomRailStyles } from '../shell/room-rail.js';
+import { layerStyles } from '../shell/layers.js';
 
 export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}
 :host{display:block}
-.shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:flex;flex-direction:column}
+.shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
 h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logo{font-size:20px;color:var(--hm-accent)}
@@ -18,7 +21,7 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .rooms button{flex:0 0 auto;min-height:36px;border-radius:18px;padding:0 14px;font-size:14px;background:var(--hm-surface);border-color:transparent;white-space:nowrap;scroll-snap-align:start}
 .rooms button[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent)}
 .rooms .all{font-weight:600}
-.workspace{position:relative}
+.workspace{position:relative;grid-area:workspace;min-width:0}
 .viewport{height:var(--hm-viewport-height,clamp(420px,66vh,920px));min-width:0;position:relative;overflow:hidden;background:var(--hm-surface);touch-action:none;outline-offset:-3px;user-select:none;-webkit-user-select:none}
 .architecture{position:absolute;inset:0 auto auto 0;transform-origin:0 0;pointer-events:none}
 .overlay{position:absolute;inset:0;pointer-events:none}
@@ -43,7 +46,7 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .marker[data-confidence=error] .state-dot{background:var(--hm-error)}
 .marker.selected .primary{box-shadow:0 0 0 3px var(--hm-accent),var(--hm-shadow)}
 .marker.editable{cursor:grab}.marker.dragging{cursor:grabbing;z-index:5}
-.cluster{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;min-width:44px;height:44px;min-height:44px;border-radius:22px;padding:0 12px;background:var(--hm-accent);color:var(--hm-on-accent);border:2px solid var(--hm-bg);font-weight:700;font-size:15px;box-shadow:var(--hm-shadow);display:flex;align-items:center;gap:4px}
+.cluster{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;min-width:44px;height:44px;min-height:44px;border-radius:22px;padding:0 12px;background:var(--hm-surface);color:var(--hm-ink);border:1px solid var(--hm-line);font-weight:700;font-size:15px;box-shadow:var(--hm-shadow);display:flex;align-items:center;gap:4px}
 .cluster[data-active=true]{box-shadow:0 0 0 3px var(--hm-active),var(--hm-shadow)}
 .zoom{position:absolute;bottom:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:3}
 .zoom .icon,.layers .icon{background:var(--hm-bg);border:1px solid var(--hm-line);box-shadow:var(--hm-shadow)}
@@ -51,15 +54,15 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .layers .icon[aria-pressed=false]{opacity:.55}
 .layers .icon[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}
 .placing-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--hm-text);color:var(--hm-bg);padding:8px 14px;border-radius:18px;font-size:13px;z-index:4;pointer-events:none;max-width:calc(100% - 120px);text-align:center}
-.editor-wrap{border-top:1px solid var(--hm-line);background:var(--hm-bg)}
+.editor-wrap{grid-area:edit;border-top:1px solid var(--hm-line);background:var(--hm-bg)}
 .editbar{display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap;position:sticky;top:0;background:var(--hm-bg);z-index:2}
 .editbar .space{flex:1}
 .editbar .save{font-weight:600}
 .editbar .save[data-dirty=true]:not(:disabled){background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent)}
 .editor{display:block;max-height:55vh;overflow:auto;overscroll-behavior:contain}
-.status{font-size:14px;padding:10px 16px;background:var(--hm-surface);border-top:1px solid var(--hm-line)}
+.status{grid-area:status;font-size:14px;padding:10px 16px;background:var(--hm-surface);border-top:1px solid var(--hm-line)}
 .status:empty{display:none}
-.selection{font-size:14px;padding:6px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.selection{grid-area:selection;font-size:14px;padding:6px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .selection:empty{display:none}
 dialog{border:1px solid var(--hm-line);border-radius:20px;max-width:min(520px,calc(100vw - 24px));color:var(--hm-text);padding:22px;background:var(--hm-bg)}
 dialog::backdrop{background:rgba(10,20,15,.42)}
@@ -87,4 +90,29 @@ dt{font-weight:600}dd{margin:0}
 .is-editing .header [data-command=edit]{display:none}
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
 
+.architecture>.room-highlight{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:none;overflow:visible}
+.marker.dim,.cluster.dim{opacity:.3}
+.viewport{background:color-mix(in srgb,var(--hm-ink) 3%,var(--hm-bg))}
+.cluster{background:var(--hm-surface);color:var(--hm-ink)}
+.marker .primary:has(.symbol-ring[data-tone=cool]) ha-icon{color:var(--hm-cool)}
+.activity-history{padding-left:20px;line-height:1.6}.activity-history li{margin:8px 0}.activity-history li[data-tone=alert]{color:var(--hm-alert)}.activity-history li[data-tone=ok]{color:var(--hm-ok)}
+.marker .primary{position:relative;overflow:visible;background:var(--hm-surface)}
+.symbol-body{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--hm-ink)}
+.symbol-ring{position:absolute;inset:-4px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--hm-active) calc(var(--level)*1turn),transparent 0);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0)}
+.symbol-ring[data-tone=cool]{background:conic-gradient(var(--hm-cool) calc(var(--level)*1turn),transparent 0)}
+.marker[data-active=true] .primary{border-color:var(--hm-line);background:var(--hm-surface)}
+.marker[data-active=true] .primary ha-icon{color:var(--hm-active)}
+.symbol-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:var(--hm-alert);color:#fff;border:2px solid var(--hm-surface);font-size:10px;line-height:14px;font-weight:700}
+.symbol-badge[data-level=warning]{background:var(--hm-warn)}
+.marker[data-alert=critical] .primary{color:var(--hm-alert);box-shadow:0 0 0 3px var(--hm-alert),var(--hm-shadow)}
+.marker[data-alert=critical] .primary ha-icon{color:var(--hm-alert)}
+.symbol-health{position:absolute;bottom:-3px;right:-3px;width:14px;height:14px;border:2px dashed var(--hm-warn);border-radius:50%;background:var(--hm-surface)}
+.symbol-health[data-health=unavailable]{border-style:solid;border-color:var(--hm-unknown)}.symbol-health[data-health=unknown]{border-color:var(--hm-unknown)}
+.symbol-health ha-icon{position:absolute;inset:-3px;--mdc-icon-size:16px!important;color:var(--hm-unknown)!important;transform:rotate(-45deg)}
+.remote-mark{position:absolute;left:-3px;bottom:-3px;width:14px;height:14px;border:2px solid var(--hm-surface);border-radius:4px;background:var(--hm-brand)}
+.symbol-tag{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:7px;background:var(--hm-surface);color:var(--hm-cool)}
+.marker[data-archetype=meter] .primary{width:max-content;max-width:150px;height:30px;min-height:30px;min-width:44px;left:50%;transform:translateX(-50%);border-radius:16px;padding:0 10px;font-size:13px;font-weight:600;margin-top:7px}
+.marker[data-archetype=infrastructure] .primary{background:transparent;border:0;box-shadow:none}.marker[data-archetype=infrastructure] .symbol-body{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);border:3px solid var(--hm-surface)}.marker[data-archetype=infrastructure] .symbol-body ha-icon{display:none}
+${topBarStyles}${roomRailStyles}${layerStyles}
+@media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
 `;

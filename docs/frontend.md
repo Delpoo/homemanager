@@ -86,3 +86,7 @@ Para una integración que ya haya verificado sus fuentes independientes, la tarj
 La importación presenta un resumen antes de aplicar. Aplicarla modifica un borrador y nunca ejecuta acciones importadas. La exportación contiene la configuración V2, sin runtime ni credenciales. El SVG se sanitiza antes de persistir y antes de renderizar: se rechazan XML inválido, DTD/entidades, IDs duplicados, referencias externas y elementos ejecutables; se usa un perfil permitido de elementos, atributos y estilos vectoriales. El límite es 1 MiB UTF-8 para el SVG y 3 MiB para el documento. Si el viewBox cambia, el editor exige una copia y ofrece conservar cada dispositivo en el mismo punto del dibujo o en la misma proporción; informa además espacios sin zona y zonas nuevas.
 
 Antes de publicar o instalar, ejecutar los controles de contrato, pruebas y build del repositorio. Las pruebas de navegador usan únicamente geometría, entidades y una sesión HA sintéticas; su almacenamiento local simula el servidor de pruebas. No son una conexión con HA real ni una validación física de hardware. La instalación y verificación en HA real corresponden al integrador.
+
+## Evolución 0.7 en revisión
+
+La pista A incorpora shell, arquetipos, alertas, actividad e importación con revisión de conflictos. Ver [roadmap](roadmap.md) y [verificación con capturas](verification-0.7.md). El PR sigue en borrador; la versión publicada no cambia.

@@ -1,3 +1,4 @@
+import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 // Synthetic stand-in for custom_components/homemanager. It mirrors the websocket
@@ -99,6 +100,7 @@ test('New home can be cancelled or left through Plan without losing the previous
   });
   const app = page.locator('homemanager-app');
   const homeCard = app.locator('homemanager-card');
+  await openCardMenu(page);
   await homeCard.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await homeCard.getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await homeCard.getByLabel('Nombre del dispositivo', { exact: true }).fill('Borrador conservado');
@@ -107,10 +109,12 @@ test('New home can be cancelled or left through Plan without losing the previous
     window.previousHomeCard = document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card');
   });
   for (const exit of ['Cancelar', 'Plano']) {
+    await openCardMenu(page);
     await app.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
     await expect(app.getByLabel('ID del hogar', { exact: true })).toBeVisible();
     await app.getByLabel('ID del hogar', { exact: true }).fill('sin-crear');
     await expect(homeCard).toBeHidden();
+    if (exit === 'Plano') await openCardMenu(page);
     await app.getByRole('button', { name: exit, exact: true }).click();
     await expect(app.getByLabel('ID del hogar', { exact: true })).toBeHidden();
     await expect(homeCard).toBeVisible();
@@ -154,6 +158,7 @@ test('saving goes through the revision check and a conflict keeps the draft', as
     window.homeServer.put('casa', window.homeServer.base);
     window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
   });
+  await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz guardada');
@@ -195,6 +200,7 @@ test('a missing home is created by the first administrator save', async ({ page 
     window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'nueva' }),
   );
   await expect(card(page).locator('.shell > .status')).toContainText('todavía no existe');
+  await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
   await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
@@ -299,7 +305,8 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
     document.querySelector('#mount').replaceChildren(app);
     app.hass = window.testHarness.hass;
   });
-  await expect(app.getByRole('heading', { name: 'Mi casa' })).toBeVisible();
+  await expect(app.locator('homemanager-card').locator('h1')).toHaveText('Mi casa');
+  await openCardMenu(page);
   await expect(app.getByLabel('Hogar', { exact: true })).toHaveValue('mi-casa');
   await expect(
     app.locator('homemanager-card').getByRole('button', { name: 'Luz de prueba', exact: true }),
@@ -310,7 +317,8 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   await page.evaluate(() => {
     document.querySelector('homemanager-app').narrow = true;
   });
-  await app.getByRole('button', { name: 'Menú', exact: true }).click();
+  await openCardMenu(page);
+  await app.getByRole('button', { name: 'Menú de Home Assistant', exact: true }).click();
   expect(await toggled).toBe(true);
 });
 
@@ -322,6 +330,7 @@ test('storage maintenance requires explicit confirmation before purging retained
     app.hass = window.testHarness.hass;
   });
   const app = page.locator('homemanager-app');
+  await openCardMenu(page);
   await app.getByRole('button', { name: 'Almacenamiento', exact: true }).click();
   const dialog = app.getByRole('dialog');
   await expect(dialog.getByText('deleted-home', { exact: false })).toBeVisible();

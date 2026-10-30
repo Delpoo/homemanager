@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "path": "docs/evidence/0.7/desktop-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "9a61b1e0c7c0d3a09230f962dc0e824a1b103aa21bdb5b939a8c197492d93c1c"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-alert.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "93aa0a259bb92241fc2532227ce139a015d818fc2e8638a9d0df1984aa7d2e59"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-menu.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "eed89d3de091d8f3d40a81a369580e6bf51d6b3dfa6156b697f6f436ce1f8dc0"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "67dbf3a70ce741cb9d79eea59a28c9f37fc529995e41488da1ee929a11a1ccc1"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-reference.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c71ec5179edc0cf26a3220b4e44236c7513c3203542cea8096e15e67b1c04543"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-review.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7f7088daf17994ce9da2fbcefcf348b18de37dfb67bd9fe783abdda662682902"
+    },
+    {
+      "path": "docs/evidence/0.7/desktop-room.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b72c124a84626fb1342d6cfd17a23c54542760b923849f528a8150283fe86f7f"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "bc41c222a70b34e6dbe796eec51cc119a0fe7a2dfa0b44a98088b29863ad89e8"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-alert.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "2ec0dd9f816694ed41317e9cc05ed391e60c50ca6a918ac7645c8956f2dcc664"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-menu.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8c010b30afc6800d63cb9f7d1ca7d189fea08f49d39a670cd9490453c30ac8f9"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "26e6c0a31b2ee5142fd94a503f0127cbe65594b11398a9670affef4de2d6be2a"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-reference.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a49e60acf4161615d5ce1e1eb6945368db5f2b2cd8e67a09b4f5ca5ce0260dd5"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-review.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "13b05c2301dae8e56ac679af31df55d4791e71921df143021b3c1a4242196fe4"
+    },
+    {
+      "path": "docs/evidence/0.7/mobile-room.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "6c34461233510a43e59296e9f8b655425efb314024aa43613f970bca14b01b3b"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 // Tests read in Spanish, as for a Home Assistant user whose language is es.
 globalThis.__homemanagerLanguage = 'es';
+import './ha-icon.js';
 import '../../../dist/homemanager.js';
 
 // This entire apartment, inventory and HA session are synthetic test data.

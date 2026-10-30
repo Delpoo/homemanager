@@ -130,6 +130,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   set hass(hass: Hass) {
+    if (typeof hass.themes?.darkMode === 'boolean') this.dataset.theme = hass.themes.darkMode ? 'dark' : 'light';
     const first = !this._hass;
     this._hass = hass;
     this.learn.hass = hass;
