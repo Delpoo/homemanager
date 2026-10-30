@@ -10,6 +10,7 @@ import type {
   SymbolSize,
   SymbolArchetype,
   SymbolShow,
+  DeviceCategory,
 } from '../ha/types.ts';
 export { KINDS };
 export type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize };
@@ -33,6 +34,7 @@ export interface Device {
     size?: SymbolSize;
     archetype?: SymbolArchetype;
     show?: SymbolShow;
+    category?: DeviceCategory;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };

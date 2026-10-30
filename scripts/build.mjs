@@ -61,6 +61,7 @@ await build({
     'src/rf/layout.ts',
     'src/card/device-controls.ts',
     'src/model/archetype.ts',
+    'src/model/category.ts',
     'src/model/names.ts',
     'src/model/device-screen.ts',
     'src/model/now.ts',

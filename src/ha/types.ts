@@ -60,6 +60,15 @@ export interface DeviceControl {
 export type SymbolSize = 's' | 'm' | 'l';
 export type SymbolArchetype = 'actuator' | 'equipment' | 'sensor' | 'meter' | 'remote' | 'infrastructure';
 export type SymbolShow = 'icon' | 'value' | 'both';
+export type DeviceCategory =
+  | 'switch'
+  | 'equipment'
+  | 'remote'
+  | 'meter'
+  | 'plant'
+  | 'alert'
+  | 'presence'
+  | 'infrastructure';
 export interface Device {
   id: string;
   roomId: RoomId | null;
@@ -75,6 +84,7 @@ export interface Device {
     archetype?: SymbolArchetype;
     /** Optional body content. Meters default to value; all other archetypes to icon. */
     show?: SymbolShow;
+    category?: DeviceCategory;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };

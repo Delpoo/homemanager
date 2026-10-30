@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { assertConfiguration, inspectConfiguration, SYMBOL_ARCHETYPES, SYMBOL_SHOW } from '../../src/ha/validation.mjs';
+import {
+  assertConfiguration,
+  inspectConfiguration,
+  DEVICE_CATEGORIES,
+  SYMBOL_ARCHETYPES,
+  SYMBOL_SHOW,
+} from '../../src/ha/validation.mjs';
 import { LEGACY_V1_ROOM_IDS } from '../../src/ha/migration.mjs';
 const make = () => ({
   schemaVersion: 2,
@@ -121,6 +127,13 @@ test('0.7 presentation fields are optional, preserve 0.6 documents and round-tri
   const catalogSchema = JSON.parse(readFileSync(new URL('../../schemas/catalog.schema.json', import.meta.url)));
   assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.archetype.enum, SYMBOL_ARCHETYPES);
   assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.show.enum, SYMBOL_SHOW);
+  assert.deepEqual(catalogSchema.$defs.device.properties.display.properties.category.enum, DEVICE_CATEGORIES);
+  for (const category of DEVICE_CATEGORIES) {
+    const configuration = make();
+    Object.assign(configuration.catalog.devices[0].display, { category, archetype: 'actuator', show: 'icon' });
+    assert.deepEqual(assertConfiguration(configuration), configuration);
+    assert(schema(configuration), JSON.stringify(schema.errors));
+  }
 });
 
 test('JS and JSON Schema reject the same unsafe 0.7 fields, types and unknown presentation properties', () => {
@@ -154,6 +167,7 @@ test('JS and JSON Schema reject the same unsafe 0.7 fields, types and unknown pr
   for (const [field, invalid] of [
     ['archetype', [null, false, 1, [], {}, '', 'Actuator', 'actuador', 'dimmer', 'actuator\n']],
     ['show', [null, false, 1, [], {}, '', 'Icon', 'all', 'value\n']],
+    ['category', [null, false, 1, [], {}, '', 'Switch', 'actuator', 'planta', 'plant\n']],
   ]) {
     for (const value of invalid) {
       const configuration = make();

@@ -34,6 +34,7 @@ MAX_CONTROLS = 8
 MAX_PINNED = 3
 SYMBOL_ARCHETYPES = ("actuator", "equipment", "sensor", "meter", "remote", "infrastructure")
 SYMBOL_SHOW = ("icon", "value", "both")
+DEVICE_CATEGORIES = ("switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure")
 
 
 def _fail() -> None:
@@ -274,7 +275,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category"})
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
@@ -282,6 +283,8 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         if "archetype" in display and display["archetype"] not in SYMBOL_ARCHETYPES:
             _fail()
         if "show" in display and display["show"] not in SYMBOL_SHOW:
+            _fail()
+        if "category" in display and display["category"] not in DEVICE_CATEGORIES:
             _fail()
         bindings = device["bindings"]
         _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings"})

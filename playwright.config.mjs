@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
-const localOrigin = ['http:', '', '127.0.0.1:4184'].join('/');
+// HM_TEST_PORT lets two checkouts test at once without serving each other's code.
+const port = process.env.HM_TEST_PORT ?? '4184';
+const localOrigin = ['http:', '', `127.0.0.1:${port}`].join('/');
 const executablePath = [
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
