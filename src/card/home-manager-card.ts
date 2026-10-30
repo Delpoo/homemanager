@@ -27,7 +27,7 @@ import { symbolSpec } from '../model/symbol-spec.js';
 import { ActivityLog, activityIsRecent } from '../model/activity.js';
 import { RuntimeFeed } from '../shell/runtime-feed.js';
 import * as roomView from './room-view.js';
-import * as shapeEdit from './shape-edit.js';
+import * as zoneEditor from './zone-editor.js';
 import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
 import { renderRoomRail } from '../shell/room-rail.js';
 import { bindTopBar, renderTopBar, updateTopBar, type AppShellContext } from '../shell/top-bar.js';
@@ -117,16 +117,9 @@ export class HomeManagerCard extends HTMLElement {
     timer: ReturnType<typeof setTimeout>;
   };
   navHinted = false;
-  /** CP8: the shape being edited on the plan, and the handle being dragged. */
-  /** An empty id draws a new space (CP9). */
-  shapeEdit?: { id: string; shape: import('../model/room-shapes.js').RoomShape };
+  /** The zone editor (stage 2b of 0.10): open only while its draft is not applied. */
+  zoneEdit?: zoneEditor.ZoneEdit;
   zonelessOffered = false;
-  shapeDrag?: {
-    handle: string;
-    x: number;
-    y: number;
-    shape: import('../model/room-shapes.js').RoomShape;
-  };
   enabledLayers = new Set(['controls', 'sensors', 'energy']);
   pointers = new Map<number, { x: number; y: number }>();
   gesture?:
@@ -309,17 +302,17 @@ export class HomeManagerCard extends HTMLElement {
     this.panel?.close();
     this.shellUnsubscribe?.();
     const layers = layerItems().filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
-    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${shapeEdit.shapeEditStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
+    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="shape-layer"></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
     this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
     this.groupsKey = '';
     this.root.addEventListener('click', this.onClick);
     this.bindNav();
-    this.bindShapeEdit();
+    this.bindZoneEdit();
     this.root.addEventListener('keydown', this.key as EventListener);
     const viewport = this.viewport;
     viewport.addEventListener('pointerdown', this.pointerDown);
@@ -364,11 +357,14 @@ export class HomeManagerCard extends HTMLElement {
   settleRoom: OmitThisParameter<typeof roomView.settleRoom> = roomView.settleRoom.bind(this);
   keyNav: OmitThisParameter<typeof roomView.keyNav> = roomView.keyNav.bind(this);
   arrowChoices: OmitThisParameter<typeof roomView.arrowChoices> = roomView.arrowChoices.bind(this);
-  startShapeEdit: OmitThisParameter<typeof shapeEdit.startShapeEdit> = shapeEdit.startShapeEdit.bind(this);
-  renderShapeEdit: OmitThisParameter<typeof shapeEdit.renderShapeEdit> = shapeEdit.renderShapeEdit.bind(this);
-  endShapeEdit: OmitThisParameter<typeof shapeEdit.endShapeEdit> = shapeEdit.endShapeEdit.bind(this);
-  bindShapeEdit: OmitThisParameter<typeof shapeEdit.bindShapeEdit> = shapeEdit.bindShapeEdit.bind(this);
-  offerFirstSpace: OmitThisParameter<typeof shapeEdit.offerFirstSpace> = shapeEdit.offerFirstSpace.bind(this);
+  startZoneEdit: OmitThisParameter<typeof zoneEditor.startZoneEdit> = zoneEditor.startZoneEdit.bind(this);
+  renderZoneEdit: OmitThisParameter<typeof zoneEditor.renderZoneEdit> = zoneEditor.renderZoneEdit.bind(this);
+  endZoneEdit: OmitThisParameter<typeof zoneEditor.endZoneEdit> = zoneEditor.endZoneEdit.bind(this);
+  bindZoneEdit: OmitThisParameter<typeof zoneEditor.bindZoneEdit> = zoneEditor.bindZoneEdit.bind(this);
+  tapZone: OmitThisParameter<typeof zoneEditor.tapZone> = zoneEditor.tapZone.bind(this);
+  zoneKey: OmitThisParameter<typeof zoneEditor.zoneKey> = zoneEditor.zoneKey.bind(this);
+  zoneCommand: OmitThisParameter<typeof zoneEditor.zoneCommand> = zoneEditor.zoneCommand.bind(this);
+  offerFirstSpace: OmitThisParameter<typeof zoneEditor.offerFirstSpace> = zoneEditor.offerFirstSpace.bind(this);
   /** What a space's window needs from the plan; editing its shape closes plan settings. */
   roomViewFor(room: string) {
     return {
@@ -376,7 +372,7 @@ export class HomeManagerCard extends HTMLElement {
       hasZone: !!this.svg?.querySelector(`[id="room-${CSS.escape(room)}"]`),
       editShape: () => {
         this.editor?.closeSurface();
-        this.startShapeEdit(room);
+        this.startZoneEdit(room);
       },
     };
   }
@@ -419,6 +415,15 @@ export class HomeManagerCard extends HTMLElement {
     }
     const command = target.dataset.command;
     if (!command) return;
+    if (command.startsWith('zone-')) {
+      this.zoneCommand(command, target);
+      return;
+    }
+    // The top menu stays reachable: it must not drop zones that are not applied yet.
+    if (this.zoneEdit && ['plan-settings', 'edit', 'exit', 'settings'].includes(command)) {
+      this.status(t('Terminá de editar las zonas: Aplicar o Cancelar.'));
+      return;
+    }
     if (command.startsWith('layer-')) {
       const id = command.slice(6);
       if (this.enabledLayers.has(id)) this.enabledLayers.delete(id);
@@ -465,14 +470,8 @@ export class HomeManagerCard extends HTMLElement {
       case 'nav-swipe':
         this.setNavMode('swipe');
         break;
-      case 'shape-apply':
-        this.endShapeEdit(true);
-        break;
-      case 'shape-cancel':
-        this.endShapeEdit(false);
-        break;
       case 'room-new':
-        this.startShapeEdit('');
+        this.startZoneEdit(null, 'new');
         break;
       case 'in':
         this.zoom(1.3);

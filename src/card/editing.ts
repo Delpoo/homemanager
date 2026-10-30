@@ -81,7 +81,7 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor = document.createElement('homemanager-editor') as HomeManagerEditor;
   this.editor.embedded = true;
   this.editor.roomView = id => this.roomViewFor(id);
-  this.editor.drawSpace = () => this.startShapeEdit('');
+  this.editor.editZones = () => this.startZoneEdit();
   this.editor.homeId = this.home?.homeId;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });

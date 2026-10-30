@@ -14,7 +14,7 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
   if (event.button !== 0 || this.saving) return;
   const target = event.target as Element;
   // Floating controls inside the plan keep their own clicks (no pan capture).
-  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .shape-bar')) return;
+  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .zones-bar')) return;
   // Pinned controls keep their own gestures (a slider drags, not the plan).
   if (!this.editing && target.closest('.pins')) return;
   const p = this.point(event);
@@ -120,7 +120,8 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
     const still = Math.hypot(p.x - g.x, p.y - g.y) < 6;
     if (!still && this.swipeNav({ x: p.x - g.x, y: p.y - g.y }, performance.now() - g.at)) {
       // A swipe in room view travels (or bounces); it is not a pan.
-    } else if (still && this.placing) this.place(this.placing, p);
+    } else if (still && this.zoneEdit) this.tapZone(p);
+    else if (still && this.placing) this.place(this.placing, p);
     else if (still) {
       const now = performance.now();
       if (
@@ -270,6 +271,10 @@ export function zoom(this: HomeManagerCard, factor: number) {
 }
 
 export function key(this: HomeManagerCard, event: KeyboardEvent) {
+  if (this.zoneEdit) {
+    this.zoneKey(event);
+    return;
+  }
   if (event.key === 'Escape' && this.placing) {
     event.preventDefault();
     this.stopPlacing();
