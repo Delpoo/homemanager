@@ -37,6 +37,7 @@ SYMBOL_SHOW = ("icon", "value", "both")
 DEVICE_CATEGORIES = ("switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure")
 ROOM_SHAPE_SOURCES = ("svg", "app")
 ROOM_FRAMES = ("tight", "normal", "wide")
+MAX_ROOM_RECTS = 12
 
 
 def _fail() -> None:
@@ -257,7 +258,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"}, {"icon", "shape", "shapeSource", "frame", "nav"})
+        _fields(room, {"id", "label"}, {"icon", "shape", "rects", "shapeSource", "frame", "nav"})
         _id(room["id"])
         _text(room["label"])
         if "icon" in room:
@@ -268,6 +269,12 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             _shape(room["shape"])
         if "shapeSource" in room and (room["shapeSource"] not in ROOM_SHAPE_SOURCES or "shape" not in room):
             _fail()
+        if "rects" in room:
+            rects = room["rects"]
+            if "shape" not in room or type(rects) is not list or not 2 <= len(rects) <= MAX_ROOM_RECTS:
+                _fail()
+            for rect in rects:
+                _shape(rect)
         if "frame" in room and room["frame"] not in ROOM_FRAMES:
             _fail()
         if "nav" in room:

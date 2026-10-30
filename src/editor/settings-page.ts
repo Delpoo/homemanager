@@ -2,9 +2,11 @@ import { t } from '../i18n/index.js';
 import { escapeHTML as esc, type Configuration } from '../card/types.js';
 import { uiButton, uiIcon, uiStatus } from '../ui/components.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
+import { isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
 
 /** Plan settings as a page (mockup §9): sections on the left, problems on top, spaces as a list. */
 export type SettingsSection =
+  | 'health-section'
   | 'rooms-section'
   | 'actions-section'
   | 'panels-section'
@@ -13,6 +15,8 @@ export type SettingsSection =
 export interface SettingsPage {
   section: SettingsSection;
   problems: number;
+  /** Problems the diagnosis found. */
+  health: number;
   pending: number;
   /** Shown above every section, so it cannot be missed. */
   notice: string;
@@ -21,6 +25,7 @@ export interface SettingsPage {
 
 const SECTIONS: { id: SettingsSection; title: () => string; icon: string }[] = [
   { id: 'rooms-section', title: () => t('Plano y espacios'), icon: 'mdi:floor-plan' },
+  { id: 'health-section', title: () => t('Diagnóstico'), icon: 'mdi:stethoscope' },
   { id: 'actions-section', title: () => t('Acciones lógicas'), icon: 'mdi:link-variant' },
   { id: 'panels-section', title: () => t('Paneles nativos'), icon: 'mdi:view-list-outline' },
   { id: 'pending-section', title: () => t('Referencias pendientes'), icon: 'mdi:alert-outline' },
@@ -31,9 +36,11 @@ export function settingsPage(page: SettingsPage): string {
   const badge = (id: SettingsSection) =>
     id === 'rooms-section' && page.problems
       ? `<span class="settings-badge warn">${page.problems}</span>`
-      : id === 'pending-section'
-        ? `<span class="settings-badge${page.pending ? ' warn' : ''}">${page.pending}</span>`
-        : '';
+      : id === 'health-section' && page.health
+        ? `<span class="settings-badge warn">${page.health}</span>`
+        : id === 'pending-section'
+          ? `<span class="settings-badge${page.pending ? ' warn' : ''}">${page.pending}</span>`
+          : '';
   const nav = SECTIONS.map(
     section =>
       `<button type="button" data-settings="${section.id}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}<span>${esc(section.title())}</span>${badge(section.id)}</button>`,
@@ -66,7 +73,61 @@ export function planCard(content: string, zones: number, rooms: number): string 
   return `<div class="plan-card"><div class="plan-thumb" aria-hidden="true">${content}</div><div class="plan-info"><b>${esc(t('Plano de la casa'))}</b><span class="k-sub">${esc(t('{zones} zonas · {rooms} espacios', { zones, rooms }))}</span><div class="plan-actions">${uiButton(t('Reemplazar plano'), 'settings-import', 'secondary', 'mdi:upload')}</div></div></div>`;
 }
 
+/** What a row says about a problem, and what its button does. */
+function issueText(
+  issue: HealthIssue,
+  roomName: (id: string | null) => string,
+): { title: string; detail: string; fix: string } {
+  switch (issue.kind) {
+    case 'no-geometry':
+      return {
+        title: issue.label,
+        detail: issue.devices
+          ? t('Espacio sin zona ni forma, con {count} dispositivos', { count: issue.devices })
+          : t('Espacio sin zona ni forma, y sin dispositivos'),
+        fix: issue.devices ? t('Abrir') : t('Quitar'),
+      };
+    case 'unused-zone':
+      return { title: issue.label, detail: t('Zona del plano que ningún espacio usa'), fix: t('Agregar') };
+    case 'misplaced':
+      return {
+        title: issue.label,
+        detail: t('Dibujado en {drawn}, asignado a {assigned}', {
+          drawn: roomName(issue.to),
+          assigned: roomName(issue.from),
+        }),
+        fix: t('Mover a {room}', { room: roomName(issue.to) }),
+      };
+    case 'outside':
+      return { title: issue.label, detail: t('Dibujado fuera de todos los espacios'), fix: t('Abrir') };
+    case 'missing-entity':
+      return { title: issue.label, detail: t('Su entidad ya no existe en Home Assistant'), fix: t('Abrir') };
+    case 'same-name':
+      return {
+        title: issue.label,
+        detail: t('Hay {count} espacios con este nombre', { count: issue.rooms.length }),
+        fix: t('Abrir'),
+      };
+  }
+}
+export function healthBody(health: PlanHealth, roomName: (id: string | null) => string): string {
+  const { plan, issues } = health;
+  const safe = issues.filter(isSafeFix).length;
+  const summary = `<div class="health-plan"><b>${esc(plan.title ?? t('Plano sin título'))}</b><span class="k-sub">${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</span></div>`;
+  if (!issues.length)
+    return `${summary}<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>`;
+  const rows = issues
+    .map((issue, index) => {
+      const text = issueText(issue, roomName);
+      return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="health-action" data-issue="${index}">${esc(text.fix)}</button></div>`;
+    })
+    .join('');
+  return `${summary}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>`;
+}
+
 export const settingsPageStyles = `
+.health-plan{display:grid;gap:4px;padding:14px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface)}
+.health-row{gap:12px}.health-row .k-btn{flex:none;min-height:36px;padding:6px 12px;font-size:13px}.health-row .txt span{white-space:normal}
 .settings-dialog{width:min(1040px,calc(100vw - 24px));height:min(780px,calc(100dvh - 32px));padding:0;display:flex;flex-direction:column;overflow:hidden}
 .settings-dialog[open]{display:flex}
 .settings-dialog>.sheet-header{position:static;margin:0;padding:14px 18px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface)}

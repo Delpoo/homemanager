@@ -63,6 +63,8 @@ export const DEVICE_CATEGORIES = Object.freeze([
 export const ROOM_SHAPE_SOURCES = Object.freeze(['svg', 'app']);
 /** How much of the surroundings the room view shows around a space. */
 export const ROOM_FRAMES = Object.freeze(['tight', 'normal', 'wide']);
+/** A zone is one rectangle, or up to this many merged: an L is two. */
+export const MAX_ROOM_RECTS = 12;
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
@@ -252,7 +254,7 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], ['icon', 'shape', 'shapeSource', 'frame', 'nav'], path);
+    fields(room, ['id', 'label'], ['icon', 'shape', 'rects', 'shapeSource', 'frame', 'nav'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
     if (Object.hasOwn(room, 'icon')) {
@@ -263,6 +265,12 @@ function shape(configuration) {
     if (Object.hasOwn(room, 'shapeSource')) {
       one(room.shapeSource, ROOM_SHAPE_SOURCES, `${path}.shapeSource`);
       if (!Object.hasOwn(room, 'shape')) invalid(`${path}.shapeSource`, 'a shape source needs a shape');
+    }
+    if (Object.hasOwn(room, 'rects')) {
+      if (!Object.hasOwn(room, 'shape')) invalid(`${path}.rects`, 'rectangles need the shape that holds them');
+      if (!Array.isArray(room.rects) || room.rects.length < 2 || room.rects.length > MAX_ROOM_RECTS)
+        invalid(`${path}.rects`, `from 2 to ${MAX_ROOM_RECTS} rectangles required`);
+      room.rects.forEach((rect, at) => roomShape(rect, `${path}.rects[${at}]`));
     }
     if (Object.hasOwn(room, 'frame')) one(room.frame, ROOM_FRAMES, `${path}.frame`);
     if (Object.hasOwn(room, 'nav')) {

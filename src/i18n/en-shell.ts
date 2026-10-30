@@ -138,6 +138,25 @@ export const enShell: Record<string, string> = {
   'Los dos': 'Both',
   'Qué muestra el símbolo': 'What the symbol shows',
   'Vista por espacio': 'Room view',
+  'ningún espacio': 'no space',
+  'No se pudo leer el plano.': 'The plan could not be read.',
+  'Espacio sin zona ni forma, con {count} dispositivos': 'Space with no zone or shape, with {count} devices',
+  'Espacio sin zona ni forma, y sin dispositivos': 'Space with no zone or shape, and no devices',
+  'Zona del plano que ningún espacio usa': 'Plan zone that no space uses',
+  Agregar: 'Add',
+  'Dibujado en {drawn}, asignado a {assigned}': 'Drawn in {drawn}, assigned to {assigned}',
+  'Mover a {room}': 'Move to {room}',
+  'Dibujado fuera de todos los espacios': 'Drawn outside every space',
+  'Su entidad ya no existe en Home Assistant': 'Its entity no longer exists in Home Assistant',
+  'Hay {count} espacios con este nombre': 'There are {count} spaces with this name',
+  'Plano sin título': 'Untitled plan',
+  '{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}':
+    '{zones} zones · {spaces} spaces · {devices} devices · fingerprint {print}',
+  'Todo en orden: cada espacio tiene su zona y cada dispositivo está donde está dibujado.':
+    'All in order: every space has its zone and every device is where it is drawn.',
+  'Arreglar lo seguro ({count})': 'Fix what is safe ({count})',
+  'Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.':
+    'Moves each device to the space where it is drawn and removes empty spaces with no zone. Undo reverses it.',
   'Agregar {room}': 'Add {room}',
   'Agregar todas ({count})': 'Add all ({count})',
   'Agregar un espacio sin dibujarlo': 'Add a space without drawing it',
@@ -153,7 +172,6 @@ export const enShell: Record<string, string> = {
   '{zones} zonas · {rooms} espacios': '{zones} zones · {rooms} spaces',
   'Reemplazar plano': 'Replace plan',
   'Nuevo espacio': 'New space',
-  'Crear espacio': 'Create space',
   'Escribí el nombre del espacio.': 'Type the name of the space.',
   'Espacio «{room}» creado en el borrador. Guardá el plano para conservarlo.':
     'Space “{room}” created in the draft. Save the plan to keep it.',
@@ -170,7 +188,6 @@ export const enShell: Record<string, string> = {
   'Forma de {room}: flechas para moverla, Mayúsculas y flechas para cambiar su tamaño':
     'Shape of {room}: arrow keys move it, Shift and arrow keys resize it',
   'Forma de {room}': 'Shape of {room}',
-  'Aplicar forma': 'Apply shape',
   'Forma guardada en el borrador. Guardá el plano para conservarla.':
     'Shape saved in the draft. Save the plan to keep it.',
   'Flechas desde este espacio': 'Arrows from this space',
@@ -186,4 +203,36 @@ export const enShell: Record<string, string> = {
   'Ir a {room}': 'Go to {room}',
   'Tirá de la flecha hacia atrás para ir a {room}.': 'Pull the arrow back to go to {room}.',
   'Este plano todavía no tiene espacios con zona o forma.': 'This plan has no spaces with a zone or shape yet.',
+  'Arrastrá sobre el plano para dibujar la zona.': 'Drag on the plan to draw the zone.',
+  'Arrastrá sobre el plano para agregarle un rectángulo a {room}.': 'Drag on the plan to add a rectangle to {room}.',
+  'Esta zona todavía no tiene forma.': 'This zone has no shape yet.',
+  'Tocá una zona del plano para editarla.': 'Tap a zone on the plan to edit it.',
+  'Arrastrá la zona o sus puntos.': 'Drag the zone or its points.',
+  'Editor de zonas': 'Zone editor',
+  Zona: 'Zone',
+  'Elegí una zona': 'Choose a zone',
+  'Nombre de la zona': 'Zone name',
+  'Nueva zona': 'New zone',
+  'Agregar rectángulo': 'Add rectangle',
+  'Quitar rectángulo': 'Remove rectangle',
+  'Fusionar con': 'Merge with',
+  'Fusionar con…': 'Merge with…',
+  'Eliminar zona': 'Delete zone',
+  Aplicar: 'Apply',
+  'Rectángulo {n} de {room}: flechas para moverlo, Mayúsculas y flechas para cambiar su tamaño':
+    'Rectangle {n} of {room}: arrows move it, Shift and arrows resize it',
+  'Arrastrá un poco más para dibujar el rectángulo.': 'Drag a bit further to draw the rectangle.',
+  'Zona {n}': 'Zone {n}',
+  'Una zona admite hasta {count} rectángulos.': 'A zone can have up to {count} rectangles.',
+  '¿Descartar las zonas editadas?': 'Discard the edited zones?',
+  'El plano queda como estaba antes de abrir el editor.': 'The plan stays as it was before opening the editor.',
+  'Zonas aplicadas en el borrador. Guardá el plano para conservarlas.':
+    'Zones applied to the draft. Save the plan to keep them.',
+  'Con las zonas nuevas, estos dispositivos quedan en otro espacio. Destildá los que deban seguir donde están.':
+    'With the new zones, these devices end up in another space. Untick those that should stay where they are.',
+  Volver: 'Back',
+  'Dibujá cada espacio con rectángulos sobre el plano y ponele nombre. Las zonas se cambian cuando quieras.':
+    'Draw each space with rectangles on the plan and name it. Zones can be changed whenever you like.',
+  'Editar zonas': 'Edit zones',
+  'Terminá de editar las zonas: Aplicar o Cancelar.': 'Finish editing the zones: Apply or Cancel.',
 };

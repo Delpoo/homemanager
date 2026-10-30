@@ -47,6 +47,7 @@ import { deviceName, readingName, personName } from '../model/names.js';
 import { bindingIssues, type DeviceSelection } from '../model/device-catalog.js';
 import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
+import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
 import type { AlertEditor } from '../ui/alert-editor.js';
 import '../ui/alert-editor.js';
@@ -58,9 +59,17 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
-import { reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
+import { healthOfPlan, reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
+import { applyFixes, canFix, isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
 import { openRoomActions, type RoomViewChoices } from './room-actions.js';
-import { planCard, settingsPage, settingsPageStyles, spacesList, type SettingsSection } from './settings-page.js';
+import {
+  healthBody,
+  planCard,
+  settingsPage,
+  settingsPageStyles,
+  spacesList,
+  type SettingsSection,
+} from './settings-page.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -159,7 +168,7 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsSection: SettingsSection = 'rooms-section';
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
-  drawSpace?: () => void;
+  editZones?: () => void;
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
   private homeConfig?: { type: string; card_id: string; home_id: string; title?: string };
   private homes?: HomeSummary[];
@@ -494,6 +503,29 @@ export class HomeManagerEditor extends HTMLElement {
     grip.addEventListener('pointerup', up);
     grip.addEventListener('pointercancel', up);
   }
+  /** Measured once per drawing of the page; a plan that cannot be read has no diagnosis. */
+  private planHealth(): PlanHealth | null {
+    try {
+      const states = this._hass?.states;
+      return healthOfPlan(this.configuration, states ? new Set(Object.keys(states)) : undefined);
+    } catch {
+      return null;
+    }
+  }
+  /** A row's button: a one-tap fix when it decides nothing else, otherwise opens what needs a decision. */
+  private healthAction(issue: HealthIssue): void {
+    if (canFix(issue)) {
+      this.emit(applyFixes(this.configuration, [issue]));
+      this.render();
+      return;
+    }
+    if (issue.kind === 'no-geometry') this.openRoom(issue.roomId, this.roomView?.(issue.roomId));
+    else if (issue.kind === 'same-name') this.openRoom(issue.rooms[0], this.roomView?.(issue.rooms[0]));
+    else if (issue.kind === 'outside' || issue.kind === 'missing-entity') {
+      this.closeSurface();
+      this.selectedDeviceId = issue.deviceId;
+    }
+  }
   private settingsForm(): string {
     const pending = pendingReferences(this.configuration, this._hass?.states);
     // Conflicts with the plan are shown above every section, where they cannot be missed.
@@ -502,9 +534,11 @@ export class HomeManagerEditor extends HTMLElement {
     const zoneless = this.configuration.rooms.filter(room => !zoneIds.has(room.id) && !room.shape).length;
     const unclaimed = [...zoneIds].filter(id => !this.configuration.rooms.some(room => room.id === id)).length;
     const conflicts = zoneIds.size && (zoneless || unclaimed);
+    const health = this.planHealth();
     return settingsPage({
       section: this.settingsSection,
       problems: conflicts ? zoneless + unclaimed : 0,
+      health: health?.issues.length ?? 0,
       pending: pending.length,
       // Moving an inline plan into the integration is offered on top too, when it applies.
       notice:
@@ -514,6 +548,12 @@ export class HomeManagerEditor extends HTMLElement {
           : ''),
       bodies: {
         'rooms-section': this.roomsForm(),
+        'health-section': health
+          ? healthBody(
+              health,
+              id => this.configuration.rooms.find(room => room.id === id)?.label ?? t('ningún espacio'),
+            )
+          : `<p class="note">${esc(t('No se pudo leer el plano.'))}</p>`,
         'actions-section': this.actionForm(),
         'panels-section': this.panelForm(),
         'pending-section': pending.length
@@ -594,7 +634,7 @@ export class HomeManagerEditor extends HTMLElement {
     } catch {
       /* No thumbnail for a plan that cannot be drawn. */
     }
-    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.drawSpace ? `<button type="button" class="primary" data-command="space-draw"><ha-icon icon="mdi:vector-square-plus" aria-hidden="true"></ha-icon>${esc(t('Nuevo espacio'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
+    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
       ${candidates.length ? `<h4>${esc(t('Zonas detectadas en el plano'))}</h4><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">${esc(t('Agregar {room}', { room: zone.label ?? zone.id }))}</button>`).join('')}<button type="button" data-command="room-add-all">${esc(t('Agregar todas ({count})', { count: candidates.length }))}</button></div>` : ''}
       <details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`;
   }
@@ -611,7 +651,7 @@ export class HomeManagerEditor extends HTMLElement {
       : '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></div>
-      ${input('x', t('Posición X'), device?.position.x ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), device?.position.y ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}
+      ${input('x', t('Posición X'), snapToGrid(device?.position.x ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), snapToGrid(device?.position.y ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}
       <div class="field">${help(t('Panel nativo'), t('Un panel con acciones fijas definido en Ajustes del plano. Se muestra junto a los controles.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
     const category = this.sheetCategory(device);
     const sections = sectionsOf(category);
@@ -950,14 +990,25 @@ export class HomeManagerEditor extends HTMLElement {
     }
     try {
       switch (button.dataset.command) {
+        case 'health-action': {
+          const issue = this.planHealth()?.issues[Number(button.dataset.issue)];
+          if (issue) this.healthAction(issue);
+          break;
+        }
+        case 'health-fix-safe': {
+          const safe = this.planHealth()?.issues.filter(isSafeFix) ?? [];
+          if (safe.length) this.emit(applyFixes(this.configuration, safe));
+          this.render();
+          break;
+        }
         case 'room-open': {
           const id = button.dataset.room!;
           this.openRoom(id, this.roomView?.(id));
           break;
         }
-        case 'space-draw':
+        case 'zones-edit':
           this.closeSurface();
-          this.drawSpace?.();
+          this.editZones?.();
           break;
         case 'settings-import':
           this.settingsSection = 'import-section';

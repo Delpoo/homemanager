@@ -11,7 +11,7 @@ Corrige dos problemas vistos al usar la 0.9.0-beta.5 en una instalación real. P
 
 ## Resultados
 
-Verificación del 30/10/2026.
+Verificación del 30/10/2026. El E2E, el panel real y las capturas se hicieron sobre la base `fa26161`, antes de integrar las etapas 1 a 2b de 0.10 desde `main`. Tras integrarlas volvieron a ejecutarse `npm run check`, las pruebas de navegador y la CI.
 
 | Comprobación | Resultado |
 | --- | --- |

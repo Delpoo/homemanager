@@ -1,3 +1,4 @@
+import { snapToGrid } from '../model/room-shapes.js';
 import { t } from '../i18n/index.js';
 import {
   KINDS,
@@ -101,7 +102,7 @@ export function upsertDevice(
     id,
     roomId: input.roomId,
     kind: input.kind,
-    position: { x: input.position.x, y: input.position.y },
+    position: { x: snapToGrid(input.position.x), y: snapToGrid(input.position.y) },
     mobility: input.mobility,
     display: {
       label: plainText(input.display.label, t('Nombre')),
@@ -160,11 +161,12 @@ export function upsertRoom(
   // Renaming keeps the space's shape, framing and arrows (D22): a field changes only
   // when it is given, and giving it as undefined removes it.
   const kept = index >= 0 ? next.rooms[index] : undefined;
-  const pick = <K extends 'shape' | 'shapeSource' | 'frame' | 'nav'>(key: K): Room[K] =>
+  const pick = <K extends 'shape' | 'rects' | 'shapeSource' | 'frame' | 'nav'>(key: K): Room[K] =>
     Object.hasOwn(input, key) ? input[key] : kept?.[key];
   const shape = pick('shape'),
     shapeSource =
       Object.hasOwn(input, 'shape') && !Object.hasOwn(input, 'shapeSource') ? undefined : pick('shapeSource'),
+    rects = Object.hasOwn(input, 'shape') && !Object.hasOwn(input, 'rects') ? undefined : pick('rects'),
     frame = pick('frame'),
     nav = pick('nav');
   const hidden = nav?.hidden?.filter(item => item !== id);
@@ -173,6 +175,7 @@ export function upsertRoom(
     label,
     ...(input.icon !== undefined ? { icon: input.icon } : {}),
     ...(shape ? { shape: { ...shape } } : {}),
+    ...(shape && rects?.length ? { rects: rects.map(rect => ({ ...rect })) } : {}),
     ...(shape && shapeSource ? { shapeSource } : {}),
     ...(frame && frame !== 'normal' ? { frame } : {}),
     ...(nav?.skip || hidden?.length

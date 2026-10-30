@@ -420,14 +420,21 @@ Maqueta: [§13](vision-mockup.html#s13).
 Maqueta: [§14](vision-mockup.html#s14).
 
 **Los espacios son de la app, no del SVG.**
-- Cada espacio tiene su **forma** (`rooms[].shape`), en coordenadas normalizadas del plano, como las posiciones de los dispositivos. Por ahora es un rectángulo; después, un polígono.
+- Cada espacio tiene su **forma** (`rooms[].shape`), en coordenadas normalizadas del plano, como las posiciones de los dispositivos. Es un rectángulo o varios fusionados (`rooms[].rects`): una L son dos. No hay formas libres.
 - Si el SVG trae zonas `room-…`, al importarlo se **copian** como formas. Desde ahí, el SVG es sólo el dibujo.
 - Un SVG nuevo nunca pisa una forma: *Revisar cambios* ofrece actualizar, una por una, las formas que vinieron del SVG. Las que se editaron a mano se conservan.
-- Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando un rectángulo sobre el plano.
+- Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando rectángulos sobre el plano.
 - Todo lo que hoy usa zonas del SVG pasa a usar la forma: el encuadre, el resaltado, *¿en qué espacio cayó este dispositivo?*, la barra de espacios, la revisión del plano y el aviso de espacios sin zona.
 
-**Editor** (*Ajustes del plano → Espacios → un espacio*):
-- **Forma:** mover y redimensionar el rectángulo sobre el plano; *Volver a la zona del SVG*, si existe.
+**Editor de zonas** (*Ajustes del plano → Editar zonas*, el *+* de la barra o *Editar forma en el plano*):
+- El dibujo queda de fondo y todas las zonas encima, cada una con su nombre.
+- **Nueva zona**, **Agregar rectángulo**, **Quitar rectángulo**, mover y cambiar de tamaño con los puntos; los bordes se enganchan con los cercanos.
+- **Renombrar**, **Fusionar con…** (queda el nombre de la zona en la mano) y **Eliminar zona**.
+- Todo queda en un borrador propio, con su *Deshacer*. **Aplicar** es un solo paso del plano y antes muestra qué dispositivos cambian de espacio, para destildar los que deban quedarse. **Cancelar** deja el plano como estaba.
+- Renombrar no cambia la forma: la zona sigue al SVG hasta que se le edite un rectángulo.
+
+**Un espacio** (*Ajustes del plano → Espacios → un espacio*):
+- **Forma:** *Editar forma en el plano* abre el editor con esa zona elegida; *Volver a la zona del SVG*, si existe.
 - **Encuadre al 100 %:** *Ajustado*, *Normal* o *Amplio*, o arrastrar el marco punteado.
 - **Flechas desde este espacio:** cada destino con su dirección y un interruptor, para ocultar una flecha que sobra.
 - **Saltear al navegar:** un espacio de paso, como un pasillo, no recibe flechas ni deslizamientos: se pasa de largo.
@@ -448,13 +455,13 @@ Maqueta: [§14](vision-mockup.html#s14).
 - La forma rectangular es la **copia de respaldo** de esa zona: se guarda al importar un plano y sólo se usa si un plano posterior ya no trae la zona.
 - Una forma `app` gana siempre, al encuadrar, al resaltar y al ubicar un dispositivo. Ningún SVG la cambia.
 - Un espacio con `shapeSource: 'svg'` sigue a su zona sin preguntar. Al importar un SVG que trae otra zona para un espacio dibujado a mano, *Revisar cambios* ofrece usarla, desmarcado por defecto (CP9a).
-- *Nuevo espacio* (el `+` de la barra en modo edición) dibuja un rectángulo en el centro de la vista; se ajusta con los tiradores y se crea con su nombre. Un plano sin zonas ni espacios dibujados lo ofrece al entrar en edición.
+- *Nuevo espacio* (el `+` de la barra en modo edición) abre el editor de zonas listo para dibujar. Un plano sin zonas ni espacios dibujados lo ofrece al entrar en edición.
 
 **Cómo quedó el editor (CP8):** en modo edición, tocar un espacio en la barra abre su ventana con:
 - *Encuadre al 100 %*: Ajustado, Normal o Amplio (`rooms[].frame`);
 - *Saltear al navegar* (`rooms[].nav.skip`);
 - *Flechas desde este espacio*: un interruptor por destino (`rooms[].nav.hidden`);
-- *Editar forma en el plano*: un rectángulo con ocho tiradores sobre el plano, que también se mueve con las flechas del teclado (Mayúsculas y flechas para el tamaño), con *Aplicar forma* y *Cancelar*. Se deshace con *Deshacer*;
+- *Editar forma en el plano*: abre el editor de zonas con ese espacio elegido. Cada rectángulo tiene ocho tiradores y también se mueve con las flechas del teclado (Mayúsculas y flechas para el tamaño);
 - *Volver a la zona del SVG*, si el espacio fue dibujado a mano y el plano tiene su zona.
 
 El marco punteado arrastrable de la maqueta queda reemplazado por los tres encuadres.

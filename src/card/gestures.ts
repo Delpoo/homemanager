@@ -2,6 +2,7 @@ import { t } from '../i18n/index.js';
 import { LONG_PRESS_MS, reducedMotion } from './card-helpers.js';
 import { spaceAt, zoomCamera } from './geometry.js';
 import { clone } from './types.js';
+import { snapToGrid } from '../model/room-shapes.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 export function point(this: HomeManagerCard, event: { clientX: number; clientY: number }) {
@@ -13,7 +14,7 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
   if (event.button !== 0 || this.saving) return;
   const target = event.target as Element;
   // Floating controls inside the plan keep their own clicks (no pan capture).
-  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .shape-bar')) return;
+  if (target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .zones-bar')) return;
   // Pinned controls keep their own gestures (a slider drags, not the plan).
   if (!this.editing && target.closest('.pins')) return;
   const p = this.point(event);
@@ -87,8 +88,8 @@ export function pointerMove(this: HomeManagerCard, event: PointerEvent) {
       dy = p.y - g.start.y;
     if (Math.hypot(dx, dy) > 3) g.moved = true;
     d.position = {
-      x: Math.min(1, Math.max(0, g.position.x + dx / this.camera.scale / this.box.width)),
-      y: Math.min(1, Math.max(0, g.position.y + dy / this.camera.scale / this.box.height)),
+      x: snapToGrid(g.position.x + dx / this.camera.scale / this.box.width),
+      y: snapToGrid(g.position.y + dy / this.camera.scale / this.box.height),
     };
     this.updateControls();
   } else if (g.kind === 'pan') this.camera = { ...g.camera, x: g.camera.x + p.x - g.x, y: g.camera.y + p.y - g.y };
@@ -119,7 +120,8 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
     const still = Math.hypot(p.x - g.x, p.y - g.y) < 6;
     if (!still && this.swipeNav({ x: p.x - g.x, y: p.y - g.y }, performance.now() - g.at)) {
       // A swipe in room view travels (or bounces); it is not a pan.
-    } else if (still && this.placing) this.place(this.placing, p);
+    } else if (still && this.zoneEdit) this.tapZone(p);
+    else if (still && this.placing) this.place(this.placing, p);
     else if (still) {
       const now = performance.now();
       if (
@@ -269,6 +271,10 @@ export function zoom(this: HomeManagerCard, factor: number) {
 }
 
 export function key(this: HomeManagerCard, event: KeyboardEvent) {
+  if (this.zoneEdit) {
+    this.zoneKey(event);
+    return;
+  }
   if (event.key === 'Escape' && this.placing) {
     event.preventDefault();
     this.stopPlacing();
@@ -308,13 +314,11 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     const next = clone(this.draft!);
     const device = next.catalog.devices.find(x => x.id === d.id)!;
     const step = event.shiftKey ? 0.01 : 0.002;
-    device.position.x = Math.min(
-      1,
-      Math.max(0, d.position.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0)),
+    device.position.x = snapToGrid(
+      d.position.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0),
     );
-    device.position.y = Math.min(
-      1,
-      Math.max(0, d.position.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0)),
+    device.position.y = snapToGrid(
+      d.position.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0),
     );
     this.selected = d.id;
     this.change(next);
