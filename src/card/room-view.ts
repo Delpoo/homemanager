@@ -55,7 +55,7 @@ export function navRooms(this: HomeManagerCard): NavRoom[] {
       key,
       rooms: this.draft.rooms.flatMap(room => {
         const bounds = spaceBounds(svg, room, this.box);
-        return bounds ? [{ id: room.id, bounds }] : [];
+        return bounds ? [{ id: room.id, bounds, ...(room.nav?.skip ? { skip: true } : {}) }] : [];
       }),
     };
   }
@@ -72,7 +72,7 @@ function viewCentre(card: HomeManagerCard) {
 export function currentNav(this: HomeManagerCard): { room: NavRoom; targets: NavTarget[] } | null {
   const rooms = this.navRooms();
   const room = rooms.find(item => item.id === this.currentRoom) ?? roomInView(rooms, viewCentre(this));
-  return room ? { room, targets: navTargets(room, rooms) } : null;
+  return room ? { room, targets: targetsFrom(this, room, rooms) } : null;
 }
 /** After moving the plan by hand, the space at the centre becomes the current one; nothing reframes. */
 export function settleRoom(this: HomeManagerCard): void {
@@ -81,6 +81,18 @@ export function settleRoom(this: HomeManagerCard): void {
     this.currentRoom = room.id;
     this.queuePosition();
   }
+}
+/** A space's arrows, without the destinations it hides (CP8). */
+function targetsFrom(card: HomeManagerCard, room: NavRoom, rooms: readonly NavRoom[]): NavTarget[] {
+  return navTargets(room, rooms, card.draft?.rooms.find(item => item.id === room.id)?.nav?.hidden ?? []);
+}
+/** Every possible arrow from a space, hidden ones included, for the space dialog. */
+export function arrowChoices(this: HomeManagerCard, id: string): { id: string; label: string; angle: number }[] {
+  const rooms = this.navRooms().map(room => ({ ...room, skip: false }));
+  const room = rooms.find(item => item.id === id);
+  return room
+    ? navTargets(room, rooms).map(target => ({ id: target.id, label: labelOf(this, target.id), angle: target.angle }))
+    : [];
 }
 const labelOf = (card: HomeManagerCard, id: string) => card.draft?.rooms.find(room => room.id === id)?.label ?? id;
 
@@ -217,7 +229,7 @@ export function swipeNav(this: HomeManagerCard, finger: { x: number; y: number }
   const rooms = this.navRooms();
   const from = rooms.find(room => room.id === this.currentRoom);
   if (!from) return false;
-  const id = swipeTarget(navTargets(from, rooms), finger);
+  const id = swipeTarget(targetsFrom(this, from, rooms), finger);
   if (id) this.travel(id);
   else this.fit(from.id);
   return true;

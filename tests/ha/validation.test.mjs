@@ -496,3 +496,32 @@ test('a space shape is a rectangle with an area inside the plan, and its source 
     assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify(room));
   }
 });
+
+test('a space framing and room view navigation are optional, closed and well formed', () => {
+  const valid = [
+    { frame: 'tight' },
+    { frame: 'wide', nav: { skip: true } },
+    { nav: { hidden: ['kitchen', 'office'] } },
+  ];
+  for (const room of valid) {
+    const configuration = make();
+    Object.assign(configuration.rooms[0], room);
+    assert.deepEqual(assertConfiguration(configuration), configuration);
+    assert(schema(configuration), JSON.stringify(schema.errors));
+  }
+  const invalid = [
+    { frame: 'huge' },
+    { frame: null },
+    { nav: [] },
+    { nav: { skip: 1 } },
+    { nav: { hidden: 'kitchen' } },
+    { nav: { hidden: ['kitchen', 'kitchen'] } },
+    { nav: { hidden: ['Bad Id'] } },
+    { nav: { other: true } },
+  ];
+  for (const room of invalid) {
+    const configuration = make();
+    Object.assign(configuration.rooms[0], room);
+    assert.equal(inspectConfiguration(configuration).valid, false, JSON.stringify(room));
+  }
+});

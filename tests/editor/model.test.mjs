@@ -283,6 +283,36 @@ test('import summary distinguishes new/deleted/changed icons and excludes live s
   assert.equal(summary.architectureChanged, true);
   assert.deepEqual(summarizeImport(after, before).removed, ['new-device']);
 });
+test('a space keeps its framing and arrows on rename, and they change or go only when given', () => {
+  let config = upsertRoom(configuration(), {
+    id: 'attic',
+    label: 'Attic',
+    frame: 'wide',
+    nav: { skip: true, hidden: ['living', 'attic'] },
+  });
+  // A space never hides an arrow to itself.
+  assert.deepEqual(config.rooms.at(-1), {
+    id: 'attic',
+    label: 'Attic',
+    frame: 'wide',
+    nav: { skip: true, hidden: ['living'] },
+  });
+  config = upsertRoom(config, { id: 'attic', label: 'Loft' }, { previousId: 'attic' });
+  assert.equal(config.rooms.at(-1).frame, 'wide');
+  config = upsertRoom(config, { id: 'attic', label: 'Loft', frame: 'normal', nav: {} }, { previousId: 'attic' });
+  assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Loft' });
+  config = upsertRoom(
+    config,
+    { id: 'attic', label: 'Loft', shape: { x: 0, y: 0, width: 0.5, height: 0.5 }, shapeSource: 'app' },
+    { previousId: 'attic' },
+  );
+  config = upsertRoom(
+    config,
+    { id: 'attic', label: 'Loft', shape: undefined, shapeSource: undefined },
+    { previousId: 'attic' },
+  );
+  assert.deepEqual(config.rooms.at(-1), { id: 'attic', label: 'Loft' });
+});
 test('renaming a space keeps its own shape and where it came from (D22)', () => {
   const shape = { x: 0.1, y: 0.2, width: 0.3, height: 0.4 };
   let config = upsertRoom(configuration(), { id: 'attic', label: 'Attic', shape, shapeSource: 'app' });

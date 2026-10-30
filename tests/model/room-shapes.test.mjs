@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  dragShape,
   ownsShape,
   planToShape,
   roomAtPoint,
@@ -74,4 +75,15 @@ test('an import copies zones into spaces that follow the SVG, and never touches 
   assert.deepEqual(next[3], before[3]);
   assert.equal(ownsShape(next[2]), true);
   assert.equal(ownsShape(next[0]), false);
+});
+
+test('dragging moves or resizes a shape, never outside the plan nor below a minimum size', () => {
+  const shape = { x: 0.2, y: 0.2, width: 0.3, height: 0.2 };
+  assert.deepEqual(dragShape(shape, 'move', 0.1, -0.1), { x: 0.3, y: 0.1, width: 0.3, height: 0.2 });
+  assert.deepEqual(dragShape(shape, 'move', 0.9, 0.9), { x: 0.7, y: 0.8, width: 0.3, height: 0.2 });
+  assert.deepEqual(dragShape(shape, 'se', 0.1, 0.1), { x: 0.2, y: 0.2, width: 0.4, height: 0.3 });
+  assert.deepEqual(dragShape(shape, 'nw', -0.5, -0.5), { x: 0, y: 0, width: 0.5, height: 0.4 });
+  assert.deepEqual(dragShape(shape, 'e', -1, 0), { x: 0.2, y: 0.2, width: 0.02, height: 0.2 });
+  assert.deepEqual(dragShape(shape, 'n', 0, 0.5), { x: 0.2, y: 0.38, width: 0.3, height: 0.02 });
+  assert.deepEqual(shape, { x: 0.2, y: 0.2, width: 0.3, height: 0.2 });
 });

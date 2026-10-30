@@ -155,16 +155,27 @@ export function upsertRoom(
   if (index < 0 && next.rooms.length >= 200) fail(t('Se admite un máximo de 200 espacios.'));
   if (input.icon !== undefined && (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.icon) || input.icon.length > 240))
     fail(t('El icono debe ser un nombre mdi: válido.'));
-  // Renaming keeps the space's own shape (D22) unless a new one is given.
+  // Renaming keeps the space's shape, framing and arrows (D22): a field changes only
+  // when it is given, and giving it as undefined removes it.
   const kept = index >= 0 ? next.rooms[index] : undefined;
-  const shape = input.shape ?? kept?.shape,
-    shapeSource = input.shape ? input.shapeSource : kept?.shapeSource;
+  const pick = <K extends 'shape' | 'shapeSource' | 'frame' | 'nav'>(key: K): Room[K] =>
+    Object.hasOwn(input, key) ? input[key] : kept?.[key];
+  const shape = pick('shape'),
+    shapeSource =
+      Object.hasOwn(input, 'shape') && !Object.hasOwn(input, 'shapeSource') ? undefined : pick('shapeSource'),
+    frame = pick('frame'),
+    nav = pick('nav');
+  const hidden = nav?.hidden?.filter(item => item !== id);
   const room: Room = {
     id,
     label,
     ...(input.icon !== undefined ? { icon: input.icon } : {}),
     ...(shape ? { shape: { ...shape } } : {}),
     ...(shape && shapeSource ? { shapeSource } : {}),
+    ...(frame && frame !== 'normal' ? { frame } : {}),
+    ...(nav?.skip || hidden?.length
+      ? { nav: { ...(nav?.skip ? { skip: true } : {}), ...(hidden?.length ? { hidden: [...hidden] } : {}) } }
+      : {}),
   };
   if (index >= 0) next.rooms[index] = room;
   else next.rooms.push(room);

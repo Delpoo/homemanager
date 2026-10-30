@@ -36,6 +36,7 @@ SYMBOL_ARCHETYPES = ("actuator", "equipment", "sensor", "meter", "remote", "infr
 SYMBOL_SHOW = ("icon", "value", "both")
 DEVICE_CATEGORIES = ("switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure")
 ROOM_SHAPE_SOURCES = ("svg", "app")
+ROOM_FRAMES = ("tight", "normal", "wide")
 
 
 def _fail() -> None:
@@ -256,7 +257,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"}, {"icon", "shape", "shapeSource"})
+        _fields(room, {"id", "label"}, {"icon", "shape", "shapeSource", "frame", "nav"})
         _id(room["id"])
         _text(room["label"])
         if "icon" in room:
@@ -267,6 +268,19 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             _shape(room["shape"])
         if "shapeSource" in room and (room["shapeSource"] not in ROOM_SHAPE_SOURCES or "shape" not in room):
             _fail()
+        if "frame" in room and room["frame"] not in ROOM_FRAMES:
+            _fail()
+        if "nav" in room:
+            nav = room["nav"]
+            _fields(nav, set(), {"skip", "hidden"})
+            if "skip" in nav and type(nav["skip"]) is not bool:
+                _fail()
+            if "hidden" in nav:
+                hidden = nav["hidden"]
+                if type(hidden) is not list or len(hidden) > 200 or len(set(map(str, hidden))) != len(hidden):
+                    _fail()
+                for item in hidden:
+                    _id(item)
         if room["id"] in room_ids:
             _fail()
         room_ids.add(room["id"])
