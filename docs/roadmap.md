@@ -146,7 +146,7 @@ Se publica en dos betas, para que el propietario pruebe el selector cuanto antes
 
 ## Etapa 0.9 · Categorías, espacios propios y el mismo diseño (pista A)
 
-Se hace en **checkpoints**: un PR chico por punto, auditado y probado antes de abrir el siguiente. Cada PR dice qué pedidos del propietario cumple, y la auditoría los comprueba uno por uno, no sólo las pruebas. Diseño: [vision.md §12–§14](vision.md#12-categorías) y maqueta [§12](vision-mockup.html#s12), [§13](vision-mockup.html#s13) y [§14](vision-mockup.html#s14). Requiere aprobar D21 y D22.
+Se hace en **checkpoints**: un PR chico por punto, auditado y probado antes de abrir el siguiente. Cada PR dice qué pedidos del propietario cumple, y la auditoría los comprueba uno por uno, no sólo las pruebas. Diseño: [vision.md §12–§14](vision.md#12-categorías) y maqueta [§12](vision-mockup.html#s12), [§13](vision-mockup.html#s13) y [§14](vision-mockup.html#s14). D21 y D22 están aprobadas.
 
 | CP | Quién | Qué | Beta |
 |---|---|---|---|
