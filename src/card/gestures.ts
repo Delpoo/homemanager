@@ -2,6 +2,7 @@ import { t } from '../i18n/index.js';
 import { LONG_PRESS_MS, reducedMotion } from './card-helpers.js';
 import { spaceAt, zoomCamera } from './geometry.js';
 import { clone } from './types.js';
+import { snapToGrid } from '../model/room-shapes.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 export function point(this: HomeManagerCard, event: { clientX: number; clientY: number }) {
@@ -87,8 +88,8 @@ export function pointerMove(this: HomeManagerCard, event: PointerEvent) {
       dy = p.y - g.start.y;
     if (Math.hypot(dx, dy) > 3) g.moved = true;
     d.position = {
-      x: Math.min(1, Math.max(0, g.position.x + dx / this.camera.scale / this.box.width)),
-      y: Math.min(1, Math.max(0, g.position.y + dy / this.camera.scale / this.box.height)),
+      x: snapToGrid(g.position.x + dx / this.camera.scale / this.box.width),
+      y: snapToGrid(g.position.y + dy / this.camera.scale / this.box.height),
     };
     this.updateControls();
   } else if (g.kind === 'pan') this.camera = { ...g.camera, x: g.camera.x + p.x - g.x, y: g.camera.y + p.y - g.y };
@@ -308,13 +309,11 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     const next = clone(this.draft!);
     const device = next.catalog.devices.find(x => x.id === d.id)!;
     const step = event.shiftKey ? 0.01 : 0.002;
-    device.position.x = Math.min(
-      1,
-      Math.max(0, d.position.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0)),
+    device.position.x = snapToGrid(
+      d.position.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0),
     );
-    device.position.y = Math.min(
-      1,
-      Math.max(0, d.position.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0)),
+    device.position.y = snapToGrid(
+      d.position.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0),
     );
     this.selected = d.id;
     this.change(next);

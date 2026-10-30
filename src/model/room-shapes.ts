@@ -21,6 +21,9 @@ export interface Point {
   y: number;
 }
 
+/** Plan coordinates live on a fine grid (a millionth of the plan), so a drag never stores endless decimals. */
+export const snapToGrid = (value: number): number => Math.round(Math.min(1, Math.max(0, value)) * 1e6) / 1e6;
+
 /** A shape edited in the app wins over any SVG zone, now and after every import. */
 export const ownsShape = (room: ShapedRoom): boolean => room.shapeSource === 'app' && !!room.shape;
 

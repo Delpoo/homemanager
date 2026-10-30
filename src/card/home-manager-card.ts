@@ -29,7 +29,6 @@ import { RuntimeFeed } from '../shell/runtime-feed.js';
 import * as roomView from './room-view.js';
 import * as shapeEdit from './shape-edit.js';
 import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
-import { updateRoomRail } from '../shell/room-rail.js';
 import { renderRoomRail } from '../shell/room-rail.js';
 import { bindTopBar, renderTopBar, updateTopBar, type AppShellContext } from '../shell/top-bar.js';
 import { layer, same, type Adapter } from './card-helpers.js';
@@ -75,24 +74,7 @@ export class HomeManagerCard extends HTMLElement {
       alertCount: this.feed.alerts.length,
       alertLevel: this.feed.alerts.some(alert => alert.level === 'critical') ? 'critical' : 'warning',
     });
-    if (this.draft)
-      updateRoomRail(
-        this.root,
-        this.draft.rooms.map(room => ({
-          ...room,
-          alerts: this.feed.alerts.filter(alert => alert.roomId === room.id).length,
-          alertLevel: this.feed.alerts.some(alert => alert.roomId === room.id && alert.level === 'critical')
-            ? 'critical'
-            : 'warning',
-          active: this.draft!.catalog.devices.some(
-            device =>
-              device.roomId === room.id &&
-              !!symbolSpec(device, this._hass, Date.now(), this.runtime.states[device.id], this.feed.alertContext).ring,
-          ),
-        })),
-        this.currentRoom,
-        this.editing,
-      );
+    this.updateRail();
   }
   insights?: DeviceScreenView;
   config?: CardConfig;
@@ -359,6 +341,7 @@ export class HomeManagerCard extends HTMLElement {
     return this.root.querySelector('.viewport') as HTMLDivElement;
   }
   mountArchitecture: OmitThisParameter<typeof planView.mountArchitecture> = planView.mountArchitecture.bind(this);
+  updateRail: OmitThisParameter<typeof planView.updateRail> = planView.updateRail.bind(this);
   fit: OmitThisParameter<typeof planView.fit> = planView.fit.bind(this);
   /** Eased camera transition; instant when the user prefers reduced motion. */
   moveCamera: OmitThisParameter<typeof planView.moveCamera> = planView.moveCamera.bind(this);

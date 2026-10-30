@@ -1,5 +1,6 @@
 import { t } from '../i18n/index.js';
-import { detectZones, roomsAt, sanitizeArchitecture, zoneShapes } from '../card/geometry.js';
+import { detectZones, roomsAt, sanitizeArchitecture, spaceAt, zoneShapes } from '../card/geometry.js';
+import { planHealth, type PlanHealth } from '../model/plan-health.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
 import { ownsShape, shapeContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
@@ -52,6 +53,23 @@ export function reportForPlan(configuration: Configuration): PlanReview {
       [...zones.filter(zone => zoneIds.includes(zone.id)), ...shaped.map(room => ({ id: room.id, label: room.label }))],
     );
     return { ...report, drawn };
+  });
+}
+/** What is saved in this home and what is wrong with it, measured on the real drawing. */
+export function healthOfPlan(configuration: Configuration, entities?: ReadonlySet<string>): PlanHealth {
+  return mounted(configuration, ({ svg, box }) => {
+    const title = [...svg.children].find(child => child.localName === 'title')?.textContent ?? null;
+    return planHealth(configuration, {
+      zones: detectZones(svg),
+      drawnIn: Object.fromEntries(
+        configuration.catalog.devices.map(device => [
+          device.id,
+          spaceAt(svg, device.position, box, configuration.rooms),
+        ]),
+      ),
+      title,
+      ...(entities ? { entities } : {}),
+    });
   });
 }
 /** After an import, every space that follows the SVG keeps a copy of its zone (D22). */

@@ -1,3 +1,4 @@
+import { snapToGrid } from '../model/room-shapes.js';
 import { t } from '../i18n/index.js';
 import {
   KINDS,
@@ -101,7 +102,7 @@ export function upsertDevice(
     id,
     roomId: input.roomId,
     kind: input.kind,
-    position: { x: input.position.x, y: input.position.y },
+    position: { x: snapToGrid(input.position.x), y: snapToGrid(input.position.y) },
     mobility: input.mobility,
     display: {
       label: plainText(input.display.label, t('Nombre')),
