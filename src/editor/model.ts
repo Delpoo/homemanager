@@ -161,14 +161,15 @@ export function upsertRoom(
   // Renaming keeps the space's shape, framing and arrows (D22): a field changes only
   // when it is given, and giving it as undefined removes it.
   const kept = index >= 0 ? next.rooms[index] : undefined;
-  const pick = <K extends 'shape' | 'rects' | 'shapeSource' | 'frame' | 'nav'>(key: K): Room[K] =>
+  const pick = <K extends 'shape' | 'rects' | 'shapeSource' | 'frame' | 'nav' | 'areaId'>(key: K): Room[K] =>
     Object.hasOwn(input, key) ? input[key] : kept?.[key];
   const shape = pick('shape'),
     shapeSource =
       Object.hasOwn(input, 'shape') && !Object.hasOwn(input, 'shapeSource') ? undefined : pick('shapeSource'),
     rects = Object.hasOwn(input, 'shape') && !Object.hasOwn(input, 'rects') ? undefined : pick('rects'),
     frame = pick('frame'),
-    nav = pick('nav');
+    nav = pick('nav'),
+    areaId = pick('areaId');
   const hidden = nav?.hidden?.filter(item => item !== id);
   const room: Room = {
     id,
@@ -178,6 +179,7 @@ export function upsertRoom(
     ...(shape && rects?.length ? { rects: rects.map(rect => ({ ...rect })) } : {}),
     ...(shape && shapeSource ? { shapeSource } : {}),
     ...(frame && frame !== 'normal' ? { frame } : {}),
+    ...(areaId ? { areaId } : {}),
     ...(nav?.skip || hidden?.length
       ? { nav: { ...(nav?.skip ? { skip: true } : {}), ...(hidden?.length ? { hidden: [...hidden] } : {}) } }
       : {}),

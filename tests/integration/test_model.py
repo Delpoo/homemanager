@@ -158,6 +158,20 @@ def test_10_merged_rectangles_round_trip() -> None:
     assert validate_configuration(value) == value
 
 
+def test_10_a_space_may_name_its_area() -> None:
+    value = presentation_configuration()
+    value["rooms"][0]["areaId"] = "area_synthetic"
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("area", ["", 7, None, {}])
+def test_10_an_area_link_must_be_text(area: object) -> None:
+    value = presentation_configuration()
+    value["rooms"][0]["areaId"] = area
+    with pytest.raises(ModelError):
+        validate_configuration(value)
+
+
 @pytest.mark.parametrize("room", [
     {"shape": BOX, "rects": [RECT]},
     {"shape": BOX, "rects": []},

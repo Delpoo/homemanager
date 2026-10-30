@@ -94,6 +94,7 @@
           "$comment": "A zone of merged rectangles: an L is two."
         },
         "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." },
+        "areaId": { "$ref": "catalog.schema.json#/$defs/text", "$comment": "The Home Assistant area this space stands for (stage 5 of 0.10)." },
         "frame": { "enum": ["tight", "normal", "wide"], "$comment": "Room view framing around the space; normal when absent." },
         "nav": {
           "type": "object",

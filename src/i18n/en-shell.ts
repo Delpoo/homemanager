@@ -267,4 +267,30 @@ export const enShell: Record<string, string> = {
   'Plano vinculado': 'Linked plan',
   'Guardá el dibujo en este archivo de Home Assistant. Si no afecta espacios ni dispositivos se aplica solo, y si los afecta te pregunta.':
     'Keep the drawing in this Home Assistant file. If it does not affect spaces or devices it applies by itself; if it does, you are asked.',
+  'Conectar mi casa': 'Connect my home',
+  'Home Assistant no informó sus áreas en esta sesión.': 'Home Assistant did not report its areas in this session.',
+  'Este plano todavía no tiene espacios.': 'This plan has no spaces yet.',
+  'Área de {room}': 'Area of {room}',
+  'Crear área «{room}»': 'Create area “{room}”',
+  'Sin área': 'No area',
+  'Crear {count} áreas y vincular': 'Create {count} areas and link',
+  'Se crean en Home Assistant al tocar el botón: {names}. Deshacer no las borra; se borran desde Home Assistant.':
+    'They are created in Home Assistant when you tap the button: {names}. Undo does not delete them; they are deleted from Home Assistant.',
+  'Dispositivos de esas áreas que no están en el plano': 'Devices in those areas that are not on the plan',
+  'Quedan dentro de su espacio y después los movés adonde van. Guardá el plano para conservarlos.':
+    'They start inside their space, and you then move them where they go. Save the plan to keep them.',
+  'Agregar seleccionados': 'Add selected',
+  'No hay dispositivos sin ubicar en las áreas vinculadas. Si un área es nueva, asignale sus dispositivos en Home Assistant y aparecen acá.':
+    'There are no unplaced devices in the linked areas. If an area is new, assign its devices in Home Assistant and they appear here.',
+  'Vinculá cada espacio con un área de Home Assistant. Así HomeManager te propone los dispositivos de cada lugar.':
+    'Link each space to a Home Assistant area. HomeManager then offers the devices of each place.',
+  'Dos espacios no pueden compartir un área: sus dispositivos no sabrían a cuál ir.':
+    'Two spaces cannot share an area: its devices would not know which one to go to.',
+  'No se pudo crear el área «{room}»: {reason}': 'The area “{room}” could not be created: {reason}',
+  'Espacios vinculados en el borrador. Guardá el plano para conservarlo.':
+    'Spaces linked in the draft. Save the plan to keep it.',
+  'Marcá primero los dispositivos que querés agregar.': 'First tick the devices you want to add.',
+  '{count} dispositivos agregados al borrador. Movelos a su lugar y guardá el plano.':
+    '{count} devices added to the draft. Move them into place and save the plan.',
+  'Crear un área y vincular': 'Create one area and link',
 };
