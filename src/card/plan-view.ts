@@ -3,7 +3,14 @@ import { isActiveValue } from '../panels/controls.js';
 import { stateText } from '../panels/native-panel.js';
 import { GROUP_DISTANCE, confidenceLabel, layer, reducedMotion } from './card-helpers.js';
 import { pinnedControls, stepLabel, tapControl } from './device-controls.js';
-import { createRoomHighlight, fitCamera, roomBounds, sanitizeArchitecture, type Camera } from './geometry.js';
+import {
+  createSpaceHighlight,
+  fitCamera,
+  hasSpaceGeometry,
+  sanitizeArchitecture,
+  spaceBounds,
+  type Camera,
+} from './geometry.js';
 import { boundsOf, clusterPoints, interpolateCamera, renderSymbol } from './markers.js';
 import { symbolSpec } from '../model/symbol-spec.js';
 import { escapeHTML as e, type RoomId } from './types.js';
@@ -26,9 +33,7 @@ export function mountArchitecture(this: HomeManagerCard) {
   this.svg.setAttribute('width', String(this.box.width));
   this.svg.setAttribute('height', String(this.box.height));
   const shown = this.draft.rooms.filter(
-    room =>
-      !!this.svg!.querySelector(`[id="room-${room.id}"]`) ||
-      this.draft!.catalog.devices.some(d => d.roomId === room.id),
+    room => hasSpaceGeometry(this.svg!, room) || this.draft!.catalog.devices.some(d => d.roomId === room.id),
   );
   updateRoomRail(this.root, shown, this.currentRoom);
   (this.root.querySelector('.empty') as HTMLElement).hidden = this.svg.children.length > 0;
@@ -38,7 +43,8 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
   if (!this.svg || !this.viewport) return;
   const r = this.viewport.getBoundingClientRect();
   if (!r.width || !r.height) return;
-  const bounds = room ? roomBounds(this.svg, room) : this.box;
+  const space = room ? this.draft?.rooms.find(item => item.id === room) : undefined;
+  const bounds = room ? (space ? spaceBounds(this.svg, space, this.box) : null) : this.box;
   if (!bounds) {
     this.status(t('Esta habitación no tiene una zona SVG válida. Revisá su ID en el editor de arquitectura.'));
     return;
@@ -212,7 +218,8 @@ export function positionMarkers(this: HomeManagerCard) {
   if (!this.currentRoom) highlight?.remove();
   else if (this.svg && architecture && highlight?.dataset.room !== this.currentRoom) {
     highlight?.remove();
-    const next = createRoomHighlight(this.svg, this.currentRoom);
+    const space = this.draft?.rooms.find(item => item.id === this.currentRoom);
+    const next = space ? createSpaceHighlight(this.svg, space, this.box) : null;
     if (next) {
       next.dataset.room = this.currentRoom;
       architecture.append(next);

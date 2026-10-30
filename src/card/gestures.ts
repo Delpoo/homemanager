@@ -1,6 +1,6 @@
 import { t } from '../i18n/index.js';
 import { LONG_PRESS_MS, reducedMotion } from './card-helpers.js';
-import { roomAt, zoomCamera } from './geometry.js';
+import { spaceAt, zoomCamera } from './geometry.js';
 import { clone } from './types.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
@@ -139,14 +139,7 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
       if (this.history.length > 40) this.history.shift();
       this.future = [];
       const d = this.draft!.catalog.devices.find(d => d.id === g.id)!;
-      const detected = this.svg
-        ? roomAt(
-            this.svg,
-            d.position,
-            this.box,
-            this.draft!.rooms.map(room => room.id),
-          )
-        : null;
+      const detected = this.svg ? spaceAt(this.svg, d.position, this.box, this.draft!.rooms) : null;
       if (detected) d.roomId = detected;
       if (this.editor) {
         this.editor.setConfig({ ...this.config!, configuration: this.draft! });
@@ -220,14 +213,7 @@ export function place(this: HomeManagerCard, id: string, point: { x: number; y: 
         Math.min(1, Math.max(0, ((point.y - this.camera.y) / this.camera.scale - this.box.y) / this.box.height)) * 1e6,
       ) / 1e6,
   };
-  const detected = this.svg
-    ? roomAt(
-        this.svg,
-        device.position,
-        this.box,
-        next.rooms.map(room => room.id),
-      )
-    : null;
+  const detected = this.svg ? spaceAt(this.svg, device.position, this.box, next.rooms) : null;
   if (detected) device.roomId = detected;
   this.selected = id;
   this.change(next);

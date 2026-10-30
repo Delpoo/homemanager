@@ -1,5 +1,6 @@
 import { t } from '../i18n/index.js';
-import { type RoomId } from './types.js';
+import { type Room, type RoomId } from './types.js';
+import { ownsShape, planToShape, roomAtPoint, shapeToPlan, type RoomShape } from '../model/room-shapes.js';
 
 export interface ViewBox {
   x: number;
@@ -743,6 +744,36 @@ function roomDrawing(svg: SVGSVGElement, zone: Element, mode: 'mask' | 'contour'
 export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGElement | null {
   const zone = roomZone(svg, roomId);
   if (!zone) return null;
+  return highlightOverlay(svg, (prefix, defs) => {
+    // Whole inert sources retain local <use> dependencies, including references
+    // outside <defs>. Nothing is fetched and the originals are never mutated.
+    for (const mode of ['mask', 'contour'] as const) {
+      const resources = svg.cloneNode(true) as SVGSVGElement;
+      paintRoom(resources, mode);
+      namespaceHighlight(resources, `${prefix}${mode}-`);
+      defs.append(resources);
+    }
+    return mode => roomDrawing(svg, zone, mode, `${prefix}${mode}-`);
+  });
+}
+/** The same overlay for a space's own rectangle (D22), in plan coordinates. */
+export function createRectHighlight(svg: SVGSVGElement, bounds: ViewBox): SVGSVGElement {
+  return highlightOverlay(svg, () => mode => {
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    for (const [name, value] of Object.entries(bounds)) rect.setAttribute(name, String(value));
+    rect.setAttribute('fill', mode === 'mask' ? '#000' : 'none');
+    rect.setAttribute('stroke', mode === 'mask' ? 'none' : 'var(--hm-brand)');
+    if (mode === 'contour') {
+      rect.setAttribute('stroke-width', '2');
+      rect.setAttribute('vector-effect', 'non-scaling-stroke');
+    }
+    return rect;
+  });
+}
+function highlightOverlay(
+  svg: SVGSVGElement,
+  hole: (prefix: string, defs: SVGDefsElement) => (mode: 'mask' | 'contour') => Element,
+): SVGSVGElement {
   const box = parseViewBox(svg.getAttribute('viewBox'));
   const overlay = document.createElementNS(SVG_NS, 'svg');
   overlay.setAttribute('viewBox', `${box.x} ${box.y} ${box.width} ${box.height}`);
@@ -757,14 +788,7 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
   overlay.style.pointerEvents = 'none';
   const prefix = `hm-room-${++highlightSequence}-`;
   const defs = document.createElementNS(SVG_NS, 'defs');
-  // Whole inert sources retain local <use> dependencies, including references
-  // outside <defs>. Nothing is fetched and the originals are never mutated.
-  for (const mode of ['mask', 'contour'] as const) {
-    const resources = svg.cloneNode(true) as SVGSVGElement;
-    paintRoom(resources, mode);
-    namespaceHighlight(resources, `${prefix}${mode}-`);
-    defs.append(resources);
-  }
+  const draw = hole(prefix, defs);
   const mask = document.createElementNS(SVG_NS, 'mask');
   mask.id = `${prefix}cutout`;
   mask.setAttribute('maskUnits', 'userSpaceOnUse');
@@ -785,13 +809,13 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
     element.setAttribute('fill', fill);
     return element;
   };
-  mask.append(rect('#fff'), roomDrawing(svg, zone, 'mask', `${prefix}mask-`));
+  mask.append(rect('#fff'), draw('mask'));
   defs.append(mask);
   const shade = rect('var(--hm-ink)');
   shade.setAttribute('class', 'room-shade');
   shade.setAttribute('opacity', '.42');
   shade.setAttribute('mask', `url(#${mask.id})`);
-  const contour = roomDrawing(svg, zone, 'contour', `${prefix}contour-`);
+  const contour = draw('contour');
   contour.setAttribute('class', 'room-contour');
   overlay.append(defs, shade, contour);
   return overlay;
@@ -839,4 +863,36 @@ export function roomsAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roo
 export function roomAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roomIds: readonly RoomId[]): RoomId | null {
   const matches = roomsAt(svg, normalized, box, roomIds);
   return matches.length === 1 ? matches[0] : null;
+}
+
+/** D22: a space's framing bounds. Its own shape wins; else its zone; else the copy it kept. */
+export function spaceBounds(svg: SVGSVGElement, room: Room, box: ViewBox): ViewBox | null {
+  if (ownsShape(room)) return shapeToPlan(room.shape!, box);
+  return roomBounds(svg, room.id) ?? (room.shape ? shapeToPlan(room.shape, box) : null);
+}
+/** Whether a space can be framed and hit at all. */
+export function hasSpaceGeometry(svg: SVGSVGElement, room: Room): boolean {
+  return !!room.shape || !!roomZone(svg, room.id);
+}
+/** Which space a normalized point falls in: zones by their exact geometry, own shapes by their rectangle. */
+export function spaceAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, rooms: readonly Room[]): RoomId | null {
+  const zoneIds = new Set(rooms.filter(room => roomZone(svg, room.id)).map(room => room.id));
+  return roomAtPoint(rooms, normalized, roomsAt(svg, normalized, box, [...zoneIds]), zoneIds);
+}
+export function createSpaceHighlight(svg: SVGSVGElement, room: Room, box: ViewBox): SVGSVGElement | null {
+  if (!ownsShape(room) && roomZone(svg, room.id)) return createRoomHighlight(svg, room.id);
+  return room.shape ? createRectHighlight(svg, shapeToPlan(room.shape, box)) : null;
+}
+/** Normalized copies of the zones of a mounted plan, for `withZoneShapes`. */
+export function zoneShapes(
+  svg: SVGSVGElement,
+  box: ViewBox,
+  roomIds: readonly RoomId[],
+): Record<RoomId, RoomShape | null> {
+  return Object.fromEntries(
+    roomIds.map(id => {
+      const bounds = roomBounds(svg, id);
+      return [id, bounds ? planToShape(bounds, box) : null];
+    }),
+  );
 }

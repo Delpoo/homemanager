@@ -25,6 +25,16 @@ export interface Room {
   label: string;
   /** Optional MDI icon for space navigation; absent keeps the suggested icon. */
   icon?: string;
+  /** D22: the space's own rectangle, normalized to the plan. Absent: its SVG zone. */
+  shape?: RoomShape;
+  /** `svg`: copied from a zone and kept in step with it; `app`: edited here, never overwritten. */
+  shapeSource?: 'svg' | 'app';
+}
+export interface RoomShape {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 export type Confidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
 export interface Position {

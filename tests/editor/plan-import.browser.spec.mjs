@@ -36,7 +36,10 @@ test('three orphan zones are reviewed, merged atomically and restored exactly by
   for (const select of await review.locator('[data-orphan]').all()) await expect(select).toHaveValue('merge:joined');
   await expect(review.locator('[data-zone]')).toBeChecked();
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
-  expect((await draft(page)).rooms).toEqual([{ id: 'joined', label: 'Estudio unido' }]);
+  // The zone is copied as the space's own shape (D22), so a later plan without it loses nothing.
+  expect((await draft(page)).rooms).toEqual([
+    { id: 'joined', label: 'Estudio unido', shape: { x: 0, y: 0, width: 1, height: 1 }, shapeSource: 'svg' },
+  ]);
   expect((await draft(page)).catalog.devices.every(device => device.roomId === 'joined')).toBe(true);
   await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
   await card(page).getByRole('button', { name: 'Deshacer', exact: true }).click();
@@ -79,7 +82,9 @@ test('conflict-free plan imports directly and ambiguous or outside devices keep 
     .setInputFiles({ name: 'overlap.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(overlap) });
   const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
   await expect(review.getByText('Dispositivos ambiguos: conservan su espacio', { exact: true })).toBeVisible();
-  await expect(review.getByText('Fuera de zona: conservan su espacio', { exact: true })).toBeVisible();
+  // The first import copied each zone as its space's shape (D22): a plan without those zones
+  // leaves no space orphaned, and devices keep their room.
+  await expect(review.locator('[data-orphan]')).toHaveCount(0);
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await draft(page)).catalog.devices.map(device => device.roomId)).toEqual(
     original.catalog.devices.map(device => device.roomId),

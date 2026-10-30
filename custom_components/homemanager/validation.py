@@ -35,6 +35,7 @@ MAX_PINNED = 3
 SYMBOL_ARCHETYPES = ("actuator", "equipment", "sensor", "meter", "remote", "infrastructure")
 SYMBOL_SHOW = ("icon", "value", "both")
 DEVICE_CATEGORIES = ("switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure")
+ROOM_SHAPE_SOURCES = ("svg", "app")
 
 
 def _fail() -> None:
@@ -60,6 +61,17 @@ def _id(value: Any) -> None:
 def _entity(value: Any) -> None:
     _text(value)
     if not ENTITY.fullmatch(value) or value.endswith(".all"):
+        _fail()
+
+
+def _shape(value: Any) -> None:
+    """D22: a space's own rectangle, normalized to the plan like device positions."""
+    _fields(value, {"x", "y", "width", "height"})
+    for key in ("x", "y", "width", "height"):
+        _number(value[key], 0, 1)
+    if value["width"] <= 0 or value["height"] <= 0:
+        _fail()
+    if value["x"] + value["width"] > 1 + 1e-9 or value["y"] + value["height"] > 1 + 1e-9:
         _fail()
 
 
@@ -244,13 +256,17 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"}, {"icon"})
+        _fields(room, {"id", "label"}, {"icon", "shape", "shapeSource"})
         _id(room["id"])
         _text(room["label"])
         if "icon" in room:
             _text(room["icon"])
             if not MDI_ICON.fullmatch(room["icon"]):
                 _fail()
+        if "shape" in room:
+            _shape(room["shape"])
+        if "shapeSource" in room and (room["shapeSource"] not in ROOM_SHAPE_SOURCES or "shape" not in room):
+            _fail()
         if room["id"] in room_ids:
             _fail()
         room_ids.add(room["id"])

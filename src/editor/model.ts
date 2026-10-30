@@ -155,7 +155,17 @@ export function upsertRoom(
   if (index < 0 && next.rooms.length >= 200) fail(t('Se admite un máximo de 200 espacios.'));
   if (input.icon !== undefined && (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.icon) || input.icon.length > 240))
     fail(t('El icono debe ser un nombre mdi: válido.'));
-  const room: Room = { id, label, ...(input.icon !== undefined ? { icon: input.icon } : {}) };
+  // Renaming keeps the space's own shape (D22) unless a new one is given.
+  const kept = index >= 0 ? next.rooms[index] : undefined;
+  const shape = input.shape ?? kept?.shape,
+    shapeSource = input.shape ? input.shapeSource : kept?.shapeSource;
+  const room: Room = {
+    id,
+    label,
+    ...(input.icon !== undefined ? { icon: input.icon } : {}),
+    ...(shape ? { shape: { ...shape } } : {}),
+    ...(shape && shapeSource ? { shapeSource } : {}),
+  };
   if (index >= 0) next.rooms[index] = room;
   else next.rooms.push(room);
   return next;

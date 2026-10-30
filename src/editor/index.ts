@@ -55,7 +55,7 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
-import { reportForPlan, hasPlanChanges, openPlanReview } from './plan-review.js';
+import { reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
 import { openRoomActions } from './room-actions.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
@@ -397,7 +397,7 @@ export class HomeManagerEditor extends HTMLElement {
       return old && JSON.stringify(old.position) !== JSON.stringify(device.position);
     });
     if (!hasPlanChanges(report) && !positionsChanged) {
-      this.emit(candidate);
+      this.emit(withPlanShapes(candidate));
       return;
     }
     openPlanReview(
@@ -405,7 +405,7 @@ export class HomeManagerEditor extends HTMLElement {
       candidate,
       report,
       (next, planOnly) => {
-        this.emit(next);
+        this.emit(withPlanShapes(next));
         this.notice(
           planOnly
             ? t(
@@ -427,7 +427,8 @@ export class HomeManagerEditor extends HTMLElement {
     const pending = pendingReferences(this.configuration, this._hass?.states);
     // Conflicts with the plan are surfaced above the folded sections, where they cannot be missed.
     const zoneIds = new Set(this.zones().map(zone => zone.id));
-    const zoneless = this.configuration.rooms.filter(room => !zoneIds.has(room.id)).length;
+    // A space with its own shape (D22) has geometry even without a zone.
+    const zoneless = this.configuration.rooms.filter(room => !zoneIds.has(room.id) && !room.shape).length;
     const unclaimed = [...zoneIds].filter(id => !this.configuration.rooms.some(room => room.id === id)).length;
     const conflicts = zoneIds.size && (zoneless || unclaimed);
     return `${conflicts ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>` : ''}${this.section('rooms-section', t('Espacios ({count})', { count: this.configuration.rooms.length }), this.roomsForm())}
@@ -502,7 +503,7 @@ export class HomeManagerEditor extends HTMLElement {
     const rows = rooms
       .map(
         (room, index) =>
-          `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
+          `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) || room.shape ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
       )
       .join('');
     return `<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button><p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>

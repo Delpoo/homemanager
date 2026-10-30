@@ -57,6 +57,8 @@ export const DEVICE_CATEGORIES = Object.freeze([
   'presence',
   'infrastructure',
 ]);
+/** Where a space's shape came from: copied from an SVG zone, or edited in the app (never overwritten). */
+export const ROOM_SHAPE_SOURCES = Object.freeze(['svg', 'app']);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
@@ -109,6 +111,16 @@ function entity(value, path) {
 }
 function one(value, values, path) {
   if (!values.includes(value)) invalid(path, 'unsupported value');
+}
+/** D22: a space's own rectangle, normalized to the plan like device positions. */
+function roomShape(value, path) {
+  fields(value, ['x', 'y', 'width', 'height'], [], path);
+  for (const key of ['x', 'y', 'width', 'height'])
+    if (typeof value[key] !== 'number' || !Number.isFinite(value[key]) || value[key] < 0 || value[key] > 1)
+      invalid(`${path}.${key}`, 'finite number in [0,1] required');
+  if (value.width <= 0 || value.height <= 0) invalid(path, 'a shape needs an area');
+  if (value.x + value.width > 1 + 1e-9 || value.y + value.height > 1 + 1e-9)
+    invalid(path, 'a shape stays inside the plan');
 }
 function position(value, path) {
   fields(value, ['x', 'y'], [], path);
@@ -222,12 +234,17 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], ['icon'], path);
+    fields(room, ['id', 'label'], ['icon', 'shape', 'shapeSource'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
     if (Object.hasOwn(room, 'icon')) {
       text(room.icon, `${path}.icon`);
       if (!MDI_ICON.test(room.icon)) invalid(`${path}.icon`, 'MDI icon identifier required');
+    }
+    if (Object.hasOwn(room, 'shape')) roomShape(room.shape, `${path}.shape`);
+    if (Object.hasOwn(room, 'shapeSource')) {
+      one(room.shapeSource, ROOM_SHAPE_SOURCES, `${path}.shapeSource`);
+      if (!Object.hasOwn(room, 'shape')) invalid(`${path}.shapeSource`, 'a shape source needs a shape');
     }
     if (roomIds.has(room.id)) invalid(`${path}.id`, 'duplicate space identifier');
     roomIds.add(room.id);

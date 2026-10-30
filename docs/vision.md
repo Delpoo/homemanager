@@ -435,9 +435,15 @@ Maqueta: [§14](vision-mockup.html#s14).
 
 | Campo | Valores |
 |---|---|
-| `rooms[].shape` | `{ kind: 'rect', x, y, width, height }`, normalizado de 0 a 1 |
+| `rooms[].shape` | `{ x, y, width, height }`, normalizado de 0 a 1 y dentro del plano |
 | `rooms[].shapeSource` | `svg` (copiada de una zona) o `app` (editada o dibujada) |
 | `rooms[].frame` | `tight`, `normal` o `wide` (por defecto, `normal`), o un rectángulo normalizado |
 | `rooms[].nav` | `{ skip?: boolean, hidden?: string[] }` |
 
-**Migración:** un plano sin `shape` la toma de su zona al cargarse, sin escribir nada hasta guardar. Un espacio sin zona ni forma sigue funcionando como hoy, sin encuadre, y el aviso de *espacios sin zona* ofrece dibujarlo.
+**Migración:** un plano sin `shape` no cambia nada al cargarse: cada espacio sigue usando su zona. Un espacio sin zona ni forma sigue funcionando como hoy, sin encuadre, y el aviso de *espacios sin zona* ofrece dibujarlo.
+
+**Cómo quedó en 0.9 (CP5):**
+- Mientras la zona exista, un espacio que sigue al SVG usa su **geometría exacta**: un living en L no invade a sus vecinos.
+- La forma rectangular es la **copia de respaldo** de esa zona: se guarda al importar un plano y sólo se usa si un plano posterior ya no trae la zona.
+- Una forma `app` gana siempre, al encuadrar, al resaltar y al ubicar un dispositivo. Ningún SVG la cambia.
+- Hasta que llegue el editor de espacios (CP8), un espacio con `shapeSource: 'svg'` sigue a su zona sin preguntar; la revisión forma por forma llega con ese editor.
