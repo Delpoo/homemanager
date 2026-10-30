@@ -58,7 +58,7 @@ test('the draft shows every space as rectangles: its own, else its zone; without
 });
 
 test('a new zone gets a readable, unique id; names with accents are fine', () => {
-  assert.equal(newZoneId('Baño Eze', []), 'bano-eze');
+  assert.equal(newZoneId('Baño Norte', []), 'bano-norte');
   assert.equal(newZoneId('Living', ['living']), 'living-2');
   assert.equal(newZoneId('   ', []), 'espacio');
   const draft = addZone(draftOf(), 'Living', right, ['living']);
@@ -166,7 +166,7 @@ test('applying writes what changed and nothing else, and no device keeps a space
   draft = renameZone(draft, 'kitchen', 'Cocina nueva');
   draft = addZone(
     draft,
-    'Baño Eze',
+    'Baño Norte',
     corner,
     config.rooms.map(room => room.id),
   );
@@ -176,7 +176,7 @@ test('applying writes what changed and nothing else, and no device keeps a space
   assert.deepEqual(config, snapshot);
   assert.deepEqual(
     next.rooms.map(room => room.id),
-    ['living', 'kitchen', 'bano-eze'],
+    ['living', 'kitchen', 'bano-norte'],
   );
   const living = next.rooms[0];
   assert.deepEqual(living.rects, [left, part]);
@@ -184,8 +184,8 @@ test('applying writes what changed and nothing else, and no device keeps a space
   assert.equal(living.shapeSource, 'app');
   // A rename alone does not make a zone stop following the SVG, nor invent a shape.
   assert.deepEqual(next.rooms[1], { id: 'kitchen', label: 'Cocina nueva', icon: 'mdi:pot-steam' });
-  assert.equal(next.rooms[2].id, 'bano-eze');
-  assert.equal(next.rooms[2].label, 'Baño Eze');
+  assert.equal(next.rooms[2].id, 'bano-norte');
+  assert.equal(next.rooms[2].label, 'Baño Norte');
   assert.deepEqual(next.rooms[2].shape, corner);
   assert.equal(next.rooms[2].shapeSource, 'app');
   assert.equal(typeof next.rooms[2].icon, 'string');
@@ -210,16 +210,16 @@ test('a new zone takes its ID from its final name, and devices follow it', () =>
   const config = plan();
   let draft = addZone(draftOf(config), 'Zona 5', { x: 0.1, y: 0.1, width: 0.2, height: 0.2 }, ['living']);
   const provisional = draft.zones.at(-1).id;
-  draft = renameZone(draft, provisional, '  Baño Linda ');
+  draft = renameZone(draft, provisional, '  Baño Sur ');
   const moves = deviceMoves(config.catalog.devices, draft);
   assert.deepEqual(
     moves.map(move => [move.deviceId, move.from, move.to]),
     [['sofa', 'living', provisional]],
   );
   const next = applyDraft(config, draft, moves);
-  assert.equal(next.rooms.at(-1).id, 'bano-linda');
-  assert.equal(next.rooms.at(-1).label, 'Baño Linda');
-  assert.equal(next.catalog.devices.find(item => item.id === 'sofa').roomId, 'bano-linda');
+  assert.equal(next.rooms.at(-1).id, 'bano-sur');
+  assert.equal(next.rooms.at(-1).label, 'Baño Sur');
+  assert.equal(next.catalog.devices.find(item => item.id === 'sofa').roomId, 'bano-sur');
   // A removed space's ID is not reused: its devices must not silently adopt the new zone.
   const again = renameZone(addZone(removeZone(draftOf(config), 'office'), 'Zona', corner, []), 'zona', 'Oficina');
   const reused = applyDraft(config, again, []);
