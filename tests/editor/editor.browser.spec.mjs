@@ -17,10 +17,12 @@ async function section(page, title) {
         .evaluate(el => el.open))
     )
       await editor(page).locator('#device-options > summary').click();
+    await editor(page).locator('summary').filter({ hasText: title }).click();
+    return;
   } else if (!(await editor(page).getByRole('dialog', { name: 'Ajustes del plano' }).isVisible())) {
     await button(page, 'Ajustes del plano').click();
   }
-  await editor(page).locator('summary').filter({ hasText: title }).click();
+  await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -382,40 +384,43 @@ test('editor stays inside the mobile/desktop viewport and primary controls have 
 test('spaces come from the instance: legacy labels migrate, zones are detected and edits never delete devices', async ({
   page,
 }) => {
-  await section(page, 'Espacios');
+  await section(page, 'Plano y espacios');
   expect((await current(page)).rooms).toEqual([
     { id: 'living', label: 'Espacio A' },
     { id: 'kitchen', label: 'Espacio B' },
     { id: 'office', label: 'Espacio C' },
   ]);
-  await field(page, 'Nombre del espacio living').fill('Estar');
-  await button(page, 'Aplicar nombres').click();
-  expect((await current(page)).rooms[0]).toEqual({ id: 'living', label: 'Estar' });
+  // Each space is a row; tapping it opens its window.
+  await button(page, 'Editar Espacio A').click();
+  let space = editor(page).getByRole('dialog', { name: 'Espacio A', exact: true });
+  await space.getByLabel('Nombre del espacio', { exact: true }).fill('Estar');
+  await space.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  expect((await current(page)).rooms[0]).toMatchObject({ id: 'living', label: 'Estar' });
+  await section(page, 'Plano y espacios');
+  await editor(page).getByText('Agregar un espacio sin dibujarlo', { exact: true }).click();
   await field(page, 'ID del nuevo espacio').fill('garage');
   await field(page, 'Nombre del nuevo espacio').fill('Garage');
   await button(page, 'Agregar espacio').click();
   expect((await current(page)).rooms.map(room => room.id)).toEqual(['living', 'kitchen', 'office', 'garage']);
-  await expect(editor(page).getByText('sin zona en el plano').first()).toBeVisible();
-  await button(page, 'Quitar Espacio B').click();
-  await editor(page)
-    .getByRole('dialog', { name: '¿Eliminar «Espacio B»?' })
-    .getByRole('button', { name: 'Eliminar', exact: true })
-    .click();
+  await expect(
+    editor(page).getByRole('listitem').filter({ hasText: 'Garage' }).getByText('Sin zona', { exact: true }),
+  ).toBeVisible();
+  // Removing a space with devices asks where they go; they are never deleted.
+  await button(page, 'Editar Espacio B').click();
+  space = editor(page).getByRole('dialog', { name: 'Espacio B', exact: true });
+  await space.getByLabel('Al quitar este espacio', { exact: true }).selectOption('unassign');
+  await space.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect
     .poll(async () => (await current(page)).rooms.map(room => room.id))
     .toEqual(['living', 'office', 'garage']);
   const config = await current(page);
-  expect(config.rooms.map(room => room.id)).toEqual(['living', 'office', 'garage']);
   expect(config.catalog.devices.find(device => device.id === 'synthetic-fan')).toMatchObject({
     roomId: null,
     bindings: { primaryAction: 'synthetic-fan-command' },
   });
-  await expect(editor(page).getByRole('status')).toContainText('sin espacio asignado');
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
-  await editor(page)
-    .getByRole('dialog', { name: 'Ajustes del plano' })
-    .getByRole('button', { name: 'Cerrar', exact: true })
-    .click();
+  // Applying a space's window already closed plan settings.
+  await expect(editor(page).getByRole('dialog', { name: 'Ajustes del plano' })).toHaveCount(0);
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',

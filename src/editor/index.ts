@@ -57,6 +57,7 @@ import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
 import { reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
 import { openRoomActions, type RoomViewChoices } from './room-actions.js';
+import { planCard, settingsPage, settingsPageStyles, spacesList, type SettingsSection } from './settings-page.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -74,7 +75,7 @@ import {
 } from './controls-editor.js';
 export * from './model.js';
 
-const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}
+const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
@@ -151,6 +152,11 @@ export class HomeManagerEditor extends HTMLElement {
     spatial?: boolean;
   };
   private openSections = new Set<string>();
+  /** The plan settings page section in view (CP9b). */
+  private settingsSection: SettingsSection = 'rooms-section';
+  /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
+  roomView?: (id: string) => RoomViewChoices | undefined;
+  drawSpace?: () => void;
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
   private homeConfig?: { type: string; card_id: string; home_id: string; title?: string };
   private homes?: HomeSummary[];
@@ -164,9 +170,24 @@ export class HomeManagerEditor extends HTMLElement {
     super();
     useBindingComponents(this.root);
     this.root.addEventListener('click', this.onClick);
+    this.root.addEventListener('click', event => {
+      const target = (event.target as Element).closest<HTMLElement>('[data-settings]');
+      if (!target) return;
+      this.settingsSection = target.dataset.settings as SettingsSection;
+      this.render();
+      this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
+    });
+    this.root.addEventListener('pointerdown', event => this.dragRoom(event as PointerEvent));
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
     this.root.addEventListener('keydown', event => {
+      const grip = (event.target as Element).closest?.<HTMLElement>('[data-room-grip]');
+      const key = (event as KeyboardEvent).key;
+      if (grip && (key === 'ArrowUp' || key === 'ArrowDown')) {
+        event.preventDefault();
+        this.reorderRoom(grip.dataset.roomGrip!, key === 'ArrowUp' ? -1 : 1);
+        return;
+      }
       // Esc first closes an open help or icon chooser, not the sheet.
       const helpOpen =
         [...this.root.querySelectorAll('homemanager-help-tip, homemanager-icon-picker')].some(tip =>
@@ -429,19 +450,75 @@ export class HomeManagerEditor extends HTMLElement {
     this.render();
     this.dispatchEvent(new CustomEvent('homemanager-editor-close', { bubbles: true, composed: true }));
   }
+  /** Moves a space up or down the list and keeps its grip focused. */
+  private reorderRoom(id: string, delta: -1 | 1): void {
+    const index = this.configuration.rooms.findIndex(room => room.id === id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= this.configuration.rooms.length) return;
+    this.emit(moveRoom(this.configuration, id, delta));
+    this.root.querySelector<HTMLElement>(`[data-room-grip="${CSS.escape(id)}"]`)?.focus();
+  }
+  /** Dragging a grip moves the row with the pointer; on release the space lands where it was dropped. */
+  private dragRoom(event: PointerEvent): void {
+    const grip = (event.target as Element).closest<HTMLElement>('[data-room-grip]');
+    if (!grip || event.button !== 0) return;
+    const id = grip.dataset.roomGrip!;
+    const row = grip.closest<HTMLElement>('[data-room-item]')!;
+    const rows = [...this.root.querySelectorAll<HTMLElement>('[data-room-item]')];
+    const from = rows.indexOf(row);
+    const middles = rows.map(item => {
+      const box = item.getBoundingClientRect();
+      return box.top + box.height / 2;
+    });
+    const startY = event.clientY;
+    grip.setPointerCapture(event.pointerId);
+    row.classList.add('dragging');
+    const move = (next: PointerEvent) => (row.style.transform = `translateY(${next.clientY - startY}px)`);
+    const up = (last: PointerEvent) => {
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', up);
+      grip.removeEventListener('pointercancel', up);
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      const y = middles[from] + (last.clientY - startY);
+      const to = middles.filter((middle, index) => index !== from && middle < y).length;
+      if (to === from) return;
+      let next = this.configuration;
+      for (let step = 0; step < Math.abs(to - from); step++) next = moveRoom(next, id, to > from ? 1 : -1);
+      this.emit(next);
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up);
+    grip.addEventListener('pointercancel', up);
+  }
   private settingsForm(): string {
     const pending = pendingReferences(this.configuration, this._hass?.states);
-    // Conflicts with the plan are surfaced above the folded sections, where they cannot be missed.
+    // Conflicts with the plan are shown above every section, where they cannot be missed.
     const zoneIds = new Set(this.zones().map(zone => zone.id));
     // A space with its own shape (D22) has geometry even without a zone.
     const zoneless = this.configuration.rooms.filter(room => !zoneIds.has(room.id) && !room.shape).length;
     const unclaimed = [...zoneIds].filter(id => !this.configuration.rooms.some(room => room.id === id)).length;
     const conflicts = zoneIds.size && (zoneless || unclaimed);
-    return `${conflicts ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>` : ''}${this.section('rooms-section', t('Espacios ({count})', { count: this.configuration.rooms.length }), this.roomsForm())}
-      ${this.section('actions-section', t('Acciones lógicas'), this.actionForm())}
-      ${this.section('panels-section', t('Paneles nativos'), this.panelForm())}
-      ${this.section('pending-section', t('Referencias pendientes ({count})', { count: pending.length }), pending.length ? `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : `<p class="note">${esc(t('No hay referencias pendientes.'))}</p>`)}
-      ${this.section('import-section', t('Importar y exportar'), this.importForm())}${this.migrationForm()}`;
+    return settingsPage({
+      section: this.settingsSection,
+      problems: conflicts ? zoneless + unclaimed : 0,
+      pending: pending.length,
+      // Moving an inline plan into the integration is offered on top too, when it applies.
+      notice:
+        this.migrationForm() +
+        (conflicts
+          ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>`
+          : ''),
+      bodies: {
+        'rooms-section': this.roomsForm(),
+        'actions-section': this.actionForm(),
+        'panels-section': this.panelForm(),
+        'pending-section': pending.length
+          ? `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul>`
+          : `<p class="note">${esc(t('No hay referencias pendientes.'))}</p>`,
+        'import-section': this.importForm(),
+      },
+    });
   }
   private render(): void {
     // Native toggle events can arrive after a change event has already repainted
@@ -505,17 +582,15 @@ export class HomeManagerEditor extends HTMLElement {
       zones = this.zones(),
       zoneIds = new Set(zones.map(zone => zone.id));
     const candidates = zones.filter(zone => !rooms.some(room => room.id === zone.id));
-    const count = (id: string) => this.configuration.catalog.devices.filter(device => device.roomId === id).length;
-    const rows = rooms
-      .map(
-        (room, index) =>
-          `<div class="room-row"><label class="field">${esc(t('Nombre del espacio'))}<input name="room-label-${index}" aria-label="Nombre del espacio ${esc(room.id)}" value="${esc(room.label)}" required maxlength="240"></label><div class="field room-icon-field"><span>${esc(t('Icono del espacio'))}</span>${iconPicker(room.icon ?? suggestRoomIcon(room.label), t('Icono del espacio'), `data-room-icon="${index}"`)}<input type="hidden" name="room-icon-${index}" value="${esc(room.icon ?? '')}"><span class="note">${esc(t('Sugerido: {icon}', { icon: suggestRoomIcon(room.label) }))}</span></div><span class="note">${esc(room.id)} · ${count(room.id)} disp.${zoneIds.has(room.id) || room.shape ? '' : ` · <strong>${esc(t('sin zona en el plano'))}</strong>`}</span><button type="button" data-command="room-up" data-room="${esc(room.id)}" aria-label="Subir ${esc(room.label)}"${index ? '' : ' disabled'}><ha-icon icon="mdi:chevron-up" aria-hidden="true"></ha-icon></button><button type="button" data-command="room-down" data-room="${esc(room.id)}" aria-label="Bajar ${esc(room.label)}"${index < rooms.length - 1 ? '' : ' disabled'}><ha-icon icon="mdi:chevron-down" aria-hidden="true"></ha-icon></button><button type="button" class="danger" data-command="room-remove" data-room="${esc(room.id)}" aria-label="Quitar ${esc(room.label)}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`,
-      )
-      .join('');
-    return `<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button><p class="note">${esc(t('Cada espacio corresponde a la zona'))} <code>${esc(t('room-ID'))}</code> ${esc(t('del plano. Quitar un espacio no elimina dispositivos: quedan sin espacio asignado.'))}</p>
-      ${rooms.length ? `<form id="rooms-form">${rows}<div class="actions"><button type="submit" class="primary">${esc(t('Aplicar nombres'))}</button></div></form>` : `<p class="note">${esc(t('Todavía no hay espacios.'))}</p>`}
-      ${candidates.length ? `<h3>${esc(t('Zonas detectadas en el plano'))}</h3><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">Agregar ${esc(zone.label ?? zone.id)}</button>`).join('')}<button type="button" data-command="room-add-all">Agregar todas (${candidates.length})</button></div>` : ''}
-      <form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form>`;
+    let content = '';
+    try {
+      content = sanitizeArchitecture(this.configuration.architecture.content).content;
+    } catch {
+      /* No thumbnail for a plan that cannot be drawn. */
+    }
+    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.drawSpace ? `<button type="button" class="primary" data-command="space-draw"><ha-icon icon="mdi:vector-square-plus" aria-hidden="true"></ha-icon>${esc(t('Nuevo espacio'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
+      ${candidates.length ? `<h4>${esc(t('Zonas detectadas en el plano'))}</h4><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">${esc(t('Agregar {room}', { room: zone.label ?? zone.id }))}</button>`).join('')}<button type="button" data-command="room-add-all">${esc(t('Agregar todas ({count})', { count: candidates.length }))}</button></div>` : ''}
+      <details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`;
   }
   private deviceForm(device?: Device): string {
     const fixed = device?.mobility === 'fixed' && !this.allowFixedPosition;
@@ -845,6 +920,20 @@ export class HomeManagerEditor extends HTMLElement {
     }
     try {
       switch (button.dataset.command) {
+        case 'room-open': {
+          const id = button.dataset.room!;
+          this.openRoom(id, this.roomView?.(id));
+          break;
+        }
+        case 'space-draw':
+          this.closeSurface();
+          this.drawSpace?.();
+          break;
+        case 'settings-import':
+          this.settingsSection = 'import-section';
+          this.render();
+          this.root.querySelector<HTMLElement>('[data-settings="import-section"]')?.focus();
+          break;
         case 'reset':
           void confirmDialog(this.root, {
             title: t('¿Restablecer los valores sugeridos?'),
@@ -1267,7 +1356,7 @@ export class HomeManagerEditor extends HTMLElement {
         newZones: zones.filter(id => !clean.rooms.some(room => room.id === id)),
         positionMode: 'drawing',
       };
-      this.openSections.add('import-section');
+      this.settingsSection = 'import-section';
       this.render();
     }
   }
@@ -1280,7 +1369,7 @@ export class HomeManagerEditor extends HTMLElement {
           home_id: this.homeId,
         })
       ).plans;
-      this.openSections.add('import-section');
+      this.settingsSection = 'import-section';
       this.render();
     } catch (error) {
       this.notice(describeError(error));
