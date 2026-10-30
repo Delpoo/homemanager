@@ -138,6 +138,21 @@ export const enShell: Record<string, string> = {
   'Los dos': 'Both',
   'Qué muestra el símbolo': 'What the symbol shows',
   'Vista por espacio': 'Room view',
+  'Nuevo espacio': 'New space',
+  'Crear espacio': 'Create space',
+  'Escribí el nombre del espacio.': 'Type the name of the space.',
+  'Espacio «{room}» creado en el borrador. Guardá el plano para conservarlo.':
+    'Space “{room}” created in the draft. Save the plan to keep it.',
+  'Este plano no tiene zonas': 'This plan has no zones',
+  'Dibujá cada espacio: ajustá un rectángulo sobre el plano y ponele nombre. La forma se cambia cuando quieras.':
+    'Draw each space: fit a rectangle on the plan and name it. You can change the shape at any time.',
+  'Más tarde': 'Later',
+  'Dibujar el primero': 'Draw the first one',
+  'Espacios dibujados a mano': 'Spaces drawn by hand',
+  'El plano nuevo trae otra zona para estos espacios. Se conservan como los dibujaste, salvo que elijas la zona.':
+    'The new plan has another zone for these spaces. They stay as you drew them unless you choose the zone.',
+  'Usar la zona del plano: {room}': 'Use the plan zone: {room}',
+  'Como un pasillo: se pasa de largo': 'Like a hallway: you pass through it',
   'Forma de {room}: flechas para moverla, Mayúsculas y flechas para cambiar su tamaño':
     'Shape of {room}: arrow keys move it, Shift and arrow keys resize it',
   'Forma de {room}': 'Shape of {room}',

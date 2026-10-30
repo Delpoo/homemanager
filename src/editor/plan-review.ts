@@ -2,7 +2,12 @@ import { t } from '../i18n/index.js';
 import { detectZones, roomsAt, sanitizeArchitecture, zoneShapes } from '../card/geometry.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
-import { ownsShape, shapeContains, withZoneShapes } from '../model/room-shapes.js';
+import { ownsShape, shapeContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
+
+/** The import report plus the spaces drawn by hand whose zone the new plan redraws (D22). */
+export type PlanReview = PlanImportReport & { drawn?: { roomId: string; label: string }[] };
+const differs = (a: RoomShape, b: RoomShape) =>
+  (['x', 'y', 'width', 'height'] as const).some(key => Math.abs(a[key] - b[key]) > 0.005);
 
 /** Hit testing needs mounted SVG coordinate matrices; the model only receives IDs. */
 function mounted<T>(configuration: Configuration, read: (plan: ReturnType<typeof sanitizeArchitecture>) => T): T {
@@ -18,14 +23,22 @@ function mounted<T>(configuration: Configuration, read: (plan: ReturnType<typeof
   }
 }
 /** Spaces with their own shape (D22) answer by it and are never left without a zone. */
-export function reportForPlan(configuration: Configuration): PlanImportReport {
+export function reportForPlan(configuration: Configuration): PlanReview {
   return mounted(configuration, ({ svg, box }) => {
     const zones = detectZones(svg);
     const shaped = configuration.rooms.filter(
       room => room.shape && (ownsShape(room) || !zones.some(zone => zone.id === room.id)),
     );
     const zoneIds = zones.map(zone => zone.id).filter(id => !shaped.some(room => room.id === id));
-    return planImportReport(
+    const zoneCopies = zoneShapes(
+      svg,
+      box,
+      configuration.rooms.filter(ownsShape).map(room => room.id),
+    );
+    const drawn = configuration.rooms
+      .filter(room => ownsShape(room) && zoneCopies[room.id] && differs(zoneCopies[room.id]!, room.shape!))
+      .map(room => ({ roomId: room.id, label: room.label }));
+    const report = planImportReport(
       configuration,
       Object.fromEntries(
         configuration.catalog.devices.map(device => [
@@ -38,6 +51,7 @@ export function reportForPlan(configuration: Configuration): PlanImportReport {
       ),
       [...zones.filter(zone => zoneIds.includes(zone.id)), ...shaped.map(room => ({ id: room.id, label: room.label }))],
     );
+    return { ...report, drawn };
   });
 }
 /** After an import, every space that follows the SVG keeps a copy of its zone (D22). */
@@ -62,7 +76,7 @@ export function hasPlanChanges(report: PlanImportReport): boolean {
 export function openPlanReview(
   root: ShadowRoot,
   candidate: Configuration,
-  report: PlanImportReport,
+  report: PlanReview,
   apply: (next: Configuration, planOnly: boolean) => void,
   before?: Configuration,
 ): void {
@@ -111,6 +125,7 @@ export function openPlanReview(
       : ''
   }
   ${report.newZones.length ? `<h3>${e(t('Zonas nuevas'))}</h3>${report.newZones.map(zone => `<label><input type="checkbox" data-zone="${e(zone.id)}" checked><span>${e(t('Agregar como espacio'))}: ${e(zone.label)}</span></label>`).join('')}` : ''}
+  ${report.drawn?.length ? `<h3>${e(t('Espacios dibujados a mano'))}</h3><p>${e(t('El plano nuevo trae otra zona para estos espacios. Se conservan como los dibujaste, salvo que elijas la zona.'))}</p>${report.drawn.map(item => `<label><input type="checkbox" data-drawn="${e(item.roomId)}"><span>${e(t('Usar la zona del plano: {room}', { room: item.label }))}</span></label>`).join('')}` : ''}
   ${report.ambiguous.length ? `<h3>${e(t('Dispositivos ambiguos: conservan su espacio'))}</h3><ul>${report.ambiguous.map(item => `<li>${e(label(item.deviceId))}: ${item.zones.map(id => e(name(id))).join(', ')}</li>`).join('')}</ul>` : ''}
   ${report.outside.length ? `<h3>${e(t('Fuera de zona: conservan su espacio'))}</h3><ul>${report.outside.map(item => `<li>${e(label(item.deviceId))}</li>`).join('')}</ul>` : ''}
   </div><p class="review-error" role="alert"></p><div class="actions"><button type="button" data-review="cancel">${e(t('Cancelar'))}</button><button type="button" data-review="plan">${e(t('Importar sólo el plano'))}</button><button type="button" data-review="apply">${e(t('Aplicar'))}</button></div>`;
@@ -155,6 +170,15 @@ export function openPlanReview(
   dialog.querySelector('[data-review=apply]')!.addEventListener('click', () => {
     try {
       let next = structuredClone(candidate);
+      // A drawn space takes the new zone only when chosen: its shape goes and the zone is copied.
+      for (const item of report.drawn ?? [])
+        if (dialog.querySelector<HTMLInputElement>(`[data-drawn="${CSS.escape(item.roomId)}"]`)!.checked) {
+          const room = next.rooms.find(entry => entry.id === item.roomId);
+          if (room) {
+            delete room.shape;
+            delete room.shapeSource;
+          }
+        }
       for (const zone of report.newZones)
         if (dialog.querySelector<HTMLInputElement>(`[data-zone="${CSS.escape(zone.id)}"]`)!.checked)
           next.rooms.push({ id: zone.id, label: zone.label });
