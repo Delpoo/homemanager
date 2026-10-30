@@ -1,5 +1,5 @@
 import { activeStateOf, presentationOf } from './archetype.js';
-import { alertsOf, summarizeAlerts } from './alerts.js';
+import { alertsOf, presenceHighlightOf, summarizeAlerts, type AlertContext } from './alerts.js';
 import { entityOf, finiteNumber } from './types.js';
 import type { AlertLevel } from './alerts.js';
 import type {
@@ -16,6 +16,7 @@ export interface SymbolSpec {
   archetype: Archetype;
   body: { show: DisplayShow; icon: string | null; value: string | null; fullValue: string | null };
   ring: { active: true; level: number | null; tone: 'active' | 'cool' } | null;
+  highlight: boolean;
   badge: { count: number; level: AlertLevel } | null;
   health: 'unavailable' | 'estimated' | 'unknown' | null;
   tap: 'control' | 'panel' | 'remote';
@@ -42,11 +43,12 @@ export function symbolSpec(
   hass: ModelHass | undefined,
   now: number,
   runtime?: ModelRuntime,
+  context: AlertContext = {},
 ): SymbolSpec {
   const { archetype, layer, cool, level } = presentationOf(device, hass);
   const entity = entityOf(device, hass);
   const show = device.display.show ?? (archetype === 'meter' ? 'value' : 'icon');
-  const alerts = alertsOf(device, hass, now);
+  const alerts = alertsOf(device, hass, now, context);
   const live =
     runtime?.value && !['unknown', 'unavailable'].includes(runtime.value)
       ? runtime.value
@@ -82,6 +84,7 @@ export function symbolSpec(
     archetype,
     body: { show, icon: show === 'value' ? null : icon, value: bodyValue, fullValue },
     ring: ringAllowed && active ? { active: true, level, tone: cool ? 'cool' : 'active' } : null,
+    highlight: presenceHighlightOf(device, hass),
     badge: alerts.length ? summarizeAlerts(alerts) : null,
     health,
     tap: archetype === 'remote' ? 'remote' : configuredControl ? 'control' : 'panel',

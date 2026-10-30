@@ -111,6 +111,8 @@ export function upsertDevice(
       ...(input.display.archetype ? { archetype: input.display.archetype } : {}),
       ...(input.display.show ? { show: input.display.show } : {}),
       ...(input.display.category ? { category: input.display.category } : {}),
+      ...(input.display.alerts !== undefined ? { alerts: structuredClone(input.display.alerts) } : {}),
+      ...(input.display.highlight !== undefined ? { highlight: input.display.highlight } : {}),
     },
     bindings: {
       entityId: input.bindings.entityId,

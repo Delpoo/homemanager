@@ -20,6 +20,18 @@
     "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "registryDeviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(?![\\s\\S])", "not": { "enum": ["__proto__", "prototype", "constructor"] } },
     "entityId": { "type": "string", "minLength": 3, "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+(?![\\s\\S])", "not": { "pattern": "\\.all$" } },
+    "alertRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reading", "level"],
+      "properties": {
+        "reading": { "$ref": "#/$defs/entityId" },
+        "below": { "type": "number" },
+        "above": { "type": "number" },
+        "forMinutes": { "type": "number", "minimum": 0 },
+        "level": { "enum": ["alert", "warning"] }
+      }
+    },
     "roomId": { "$ref": "#/$defs/deviceId", "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/." },
     "position": {
       "type": "object",
@@ -90,6 +102,8 @@
               "enum": ["switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure"],
               "$comment": "What the person chose (D21). Decides the archetype; inferred from archetype or kind when absent."
             },
+            "alerts": { "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/alertRule" } },
+            "highlight": { "type": "boolean" },
             "pinned": {
               "type": "array",
               "maxItems": 3,

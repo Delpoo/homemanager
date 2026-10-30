@@ -1,6 +1,48 @@
 /** English translations, keyed by the Spanish source text (see index.ts).
  * tests/i18n.test.mjs fails when a t('…') key in src/ has no entry here. */
 export const en: Record<string, string> = {
+  'Otros avisos conservados': 'Other retained warnings',
+  'Podés quitarlos aquí. Los avisos incompatibles con esta categoría no se evalúan.':
+    'You can remove them here. Warnings incompatible with this category are not evaluated.',
+  'Lectura no disponible': 'Reading unavailable',
+  'menos de {value}': 'below {value}',
+  'más de {value}': 'above {value}',
+  'durante {count} días': 'for {count} days',
+  'durante {count} minutos': 'for {count} minutes',
+  alerta: 'alert',
+  aviso: 'warning',
+  'Menos de': 'Below',
+  'Más de': 'Above',
+  'Durante (minutos)': 'For (minutes)',
+  Nivel: 'Severity',
+  Aviso: 'Warning',
+  'Un aviso llama la atención; una alerta requiere atención inmediata.':
+    'A warning draws attention; an alert needs immediate attention.',
+  'Resaltar al detectar': 'Highlight on detection',
+  'Destaca el símbolo cuando detecta presencia o una apertura.':
+    'Highlights the symbol when presence or an opening is detected.',
+  'Contar como alerta': 'Count as an alert',
+  'Aparece en Alertas y Ahora mientras detecta.': 'Appears in Alerts and Now while detected.',
+  'Vinculá un sensor de detección para configurar este aviso.': 'Link a detection sensor to configure this alert.',
+  'Avisar si': 'Notify when',
+  'Activá sólo los avisos que quieras. Los límites y la duración se pueden editar.':
+    'Enable only the warnings you want. Limits and duration can be edited.',
+  'Editar aviso de {name}': 'Edit warning for {name}',
+  'Quitar aviso': 'Remove warning',
+  'Otra lectura': 'Another reading',
+  'Agregar aviso': 'Add warning',
+  'No hay lecturas asociadas. Elegí el dispositivo de Home Assistant.':
+    'No associated readings. Choose the Home Assistant device.',
+  'Avisos del dispositivo': 'Device warnings',
+  'Lectura por debajo del límite': 'Reading below the limit',
+  'Lectura por encima del límite': 'Reading above the limit',
+  'Presencia o apertura detectada': 'Presence or opening detected',
+  'Alerta detectada': 'Alert detected',
+  'Se admiten hasta cuatro avisos. Quitá uno antes de agregar otro.':
+    'Up to four warnings are supported. Remove one before adding another.',
+  'Revisá los límites y la duración de los avisos.': 'Check the warning limits and duration.',
+  'Elegí al menos un límite para cada aviso de lectura.': 'Choose at least one limit for each reading warning.',
+
   'No tenés permiso para esta operación. Pedile acceso a una persona administradora.':
     'You do not have permission for this operation. Ask an administrator for access.',
   'Se alcanzó el límite de almacenamiento. Revisá los historiales conservados desde Almacenamiento.':

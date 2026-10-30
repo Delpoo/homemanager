@@ -1,3 +1,5 @@
+import { alertText } from './alert-components.js';
+import type { DeviceAlert } from '../model/alerts.js';
 import { t } from '../i18n/index.js';
 import type { Control } from '../model/control-capabilities.js';
 import type { CatalogReading } from '../model/device-catalog.js';
@@ -48,8 +50,9 @@ export const uiNowRow = (row: {
   off?: unknown;
   tone?: string;
   estimated?: boolean;
+  alert?: DeviceAlert;
 }) =>
-  `<div class="now-row" data-tone="${e(row.tone ?? 'normal')}"><button class="now-open" type="button" data-action="device" data-key="${e(row.id)}">${uiIcon(row.icon)}<span><b>${e(row.name)}</b>${row.detail ? `<small>${e(row.detail)}</small>` : ''}</span>${row.value ? `<strong>${e(row.estimated ? `${row.value} · ${t('estimado')}` : row.value)}</strong>` : ''}</button>${row.off ? `<button class="k-btn icon" type="button" data-action="off" data-key="${e(row.id)}" aria-label="${e(t('Apagar {name}', { name: row.name }))}">${uiIcon('mdi:power')}</button>` : ''}</div>`;
+  `<div class="now-row" data-tone="${e(row.tone ?? 'normal')}"><button class="now-open" type="button" data-action="device" data-key="${e(row.id)}">${uiIcon(row.icon)}<span><b>${e(row.alert ? alertText(row.alert) : row.name)}</b>${row.detail ? `<small>${e(row.detail)}</small>` : ''}</span>${row.value ? `<strong>${e(row.estimated ? `${row.value} · ${t('estimado')}` : row.value)}</strong>` : ''}</button>${row.off ? `<button class="k-btn icon" type="button" data-action="off" data-key="${e(row.id)}" aria-label="${e(t('Apagar {name}', { name: row.name }))}">${uiIcon('mdi:power')}</button>` : ''}</div>`;
 export const uiInsightsFrame = (title: string, content: string, expanded: boolean) =>
   `<button class="insights-handle" type="button" data-action="expand" aria-label="${e(t('Mostrar Ahora'))}" aria-expanded="${expanded}"><span></span>${e(title)}${uiIcon(expanded ? 'mdi:chevron-down' : 'mdi:chevron-up')}</button><section class="insights-surface" aria-label="${e(title)}"><div class="insights-scroll">${content}</div><div class="insights-feedback" role="status" aria-live="polite"></div></section>`;
 

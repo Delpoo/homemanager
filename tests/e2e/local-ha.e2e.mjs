@@ -423,6 +423,71 @@ await step('the RF remotes tab is served and explains a missing transmitter', as
   assert.deepEqual(devices.result.devices, []);
   assert.match(devices.result.package, /homemanager-rf\.yaml@v\d/);
 });
+await step('CP4 rules persist through the companion and all live alert surfaces use their severity', async () => {
+  // State-only synthetic sensors in this disposable HA; never a service call or a physical device.
+  const soil = 'sensor.e2e_cp4_soil',
+    door = 'binary_sensor.e2e_cp4_door';
+  for (const [id, state, attributes] of [
+    [soil, '18', { friendly_name: 'Humedad del suelo', device_class: 'moisture', unit_of_measurement: '%' }],
+    [door, 'on', { friendly_name: 'Puerta de prueba', device_class: 'door' }],
+  ]) {
+    const response = await fetch(`${base}/api/states/${id}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ state, attributes }),
+    });
+    assert.ok(response.ok);
+  }
+  const current = await stored(),
+    next = structuredClone(current.configuration);
+  const devices = [
+    {
+      id: 'planta-cp4',
+      roomId: 'salon',
+      kind: 'plant',
+      position: { x: 0.45, y: 0.4 },
+      mobility: 'editable',
+      display: {
+        label: 'Planta CP4',
+        icon: 'mdi:flower-outline',
+        category: 'plant',
+        alerts: [{ reading: soil, below: 20, forMinutes: 0, level: 'warning' }],
+      },
+      bindings: { entityId: soil, primaryAction: null, advancedPopupId: null },
+      state: { value: 'unknown', confidence: 'unknown' },
+    },
+    {
+      id: 'puerta-cp4',
+      roomId: 'salon',
+      kind: 'sensor',
+      position: { x: 0.35, y: 0.6 },
+      mobility: 'editable',
+      display: { label: 'Puerta CP4', icon: 'mdi:door', category: 'presence', highlight: true },
+      bindings: { entityId: door, primaryAction: null, advancedPopupId: null },
+      state: { value: 'unknown', confidence: 'unknown' },
+    },
+  ];
+  next.catalog.devices.push(...devices);
+  const result = await ws({
+    type: 'homemanager/home/save',
+    home_id: 'e2e-casa',
+    expected_revision: current.revision,
+    configuration: next,
+  });
+  assert.equal(result.success, true, JSON.stringify(result.error));
+  const saved = (await stored()).configuration;
+  assert.deepEqual(saved.catalog.devices.find(device => device.id === 'planta-cp4').display, devices[0].display);
+  assert.deepEqual(saved.catalog.devices.find(device => device.id === 'puerta-cp4').display, devices[1].display);
+  await page.goto(`${base}/homemanager`);
+  await card.locator('[data-id=planta-cp4] .symbol-badge[data-level=warning]').waitFor({ timeout: 30000 });
+  await card.locator('[data-id=puerta-cp4][data-highlight=true]').waitFor();
+  assert.equal(await card.locator('[data-id=puerta-cp4] .symbol-badge').count(), 0);
+  await card.getByRole('button', { name: 'Planta CP4', exact: true }).click();
+  const insights = card.locator('homemanager-insights');
+  await insights.getByText('Humedad del suelo · Lectura por debajo del límite', { exact: true }).waitFor();
+  assert.equal(await insights.locator('.k-notice.warning').count(), 1);
+  await page.screenshot({ path: `${out}/07-cp4-live-alert.png` });
+});
 assert.deepEqual(errors, [], `page errors: ${errors.join('; ')}`);
 await browser.close();
 console.log(

@@ -1118,6 +1118,342 @@
       "sha256": "0a8a4cfa2e0db6adc2c400b17ad1bee8b240387a7c102c22df4bfeb09e2dbef5",
       "width": 390,
       "height": 844
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d8b5b631266ca555b90271dce17ec142ab86a559055315ada04c5f0b0ceb33b1"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1abfbd14b6d4e5446e6e910e9d3ba7204a633c02fa79c73ccf3a32488d6993bf"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a5c5915cb1854d30bb9950b0bf87a28c7af38f9e5d44307c2691fea42a2c4e51"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5da85f36771cbf00a4ebe769f066a49b95d8700c27a39014d5b168e010ef41d6"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b137f3b1173eab496c038f38f8b0397fab75ada25ca45069ef231a3081033e39"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "11329f6ae90703bd6328a445da0200875f0f1fbb7cc75e138d517f2f213a5a26"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4fb6bb1aec0b71459f4ba994923d548791f5c3f399fadbfdba4ddb0c500f25da"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "68011c4cfcfbb52cc4fcfbc6222df4ab4063733d3624c8d1b84cccfe5f88418f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "212b11a708e9c8eee287725c82a4f2caf7bfa4fcfdb3eb2fffbad7627ab985a1"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "00f065ec4dea41c14c299ce7f6847f585a435f21537c59de7f13c6bd9651f596"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fa287bd239cac5f005a32b41f5f7036c24e9809b165ebb7f236b0326963f5e3a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "9273c846162e5cd06fa413a533f84fc3faca912bf2e900e2317a153eb7c3b73f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "33dae3f2a6c6e4785083fb8c553b36ac5899f2ddbb1c1036097ce657e4404314"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "04adbace865c2a2a8d5730deaffd22c52b7fe6515b8b015660f63c246b6cbbed"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "909c75368d776355ff71f6fb3e22ece21b99067b0bb22c5496a8bf3f364b978d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5f6fb629e2a63e13db1a0126781880273e5799ae57781eb3cd3251f41e90cc2d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "881cd086fa9595d065a2221ba02cd88a1d61ac57edbec1dd2f283dc7e68986d9"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e7d3b513532cfadf2f96ed191b7ebb533e77329accb45bb330df26861c75b012"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "36f7342356f9bff1c228217facf7c20ca689d2ae5c84d995107578d58cb835e8"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c40e99d7c1897c7b75e65d3878f4bb27358a9bf8b93f9091aae6e587801ea885"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f2b5708a2f26d76843e36e89d5891b2140b89923a93bd291c2fc0884989bd66f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "33b829873aa330577425ef68d1822ac093bd54c021e2b794cc15afa25627a80f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e8f76d518d8560eb91b5aff1f8e1197caea75cbe089fbb0a5c0e72835159ce78"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f3884a97faa3e081c5a7128ed776f0bfd9ef57b94effe1939ba9b25115a52421"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "476d5e31cec8ea684d96b645675c1bebff349e4589ca4443ae541fc320c4ab2a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "81e08ad257827e2d1a73d8b98a72b7857229a2d8ce0cd4e146e5b685093f27d5"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "88524bd9cbfe7ec72c6ee0af4864f5ec60299bf69b0713292054e6f989273f8b"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "844388209214c0f5ffcac4844a28128d04438f3ef79044b36f01e46a30d4a8dd"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "61ea933a288d5de109e6dfa50abb79dc460eb04f2d56c1c8d07d9e516263a8a0"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fef0833480fef5e701e32d5b512adffcbbbba983da2b90712588345c4c801c89"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "004101bc1fd37f173cd28c186306a5ab70e147e5b3dd1a691a1b83e01024a82a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "016705c9ec69b6e588d42a7aedcefdcdd9b927e09a301525b9fc1f050744501a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "52285f31f84d1fd3ab4973ee021c9f1918034f6a15fbfaefdd4f4ba8cfd117c3"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "780ab2bcff0bed6cb642d4cf5883a53a45fedf89ae160e2c50fd2df7438e8742"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8f8f3d132d9c0eeb0a5ddb475929d1939c20d8c1e1b5c0daf45910b4fadd0bde"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f7c159dc14e823bb6b6282d3ee6ea5d5463209320ec8baa9422e7c8c71fd62b0"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "34e228d092f563b14cd7a8aabf4ec3a4feb14cb49f41a6b8bcae8c6f84530bf3"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "01f964b64d41b097803e5c1e80789e3727350e8568712cad588cc0151b7f7b18"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fbdcb235dae7b306c422c64fe34b9d1a087e97f9a1946beb2db595ae3f3dca6d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "3739668c598b0fa35aa62651cc6c62a6f50573b07272ad07cbcc94559a697227"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b3614bd82bb93bdcc1728b33fbb450f8d17523a99aef0fc9914a3bbcfe381947"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b78e2b684d5d91e5cbf9c977221ffc419e961c662ab829036bacf9b7b390df93"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "bfa0da031e2c6dd8f8330d2e4ceef0e3b1d7cb10bf29659fa6c8d81396b91665"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a809b68670baf9312b895fde5d30f6868eaaa9229d0b51d1152217c092979362"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "251d5868ae4fd199e2a84bd310ab6bf6d37d91b32ffc73c1633f2af93002475e"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8543ccb3c3f81b014df55a5b0ba458092f20106c17dfdaa61ec6e6a29faae4a4"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a859f2b6b96daa065ce58feee55b503de8264b836ca67ee869ef3e4a9b4712a9"
     }
   ]
 }

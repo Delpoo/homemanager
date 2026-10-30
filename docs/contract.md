@@ -44,7 +44,15 @@ Desde 0.7 (D20), hay dos campos de presentación **opcionales**:
 - `display.archetype`: `actuator`, `equipment`, `sensor`, `meter`, `remote` o `infrastructure`. Si falta, las funciones puras de `src/model/` lo resuelven a partir del tipo y de la entidad, sin cambiar el documento guardado. El arquetipo describe la presentación, nunca autoriza servicios ni confirma estados.
 - `display.show`: `icon`, `value` o `both`. Si falta, los medidores muestran el valor y los demás arquetipos el icono.
 
-Los campos de presentación (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita. La configuración de reglas de alerta (`bindings.alerts`) sigue reservada para una etapa posterior.
+Los campos de presentación (`rooms[].icon`, `display.archetype`, `display.show`) se validan juntos en JavaScript y sus tipos/declaraciones TypeScript, Python y JSON Schema. Un documento de 0.6 sigue siendo válido sin agregarlos: no hay migración ni valores nuevos persistidos de forma implícita.
+
+### Reglas de aviso por categoría (CP4)
+
+- `display.alerts`, opcional: hasta cuatro reglas `{ reading, below?, above?, forMinutes?, level }`. `reading` es una entidad explícita; `level` es `alert` o `warning`. Los límites y la duración son números finitos, y la duración no puede ser negativa. Sin límites, una regla describe un sensor binario activo; una lectura numérica necesita al menos un límite para generar un aviso. Los límites son estrictos e independientes: menor que `below` o mayor que `above`.
+- `display.highlight`, opcional: booleano para resaltar una presencia activa. Ausente conserva el aspecto anterior, sin resaltar de forma implícita.
+- El contrato conserva las reglas al cambiar de categoría; sólo se evalúan las que corresponden a la categoría activa. Una lectura auxiliar necesita asociación verificable con el dispositivo mediante el registro de HA. Un nombre o prefijo nunca prueba esa asociación.
+- La duración utiliza observaciones de condiciones, separadas de la configuración. Valores que siguen cumpliendo el mismo umbral conservan su inicio; datos desconocidos o pérdida de conexión descartan continuidad. Sin observaciones previas sólo una fecha válida de estado estable de HA aporta evidencia anterior; no se inventa un historial después de una recarga.
+- Los planos sin estos campos conservan sus reglas anteriores. Los tres validadores cambian juntos; ningún reloj, observación o valor medido entra en el plano persistido.
 
 ### Vínculo opcional al dispositivo (0.8 en revisión)
 

@@ -16,6 +16,7 @@ const WORDS: Record<string, Record<string, string>> = {
     illuminance: 'Iluminación',
     pressure: 'Presión',
     moisture: 'Fuga',
+    soil_moisture: 'Humedad del suelo',
     smoke: 'Humo',
     gas: 'Gas',
     motion: 'Movimiento',
@@ -53,6 +54,7 @@ const WORDS: Record<string, Record<string, string>> = {
     illuminance: 'Illuminance',
     pressure: 'Pressure',
     moisture: 'Leak',
+    soil_moisture: 'Soil moisture',
     smoke: 'Smoke',
     gas: 'Gas',
     motion: 'Motion',
@@ -124,7 +126,10 @@ export function readingName(entityId: string, hass?: ModelHass): string {
     entity = hass?.states[entityId];
   const device = entry?.device_id ? hass?.devices?.[entry.device_id] : undefined;
   const deviceClass = String(entity?.attributes?.device_class ?? entityId.split('.')[0]);
-  const fallback = nameWord(deviceClass, hass);
+  const fallback = nameWord(
+    deviceClass === 'moisture' && entityId.startsWith('sensor.') ? 'soil_moisture' : deviceClass,
+    hass,
+  );
   let label =
     personName(entry?.name) || personName(entity?.attributes?.friendly_name) || personName(entry?.original_name);
   // Both names matter: changing the device name need not immediately rename its entities.

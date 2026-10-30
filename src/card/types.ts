@@ -11,6 +11,7 @@ import type {
   SymbolArchetype,
   SymbolShow,
   DeviceCategory,
+  AlertRuleConfig,
 } from '../ha/types.ts';
 export { KINDS };
 export type { ControlStep, ControlType, DeviceControl, DeviceKind, Room, SymbolSize };
@@ -35,6 +36,8 @@ export interface Device {
     archetype?: SymbolArchetype;
     show?: SymbolShow;
     category?: DeviceCategory;
+    alerts?: AlertRuleConfig[];
+    highlight?: boolean;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };

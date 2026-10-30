@@ -305,7 +305,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight"})
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
@@ -316,6 +316,26 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             _fail()
         if "category" in display and display["category"] not in DEVICE_CATEGORIES:
             _fail()
+        if "highlight" in display and not isinstance(display["highlight"], bool):
+            _fail()
+        if "alerts" in display:
+            rules = display["alerts"]
+            if not isinstance(rules, list) or len(rules) > 4:
+                _fail()
+            for rule in rules:
+                _fields(rule, {"reading", "level"}, {"below", "above", "forMinutes"})
+                _entity(rule["reading"])
+                if rule["level"] not in ("alert", "warning"):
+                    _fail()
+                for key in ("below", "above", "forMinutes"):
+                    if key in rule and (
+                        isinstance(rule[key], bool)
+                        or not isinstance(rule[key], (int, float))
+                        or not math.isfinite(rule[key])
+                    ):
+                        _fail()
+                if "forMinutes" in rule and rule["forMinutes"] < 0:
+                    _fail()
         bindings = device["bindings"]
         _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings"})
         if "deviceId" in bindings:

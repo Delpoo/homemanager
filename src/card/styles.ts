@@ -1,4 +1,5 @@
 import { insightsLayoutStyles } from '../ui/device-components.js';
+import { alertComponentStyles } from '../ui/alert-components.js';
 import { controlViewStyles } from '../ui/control-view.js';
 import { tokens } from '../ui/theme.js';
 import { iconButtonStyles } from '../ui/icon-button.js';
@@ -7,7 +8,7 @@ import { topBarStyles } from '../shell/top-bar.js';
 import { roomRailStyles } from '../shell/room-rail.js';
 import { layerStyles } from '../shell/layers.js';
 
-export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}
+export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}${alertComponentStyles}
 :host{display:block}
 .shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}

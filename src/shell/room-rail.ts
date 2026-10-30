@@ -6,6 +6,7 @@ export interface RoomRailItem {
   label: string;
   icon?: string;
   alerts?: number;
+  alertLevel?: 'critical' | 'warning';
   active?: boolean;
 }
 /** Suggestions are presentation hints; a room's ID and meaning remain user data. */
@@ -28,7 +29,7 @@ export function suggestRoomIcon(name: string): string {
   return `mdi:${suggestions.find(([pattern]) => pattern.test(normalized))?.[1] ?? 'floor-plan'}`;
 }
 function content(rooms: readonly RoomRailItem[], selected: string | null, adding = false): string {
-  return `<button type="button" class="all" data-command="all" aria-label="${e(t('Encuadrar todo'))}" title="${e(t('Encuadrar todo'))}" aria-pressed="${selected === null}"><ha-icon icon="mdi:home-outline" aria-hidden="true"></ha-icon></button>${rooms.map(room => `<button type="button" class="room" data-room="${e(room.id)}" aria-label="${e(t('Encuadrar {label}', { label: room.label }))}" title="${e(room.label)}" aria-pressed="${selected === room.id}"><ha-icon icon="${e(room.icon ?? suggestRoomIcon(room.label))}" aria-hidden="true"></ha-icon>${room.alerts ? `<span class="room-alerts" aria-hidden="true">${room.alerts}</span><span class="sr">${e(t('{count} alertas', { count: room.alerts }))}</span>` : room.active ? `<span class="room-active" aria-hidden="true"></span>` : ''}</button>`).join('')}${adding ? `<button type="button" class="add" data-command="room-new" aria-label="${e(t('Nuevo espacio'))}" title="${e(t('Nuevo espacio'))}"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon></button>` : ''}`;
+  return `<button type="button" class="all" data-command="all" aria-label="${e(t('Encuadrar todo'))}" title="${e(t('Encuadrar todo'))}" aria-pressed="${selected === null}"><ha-icon icon="mdi:home-outline" aria-hidden="true"></ha-icon></button>${rooms.map(room => `<button type="button" class="room" data-room="${e(room.id)}" aria-label="${e(t('Encuadrar {label}', { label: room.label }))}" title="${e(room.label)}" aria-pressed="${selected === room.id}"><ha-icon icon="${e(room.icon ?? suggestRoomIcon(room.label))}" aria-hidden="true"></ha-icon>${room.alerts ? `<span class="room-alerts" data-level="${room.alertLevel ?? 'critical'}" aria-hidden="true">${room.alerts}</span><span class="sr">${e(t('{count} alertas', { count: room.alerts }))}</span>` : room.active ? `<span class="room-active" aria-hidden="true"></span>` : ''}</button>`).join('')}${adding ? `<button type="button" class="add" data-command="room-new" aria-label="${e(t('Nuevo espacio'))}" title="${e(t('Nuevo espacio'))}"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon></button>` : ''}`;
 }
 export function renderRoomRail(rooms: readonly RoomRailItem[], selected: string | null = null): string {
   return `<nav class="rooms" aria-label="${e(t('Espacios'))}">${content(rooms, selected)}</nav>`;

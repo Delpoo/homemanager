@@ -70,6 +70,7 @@ await build({
     'src/model/device-catalog.ts',
     'src/model/symbol-spec.ts',
     'src/model/alerts.ts',
+    'src/model/alert-settings.ts',
     'src/model/activity.ts',
     'src/model/plan-import.ts',
     'src/shell/runtime-feed.ts',

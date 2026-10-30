@@ -1,5 +1,14 @@
 import { entityOf, finiteNumber } from './types.js';
 import type { ModelDevice, ModelEntity, ModelHass } from './types.js';
+import { categoryOf } from './category.js';
+import {
+  configuredAlertCleared,
+  configuredAlertsOf,
+  hasBinaryAlertOverride,
+  type AlertContext,
+} from './alert-rules.js';
+export { observeAlertRules, presenceHighlightOf } from './alert-rules.js';
+export type { AlertContext, AlertObservation } from './alert-rules.js';
 
 export type AlertLevel = 'critical' | 'warning';
 export type AlertRule =
@@ -10,7 +19,10 @@ export type AlertRule =
   | 'safety'
   | 'problem'
   | 'battery'
-  | 'unavailable';
+  | 'unavailable'
+  | 'threshold'
+  | 'presence'
+  | 'binary';
 export interface DeviceAlert {
   id: string;
   deviceId: string;
@@ -20,6 +32,8 @@ export interface DeviceAlert {
   level: AlertLevel;
   /** Spanish source key: the view translates it, keeping this module independent. */
   message: string;
+  /** Human reading label for a configured condition; no entity identifier is shown. */
+  readingLabel?: string;
 }
 const CRITICAL: Record<string, string> = {
   moisture: 'Fuga detectada',
@@ -31,12 +45,30 @@ const CRITICAL: Record<string, string> = {
 };
 const unavailableAfter = 10 * 60 * 1000;
 
-/** Only enabled-by-default 0.7 rules. Door timers and custom ranges belong to 0.9. */
-export function alertsOf(device: ModelDevice, hass: ModelHass | undefined, now: number): DeviceAlert[] {
+/** Configured category rules and the backward-compatible health/default alarm rules. */
+export function alertsOf(
+  device: ModelDevice,
+  hass: ModelHass | undefined,
+  now: number,
+  context: AlertContext = {},
+): DeviceAlert[] {
+  if (hass?.connection?.connected === false) return [];
+  const alerts: DeviceAlert[] = configuredAlertsOf(device, hass, now, context).map(alert => ({
+    id: `${device.id}:configured:${alert.key}`,
+    deviceId: device.id,
+    roomId: device.roomId,
+    entityId: alert.reading,
+    rule: alert.rule,
+    level: alert.level,
+    message:
+      alert.rule === 'binary'
+        ? (CRITICAL[String(hass?.states[alert.reading]?.attributes?.device_class ?? '')] ?? alert.message)
+        : alert.message,
+    readingLabel: alert.readingLabel,
+  }));
   const entityId = device.bindings.entityId;
   const entity = entityOf(device, hass);
-  if (!entityId || !entity) return [];
-  const alerts: DeviceAlert[] = [];
+  if (!entityId || !entity) return alerts;
   const add = (sourceId: string, rule: AlertRule, level: AlertLevel, message: string) =>
     alerts.push({
       id: `${device.id}:${sourceId}:${rule}`,
@@ -48,8 +80,21 @@ export function alertsOf(device: ModelDevice, hass: ModelHass | undefined, now: 
       message,
     });
   const deviceClass = String(entity.attributes?.device_class ?? '');
-  if (entityId.startsWith('binary_sensor.') && entity.state === 'on' && Object.hasOwn(CRITICAL, deviceClass))
-    add(entityId, deviceClass as AlertRule, 'critical', CRITICAL[deviceClass]);
+  const alarmCategory = categoryOf(device, hass) === 'alert';
+  // Safety classes (leak, smoke, gas…) alert whatever category the person chose, as in 0.7.
+  const legacyCritical = Object.hasOwn(CRITICAL, deviceClass);
+  if (
+    entityId.startsWith('binary_sensor.') &&
+    entity.state === 'on' &&
+    (alarmCategory || legacyCritical) &&
+    !hasBinaryAlertOverride(device, hass)
+  )
+    add(
+      entityId,
+      Object.hasOwn(CRITICAL, deviceClass) ? (deviceClass as AlertRule) : 'binary',
+      'critical',
+      CRITICAL[deviceClass] ?? 'Alerta detectada',
+    );
   if (entity.state === 'unavailable') {
     // last_updated can advance while still unavailable; only last_changed proves its duration.
     const since = Date.parse(entity.last_changed ?? '');
@@ -85,4 +130,22 @@ export function summarizeAlerts(alerts: readonly DeviceAlert[]) {
     count: alerts.length,
     level: alerts.some(alert => alert.level === 'critical') ? ('critical' as const) : ('warning' as const),
   };
+}
+
+/** Missing evidence is not recovery. Used by the activity feed, separate from visibility. */
+export function alertCleared(alert: DeviceAlert, device: ModelDevice, hass: ModelHass): boolean {
+  if (hass.connection?.connected === false) return false;
+  const prefix = `${device.id}:configured:`;
+  if (alert.id.startsWith(prefix)) return configuredAlertCleared(device, alert.id.slice(prefix.length), hass);
+  const source = hass.states[alert.entityId];
+  if (!source || ['unknown', 'unavailable'].includes(source.state)) return false;
+  if (alert.rule === 'unavailable') return true;
+  if (alert.rule === 'battery') {
+    const battery =
+      source.attributes?.device_class === 'battery'
+        ? finiteNumber(source.state)
+        : finiteNumber(source.attributes?.battery_level ?? source.attributes?.battery);
+    return battery !== null && battery >= 15 && battery <= 100;
+  }
+  return alert.entityId.startsWith('binary_sensor.') && source.state === 'off';
 }

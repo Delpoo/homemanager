@@ -30,7 +30,7 @@ export type ActivityEvent = ActivityBase &
         detail?: string;
       }
     | { type: 'expired'; commandId: string }
-    | { type: 'alert' | 'resolved'; alertId: string; message: string; level?: 'critical' | 'warning' }
+    | { type: 'alert' | 'resolved'; alertId: string; message: string; level?: 'critical' | 'warning'; detail?: string }
     | { type: 'state'; entityId: string; value: string; message?: string }
     | { type: 'saved'; id: string }
   );
@@ -131,6 +131,7 @@ export function reduceActivity(entries: readonly ActivityEntry[], event: Activit
       ...base,
       type: event.type,
       message: event.message,
+      ...(event.detail ? { detail: event.detail } : {}),
       tone: event.type === 'resolved' ? 'ok' : event.level === 'warning' ? 'warning' : 'alert',
     };
   } else if (event.type === 'state') {

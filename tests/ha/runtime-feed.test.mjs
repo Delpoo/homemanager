@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { RuntimeFeed } from '../../.work/shell/runtime-feed.js';
 import { ActivityLog } from '../../.work/model/activity.js';
+import { symbolSpec } from '../../.work/model/symbol-spec.js';
+import { nowSections } from '../../.work/model/now.js';
+import { deviceScreen } from '../../.work/model/device-screen.js';
 const at = Date.parse('2026-10-29T00:00:00Z');
 const device = {
   id: 'lamp',
@@ -90,4 +93,63 @@ test('alert creation and resolution are separate from watched state observations
     log.entries.some(entry => entry.status === 'confirmed'),
     false,
   );
+});
+
+test('changing readings retain duration and all surfaces use the same observed condition', () => {
+  const { log, feed, hass, runtime } = setup();
+  const config = structuredClone(configuration),
+    d = config.catalog.devices[0];
+  d.bindings.entityId = 'sensor.soil';
+  d.display.category = 'plant';
+  d.display.alerts = [{ reading: 'sensor.soil', below: 20, forMinutes: 3, level: 'warning' }];
+  feed.configure(config);
+  const reading = value => ({ state: value, attributes: { friendly_name: 'Soil moisture', unit_of_measurement: '%' } });
+  hass.states['sensor.soil'] = reading('19');
+  feed.update(hass, runtime, new Set(), at);
+  assert.equal(feed.alerts.length, 0);
+  hass.states['sensor.soil'] = reading('18');
+  feed.update(hass, runtime, new Set(), at + 180000);
+  assert.equal(feed.alerts.length, 1);
+  assert.equal(symbolSpec(d, hass, at + 180000, undefined, feed.alertContext).badge.level, 'warning');
+  assert.equal(deviceScreen(d, hass, config.rooms, at + 180000, [], {}, feed.alertContext).alerts.length, 1);
+  const sections = nowSections([d], config.rooms, hass, at + 180000, null, {}, feed.alertContext);
+  assert.equal(sections[0].rows[0].alert.readingLabel, 'Soil moisture');
+  assert.equal(log.latest.detail, 'Soil moisture');
+  hass.states['sensor.soil'] = reading('unknown');
+  feed.update(hass, runtime, new Set(), at + 180001);
+  assert.equal(feed.alerts.length, 0);
+  assert.equal(
+    log.entries.some(entry => entry.type === 'resolved'),
+    false,
+  );
+  hass.states['sensor.soil'] = reading('22');
+  feed.update(hass, runtime, new Set(), at + 180002);
+  assert.equal(log.entries.filter(entry => entry.type === 'resolved').length, 1);
+});
+
+test('disconnect and removed association never claim recovery; severity edits propagate', () => {
+  const { log, feed, hass, runtime } = setup();
+  const config = structuredClone(configuration),
+    d = config.catalog.devices[0];
+  d.bindings.entityId = 'binary_sensor.door';
+  d.display.category = 'presence';
+  d.display.highlight = true;
+  d.display.alerts = [{ reading: 'binary_sensor.door', level: 'warning' }];
+  feed.configure(config);
+  hass.states['binary_sensor.door'] = { state: 'on', attributes: {} };
+  feed.update(hass, runtime, new Set(), at);
+  assert.equal(symbolSpec(d, hass, at).highlight, true);
+  assert.equal(symbolSpec(d, hass, at).ring, null);
+  d.display.alerts[0].level = 'alert';
+  feed.update(hass, runtime, new Set(), at + 1);
+  assert.equal(log.latest.tone, 'alert');
+  hass.connection = { connected: false };
+  feed.update(hass, runtime, new Set(), at + 2);
+  assert.equal(feed.alerts.length, 0);
+  assert.deepEqual(feed.alertContext, {});
+  assert.equal(
+    log.entries.some(entry => entry.type === 'resolved'),
+    false,
+  );
+  assert.equal(symbolSpec(d, hass, at).highlight, false);
 });

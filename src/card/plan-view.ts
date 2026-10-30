@@ -239,11 +239,12 @@ export function refreshState(this: HomeManagerCard) {
     const d = this.draft?.catalog.devices.find(d => d.id === m.dataset.id);
     if (!d) return;
     const state = this.runtime.states[d.id];
-    const spec = symbolSpec(d, this._hass, Date.now(), state);
+    const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext);
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
     m.dataset.active = String(!!spec.ring);
     m.dataset.archetype = spec.archetype;
+    m.dataset.highlight = String(spec.highlight);
     m.dataset.alert = spec.badge?.level ?? '';
     const main = m.querySelector('button.primary')!;
     const tap = spec.tap === 'control' ? tapControl(d) : null;

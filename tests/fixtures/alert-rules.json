@@ -1,0 +1,55 @@
+{
+  "valid": [
+    {},
+    { "highlight": false },
+    { "highlight": true, "alerts": [] },
+    { "alerts": [{ "reading": "binary_sensor.test_alarm", "level": "alert" }] },
+    { "alerts": [{ "reading": "sensor.test_soil", "below": 20, "level": "warning" }] },
+    { "alerts": [{ "reading": "sensor.test_temperature", "below": -10, "above": 40, "forMinutes": 0, "level": "alert" }] },
+    { "alerts": [{ "reading": "sensor.test_light", "below": 800, "forMinutes": 4320, "level": "warning" }] },
+    { "alerts": [{ "reading": "sensor.test_power", "above": 0, "forMinutes": 0.25, "level": "warning" }] },
+    { "alerts": [
+      { "reading": "sensor.test_a", "below": 1, "level": "alert" },
+      { "reading": "sensor.test_b", "below": 2, "level": "warning" },
+      { "reading": "sensor.test_c", "above": 3, "level": "warning" },
+      { "reading": "binary_sensor.test_d", "level": "alert" }
+    ] }
+  ],
+  "invalid": [
+    { "alerts": null },
+    { "alerts": {} },
+    { "alerts": true },
+    { "alerts": "rules" },
+    { "alerts": [1] },
+    { "alerts": [null] },
+    { "alerts": [{}] },
+    { "alerts": [{ "reading": "sensor.test_a" }] },
+    { "alerts": [{ "level": "warning" }] },
+    { "alerts": [{ "reading": "sensor.all", "level": "warning" }] },
+    { "alerts": [{ "reading": "not-an-entity", "level": "warning" }] },
+    { "alerts": [{ "reading": "sensor.test\n", "level": "warning" }] },
+    { "alerts": [{ "reading": null, "level": "warning" }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "critical" }] },
+    { "alerts": [{ "reading": "sensor.test", "level": null }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "below": "20" }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "below": true }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "above": null }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "above": [] }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "forMinutes": -1 }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "forMinutes": false }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "forMinutes": "3" }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "forMinutes": null }] },
+    { "alerts": [{ "reading": "sensor.test", "level": "warning", "enabled": true }] },
+    { "alerts": [
+      { "reading": "sensor.test_a", "level": "warning" },
+      { "reading": "sensor.test_b", "level": "warning" },
+      { "reading": "sensor.test_c", "level": "warning" },
+      { "reading": "sensor.test_d", "level": "warning" },
+      { "reading": "sensor.test_e", "level": "warning" }
+    ] },
+    { "highlight": null },
+    { "highlight": "auto" },
+    { "highlight": 1 },
+    { "highlight": {} }
+  ]
+}

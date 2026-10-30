@@ -1,3 +1,6 @@
+import type { AlertRuleConfig } from '../model/types.js';
+export type { AlertRuleConfig } from '../model/types.js';
+
 /** Shared types mirror schemas/*.schema.json. No credentials or live values
  * belong in Configuration; callers sanitize inline SVG before persistence/render.
  */
@@ -99,6 +102,10 @@ export interface Device {
     /** Optional body content. Meters default to value; all other archetypes to icon. */
     show?: SymbolShow;
     category?: DeviceCategory;
+    /** Up to four reading conditions. No runtime observation is persisted here. */
+    alerts?: AlertRuleConfig[];
+    /** Presence is highlighted only when explicitly enabled. */
+    highlight?: boolean;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };
