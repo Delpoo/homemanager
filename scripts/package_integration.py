@@ -19,7 +19,7 @@ TARGET = ROOT / ".work" / "release" / "homemanager.zip"
 
 ALLOWED = frozenset({
     "__init__.py", "config_flow.py", "const.py", "errors.py", "manifest.json",
-    "model.py", "storage_policy.py", "store.py", "strings.json", "svg.py",
+    "model.py", "plan_link.py", "storage_policy.py", "store.py", "strings.json", "svg.py",
     "validation.py", "websocket.py", "translations/en.json", "translations/es.json",
     "frontend/homemanager.js",
     # RF remote manager (docs/rf-manager.md).
