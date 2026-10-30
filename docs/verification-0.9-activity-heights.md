@@ -22,6 +22,8 @@ Verificación del 30/10/2026. El E2E, el panel real y las capturas se hicieron s
 
 `pytest` no se ejecutó en local: lo cubre `integration` en la CI.
 
+Tras integrar `main` con las etapas 1 a 2b de 0.10, se repitieron el E2E (14 comprobaciones pasan, HA 2026.2.3 temporal) y la suite completa de navegador. En ese mismo HA temporal, el editor de zonas dibujó una zona de dos rectángulos, la guardó y la conservó al recargar, sin errores de página. Con el panel a 1440×900, 1278×900 y 390×844, sus herramientas quedan dentro de la ventana y la página no se desplaza; esas medidas se tomaron con el fixture. Las capturas de esta página siguen siendo de antes de integrar y no muestran el editor.
+
 ### Panel real en el HA temporal
 
 Medido con el panel real, la barra lateral de HA abierta y un plano de prueba. En todas las filas el documento mide lo mismo que la ventana, así que la página no se desplaza.
