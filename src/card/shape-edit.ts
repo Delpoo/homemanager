@@ -124,6 +124,7 @@ export function endShapeEdit(this: HomeManagerCard, apply: boolean): void {
   const room = next.rooms.find(item => item.id === edit.id);
   if (!room) return;
   room.shape = { ...edit.shape };
+  delete room.rects;
   room.shapeSource = 'app';
   this.change(next);
   this.status(t('Forma guardada en el borrador. Guardá el plano para conservarla.'));
