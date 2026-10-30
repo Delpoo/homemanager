@@ -423,6 +423,7 @@ Maqueta: [§14](vision-mockup.html#s14).
 - Cada espacio tiene su **forma** (`rooms[].shape`), en coordenadas normalizadas del plano, como las posiciones de los dispositivos. Es un rectángulo o varios fusionados (`rooms[].rects`): una L son dos. No hay formas libres.
 - Si el SVG trae zonas `room-…`, al importarlo se **copian** como formas. Desde ahí, el SVG es sólo el dibujo.
 - Un SVG nuevo nunca pisa una forma: *Revisar cambios* ofrece actualizar, una por una, las formas que vinieron del SVG. Las que se editaron a mano se conservan.
+- Un **JSON** reemplaza todo el hogar, no sólo el dibujo. Si quita vínculos, avisos, acciones o paneles, o trae espacios que hoy no están, la vista previa lo dice y pide exportar antes una copia actual (D23).
 - Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando rectángulos sobre el plano.
 - Todo lo que hoy usa zonas del SVG pasa a usar la forma: el encuadre, el resaltado, *¿en qué espacio cayó este dispositivo?*, la barra de espacios, la revisión del plano y el aviso de espacios sin zona.
 

@@ -380,6 +380,8 @@ test('editor export contains durable configuration only and import waits for a r
   });
   await expect(page.getByRole('heading', { name: 'Resumen de importación' })).toBeVisible();
   expect((await draft(page)).catalog.devices[0].display.label).toBe(lightLabel);
+  // Nothing is lost by that file: it needs no warning and no copy first.
+  await expect(page.locator('homemanager-editor .import-losses')).toHaveCount(0);
   await page.getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
   expect((await draft(page)).catalog.devices[0].display.label).toBe('Etiqueta importada sintética');
   expect((await backend(page)).catalog.devices[0].display.label).toBe(lightLabel);
@@ -451,4 +453,35 @@ test('space navigation comes from the instance configuration', async ({ page }) 
     'aria-pressed',
     'true',
   );
+});
+
+test('an old JSON cannot silently take links away or bring spaces back', async ({ page }) => {
+  await begin(page);
+  const before = await draft(page);
+  const linked = before.catalog.devices.find(item => item.bindings.entityId);
+  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await page.getByText('Importar y exportar', { exact: true }).click();
+  const old = structuredClone(before);
+  old.catalog.devices.find(item => item.id === linked.id).bindings.entityId = null;
+  old.rooms.push({ id: 'cuarto-viejo', label: 'Cuarto viejo' });
+  await page.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
+    name: 'old.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(old)),
+  });
+  const warning = page.locator('homemanager-editor .import-losses');
+  await expect(warning).toContainText('reemplaza todo el hogar');
+  await expect(warning).toContainText(linked.display.label);
+  await expect(warning).toContainText('Cuarto viejo');
+  const apply = page.getByRole('button', { name: 'Aplicar importación al borrador', exact: true });
+  await expect(apply).toBeDisabled();
+  // Only with a current copy in hand.
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar copia actual', exact: true }).click();
+  await downloading;
+  await expect(apply).toBeEnabled();
+  expect(await draft(page)).toEqual(before);
+  // Cancelling leaves everything as it was.
+  await page.getByRole('button', { name: 'Cancelar importación', exact: true }).click();
+  expect(await draft(page)).toEqual(before);
 });
