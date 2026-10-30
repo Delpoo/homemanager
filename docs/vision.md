@@ -430,6 +430,11 @@ Maqueta: [§14](vision-mockup.html#s14).
 - Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando rectángulos sobre el plano.
 - Todo lo que hoy usa zonas del SVG pasa a usar la forma: el encuadre, el resaltado, *¿en qué espacio cayó este dispositivo?*, la barra de espacios, la revisión del plano y el aviso de espacios sin zona.
 
+**Conectar mi casa** (*Ajustes del plano*):
+- Cada espacio se vincula con un área de Home Assistant. Se sugiere la que ya tiene, una con su mismo nombre o una que nombre el mismo lugar en otro idioma, si no hay dos espacios que compitan por ella. Si no, se ofrece crearla.
+- Dos espacios no comparten un área, porque sus dispositivos no sabrían a cuál ir.
+- Los dispositivos de esas áreas que no están en el plano se proponen sin marcar, y los elegidos quedan repartidos dentro de su espacio.
+
 **Editor de zonas** (*Ajustes del plano → Editar zonas*, el *+* de la barra o *Editar forma en el plano*):
 - El dibujo queda de fondo y todas las zonas encima, cada una con su nombre.
 - **Nueva zona**, **Agregar rectángulo**, **Quitar rectángulo**, mover y cambiar de tamaño con los puntos; los bordes se enganchan con los cercanos.

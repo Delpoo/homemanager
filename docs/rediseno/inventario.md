@@ -2,7 +2,7 @@
 
 **Estado: entregado para revisión. No habilita E01 sin validación del propietario.**
 
-Base examinada e integrada: `origin/main` en `7f192e32000c2e47102297fc15f242d1060beb65`, incluido el plano vinculado del PR #47. Guías integradas: `claude/guias-rediseno`, commit `fa97550e1b9d548a98dfe01e4e34540b2bd333b8`. Fecha: 2026-10-31. La revisión inicial sobre `9a5d975` se amplió tras integrar esas dos ramas.
+Base examinada e integrada: `origin/main` en `764a9e052f8606831c99b35c6e81a55a98b0ee65`, incluidos el plano vinculado (#47) y Conectar mi casa (#50). Guías integradas: `claude/guias-rediseno`, commit `fa97550e1b9d548a98dfe01e4e34540b2bd333b8`. Fecha: 2026-10-31. La revisión inicial sobre `9a5d975` se amplió tras integrar esas dos ramas.
 
 Cada fila dice cómo se comprobó: **código** acredita que se leyó su implementación; **captura** acredita sólo su representación visible en una imagen histórica identificada abajo. **App** se reserva a ejecución comprobada en esta sesión: no se usa sin resultado observado. Las limitaciones del entorno están en el registro de comprobaciones; no son decisiones de producto ni bloquean esta entrega documental, conforme a las guías actualizadas. E00 no requiere la maqueta.
 
@@ -52,11 +52,11 @@ Fuente: `src/shell/layers.ts`. La lista actual declara Controles, Sensores, Ener
 
 ## Ajustes: navegación, espacios y diagnóstico
 
-Fuente: `src/editor/settings-page.ts`. La página tiene seis secciones y contadores de problemas. Los cuerpos de acciones, paneles, referencias e importación se generan en el editor y se detallan en F-079–F-089. La existencia de una entrada de menú no acredita la revisión de su flujo.
+Fuente: `src/editor/settings-page.ts`. La página tiene siete secciones y contadores de problemas. Los cuerpos de acciones, paneles, referencias e importación se generan en el editor y se detallan en F-079–F-089. La existencia de una entrada de menú no acredita la revisión de su flujo.
 
 | Id | Función | Qué permite hacer | Dónde está hoy | Cómo se llega | Etapa que la toca | Qué pasa con ella | Comprobada en |
 |---|---|---|---|---|---|---|---|
-| F-022 | Cambiar sección de ajustes | Entrar a Plano y espacios, Diagnóstico, Acciones lógicas, Paneles nativos, Referencias pendientes o Importar y exportar | Navegación de Ajustes | Abrir ajustes y elegir sección | E02 | Se conserva; funciones internas en F-075–F-089 y F-125 | código |
+| F-022 | Cambiar sección de ajustes | Entrar a Plano y espacios, Conectar mi casa, Diagnóstico, Acciones lógicas, Paneles nativos, Referencias pendientes o Importar y exportar | Navegación de Ajustes | Abrir ajustes y elegir sección | E02 | Se conserva; funciones internas en F-075–F-089 y F-125 | código |
 | F-023 | Consultar espacios | Ver nombre, icono, cantidad de dispositivos y situación de su forma | Plano y espacios | Abrir la sección | E02, E11 | Se conserva | código |
 | F-024 | Ordenar y abrir un espacio | Acceder a su edición y al control de orden mediante agarre o teclado | Lista de espacios | Abrir una fila o usar su control de movimiento | E02, E11 | Se conserva; reordenar actualiza la lista en el borrador | código |
 | F-025 | Reemplazar el dibujo | Acceder a la importación desde la miniatura del plano | Plano y espacios | Reemplazar plano | E02, E11 | Se conserva; revisión detallada en F-083–F-088 | código |
@@ -230,6 +230,19 @@ Fuentes adicionales de `main` integrado: `src/card/linked-plan.ts`, `src/editor/
 | F-130 | Leer y recordar versión del archivo | Limitar acceso a ruta fija validada por hogar, UTF-8 y 3 MiB; rechazar enlaces simbólicos; conservar huella resuelta | Backend y metadatos del hogar | Consulta autenticada y marca de versión vista | E11 | Se conserva; no admitir direcciones externas ni ampliar permisos | código |
 | F-131 | Buscar o escribir iconos actuales | Buscar sugerencias y añadir identificador MDI válido, con iconos de las entidades disponibles | Selector de icono de ficha/espacio/controles | Abrir selector, buscar o escribir icono | E08, E09 | Se conserva; unificar selectores y nombres simples no debe quitar la entrada de iconos fuera de las sugerencias | código |
 
+## Conectar mi casa: actualización de main durante el cierre
+
+La rama principal avanzó a `764a9e0` (PR #50, Conectar mi casa) durante el cierre. Se integró ese commit y se contrastaron su código y pruebas fuente; las funciones siguientes no son implementación de E00. Fuentes: `src/editor/connect-home.ts`, `src/model/connect-home.ts`, métodos `connectApply`/`connectAdd` de `src/editor/index.ts`, `tests/card/connect-home.browser.spec.mjs` y el contrato actualizado de espacios.
+
+| Id | Función | Qué permite hacer | Dónde está hoy | Cómo se llega | Etapa que la toca | Qué pasa con ella | Comprobada en |
+|---|---|---|---|---|---|---|---|
+| F-132 | Elegir vínculo espacio-área | Conservar vínculo actual, aceptar sugerencia por nombre, elegir área, dejar sin área u ofrecer crearla | Ajustes → Conectar mi casa | Elegir área de cada espacio | E02, E05, E11 | Se conserva; las sugerencias no cambian datos antes de aplicar | código |
+| F-133 | Crear áreas explícitamente | Crear sólo las áreas nombradas por el botón y vincular lo creado; advertir que deshacer no borra áreas de HA | Conectar mi casa | Crear un área y vincular / Crear varias y vincular | E02, E05, E11 | Se conserva; es una escritura real en HA, distinta del borrador del plano | código |
+| F-134 | Proponer dispositivos por área | Ver dispositivos y entidades sin dispositivo de las áreas vinculadas que aún no están en el plano; empezar sin selecciones | Conectar mi casa | Lista de propuestas por espacio | E02, E05 | Se conserva; no asignar automáticamente dispositivos a otras áreas HA | código |
+| F-135 | Agregar seleccionados dentro del espacio | Incorporar sólo lo marcado, con vínculos y lecturas, repartido dentro de su espacio; mover después y guardar explícitamente | Conectar mi casa | Agregar seleccionados | E02, E05, E11 | Se conserva; el agregado queda en el borrador y no ejecuta controles | código |
+| F-136 | Resolver falta de áreas, duplicados y fallos parciales | Avisar si no hay registro; impedir dos espacios para la misma área; conservar áreas ya creadas si falla una siguiente | Conectar mi casa | Abrir o aplicar vínculos | E02, E05 | Se conserva; no repetir sin explicar una escritura parcialmente completada | código |
+| F-137 | Conservar el vínculo de área en los datos | Leer/validar `rooms[].areaId` opcional y mantenerlo al editar otras propiedades de un espacio | Contrato y editor | Guardar espacio, importar y cargar configuración | E05, E11 | Se conserva; vínculo ausente o área eliminada no rompe planos anteriores | código |
+
 ## A decidir para el propietario
 
 ### D-E00-01 — Dónde consultar el historial
@@ -260,7 +273,7 @@ Son decisiones de destino de funciones existentes. Las cinco decisiones abiertas
 
 ## Índice estático de comandos y ventanas
 
-Escaneo de `src/` sobre `main` integrado: 65 ocurrencias de atributos `data-command`, con 49 nombres literales distintos y otras expresiones generadas. Las 49 cadenas literales tienen correspondencia en esta tabla. Los selectores y formularios también disparan funciones y están registrados en las tablas por pantalla. **Esto acredita trazabilidad estática, no ejecución.**
+Escaneo de `src/` sobre `main` integrado: 67 ocurrencias de atributos `data-command`, con 51 nombres literales distintos y otras expresiones generadas. Las 51 cadenas literales tienen correspondencia en esta tabla. Los selectores y formularios también disparan funciones y están registrados en las tablas por pantalla. **Esto acredita trazabilidad estática, no ejecución.**
 
 | Comandos literales encontrados | Funciones |
 |---|---|
@@ -279,6 +292,7 @@ Escaneo de `src/` sobre `main` integrado: 65 ocurrencias de atributos `data-comm
 | `refresh` | F-114 |
 | `zone-undo`, `zone-apply` | F-091, F-092 |
 | `linked-review` | F-127 |
+| `connect-apply`, `connect-add` | F-132–F-136 |
 
 Generadores revisados además de las cadenas literales:
 
@@ -298,6 +312,7 @@ Generadores revisados además de las cadenas literales:
 | `src/rf/manager.ts`: campos, atributos y eventos del lienzo | Abrir mando/pestaña, iconos, nombre, ajustes, probar/eliminar botón, partes y roles, slots y dimensiones: F-098–F-107 |
 | `src/rf/learn.ts`, `devices.ts`: atributos y cambios | Receptor, sugerencias, iconos, roles, YAML/copia, receptor predeterminado y prueba: F-108–F-116 |
 | `src/panels/`, `src/ui/control-view.ts` | Controles propios/nativos, selección de valores, scripts, corrección estimada y foco: F-066–F-074 |
+| `src/editor/connect-home.ts` y eventos del editor | `connect-apply`, `connect-add`, `data-connect-room` y `data-connect-device`: F-132–F-137 |
 | `src/card/linked-plan.ts`: generador de botón y `linkedCommand` | `linked-review`, `linked-ignore`, `linked-close`, `linked-undo`: F-127–F-129; `linkedBox` también genera Revisar en el editor |
 
 ### Aperturas `showModal`
@@ -311,9 +326,9 @@ Son 12 puntos de apertura, no doce flujos únicos. Uno es la reapertura de una r
 | `src/card/zone-editor.ts:566` | Revisar cambios de espacio al aplicar zonas | F-092 | Pantalla de revisión |
 | `src/card/zone-editor.ts:592` | Ayuda de primer dibujo sin zonas | F-093 | Conservar explicación y acceso al primer dibujo; ubicación a validar |
 | `src/editor/device-picker.ts:255` | Selector de dispositivo y lecturas | F-062–F-065 | Ficha o pantalla según validación de E02 |
-| `src/editor/index.ts:629` | Ajustes | F-022–F-028, F-075–F-089, F-125 | Pantalla real |
-| `src/editor/index.ts:635` | Reabrir revisión después de un repintado de Ajustes | F-086, F-127 | Conservar lo escrito y la revisión pendiente; no crear una tarea duplicada |
-| `src/editor/plan-review.ts:236` | Revisión de importación | F-086, F-087 | Pantalla de revisión |
+| `src/editor/index.ts:654` | Ajustes | F-022–F-028, F-075–F-089, F-125 | Pantalla real |
+| `src/editor/index.ts:660` | Reabrir revisión después de un repintado de Ajustes | F-086, F-127 | Conservar lo escrito y la revisión pendiente; no crear una tarea duplicada |
+| `src/editor/plan-review.ts:245` | Revisión de importación | F-086, F-087 | Pantalla de revisión |
 | `src/editor/room-actions.ts:104` | Editar espacio | F-077, F-078 | Pantalla de trabajo |
 | `src/panels/native-panel.ts:266` | Ventana de controles | F-070–F-074 | Conservar controles y accesos; validar objetivo en E09 |
 | `src/rf/manager.ts:168` | Editor de widget | F-104, F-106 | Dentro del diseñador, sin apilar ventanas |
@@ -332,7 +347,7 @@ Se recuperó la fuente completa de la maqueta desde la rama de guías. Contiene 
 
 ### Capturas históricas realmente inspeccionadas
 
-Las diez imágenes siguientes se abrieron y se inspeccionaron en esta sesión. Sus carpetas identifican la etapa de origen; no contienen un SHA de ejecución, por lo que no se atribuyen a una beta o commit más preciso. Ninguna prueba el comportamiento de `main 7f192e3`. En las filas, «captura» sólo respalda lo visible; la conducta descrita se contrastó en código.
+Las diez imágenes siguientes se abrieron y se inspeccionaron en esta sesión. Sus carpetas identifican la etapa de origen; no contienen un SHA de ejecución, por lo que no se atribuyen a una beta o commit más preciso. Ninguna prueba el comportamiento de `main 764a9e0`. En las filas, «captura» sólo respalda lo visible; la conducta descrita se contrastó en código.
 
 | Código | Etapa/versión de origen | Archivo | Qué se puede verificar en la imagen |
 |---|---|---|---|
@@ -349,10 +364,10 @@ Las diez imágenes siguientes se abrieron y se inspeccionaron en esta sesión. S
 
 ### Código, traducciones y pruebas leídas
 
-- Implementaciones citadas en cada sección, incluidas las de integración y el plano vinculado de main.
-- Contraste con pruebas de shell, vista por espacio, editor, RF y hogares, en `tests/card/shell.browser.spec.mjs`, `tests/card/room-view.browser.spec.mjs`, `tests/editor/editor.browser.spec.mjs`, `tests/rf/rf.browser.spec.mjs` y `tests/integration/home.browser.spec.mjs`. Leer una prueba no equivale a ejecutarla.
+- Implementaciones citadas en cada sección, incluidas las de integración y el plano vinculado y Conectar mi casa de main.
+- Contraste con pruebas de shell, vista por espacio, editor, RF y hogares, en `tests/card/shell.browser.spec.mjs`, `tests/card/room-view.browser.spec.mjs`, `tests/editor/editor.browser.spec.mjs`, `tests/rf/rf.browser.spec.mjs` y `tests/integration/home.browser.spec.mjs`; para la actualización final también `tests/card/connect-home.browser.spec.mjs` y `tests/model/connect-home.test.mjs`. Leer una prueba no equivale a ejecutarla.
 - Revisión de claves de `src/i18n/en.ts`, `en-controls.ts`, `en-rf.ts` y `en-shell.ts`: guardado, almacenamiento, historial, fuente de estado, controles, candidatos, intentos y archivo vinculado tienen correspondencia con F-053, F-059, F-070–F-074, F-089, F-094–F-116 y F-119–F-130. Las claves antiguas sin emisor vigente no se cuentan como funciones visibles.
-- Escaneo literal y revisión de generadores: 49 comandos, 65 ocurrencias y 12 puntos de apertura, documentados arriba. No aparecieron acciones visibles de esos generadores sin una función asignada.
+- Escaneo literal y revisión de generadores: 51 comandos, 65 ocurrencias y 12 puntos de apertura, documentados arriba. No aparecieron acciones visibles de esos generadores sin una función asignada.
 
 ### Intentos de ejecución, en el orden de las guías
 
@@ -364,9 +379,9 @@ Las diez imágenes siguientes se abrieron y se inspeccionaron en esta sesión. S
 ### Comprobaciones locales
 
 - `npm ci --ignore-scripts --offline --no-audit --no-fund`: falló con `ENOTCACHED` al faltar TypeScript. Se usó la alternativa de la guía: dependencias copiadas de otra copia local del mismo repositorio. SHA-256 de ambos `package-lock.json`: `b00ad4f81b3ec579edbd189be626e1628ca6b54d2e3488f75f23eb4cd308f934`.
-- Tras integrar main y guías: `npm run check` pasó, con **239 pruebas** más tipos y límites públicos; `npm run format:check` pasó. El build incluido en check pasó.
-- Python y extremo a extremo: no corridos. E00 no modifica integración, contrato ni flujos del producto; el código de plano vinculado proviene íntegramente de main.
-- Sin capturas nuevas ni pantallas modificadas. Los assets de maqueta y los cambios de servidor/comprobador público provienen de la rama de guías, no son implementación de otra etapa.
+- Tras integrar main y guías: `npm run check` pasó, con **248 pruebas** más tipos y límites públicos; `npm run format:check` pasó. El build incluido en check pasó.
+- Python y extremo a extremo: no corridos. E00 no modifica integración, contrato ni flujos del producto; el código de plano vinculado y Conectar mi casa proviene íntegramente de main.
+- Sin capturas nuevas ni pantallas modificadas por E00. Los assets de maqueta y los cambios de servidor/comprobador público provienen de la rama de guías, no son implementación de otra etapa.
 
 ### Para el auditor
 

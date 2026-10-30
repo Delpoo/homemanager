@@ -32,6 +32,8 @@ export interface Room {
   shape?: RoomShape;
   /** A zone of merged rectangles (2 to 12); `shape` is then the box around them. */
   rects?: RoomShape[];
+  /** The Home Assistant area this space stands for. */
+  areaId?: string;
   /** `svg`: copied from a zone and kept in step with it; `app`: edited here, never overwritten. */
   shapeSource?: 'svg' | 'app';
   /** Room view framing: how much around the space shows (normal when absent). */

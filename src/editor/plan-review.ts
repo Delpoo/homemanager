@@ -4,6 +4,7 @@ import { planHealth, type PlanHealth } from '../model/plan-health.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
 import { ownsShape, roomContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
+import { startDraft } from '../model/zone-edit.js';
 
 /** The import report plus the spaces drawn by hand whose zone the new plan redraws (D22). */
 export type PlanReview = PlanImportReport & { drawn?: { roomId: string; label: string }[] };
@@ -70,6 +71,14 @@ export function healthOfPlan(configuration: Configuration, entities?: ReadonlySe
       title,
       ...(entities ? { entities } : {}),
     });
+  });
+}
+/** Each space's rectangles right now: its own, else its zone's. */
+export function spaceRects(configuration: Configuration): Record<string, RoomShape[]> {
+  return mounted(configuration, ({ svg, box }) => {
+    const ids = configuration.rooms.map(room => room.id);
+    const draft = startDraft(configuration.rooms, zoneShapes(svg, box, ids));
+    return Object.fromEntries(draft.zones.map(zone => [zone.id, zone.rects]));
   });
 }
 /** After an import, every space that follows the SVG keeps a copy of its zone (D22). */

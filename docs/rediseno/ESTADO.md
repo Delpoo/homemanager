@@ -8,7 +8,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 
 | Etapa | Qué deja lista | Depende de | Estado | Agente | Rama / PR | Actualizada | Falta |
 |---|---|---|---|---|---|---|---|
-| [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 131 funciones entregado con evidencia por fila |
+| [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 137 funciones entregado con evidencia por fila |
 | [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | pendiente | — | — | — | Todo |
 | [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | pendiente | — | — | — | Todo |
 | [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | pendiente | — | — | — | Todo |
@@ -52,6 +52,7 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-10-31 · ChatGPT · E00 · Cierre actualizado: main 764a9e0 (#50) integrado; 137 funciones, 40 con capturas históricas, 51 comandos y 12 aperturas. Check (248) y formato pasan; navegador pendiente de auditoría. Misma parada antes de E01.
 - 2026-10-31 · ChatGPT · E00 · Terminada para revisión en PR #49: 131 funciones (40 con capturas históricas además de código), 49 comandos literales y 12 aperturas de ventanas. Check (239) y formato pasan; navegador no aprobado. Seis destinos a validar antes de E01. Reporte en entregas/E00-2026-10-31.md.
 - 2026-10-31 · ChatGPT · E00 · Retomada por instrucción del propietario, con guías fa97550 y main 7f192e3 integrados. Se distingue código, captura y app; E00 no requiere maqueta.
 - 2026-10-31 · ChatGPT · E00 · Pausada en PR #49: 28 funciones registradas sólo desde código; navegador rechazó la apertura local de la maqueta. Faltan recorrido y cobertura completa. Reporte en entregas/E00-2026-10-31.md; no iniciar E01.

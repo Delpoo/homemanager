@@ -47,8 +47,19 @@ type Box = { x: number; y: number; width: number; height: number };
 export { LovelaceConfigurationStore, type ConfigurationStore } from './storage.js';
 import { enhanceEntityInput, friendlyName, areaOf, pickerStyles } from './entity-picker.js';
 import { openDevicePicker, type DevicePicker } from './device-picker.js';
-import { deviceName, readingName, personName } from '../model/names.js';
-import { bindingIssues, type DeviceSelection } from '../model/device-catalog.js';
+import { deviceName, entityAreaId, readingName, personName } from '../model/names.js';
+import {
+  CREATE_AREA,
+  areaProposals,
+  isLooseEntity,
+  looseEntities,
+  sharedAreas,
+  spreadInRoom,
+  suggestAreas,
+  withAreaLinks,
+} from '../model/connect-home.js';
+import { connectBody, connectStyles } from './connect-home.js';
+import { bindingIssues, deviceCatalog, pickerReadings, type DeviceSelection } from '../model/device-catalog.js';
 import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
 import { snapToGrid } from '../model/room-shapes.js';
@@ -63,7 +74,14 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
-import { healthOfPlan, reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
+import {
+  healthOfPlan,
+  reportForPlan,
+  hasPlanChanges,
+  openPlanReview,
+  spaceRects,
+  withPlanShapes,
+} from './plan-review.js';
 import { applyFixes, canFix, isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
 import { openRoomActions, type RoomViewChoices } from './room-actions.js';
 import {
@@ -91,7 +109,7 @@ import {
 } from './controls-editor.js';
 export * from './model.js';
 
-const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}
+const css = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
@@ -183,6 +201,12 @@ export class HomeManagerEditor extends HTMLElement {
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
   editZones?: () => void;
+  /** Conectar mi casa: what each space was given, and the devices ticked to add. */
+  private connectChoices: Record<string, string> = {};
+  private connectPicked = new Set<string>();
+  /** Areas created here, until the registry reports them. */
+  private connectCreated: Record<string, { name?: string }> = {};
+  private connectBusy = false;
   /** Set by the card: reviews the home's linked drawing. */
   linkedReview?: () => void;
   private linked?: LinkedPlanStatus | null;
@@ -566,6 +590,7 @@ export class HomeManagerEditor extends HTMLElement {
           : ''),
       bodies: {
         'rooms-section': this.roomsForm(),
+        'connect-section': this.connectForm(),
         'health-section': health
           ? healthBody(
               health,
@@ -1023,6 +1048,101 @@ export class HomeManagerEditor extends HTMLElement {
       this.notice(error instanceof Error ? error.message : String(error));
     }
   }
+  private connectAreas(): Record<string, { name?: string }> {
+    return { ...this.connectCreated, ...this._hass?.areas };
+  }
+  private connectCatalog() {
+    const devices = this.configuration.catalog.devices;
+    return [...deviceCatalog(this._hass, devices), ...looseEntities(this._hass, devices)];
+  }
+  private connectForm(): string {
+    const rooms = this.configuration.rooms;
+    const areas = this.connectAreas();
+    this.connectChoices = { ...suggestAreas(rooms, areas), ...this.connectChoices };
+    return connectBody({
+      rooms,
+      areas,
+      known: !!this._hass?.areas,
+      choices: this.connectChoices,
+      proposals: areaProposals(rooms, this.connectCatalog()),
+      picked: this.connectPicked,
+      busy: this.connectBusy,
+    });
+  }
+  /** The only step that writes to Home Assistant, and only for the areas the button names. */
+  private async connectApply(): Promise<void> {
+    const hass = this._hass;
+    if (!hass?.callWS || this.connectBusy) return;
+    if (sharedAreas(this.connectChoices).length) {
+      this.notice(t('Dos espacios no pueden compartir un área: sus dispositivos no sabrían a cuál ir.'));
+      return;
+    }
+    this.connectBusy = true;
+    this.render();
+    const links: Record<string, string | null> = {};
+    let failure = '';
+    for (const room of this.configuration.rooms) {
+      const choice = this.connectChoices[room.id];
+      if (choice !== CREATE_AREA) {
+        links[room.id] = choice || null;
+        continue;
+      }
+      try {
+        const area = await hass.callWS<{ area_id: string }>({ type: 'config/area_registry/create', name: room.label });
+        this.connectCreated[area.area_id] = { name: room.label };
+        this.connectChoices[room.id] = area.area_id;
+        links[room.id] = area.area_id;
+      } catch (error) {
+        // What was created stays linked; this one can be retried or chosen by hand.
+        failure = t('No se pudo crear el área «{room}»: {reason}', { room: room.label, reason: describeError(error) });
+        break;
+      }
+    }
+    this.connectBusy = false;
+    this.emit(withAreaLinks(this.configuration, links));
+    this.notice(failure || t('Espacios vinculados en el borrador. Guardá el plano para conservarlo.'));
+  }
+  private connectAdd(): void {
+    const hass = this._hass;
+    if (!hass) return;
+    const rooms = this.configuration.rooms;
+    const catalog = deviceCatalog(hass, this.configuration.catalog.devices);
+    const proposals = areaProposals(rooms, this.connectCatalog());
+    const rects = spaceRects(this.configuration);
+    let next = this.configuration,
+      added = 0;
+    for (const proposal of proposals) {
+      const devices = proposal.devices.filter(device => this.connectPicked.has(device.deviceId));
+      const spots = spreadInRoom(rects[proposal.roomId] ?? [], devices.length);
+      devices.forEach((device, index) => {
+        const full = catalog.find(item => item.deviceId === device.deviceId);
+        next = this.deviceFromEntity(
+          next,
+          device.primaryEntityId,
+          isLooseEntity(device.deviceId) || !full
+            ? undefined
+            : {
+                deviceId: device.deviceId,
+                entityId: device.primaryEntityId,
+                readings: pickerReadings(full)
+                  .primary.slice(1)
+                  .map(reading => reading.entityId),
+              },
+          { roomId: proposal.roomId, position: spots[index] },
+        ).next;
+        added++;
+      });
+    }
+    if (!added) {
+      this.notice(t('Marcá primero los dispositivos que querés agregar.'));
+      return;
+    }
+    this.connectPicked.clear();
+    this.emit(next);
+    this.notice(
+      t('{count} dispositivos agregados al borrador. Movelos a su lugar y guardá el plano.', { count: added }),
+    );
+  }
   private importForm(): string {
     const imported = this.imported;
     const history =
@@ -1075,6 +1195,12 @@ export class HomeManagerEditor extends HTMLElement {
           this.openRoom(id, this.roomView?.(id));
           break;
         }
+        case 'connect-apply':
+          void this.connectApply();
+          break;
+        case 'connect-add':
+          this.connectAdd();
+          break;
         case 'linked-review':
           this.linkedReview?.();
           break;
@@ -1304,7 +1430,13 @@ export class HomeManagerEditor extends HTMLElement {
         services = SERVICES[target.value] ?? [];
       if (service) service.innerHTML = services.map(value => option(value, value, services[0])).join('');
     } else if (target.id === 'import-file') void this.importFile((target as HTMLInputElement).files?.[0]);
-    else if (target.id === 'quick-add') this.addFromEntity((target as HTMLInputElement).value.trim());
+    else if (target.dataset.connectRoom) {
+      this.connectChoices[target.dataset.connectRoom] = (target as HTMLSelectElement).value;
+      this.render();
+    } else if (target.dataset.connectDevice) {
+      if ((target as HTMLInputElement).checked) this.connectPicked.add(target.dataset.connectDevice);
+      else this.connectPicked.delete(target.dataset.connectDevice);
+    } else if (target.id === 'quick-add') this.addFromEntity((target as HTMLInputElement).value.trim());
     else if (target.getAttribute('name') === 'position-mode' && this.imported)
       this.imported.positionMode = target.value === 'relative' ? 'relative' : 'drawing';
   };
@@ -1588,22 +1720,14 @@ export class HomeManagerEditor extends HTMLElement {
     )?.fields;
     return !fields || !Object.values(fields).some(field => field?.required === true);
   }
-  private addFromEntity(entityId: string, selection?: DeviceSelection): void {
-    const hass = this._hass;
-    if (!entityId || !hass?.states[entityId]) return;
-    const configuration = this.configuration;
-    const existing = configuration.catalog.devices.find(
-      device =>
-        device.bindings.entityId === entityId ||
-        (selection?.deviceId &&
-          (device.bindings.deviceId === selection.deviceId ||
-            (device.bindings.entityId && hass.entities?.[device.bindings.entityId]?.device_id === selection.deviceId))),
-    );
-    if (existing) {
-      this.selectedDeviceId = existing.id;
-      this.notice(t('«{label}» ya está en el plano.', { label: existing.display.label }));
-      return;
-    }
+  /** The device a chosen entity makes, with its suggested controls. It starts in the middle unless told otherwise. */
+  private deviceFromEntity(
+    configuration: Configuration,
+    entityId: string,
+    selection?: DeviceSelection,
+    place?: { roomId: string; position: { x: number; y: number } },
+  ): { next: Configuration; id: string; label: string } {
+    const hass = this._hass!;
     const entity = hass.states[entityId];
     const label = (
       selection?.deviceId
@@ -1619,11 +1743,15 @@ export class HomeManagerEditor extends HTMLElement {
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .trim();
-    const room = area
-      ? configuration.rooms.find(
-          item => fold(item.label) === fold(area) || item.id === fold(area).replace(/[^a-z0-9]+/g, '-'),
-        )
-      : undefined;
+    const room =
+      place?.roomId !== undefined
+        ? configuration.rooms.find(item => item.id === place.roomId)
+        : (configuration.rooms.find(item => item.areaId && item.areaId === entityAreaId(entityId, hass)) ??
+          (area
+            ? configuration.rooms.find(
+                item => fold(item.label) === fold(area) || item.id === fold(area).replace(/[^a-z0-9]+/g, '-'),
+              )
+            : undefined));
     let next = configuration;
     const suggested = suggestControls(id, entityId, presentation.icon, (domain, service) =>
       this.canSuggest(entityId, domain, service),
@@ -1642,7 +1770,7 @@ export class HomeManagerEditor extends HTMLElement {
       id,
       roomId: room?.id ?? null,
       kind: (KINDS as readonly string[]).includes(presentation.kind) ? (presentation.kind as Device['kind']) : 'other',
-      position: { x: 0.5, y: 0.5 },
+      position: place?.position ?? { x: 0.5, y: 0.5 },
       mobility: 'editable',
       display: { label, icon: presentation.icon },
       bindings: {
@@ -1655,6 +1783,25 @@ export class HomeManagerEditor extends HTMLElement {
       },
       state: { value: 'unknown', confidence: 'unknown' },
     });
+    return { next, id, label };
+  }
+  private addFromEntity(entityId: string, selection?: DeviceSelection): void {
+    const hass = this._hass;
+    if (!entityId || !hass?.states[entityId]) return;
+    const configuration = this.configuration;
+    const existing = configuration.catalog.devices.find(
+      device =>
+        device.bindings.entityId === entityId ||
+        (selection?.deviceId &&
+          (device.bindings.deviceId === selection.deviceId ||
+            (device.bindings.entityId && hass.entities?.[device.bindings.entityId]?.device_id === selection.deviceId))),
+    );
+    if (existing) {
+      this.selectedDeviceId = existing.id;
+      this.notice(t('«{label}» ya está en el plano.', { label: existing.display.label }));
+      return;
+    }
+    const { next, id, label } = this.deviceFromEntity(configuration, entityId, selection);
     this._selectedDeviceId = id;
     this.surface = 'device';
     this.adding = false;

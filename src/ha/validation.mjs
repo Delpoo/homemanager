@@ -254,7 +254,7 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], ['icon', 'shape', 'rects', 'shapeSource', 'frame', 'nav'], path);
+    fields(room, ['id', 'label'], ['icon', 'shape', 'rects', 'shapeSource', 'frame', 'nav', 'areaId'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
     if (Object.hasOwn(room, 'icon')) {
@@ -273,6 +273,7 @@ function shape(configuration) {
       room.rects.forEach((rect, at) => roomShape(rect, `${path}.rects[${at}]`));
     }
     if (Object.hasOwn(room, 'frame')) one(room.frame, ROOM_FRAMES, `${path}.frame`);
+    if (Object.hasOwn(room, 'areaId')) text(room.areaId, `${path}.areaId`);
     if (Object.hasOwn(room, 'nav')) {
       fields(room.nav, [], ['skip', 'hidden'], `${path}.nav`);
       if (Object.hasOwn(room.nav, 'skip') && typeof room.nav.skip !== 'boolean')
