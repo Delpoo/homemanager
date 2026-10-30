@@ -2,6 +2,17 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.8.0-beta.1 — beta
+
+Primera parte de la etapa 0.8 de [docs/roadmap.md](docs/roadmap.md): dispositivos primero, con nombres de persona.
+
+- **Vincular un dispositivo** en dos pasos: primero el dispositivo de Home Assistant, agrupado por espacio, con búsqueda por nombre, espacio, fabricante y modelo, y las pestañas *Todos* y *Sin ubicar*; después la lectura principal, ya sugerida, y hasta 3 lecturas adicionales con su valor actual. Un medidor de 6 canales aparece como una sola fila.
+- **Nombres de persona:** el nombre que le diste al dispositivo, y lecturas sin repetirlo (*Canal 1 · Potencia*). Nunca un `entity_id` ni guiones bajos, salvo en *Buscar cualquier entidad*.
+- No se ofrecen las entidades de diagnóstico, configuración, ocultas ni desactivadas.
+- Un medidor muestra en el plano su lectura principal y la primera adicional (*23,4° · 52 %*).
+- Campos opcionales `bindings.deviceId` y `bindings.readings`. Un plano de 0.7 sigue igual, y su ficha ofrece vincular el dispositivo de su entidad.
+- El selector de iconos muestra *Cambiar icono* en lugar del nombre técnico.
+
 ## 0.7.0-beta.1 — beta
 
 Etapa 0.7 de [docs/roadmap.md](docs/roadmap.md): base visual, tipos de símbolo y respuesta a cada toque (D20).
