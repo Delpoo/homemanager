@@ -399,16 +399,16 @@ Maqueta: [§13](vision-mockup.html#s13).
 - Cada una apunta al **centro** del destino con su ángulo real, no a 4 u 8 direcciones. Puede haber varias en un mismo lado, y en diagonal hacia un espacio que sólo comparte una esquina.
 - Tamaño y opacidad bajan con la distancia: el destino más cercano al 100 %, el más lejano hasta el 70 % del tamaño y el 50 % de la opacidad.
 - Si dos destinos quedan a menos de 20° entre sí, se ve sólo el más cercano; con la misma distancia, gana el que comparte pared. Hasta 8 flechas.
-- Se recalculan con cada cuadro de la cámara: al mover o hacer zoom, el espacio actual es el que contiene el centro de la vista, y las flechas se reacomodan.
+- Se reacomodan con cada cuadro de la cámara. El espacio actual es el último al que se viajó; al soltar el plano después de moverlo a mano, pasa a ser el que quedó en el centro de la vista.
 
 **Gestos**
 - **Tocar** una flecha no hace nada, para que un toque accidental no mueva el plano. La primera vez aparece la pista *Tirá para ir*.
 - **Mantener** 350 ms muestra el nombre y el icono del destino.
 - **Tirar**: arrastrar la flecha en sentido **contrario** a donde apunta. Pasados 40 px aparece el nombre y el plano empieza a moverse; al soltar, viaja. Si se suelta antes, la flecha vuelve a su lugar.
 - **Deslizar** el plano lo empuja: hacia arriba muestra lo que está abajo. Se elige el destino cuya flecha está más cerca de esa dirección, dentro de 35°; si no hay ninguno, el plano rebota.
-- La cámara viaja en 320 ms, sin recargar nada. Con movimiento reducido, el cambio es inmediato.
+- La cámara viaja en 260 ms, la misma transición del resto del plano, sin recargar nada. Con movimiento reducido, el cambio es inmediato.
 
-**Interruptores:** *Flechas* y *Deslizar* se prenden y apagan por separado, con dos botones debajo del plano. Quedan en ese navegador, como la apariencia.
+**Interruptores:** *Flechas* y *Deslizar* se prenden y apagan por separado, con dos botones del plano: abajo a la derecha en escritorio, arriba a la izquierda en el móvil. Quedan en ese navegador, como la apariencia.
 
 **Accesibilidad:** cada flecha es un botón *Ir a Cocina*, y Enter viaja. Las flechas del teclado eligen el destino más cercano a esa dirección.
 
