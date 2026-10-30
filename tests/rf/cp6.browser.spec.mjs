@@ -130,6 +130,9 @@ for (const dark of [false, true])
     await rf(page).getByRole('button', { name: 'Agregar elemento', exact: true }).click();
     const widget = rf(page).getByRole('dialog', { name: 'Agregar elemento', exact: true });
     await expect(widget).toBeVisible();
+    const dialogBox = await widget.boundingBox();
+    const choicesBox = await widget.locator('.types').boundingBox();
+    expect(choicesBox.width).toBeGreaterThan(dialogBox.width * 0.65);
     const save = widget.getByRole('button', { name: 'Guardar', exact: true });
     await expect(save.locator('ha-icon')).toHaveAttribute('icon', 'mdi:check');
     expect(await save.textContent()).toBe('');
@@ -223,4 +226,48 @@ test('readable RF fields preserve stored names when only an icon or role changes
   expect(await page.evaluate(() => window.rfServer.library[0].parts[0].name)).toBe('Ventilador_del_techo');
   expect(await page.evaluate(() => window.rfServer.library[0].name)).toBe('Techo_azul');
   await readable(rf(page));
+});
+
+test('RF follows the global theme choice and cancellation restores logical focus after rendering', async ({ page }) => {
+  await page.goto('/tests/browser/fixtures/rf-cp6.html?theme=light');
+  await page.waitForFunction(() => window.cp6Ready);
+  const app = page.locator('homemanager-app');
+  const initial = await page.evaluate(() => structuredClone(window.rfServer.library));
+  const choose = async value => {
+    const menu = app.locator('.hm-menu');
+    await menu.locator('summary').click();
+    await menu.getByRole('combobox', { name: 'Apariencia' }).selectOption(value);
+    await menu.locator('summary').click();
+  };
+  const background = () =>
+    rf(page)
+      .locator('.rf-workspace')
+      .evaluate(node => getComputedStyle(node).backgroundColor);
+  await choose('dark');
+  await expect.poll(background).toBe('rgb(18, 23, 20)');
+  await app.evaluate(node => {
+    node.hass = { ...window.testHarness.hass, themes: { darkMode: true } };
+  });
+  await choose('light');
+  await expect.poll(background).toBe('rgb(244, 245, 240)');
+  await choose('auto');
+  await expect.poll(background).toBe('rgb(18, 23, 20)');
+  await rf(page).locator('[data-open=techo]').click();
+  await rf(page).getByRole('button', { name: 'Editar', exact: true }).click();
+  const trigger = rf(page).getByRole('button', { name: 'Eliminar control', exact: true });
+  await trigger.click();
+  const dialog = rf(page).getByRole('dialog');
+  const cancel = dialog.getByRole('button', { name: 'Cancelar', exact: true });
+  await expect(cancel).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Eliminar', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(cancel).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await expect(trigger).toBeFocused();
+  expect(await page.evaluate(() => window.rfServer.library)).toEqual(initial);
 });

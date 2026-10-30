@@ -21,7 +21,7 @@ export function panelField(title: string, field: string, help?: string): string 
   return `<label class="k-field"><span class="k-field-title">${e(title)}${help ? helpTip(title, help) : ''}</span>${named}</label>`;
 }
 export const panelChoices = (title: string, body: string, help?: string): string =>
-  `<fieldset class="k-choices"><legend>${e(title)}${help ? helpTip(title, help) : ''}</legend>${body}</fieldset>`;
+  `<fieldset class="k-fieldset"><legend>${e(title)}${help ? helpTip(title, help) : ''}</legend>${body}</fieldset>`;
 export const panelIconAction = (
   title: string,
   attributes: string,
@@ -50,10 +50,42 @@ export function installDialogComponents(root: ShadowRoot): void {
   sheet.replaceSync(componentStyles + dialogStyles);
   root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
 }
+/** Preserve a logical control when its DOM is replaced, including form selection.
+ * Stable identifiers keep cancellation from focusing an obsolete button node. */
+export function keepPanelFocus(root: ShadowRoot, scopeSelector = ''): () => void {
+  const active = root.activeElement;
+  const selector = (element: Element): string | null => {
+    const attributes = [...element.attributes].filter(
+      attribute => attribute.name === 'id' || attribute.name === 'name' || attribute.name.startsWith('data-'),
+    );
+    return attributes.length
+      ? element.localName +
+          attributes.map(attribute => `[${CSS.escape(attribute.name)}="${CSS.escape(attribute.value)}"]`).join('')
+      : null;
+  };
+  if (!(active instanceof HTMLElement)) return () => {};
+  const key = selector(active);
+  const scope = scopeSelector ? active.closest(scopeSelector) : null;
+  const scopeKey = scope ? selector(scope) : null;
+  const selection =
+    active instanceof HTMLInputElement && active.selectionStart !== null
+      ? { start: active.selectionStart, end: active.selectionEnd!, direction: active.selectionDirection }
+      : null;
+  return () => {
+    if (!key || (scope && !scopeKey)) return;
+    const container = scopeKey ? root.querySelector(scopeKey) : root;
+    const targets = container?.querySelectorAll<HTMLElement>(key);
+    if (targets?.length !== 1) return;
+    const target = targets[0];
+    target.focus({ preventScroll: true });
+    if (selection && target instanceof HTMLInputElement)
+      target.setSelectionRange(selection.start, selection.end, selection.direction ?? 'none');
+  };
+}
 export const panelStyles = `
 *{box-sizing:border-box}[hidden]{display:none!important}:host{font-family:var(--hm-font);color:var(--hm-ink)}
 button,input,select,textarea{font:inherit;color:inherit}button{min-height:40px;padding:8px 16px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-surface);color:var(--hm-ink);cursor:pointer;font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px}button:hover:not(:disabled){background:var(--hm-surface-2)}button:disabled{opacity:.45;cursor:default}button[data-variant=primary]{background:var(--hm-brand);border-color:var(--hm-brand);color:var(--hm-on-accent)}button.danger{color:var(--hm-alert);border-color:color-mix(in srgb,var(--hm-alert) 35%,var(--hm-line))}button.solid-danger{color:var(--hm-on-accent);background:var(--hm-alert);border-color:var(--hm-alert)}button.back{padding:0;width:40px;height:40px;min-width:40px;border-radius:50%}button ha-icon{--mdc-icon-size:20px}
-input,select,textarea{min-height:44px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:14px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:none;box-shadow:var(--hm-focus)}.k-choices{border:0;margin:0;padding:0;min-width:0}.k-choices legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--hm-muted);padding:0 0 8px}.k-choices legend homemanager-help-tip{margin:-6px 0}label,.k-field{display:grid;gap:6px;font-size:12px;color:var(--hm-muted)}label>span:first-child,.k-field-title{display:flex;align-items:center;gap:6px}.k-field-title homemanager-help-tip{margin:-6px 0}.k-field>input,.k-field>select{color:var(--hm-ink)}h2,h3,p{margin:0}h2{font-size:18px;font-weight:600}h3{font-size:14px;font-weight:600}p{font-size:14px;line-height:1.5}.muted{color:var(--hm-muted);font-size:12px;line-height:1.5}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>label{flex:1 1 150px}.actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}.status{font-size:13px;line-height:1.5}.status:empty,.error-text:empty{display:none}.status.error,.error-text{color:var(--hm-alert)}.error-text{font-size:13px}.k-panel-empty{border:1px dashed var(--hm-line);border-radius:14px;max-width:520px;margin:auto;padding:36px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;color:var(--hm-muted)}.k-panel-empty>ha-icon{--mdc-icon-size:32px}.k-panel-empty h2{font-size:16px;color:var(--hm-ink)}
+input,select,textarea{min-height:44px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:14px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:none;box-shadow:var(--hm-focus)}.k-fieldset{border:0;margin:0;padding:0;min-width:0}.k-fieldset legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--hm-muted);padding:0 0 8px}.k-fieldset legend homemanager-help-tip{margin:-6px 0}label,.k-field{display:grid;gap:6px;font-size:12px;color:var(--hm-muted)}label>span:first-child,.k-field-title{display:flex;align-items:center;gap:6px}.k-field-title homemanager-help-tip{margin:-6px 0}.k-field>input,.k-field>select{color:var(--hm-ink)}h2,h3,p{margin:0}h2{font-size:18px;font-weight:600}h3{font-size:14px;font-weight:600}p{font-size:14px;line-height:1.5}.muted{color:var(--hm-muted);font-size:12px;line-height:1.5}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>label{flex:1 1 150px}.actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}.status{font-size:13px;line-height:1.5}.status:empty,.error-text:empty{display:none}.status.error,.error-text{color:var(--hm-alert)}.error-text{font-size:13px}.k-panel-empty{border:1px dashed var(--hm-line);border-radius:14px;max-width:520px;margin:auto;padding:36px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;color:var(--hm-muted)}.k-panel-empty>ha-icon{--mdc-icon-size:32px}.k-panel-empty h2{font-size:16px;color:var(--hm-ink)}
 ${dialogStyles}
 @media(max-width:650px){button{min-height:44px}.k-dialog{max-height:calc(100dvh - 24px);max-width:calc(100vw - 24px)}.k-dialog-head{padding:18px 16px 12px}.k-dialog-body{padding:0 16px 18px}.k-dialog-foot{padding:12px 16px max(12px,env(safe-area-inset-bottom))}}
 `;

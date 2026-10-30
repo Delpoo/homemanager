@@ -1,6 +1,12 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import { installPanelComponents, panelField, panelIconAction, panelChoices } from '../ui/panel-components.js';
+import {
+  installPanelComponents,
+  panelField,
+  panelIconAction,
+  panelChoices,
+  keepPanelFocus,
+} from '../ui/panel-components.js';
 import { rfManagerStyles, rfText, rfEditedText, rfWorkspace, rfWidgetDialog } from '../ui/rf-components.js';
 import {
   ROLES,
@@ -139,19 +145,7 @@ export class HomeManagerRf extends HTMLElement {
   // Rendering -------------------------------------------------------------
 
   private render(): void {
-    const active = this.root.activeElement as HTMLInputElement | null;
-    const focus = active?.name
-      ? {
-          name: active.name,
-          scope: active.closest<HTMLElement>('[data-button],[data-part]'),
-          caret: active.selectionStart ?? null,
-        }
-      : null;
-    const scopeKey = focus?.scope
-      ? focus.scope.dataset.button
-        ? `[data-button="${CSS.escape(focus.scope.dataset.button)}"]`
-        : `[data-part="${CSS.escape(focus.scope.dataset.part!)}"]`
-      : null;
+    const restoreFocus = keepPanelFocus(this.root, '[data-button],[data-part]');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
     let body: string;
     if (!this.loaded) body = `<p>${e(t('Cargando…'))}</p>${status}`;
@@ -172,12 +166,7 @@ export class HomeManagerRf extends HTMLElement {
     this.bind();
     const editor = this.root.querySelector<HTMLDialogElement>('dialog.editor');
     if (editor && !editor.open) editor.showModal();
-    if (focus) {
-      const scope = scopeKey ? this.root.querySelector(scopeKey) : this.root;
-      const field = scope?.querySelector<HTMLInputElement>(`[name="${CSS.escape(focus.name)}"]`);
-      field?.focus();
-      if (field && focus.caret !== null && field.type === 'text') field.setSelectionRange(focus.caret, focus.caret);
-    }
+    restoreFocus();
   }
 
   private renderNavigation(tabs: string): string {
