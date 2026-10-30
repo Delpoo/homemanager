@@ -86,6 +86,31 @@ function setup(t, { feedback = 'measured', verified = true, ttl = 1, attribute =
 }
 const state = adapter => adapter.getSnapshot().states['contract-device'];
 
+test('additional reading and registry changes republish without confirming a sent command', async t => {
+  const { adapter, hass } = setup(t);
+  const configuration = adapter.configuration;
+  Object.assign(configuration.catalog.devices[0].bindings, { deviceId: 'registry-device', readings: ['sensor.extra'] });
+  adapter.configure(configuration);
+  hass.states['sensor.extra'] = { state: '52', attributes: {} };
+  hass.entities = {
+    'sensor.extra': { device_id: 'registry-device' },
+    'switch.contract_target': { device_id: 'registry-device' },
+  };
+  adapter.setHass(hass);
+  const published = [];
+  adapter.subscribe(snapshot => published.push(snapshot));
+  await adapter.executeAction('contract-on');
+  const baseline = published.length;
+  hass.states['sensor.extra'] = { state: '55', attributes: {} };
+  adapter.setHass({ ...hass });
+  assert.equal(published.length, baseline + 1);
+  assert.equal(state(adapter).confidence, 'sent');
+  hass.entities['sensor.extra'].device_id = 'another-device';
+  adapter.setHass({ ...hass });
+  assert.equal(published.length, baseline + 2);
+  assert.equal(state(adapter).confidence, 'sent');
+});
+
 test('runtime schema is separate from persistent configuration and starts unknown', t => {
   const { adapter, hass, configuration } = setup(t);
   const before = structuredClone(configuration);

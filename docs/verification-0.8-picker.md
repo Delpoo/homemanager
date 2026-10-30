@@ -19,7 +19,7 @@ Toda la presentación nueva está en `src/ui/components.ts`, con los tokens del 
 | Comprobación | Resultado |
 | --- | --- |
 | `npm ci --ignore-scripts` | Aprobado; dependencias y versión sin cambios; cero vulnerabilidades informadas al instalar |
-| `npm run check` | 162 pruebas; tipos, esquemas y límite público |
+| `npm run check` | 163 pruebas; tipos, esquemas y límite público |
 | `npm run format:check` | Aprobado |
 | `npm run test:browser` | 238 aprobadas, 2 omisiones previstas de gestos táctiles en escritorio |
 | `python -m pytest -q`, HA 2026.2.3 / Python 3.13 | 186 aprobadas |
@@ -27,6 +27,8 @@ Toda la presentación nueva está en `src/ui/components.ts`, con los tokens del 
 | E2E con HA 2026.2.3 temporal | 13 comprobaciones aprobadas, cero errores del bundle HomeManager |
 
 Los tests de navegador rechazan cualquier texto visible con `_` o un identificador de entidad dentro del selector habitual, también con las lecturas plegadas abiertas. Comprueban además el límite de tres, valores que se actualizan con HA, cancelación sin cambio de borrador, vínculo de 0.7, pertenencia perdida, campos sin guardar conservados y valores dobles en el plano. Las regresiones anteriores siguen cubriendo edición, guardado, acciones, RF y planos de 0.6; no se modificó RF.
+
+El adaptador vigila también las lecturas adicionales y los cambios de pertenencia del registro, de modo que el segundo valor del plano se actualiza sin esperar a la principal. Esa actualización sólo provoca un refresco: no puede confirmar un comando. Una prueba de adaptador y el flujo de navegador cubren esta regresión.
 
 Las suites Python locales usan el arnés de Windows descrito en [testing.md](testing.md), con adaptación ignorada por Git para el bucle selector y sockets internos. La CI Linux ejecuta los comandos estándar. El E2E usa únicamente una configuración temporal en loopback y luces inventadas; registra separadamente cinco errores de páginas de HA ajenos a HomeManager. Ninguna prueba acciona hardware de la vivienda.
 

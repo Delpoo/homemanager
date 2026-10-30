@@ -20,7 +20,7 @@ Segundo PR `chatgpt/0.8-device-screen`: se crea desde `main` sólo después de q
 
 ## Continuación
 
-Pasos 1–3 completos en el PR borrador #21. El punto de revisión intermedia se comunicó en `4f65d5d`, antes de construir el selector: 159 pruebas JS y 125 Python de contrato/modelo. El selector usa los componentes de `src/ui/`; el registro ficticio tiene 15 dispositivos y 91 entidades. La verificación local incluye 162 pruebas JS, 238 de navegador (dos omisiones táctiles previstas en escritorio), 186 Python en cada versión HA y 13 comprobaciones E2E. Capturas, comparación y diferencias en [verification-0.8-picker.md](verification-0.8-picker.md).
+Pasos 1–3 completos en el PR borrador #21. El punto de revisión intermedia se comunicó en `4f65d5d`, antes de construir el selector: 159 pruebas JS y 125 Python de contrato/modelo. El selector usa los componentes de `src/ui/`; el registro ficticio tiene 15 dispositivos y 91 entidades. La verificación local incluye 163 pruebas JS, 238 de navegador (dos omisiones táctiles previstas en escritorio), 186 Python en cada versión HA y 13 comprobaciones E2E. Capturas, comparación y diferencias en [verification-0.8-picker.md](verification-0.8-picker.md).
 
 Paso 4: comprobar la CI del head final y conservar el PR en borrador. El segundo PR espera la fusión del primero en `main` por el propietario; su pantalla del dispositivo y Ahora siguen pendientes. No se cambian versiones ni se publica.
 

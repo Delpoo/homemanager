@@ -64,7 +64,10 @@ function feedbackSet(values) {
  * device bindings, state sources and action targets (scripts included). */
 function relevantEntities(configuration) {
   const ids = new Set();
-  for (const device of configuration.catalog.devices) if (device.bindings.entityId) ids.add(device.bindings.entityId);
+  for (const device of configuration.catalog.devices) {
+    if (device.bindings.entityId) ids.add(device.bindings.entityId);
+    for (const reading of device.bindings.readings ?? []) ids.add(reading);
+  }
   for (const source of Object.values(configuration.stateSources)) ids.add(source.entityId);
   for (const action of Object.values(configuration.actions))
     for (const id of [action.target.entity_id].flat()) ids.add(id);
@@ -81,12 +84,16 @@ function sessionFingerprint(hass, online, entityIds) {
     admin: hass?.user?.is_admin,
     services: hass?.services,
     states: entityIds.map(id => hass?.states?.[id]),
+    memberships: entityIds.map(id => hass?.entities?.[id]?.device_id ?? null),
   };
 }
 function sameFingerprint(a, b) {
   for (const key of ['online', 'connection', 'connected', 'userId', 'admin', 'services'])
     if (a[key] !== b[key]) return false;
-  return a.states.length === b.states.length && a.states.every((state, index) => state === b.states[index]);
+  return (
+    a.states.length === b.states.length &&
+    a.states.every((state, index) => state === b.states[index] && a.memberships[index] === b.memberships[index])
+  );
 }
 
 /** An adapter for the current authenticated HA session. It has no independent

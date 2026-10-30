@@ -101,6 +101,13 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
   );
   expect(device.bindings.readings).toEqual(['sensor.synthetic_2_humidity']);
   await expect(card(page).locator('.marker').filter({ hasText: '23,4 °C · 52 %' })).toHaveCount(1);
+  await page.evaluate(() => {
+    const hass = window.testHarness.hass,
+      id = 'sensor.synthetic_2_humidity';
+    hass.states[id] = { ...hass.states[id], state: '55' };
+    window.testHarness.card.hass = { ...hass };
+  });
+  await expect(card(page).locator('.marker').filter({ hasText: '23,4 °C · 55 %' })).toHaveCount(1);
   await card(page).getByRole('button', { name: 'Nombre sin guardar', exact: true }).click();
   await page.evaluate(() => {
     window.testHarness.hass.entities['sensor.synthetic_2_humidity'].device_id = 'device-3';
