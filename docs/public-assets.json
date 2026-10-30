@@ -48,7 +48,7 @@
       "source": "tests/browser/fixtures/shell.html",
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
-      "sha256": "9985d35fce90b71e661d025106b585769165e858eb31fcc9b5a7c4261fa59119"
+      "sha256": "b72c124a84626fb1342d6cfd17a23c54542760b923849f528a8150283fe86f7f"
     },
     {
       "path": "docs/evidence/0.7/mobile-activity.png",
@@ -97,7 +97,7 @@
       "source": "tests/browser/fixtures/shell.html",
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
-      "sha256": "24948e8a2de6c98f301aa9d095e0e15efd64da3396c04572336269686a4c19e3"
+      "sha256": "6c34461233510a43e59296e9f8b655425efb314024aa43613f970bca14b01b3b"
     }
   ]
 }

@@ -109,8 +109,11 @@ test('editing rail supports rename, merge and explicit unassignment on removal',
   let dialog = page.getByRole('dialog', { name: labels.living, exact: true });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel('Nombre del espacio', { exact: true }).fill('Sala nueva');
-  await dialog.getByLabel('Icono del espacio', { exact: true }).fill('mdi:sofa');
+  await dialog.getByRole('button', { name: 'Icono del espacio', exact: true }).click();
+  await dialog.getByRole('searchbox', { name: 'Buscar icono' }).fill('sofa');
+  await dialog.getByRole('option', { name: 'mdi:sofa', exact: true }).click();
   await dialog.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  expect((await draft(page)).rooms.find(room => room.id === 'living').icon).toBe('mdi:sofa');
   await expect(card(page).getByRole('button', { name: 'Encuadrar Sala nueva', exact: true })).toBeVisible();
   await card(page).getByRole('button', { name: 'Encuadrar Sala nueva', exact: true }).click();
   dialog = page.getByRole('dialog', { name: 'Sala nueva', exact: true });
@@ -130,4 +133,48 @@ test('editing rail supports rename, merge and explicit unassignment on removal',
       .filter(device => device.id !== 'synthetic-sensor')
       .every(device => device.roomId === null),
   ).toBe(true);
+});
+
+const split =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><path id="room-west" d="M10 20H510V720H10Z"><title>Oeste</title></path><path id="room-east" d="M510 20H1010V720H510Z"><title>Este</title></path></svg>';
+async function splitLiving(page) {
+  // The living room's devices fall on both sides of the new plan.
+  await page.evaluate(() =>
+    window.testHarness.mutateRemote(dashboard => {
+      const devices = dashboard.views[0].cards[0].configuration.catalog.devices;
+      devices.at(-1).roomId = 'living';
+    }),
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.testHarnessReady);
+  await begin(page);
+}
+
+test('a space emptied by individual moves is removed by default, never kept without a zone', async ({ page }) => {
+  await splitLiving(page);
+  await upload(page, split);
+  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  const living = review.locator('[data-orphan="living"]');
+  await expect(living).toHaveValue('remove');
+  // Keeping one of its devices makes Quitar unavailable and falls back to keeping the space.
+  await review.locator('[data-move]').first().uncheck();
+  await expect(living).toHaveValue('keep');
+  expect(await living.locator('option[value=remove]').evaluate(option => option.disabled)).toBe(true);
+  await review.locator('[data-move]').first().check();
+  await expect(living).toHaveValue('remove');
+  await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  const after = await draft(page);
+  expect(after.rooms.map(room => room.id).sort()).toEqual(['east', 'west']);
+  expect(after.catalog.devices.every(device => ['east', 'west'].includes(device.roomId))).toBe(true);
+});
+
+test('settings surface plan conflicts outside the folded sections', async ({ page }) => {
+  await upload(page);
+  await page.getByRole('button', { name: 'Importar sólo el plano', exact: true }).click();
+  const notice = editor(page).locator('.plan-conflicts');
+  await expect(notice).toContainText('3 espacios sin zona y 1 zonas sin espacio');
+  await notice.getByRole('button', { name: 'Revisar', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  await expect(editor(page).locator('.plan-conflicts')).toHaveCount(0);
 });

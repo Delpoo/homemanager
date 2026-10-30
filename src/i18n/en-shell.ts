@@ -4,6 +4,9 @@ export const enShell: Record<string, string> = {
     'Only the plan was imported. Room assignments were preserved; review the remaining conflicts.',
   'Cambios aplicados al borrador. Guardá para persistirlos.': 'Changes applied to the draft. Save to persist them.',
   'Revisar espacios con el plano': 'Review rooms against the plan',
+  '{rooms} espacios sin zona y {zones} zonas sin espacio':
+    '{rooms} rooms without a zone and {zones} zones without a room',
+  Revisar: 'Review',
   'Sin espacio': 'No room',
   'Revisar cambios': 'Review changes',
   'Revisá los cambios antes de aplicarlos al borrador. Guardar los persiste; Deshacer devuelve todo.':

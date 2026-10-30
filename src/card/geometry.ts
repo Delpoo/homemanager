@@ -770,12 +770,18 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
   mask.setAttribute('maskUnits', 'userSpaceOnUse');
   mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
   mask.style.maskType = 'luminance';
-  for (const [name, value] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height }))
-    mask.setAttribute(name, String(value));
+  // The shade reaches well past the viewBox so the margin around the drawing is
+  // dimmed too; the overlay does not clip, the card viewport does.
+  const shaded = {
+    x: box.x - 4 * box.width,
+    y: box.y - 4 * box.height,
+    width: 9 * box.width,
+    height: 9 * box.height,
+  };
+  for (const [name, value] of Object.entries(shaded)) mask.setAttribute(name, String(value));
   const rect = (fill: string) => {
     const element = document.createElementNS(SVG_NS, 'rect');
-    for (const [name, value] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height }))
-      element.setAttribute(name, String(value));
+    for (const [name, value] of Object.entries(shaded)) element.setAttribute(name, String(value));
     element.setAttribute('fill', fill);
     return element;
   };

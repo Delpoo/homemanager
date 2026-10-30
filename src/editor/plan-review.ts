@@ -55,6 +55,13 @@ export function openPlanReview(
     ...candidate.rooms.filter(room => !report.orphans.some(orphan => orphan.roomId === room.id)),
     ...report.newZones,
   ];
+  // Devices an orphan still holds once the checked moves are applied. A space
+  // emptied by individual moves is removed by default instead of kept without a zone.
+  const remaining = (orphan: PlanImportReport['orphans'][number], moved: (id: string) => boolean) =>
+    orphan.devices.filter(id => !moved(id));
+  const movedByDefault = (id: string) => report.moves.some(move => move.deviceId === id);
+  const defaultAction = (orphan: PlanImportReport['orphans'][number], left: number) =>
+    orphan.suggestion ? `merge:${orphan.suggestion}` : left ? 'keep' : 'remove';
   const positions = candidate.catalog.devices.filter(device => {
     const previous = before?.catalog.devices.find(item => item.id === device.id);
     return previous && JSON.stringify(previous.position) !== JSON.stringify(device.position);
@@ -65,18 +72,18 @@ export function openPlanReview(
   ${
     report.orphans.length
       ? `<h3>${e(t('Espacios sin zona'))}</h3>${report.orphans
-          .map(
-            orphan =>
-              `<div class="review-row"><strong>${e(orphan.label)}</strong><p>${orphan.devices.map(id => e(label(id))).join(', ') || e(t('Sin dispositivos'))}</p><label>${e(t('Resolver espacio'))}<select data-orphan="${e(orphan.roomId)}" aria-label="${e(t('Resolver {room}', { room: orphan.label }))}">${targets
-                .filter(room => room.id !== orphan.roomId)
-                .map(
-                  room =>
-                    `<option value="merge:${e(room.id)}"${orphan.suggestion === room.id ? ' selected' : ''}>${e(t('Fusionar en {room}', { room: room.label }))}</option>`,
-                )
-                .join(
-                  '',
-                )}<option value="keep"${!orphan.suggestion && orphan.devices.length ? ' selected' : ''}>${e(t('Conservar sin zona'))}</option>${!orphan.devices.length ? `<option value="remove" selected>${e(t('Quitar'))}</option>` : ''}</select></label></div>`,
-          )
+          .map(orphan => {
+            const left = remaining(orphan, movedByDefault).length;
+            const chosen = defaultAction(orphan, left);
+            const option = (value: string, text: string, disabled = false) =>
+              `<option value="${e(value)}"${chosen === value ? ' selected' : ''}${disabled ? ' disabled' : ''}>${e(text)}</option>`;
+            return `<div class="review-row"><strong>${e(orphan.label)}</strong><p>${orphan.devices.map(id => e(label(id))).join(', ') || e(t('Sin dispositivos'))}</p><label>${e(t('Resolver espacio'))}<select data-orphan="${e(orphan.roomId)}" aria-label="${e(t('Resolver {room}', { room: orphan.label }))}">${targets
+              .filter(room => room.id !== orphan.roomId)
+              .map(room => option(`merge:${room.id}`, t('Fusionar en {room}', { room: room.label })))
+              .join(
+                '',
+              )}${option('keep', t('Conservar sin zona'))}${option('remove', t('Quitar'), left > 0)}</select></label></div>`;
+          })
           .join('')}`
       : ''
   }
@@ -100,12 +107,26 @@ export function openPlanReview(
     apply(structuredClone(candidate), true);
   });
   // Unchecking an individual move visibly cancels its room-wide default merge.
+  // Every toggle recomputes which orphans are left empty, so Quitar is offered
+  // exactly when nothing would be unassigned, and chosen unless the user picked.
+  const touched = new Set<string>();
+  const moved = (id: string) => !!dialog.querySelector<HTMLInputElement>(`[data-move="${CSS.escape(id)}"]`)?.checked;
   dialog.addEventListener('change', event => {
     const input = event.target as HTMLInputElement;
-    if (input.dataset.move && !input.checked) {
-      const move = report.moves.find(item => item.deviceId === input.dataset.move);
-      const select = dialog.querySelector<HTMLSelectElement>(`[data-orphan="${CSS.escape(move?.from ?? '')}"]`);
-      if (select) select.value = 'keep';
+    if (input.dataset.orphan) {
+      touched.add(input.dataset.orphan);
+      return;
+    }
+    if (!input.dataset.move) return;
+    const move = report.moves.find(item => item.deviceId === input.dataset.move);
+    for (const orphan of report.orphans) {
+      const select = dialog.querySelector<HTMLSelectElement>(`[data-orphan="${CSS.escape(orphan.roomId)}"]`)!;
+      const left = remaining(orphan, moved).length;
+      select.querySelector<HTMLOptionElement>('option[value=remove]')!.disabled = left > 0;
+      if (!input.checked && orphan.roomId === move?.from && select.value.startsWith('merge:')) select.value = 'keep';
+      else if (!touched.has(orphan.roomId) && !select.value.startsWith('merge:'))
+        select.value = left ? 'keep' : 'remove';
+      if (select.value === 'remove' && left) select.value = 'keep';
     }
   });
   dialog.querySelector('[data-review=apply]')!.addEventListener('click', () => {
@@ -122,8 +143,11 @@ export function openPlanReview(
         }
       for (const orphan of report.orphans) {
         const action = dialog.querySelector<HTMLSelectElement>(`[data-orphan="${CSS.escape(orphan.roomId)}"]`)!.value;
-        if (action === 'remove') next = mergeRoom(next, orphan.roomId, null);
-        else if (action.startsWith('merge:')) {
+        if (action === 'remove') {
+          if (next.catalog.devices.some(device => device.roomId === orphan.roomId))
+            throw new Error(t('Elegí fusionar los dispositivos o dejarlos sin espacio.'));
+          next = mergeRoom(next, orphan.roomId, null);
+        } else if (action.startsWith('merge:')) {
           const target = action.slice(6);
           if (!next.rooms.some(room => room.id === target))
             throw new Error(t('Agregá el espacio de destino o elegí Conservar sin zona.'));
