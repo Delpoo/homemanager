@@ -23,11 +23,28 @@ const replace = async (page, change) => {
 };
 const naked =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><rect x="20" y="30" width="980" height="680" fill="#f7f5ee" stroke="#415d51" stroke-width="5"/><path d="M480 30V710M480 360H1000" stroke="#415d51" stroke-width="5"/></svg>';
-const draw = async (page, name) => {
-  await expect(card(page).locator('.shape-box')).toBeVisible();
-  await card(page).getByRole('textbox', { name: 'Nombre del espacio', exact: true }).fill(name);
-  await button(page, 'Crear espacio').click();
-  await expect(card(page).locator('.shape-box')).toHaveCount(0);
+/** Drags a rectangle over a part of the plan (0 to 1) and names it. */
+const draw = async (page, name, [x, y]) => {
+  await expect(card(page).locator('.zones-draw')).toBeVisible();
+  const at = (x, y) =>
+    page.evaluate(
+      ([x, y]) => {
+        const c = window.testHarness.card;
+        const r = c.viewport.getBoundingClientRect();
+        return {
+          x: r.left + c.camera.x + (c.box.x + x * c.box.width) * c.camera.scale,
+          y: r.top + c.camera.y + (c.box.y + y * c.box.height) * c.camera.scale,
+        };
+      },
+      [x, y],
+    );
+  const from = await at(x, y),
+    to = await at(x + 0.2, y + 0.2);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 4 });
+  await page.mouse.up();
+  await card(page).getByRole('textbox', { name: 'Nombre de la zona', exact: true }).fill(name);
 };
 
 test.beforeEach(async ({ page }) => {
@@ -46,15 +63,13 @@ test('a plan without zones offers to draw, and ends with three spaces drawn in t
   const offer = page.getByRole('dialog', { name: 'Este plano no tiene zonas', exact: true });
   await expect(offer).toBeVisible();
   await offer.getByRole('button', { name: 'Dibujar el primero', exact: true }).click();
-  // A space needs a name: without one, drawing goes on.
-  await button(page, 'Crear espacio').click();
-  await expect(card(page).locator('.shell > .status')).toContainText('Escribí el nombre');
-  await expect(card(page).locator('.shape-box')).toBeVisible();
-  await draw(page, 'Living');
-  await button(page, 'Nuevo espacio').click();
-  await draw(page, 'Cocina');
-  await button(page, 'Nuevo espacio').click();
-  await draw(page, 'Baño Eze');
+  await draw(page, 'Living', [0.05, 0.05]);
+  await button(page, 'Nueva zona').click();
+  await draw(page, 'Cocina', [0.4, 0.05]);
+  await button(page, 'Nueva zona').click();
+  await draw(page, 'Baño Eze', [0.05, 0.5]);
+  await button(page, 'Aplicar').click();
+  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
   const rooms = (await draft(page)).rooms;
   expect(rooms.map(room => [room.id, room.label, room.shapeSource])).toEqual([
     ['living', 'Living', 'app'],
@@ -129,9 +144,12 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
     .getByRole('dialog', { name: office, exact: true })
     .getByRole('button', { name: 'Cancelar', exact: true })
     .click();
-  await settings.getByRole('button', { name: 'Nuevo espacio', exact: true }).click();
+  await settings.getByRole('button', { name: 'Editar zonas', exact: true }).click();
   await expect(settings).toHaveCount(0);
-  await draw(page, 'Garaje');
+  await button(page, 'Nueva zona').click();
+  await draw(page, 'Garaje', [0.02, 0.02]);
+  await button(page, 'Aplicar').click();
+  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
   expect(await ids()).toEqual(['office', 'kitchen', 'living', 'garaje']);
 });
 

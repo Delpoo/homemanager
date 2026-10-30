@@ -168,7 +168,7 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsSection: SettingsSection = 'rooms-section';
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
-  drawSpace?: () => void;
+  editZones?: () => void;
   /** Card config that points at an integration home: {type, card_id, home_id, title?}. */
   private homeConfig?: { type: string; card_id: string; home_id: string; title?: string };
   private homes?: HomeSummary[];
@@ -634,7 +634,7 @@ export class HomeManagerEditor extends HTMLElement {
     } catch {
       /* No thumbnail for a plan that cannot be drawn. */
     }
-    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.drawSpace ? `<button type="button" class="primary" data-command="space-draw"><ha-icon icon="mdi:vector-square-plus" aria-hidden="true"></ha-icon>${esc(t('Nuevo espacio'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
+    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
       ${candidates.length ? `<h4>${esc(t('Zonas detectadas en el plano'))}</h4><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">${esc(t('Agregar {room}', { room: zone.label ?? zone.id }))}</button>`).join('')}<button type="button" data-command="room-add-all">${esc(t('Agregar todas ({count})', { count: candidates.length }))}</button></div>` : ''}
       <details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`;
   }
@@ -1006,9 +1006,9 @@ export class HomeManagerEditor extends HTMLElement {
           this.openRoom(id, this.roomView?.(id));
           break;
         }
-        case 'space-draw':
+        case 'zones-edit':
           this.closeSurface();
-          this.drawSpace?.();
+          this.editZones?.();
           break;
         case 'settings-import':
           this.settingsSection = 'import-section';

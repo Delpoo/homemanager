@@ -83,7 +83,12 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
   this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
   // A space's framing (CP8): how much of its surroundings the view keeps.
   const padding = room ? { tight: 12, normal: 34, wide: 96 }[space?.frame ?? 'normal'] : 24;
-  this.moveCamera(fitCamera(bounds, { width: r.width, height: r.height }, padding), animate);
+  // The zone editor's bar stays below the plan, not over it.
+  const bar = this.zoneEdit ? this.root.querySelector<HTMLElement>('.zones-bar') : null;
+  const beside = !!bar?.closest('[data-docked]');
+  const width = beside ? r.width - bar!.offsetWidth - 10 : r.width;
+  const height = bar && !beside && r.height - bar.offsetHeight > 160 ? r.height - bar.offsetHeight - 10 : r.height;
+  this.moveCamera(fitCamera(bounds, { width, height }, padding), animate);
   this.root
     .querySelectorAll('[data-room]')
     .forEach(b => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.room === room)));
@@ -258,7 +263,7 @@ export function positionMarkers(this: HomeManagerCard) {
   }
   this.positionEditor();
   this.renderNav();
-  this.renderShapeEdit();
+  this.renderZoneEdit();
 }
 
 export function refreshState(this: HomeManagerCard) {
