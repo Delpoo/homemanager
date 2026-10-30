@@ -1,3 +1,5 @@
+import '../panels/device-screen.js';
+import type { DeviceScreenView } from '../panels/device-screen.js';
 import { HomeManagerEditor, type ConfigurationStore } from '../editor/index.js';
 import { getLanguage, languageFromHass, setLanguage, t } from '../i18n/index.js';
 import { IntegrationConfigurationStore, integrationAvailable } from '../integration/store.js';
@@ -55,6 +57,7 @@ export class HomeManagerCard extends HTMLElement {
     this.updateShell();
   }
   updateShell(): void {
+    this.insights?.update(this);
     updateTopBar(this.root, {
       title:
         this.shellContext?.homes.find(home => home.home_id === this.shellContext?.selected)?.title ??
@@ -84,6 +87,7 @@ export class HomeManagerCard extends HTMLElement {
         this.currentRoom,
       );
   }
+  insights?: DeviceScreenView;
   config?: CardConfig;
   draft?: Configuration;
   saved?: Configuration;
@@ -295,7 +299,9 @@ export class HomeManagerCard extends HTMLElement {
     this.root.innerHTML = `<style>${styles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+    this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
+    this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
     this.groupsKey = '';
     this.root.addEventListener('click', this.onClick);

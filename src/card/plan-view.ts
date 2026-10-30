@@ -44,6 +44,7 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
     return;
   }
   this.currentRoom = room;
+  this.insights?.update(this);
   this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
   this.moveCamera(fitCamera(bounds, { width: r.width, height: r.height }, room ? 34 : 24), animate);
   this.root

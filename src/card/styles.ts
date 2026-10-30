@@ -1,3 +1,4 @@
+import { insightsLayoutStyles } from '../ui/device-components.js';
 import { controlViewStyles } from '../ui/control-view.js';
 import { tokens } from '../ui/theme.js';
 import { iconButtonStyles } from '../ui/icon-button.js';
@@ -115,4 +116,5 @@ dt{font-weight:600}dd{margin:0}
 .marker[data-archetype=infrastructure] .primary{background:transparent;border:0;box-shadow:none}.marker[data-archetype=infrastructure] .symbol-body{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);border:3px solid var(--hm-surface)}.marker[data-archetype=infrastructure] .symbol-body ha-icon{display:none}
 ${topBarStyles}${roomRailStyles}${layerStyles}
 @media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
+${insightsLayoutStyles}
 `;

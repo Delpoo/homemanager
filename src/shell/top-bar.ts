@@ -1,3 +1,4 @@
+import '../ui/theme-choice.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { logo } from '../ui/logo.js';
@@ -28,6 +29,7 @@ function menu(options: TopBarOptions): string {
     ${admin ? item('plan-settings', t('Ajustes del plano'), 'cog-outline') : ''}
     ${app && app.homes.length > 1 ? `<label class="hm-home-label">${e(t('Hogares'))}<select class="home-select" aria-label="${e(t('Hogar'))}">${app.homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === app.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}</select></label>` : ''}
     ${admin && app ? item('new', t('Nuevo hogar'), 'home-plus-outline', true) + item('storage', t('Almacenamiento'), 'database-outline', true) : ''}
+    <homemanager-theme-choice></homemanager-theme-choice>
     ${item('fullscreen', t('Pantalla completa'), 'fullscreen')}${item('info', t('Ayuda'), 'help-circle-outline')}
   </div></details>`;
 }
@@ -100,8 +102,8 @@ export function bindTopBar(root: ShadowRoot | HTMLElement): () => void {
     if (keyboard.key === 'Escape') close(true);
     const details = root.querySelector<HTMLDetailsElement>('.hm-menu');
     if (!details?.open || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(keyboard.key)) return;
-    if ((keyboard.target as HTMLElement).tagName === 'SELECT') return;
-    const items = [...details.querySelectorAll<HTMLElement>('button,select')];
+    if ((keyboard.composedPath()[0] as HTMLElement).tagName === 'SELECT') return;
+    const items = [...details.querySelectorAll<HTMLElement>('button,select,homemanager-theme-choice')];
     const current = items.indexOf(
       root instanceof ShadowRoot ? (root.activeElement as HTMLElement) : (document.activeElement as HTMLElement),
     );
