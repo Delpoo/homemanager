@@ -97,3 +97,32 @@ export function withZoneShapes<T extends ShapedRoom>(
     return { ...room, shape: { ...zone }, shapeSource: 'svg' };
   });
 }
+
+/** A corner or edge handle of the shape editor, or the whole shape. */
+export type ShapeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move';
+/** The smallest shape, as a share of the plan. */
+const MIN = 0.02;
+
+/** Moves or resizes a normalized shape by a normalized offset; it stays inside the plan. Pure. */
+export function dragShape(shape: RoomShape, handle: ShapeHandle, dx: number, dy: number): RoomShape {
+  let left = shape.x,
+    top = shape.y,
+    right = shape.x + shape.width,
+    bottom = shape.y + shape.height;
+  if (handle === 'move') {
+    const x = Math.min(1 - shape.width, Math.max(0, shape.x + dx)),
+      y = Math.min(1 - shape.height, Math.max(0, shape.y + dy));
+    return round({ x, y, width: shape.width, height: shape.height });
+  }
+  if (handle.includes('w')) left = Math.min(right - MIN, Math.max(0, left + dx));
+  if (handle.includes('e')) right = Math.max(left + MIN, Math.min(1, right + dx));
+  if (handle.includes('n')) top = Math.min(bottom - MIN, Math.max(0, top + dy));
+  if (handle.includes('s')) bottom = Math.max(top + MIN, Math.min(1, bottom + dy));
+  return round({ x: left, y: top, width: right - left, height: bottom - top });
+}
+function round(shape: RoomShape): RoomShape {
+  const r = (value: number) => Math.round(value * 1e6) / 1e6;
+  const x = r(shape.x),
+    y = r(shape.y);
+  return { x, y, width: Math.min(r(shape.width), r(1 - x)), height: Math.min(r(shape.height), r(1 - y)) };
+}

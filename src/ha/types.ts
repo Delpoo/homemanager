@@ -29,6 +29,10 @@ export interface Room {
   shape?: RoomShape;
   /** `svg`: copied from a zone and kept in step with it; `app`: edited here, never overwritten. */
   shapeSource?: 'svg' | 'app';
+  /** Room view framing: how much around the space shows (normal when absent). */
+  frame?: 'tight' | 'normal' | 'wide';
+  /** Room view: `skip` passes through this space; `hidden` lists destinations without an arrow from here. */
+  nav?: { skip?: boolean; hidden?: RoomId[] };
 }
 export interface RoomShape {
   x: number;

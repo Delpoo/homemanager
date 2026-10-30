@@ -122,6 +122,25 @@ def test_09_room_shape_rejects_invalid_values(room: dict) -> None:
     assert error.value.code == "invalid_configuration"
 
 
+@pytest.mark.parametrize("room", [{"frame": "tight"}, {"frame": "wide", "nav": {"skip": True}}, {"nav": {"hidden": ["kitchen", "office"]}}])
+def test_09_room_view_fields_round_trip(room: dict) -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update(room)
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("room", [
+    {"frame": "huge"}, {"frame": None}, {"nav": []}, {"nav": {"skip": 1}}, {"nav": {"hidden": "kitchen"}},
+    {"nav": {"hidden": ["kitchen", "kitchen"]}}, {"nav": {"hidden": ["Bad Id"]}}, {"nav": {"other": True}},
+])
+def test_09_room_view_fields_reject_invalid_values(room: dict) -> None:
+    value = presentation_configuration()
+    value["rooms"][0].update(room)
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
 @pytest.mark.parametrize("category", [None, False, 1, [], {}, "", "Switch", "actuator", "planta", "plant\n"])
 def test_09_category_rejects_unknown_values(category) -> None:
     value = presentation_configuration()

@@ -54,7 +54,9 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
   if (room === null) this.roomView = false;
   this.insights?.update(this);
   this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
-  this.moveCamera(fitCamera(bounds, { width: r.width, height: r.height }, room ? 34 : 24), animate);
+  // A space's framing (CP8): how much of its surroundings the view keeps.
+  const padding = room ? { tight: 12, normal: 34, wide: 96 }[space?.frame ?? 'normal'] : 24;
+  this.moveCamera(fitCamera(bounds, { width: r.width, height: r.height }, padding), animate);
   this.root
     .querySelectorAll('[data-room]')
     .forEach(b => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.room === room)));
@@ -229,6 +231,7 @@ export function positionMarkers(this: HomeManagerCard) {
   }
   this.positionEditor();
   this.renderNav();
+  this.renderShapeEdit();
 }
 
 export function refreshState(this: HomeManagerCard) {

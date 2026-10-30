@@ -59,6 +59,8 @@ export const DEVICE_CATEGORIES = Object.freeze([
 ]);
 /** Where a space's shape came from: copied from an SVG zone, or edited in the app (never overwritten). */
 export const ROOM_SHAPE_SOURCES = Object.freeze(['svg', 'app']);
+/** How much of the surroundings the room view shows around a space. */
+export const ROOM_FRAMES = Object.freeze(['tight', 'normal', 'wide']);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
@@ -234,7 +236,7 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], ['icon', 'shape', 'shapeSource'], path);
+    fields(room, ['id', 'label'], ['icon', 'shape', 'shapeSource', 'frame', 'nav'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
     if (Object.hasOwn(room, 'icon')) {
@@ -245,6 +247,19 @@ function shape(configuration) {
     if (Object.hasOwn(room, 'shapeSource')) {
       one(room.shapeSource, ROOM_SHAPE_SOURCES, `${path}.shapeSource`);
       if (!Object.hasOwn(room, 'shape')) invalid(`${path}.shapeSource`, 'a shape source needs a shape');
+    }
+    if (Object.hasOwn(room, 'frame')) one(room.frame, ROOM_FRAMES, `${path}.frame`);
+    if (Object.hasOwn(room, 'nav')) {
+      fields(room.nav, [], ['skip', 'hidden'], `${path}.nav`);
+      if (Object.hasOwn(room.nav, 'skip') && typeof room.nav.skip !== 'boolean')
+        invalid(`${path}.nav.skip`, 'boolean required');
+      if (Object.hasOwn(room.nav, 'hidden')) {
+        if (!Array.isArray(room.nav.hidden) || room.nav.hidden.length > MAX_ROOMS)
+          invalid(`${path}.nav.hidden`, `array of at most ${MAX_ROOMS} space IDs required`);
+        room.nav.hidden.forEach((item, at) => id(item, `${path}.nav.hidden[${at}]`));
+        if (new Set(room.nav.hidden).size !== room.nav.hidden.length)
+          invalid(`${path}.nav.hidden`, 'unique space IDs required');
+      }
     }
     if (roomIds.has(room.id)) invalid(`${path}.id`, 'duplicate space identifier');
     roomIds.add(room.id);

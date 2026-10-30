@@ -56,7 +56,7 @@ import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
 import { reportForPlan, hasPlanChanges, openPlanReview, withPlanShapes } from './plan-review.js';
-import { openRoomActions } from './room-actions.js';
+import { openRoomActions, type RoomViewChoices } from './room-actions.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -383,12 +383,18 @@ export class HomeManagerEditor extends HTMLElement {
     this.surface = 'settings';
     this.render();
   }
-  openRoom(id: string): void {
+  openRoom(id: string, view?: RoomViewChoices): void {
     this.openSettings();
-    openRoomActions(this.root, this.configuration, id, next => {
-      this.emit(next);
-      this.closeSurface();
-    });
+    openRoomActions(
+      this.root,
+      this.configuration,
+      id,
+      next => {
+        this.emit(next);
+        this.closeSurface();
+      },
+      view,
+    );
   }
   private reviewCandidate(candidate: Configuration): void {
     const report = reportForPlan(candidate);

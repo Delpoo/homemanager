@@ -20,6 +20,7 @@ export const SYMBOL_ARCHETYPES: readonly SymbolArchetype[];
 export const SYMBOL_SHOW: readonly SymbolShow[];
 export const DEVICE_CATEGORIES: readonly DeviceCategory[];
 export const ROOM_SHAPE_SOURCES: readonly ('svg' | 'app')[];
+export const ROOM_FRAMES: readonly ('tight' | 'normal' | 'wide')[];
 export interface ConfigurationIssue {
   path: string;
   code: string;

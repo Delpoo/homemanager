@@ -85,7 +85,22 @@
           },
           "$comment": "D22: the space's own rectangle, normalized to the plan. x + width and y + height stay within 1 (semantic rule)."
         },
-        "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." }
+        "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." },
+        "frame": { "enum": ["tight", "normal", "wide"], "$comment": "Room view framing around the space; normal when absent." },
+        "nav": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "skip": { "type": "boolean", "$comment": "A space you pass through: it gets no arrows and no swipes." },
+            "hidden": {
+              "type": "array",
+              "maxItems": 200,
+              "uniqueItems": true,
+              "items": { "$ref": "catalog.schema.json#/$defs/roomId" },
+              "$comment": "Destinations without an arrow from this space."
+            }
+          }
+        }
       },
       "dependentRequired": { "shapeSource": ["shape"] }
     },
