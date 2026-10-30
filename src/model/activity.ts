@@ -1,3 +1,5 @@
+import { finiteNumber, type ModelEntity } from './types.js';
+
 /** The log is local to one application. No timers, DOM, HA services or global store. */
 export type CommandStatus = 'sent' | 'on_air' | 'confirmed' | 'error';
 export type ActivityTone = 'neutral' | 'ok' | 'alert' | 'warning';
@@ -52,6 +54,15 @@ export interface ActivityEntry {
   tone: ActivityTone;
 }
 const LIMIT = 50;
+
+/** A meter changes all the time, and that is not news: only a change such as open or closed earns a row. */
+export function isStateEvent(entity: ModelEntity): boolean {
+  const attributes = entity.attributes ?? {};
+  if (attributes.unit_of_measurement !== undefined || attributes.state_class !== undefined) return false;
+  if (attributes.device_class === 'timestamp' || /^\d{4}-\d{2}-\d{2}/.test(entity.state)) return false;
+  if (['unknown', 'unavailable'].includes(entity.state)) return false;
+  return finiteNumber(entity.state) === null;
+}
 const eventId = (event: ActivityEvent): string => {
   const device = event.deviceId ?? '';
   if (event.type === 'command' || event.type === 'expired') return `command:${device}:${event.commandId}`;

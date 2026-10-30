@@ -6,6 +6,7 @@ import {
   reduceActivity,
   latestActivity,
   activityIsRecent,
+  isStateEvent,
 } from '../../.work/model/activity.js';
 import { now } from './fixtures.mjs';
 const command = (status, at = now, extra = {}) => ({
@@ -123,4 +124,17 @@ test('six-second presentation is deterministic and reducers never mutate their i
   assert.equal(activityIsRecent(entries[0], now + 5999), true);
   assert.equal(activityIsRecent(entries[0], now + 6000), false);
   assert.equal(activityIsRecent(entries[0], now - 1), false);
+});
+
+test('only discrete changes count as state events; constant readings never fill the log', () => {
+  assert.equal(isStateEvent({ state: 'on', attributes: {} }), true);
+  assert.equal(isStateEvent({ state: 'open', attributes: { device_class: 'door' } }), true);
+  assert.equal(isStateEvent({ state: 'cleaning' }), true);
+  assert.equal(isStateEvent({ state: '3.19994068145752', attributes: { unit_of_measurement: 'A' } }), false);
+  assert.equal(isStateEvent({ state: '42', attributes: {} }), false);
+  assert.equal(isStateEvent({ state: 'Base', attributes: { state_class: 'measurement' } }), false);
+  assert.equal(isStateEvent({ state: '2026-10-30T03:55:18+00:00', attributes: {} }), false);
+  assert.equal(isStateEvent({ state: 'now', attributes: { device_class: 'timestamp' } }), false);
+  assert.equal(isStateEvent({ state: 'unavailable', attributes: {} }), false);
+  assert.equal(isStateEvent({ state: 'unknown', attributes: {} }), false);
 });

@@ -155,7 +155,7 @@ Es un canal único que cuenta, en una línea discreta arriba, lo último que pas
   - el resultado de `runStep`;
   - el ciclo de vida de comandos del adaptador (TTL);
   - `onAir`;
-  - los cambios de estado de las entidades vigiladas;
+  - los cambios de estado de las entidades vigiladas, salvo las lecturas continuas (potencia, temperatura), que sólo se ven en el símbolo y en la pantalla del dispositivo;
   - el motor de alertas.
 - La nota junto al símbolo (0.6) se mantiene, más corta, porque está donde se miró.
 - Fase posterior: un búfer en la integración (`homemanager/activity/subscribe`) para que todas las pantallas vean los envíos RF y sus ecos, aunque los haya hecho otra pantalla.

@@ -16,13 +16,11 @@ import { ActivityLog } from '../model/activity.js';
 const css = `${tokens}
 :host{display:block;min-height:100dvh;background:var(--hm-bg)}
 .content{padding:0;margin:0}
-homemanager-card{--hm-viewport-height:calc(100dvh - 58px)}
+homemanager-card{--hm-shell-height:max(100dvh,450px);--hm-viewport-height:100%}
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
 .maintenance ul{padding-left:20px}.maintenance li{margin:12px 0}.maintenance button{margin-left:8px}
-${topBarStyles}
-@media(max-width:1099px){homemanager-card{--hm-viewport-height:calc(100dvh - 122px)}}
-@media(max-width:650px){homemanager-card{--hm-viewport-height:calc(100dvh - 114px)}}`;
+${topBarStyles}`;
 const STORAGE_KEY = 'homemanager-app-home';
 function remembered(): string | null {
   try {

@@ -1,4 +1,5 @@
-import { ActivityLog } from '../model/activity.js';
+import { ActivityLog, isStateEvent } from '../model/activity.js';
+import { formattedValue } from '../model/symbol-spec.js';
 import { alertCleared, alertsOf, observeAlertRules, type AlertContext, type DeviceAlert } from '../model/alerts.js';
 import { airStamp, onAir } from '../integration/rf.js';
 import type { Configuration, Hass, RuntimeState } from '../card/types.js';
@@ -197,14 +198,20 @@ export class RuntimeFeed {
         entity = entityId ? hass.states[entityId] : undefined;
       if (entityId && entity) {
         const previous = this.previous.get(device.id);
-        if (previous !== undefined && previous !== entity.state && !command && !alertChanged.has(device.id))
+        if (
+          previous !== undefined &&
+          previous !== entity.state &&
+          !command &&
+          !alertChanged.has(device.id) &&
+          isStateEvent(entity)
+        )
           this.log.record({
             type: 'state',
             entityId,
             deviceId: device.id,
             deviceLabel: device.display.label,
             at: now,
-            value: entity.state,
+            value: formattedValue(entity, hass),
           });
         this.previous.set(device.id, entity.state);
       }

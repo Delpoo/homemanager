@@ -153,3 +153,36 @@ test('disconnect and removed association never claim recovery; severity edits pr
   );
   assert.equal(symbolSpec(d, hass, at).highlight, false);
 });
+
+test('a meter updating every few seconds writes nothing; a discrete change writes its formatted value', () => {
+  const log = new ActivityLog(),
+    feed = new RuntimeFeed(log);
+  const meter = {
+    id: 'meter',
+    roomId: 'studio',
+    kind: 'energy',
+    display: { label: 'Test meter', icon: 'mdi:flash' },
+    bindings: { entityId: 'sensor.synthetic_current' },
+  };
+  feed.configure({ ...configuration, catalog: { devices: [device, meter] }, stateSources: {} });
+  const state = (lamp, current) => ({
+    formatEntityState: entity => (entity.state === 'on' ? 'Encendida' : entity.state),
+    states: {
+      'light.synthetic': { state: lamp, last_updated: new Date(at).toISOString(), attributes: {} },
+      'sensor.synthetic_current': {
+        state: current,
+        last_updated: new Date(at).toISOString(),
+        attributes: { unit_of_measurement: 'A' },
+      },
+    },
+  });
+  const runtime = { states: {} };
+  feed.update(state('off', '3.19994068145752'), runtime, new Set(), at);
+  feed.update(state('off', '3.26295804977417'), runtime, new Set(), at + 5000);
+  feed.update(state('off', '2.89073395729065'), runtime, new Set(), at + 10000);
+  assert.equal(log.entries.length, 0);
+  feed.update(state('on', '2.89073395729065'), runtime, new Set(), at + 15000);
+  assert.equal(log.entries.length, 1);
+  assert.equal(log.latest.deviceLabel, 'Test lamp');
+  assert.equal(log.latest.value, 'Encendida');
+});

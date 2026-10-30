@@ -118,6 +118,7 @@ export class HomeManagerCard extends HTMLElement {
   future: Configuration[] = [];
   box: ViewBox = { x: 0, y: 0, width: 1000, height: 700 };
   camera: Camera = { x: 0, y: 0, scale: 1 };
+  fitted?: { camera: Camera; width: number };
   baseScale = 1;
   svg?: SVGSVGElement;
   currentRoom: RoomId | null = null;
@@ -349,7 +350,7 @@ export class HomeManagerCard extends HTMLElement {
     this.mountArchitecture();
     this.renderMarkers();
     this.observer = new ResizeObserver(() => {
-      if (!this.gesture) this.fit(this.currentRoom, false);
+      if (!this.gesture) this.refit();
     });
     this.observer.observe(viewport);
     this.fit(null, false);
@@ -360,6 +361,7 @@ export class HomeManagerCard extends HTMLElement {
   }
   mountArchitecture: OmitThisParameter<typeof planView.mountArchitecture> = planView.mountArchitecture.bind(this);
   fit: OmitThisParameter<typeof planView.fit> = planView.fit.bind(this);
+  refit: OmitThisParameter<typeof planView.refit> = planView.refit.bind(this);
   /** Eased camera transition; instant when the user prefers reduced motion. */
   moveCamera: OmitThisParameter<typeof planView.moveCamera> = planView.moveCamera.bind(this);
   /** Zooms just enough to separate a tapped group of markers, centred on it. */

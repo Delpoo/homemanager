@@ -40,6 +40,63 @@ test('shell is compact, branded, accessible, and reserves health marks for probl
   await expect(host.getByRole('button', { name: 'Editar plano', exact: true })).toHaveCount(0);
 });
 
+test('the panel fits its window beside the HA sidebar, also while editing', async ({ page }, testInfo) => {
+  if (testInfo.project.name === 'desktop') {
+    // A 1278 px window with the 256 px HA sidebar: wide window, narrow panel.
+    await page.setViewportSize({ width: 1278, height: 900 });
+    await page.evaluate(() => {
+      document.getElementById('mount').style.width = '1012px';
+    });
+  }
+  const fits = () =>
+    card(page).evaluate(node => {
+      const rect = selector => node.shadowRoot.querySelector(selector).getBoundingClientRect();
+      return {
+        shellBottom: rect('.shell').bottom,
+        railBottom: rect('.rooms').bottom,
+        pageHeight: document.documentElement.scrollHeight,
+        window: innerHeight,
+      };
+    });
+  const expectFit = async () => {
+    await expect
+      .poll(async () => (await fits()).pageHeight)
+      .toBeLessThanOrEqual(await page.evaluate(() => innerHeight));
+    const box = await fits();
+    expect(box.railBottom).toBeLessThanOrEqual(box.window);
+    expect(box.shellBottom).toBeLessThanOrEqual(box.window);
+  };
+  await expectFit();
+  await card(page).locator('.hm-menu > summary').click();
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await expect(card(page).locator('.editor-wrap')).toBeVisible();
+  await expectFit();
+  const overlap = await card(page).evaluate(node => {
+    const a = node.shadowRoot.querySelector('.viewport > .layers').getBoundingClientRect();
+    const b = node.shadowRoot.querySelector('.hm-fab').getBoundingClientRect();
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  });
+  expect(overlap).toBe(false);
+});
+
+test('a height-only resize keeps a moved camera, and refits an untouched one', async ({ page }) => {
+  const camera = () => card(page).evaluate(node => ({ ...node.camera, height: node.viewport.clientHeight }));
+  const start = await camera();
+  await card(page).evaluate(node => node.status('Mensaje de prueba'));
+  await expect.poll(async () => (await camera()).height).toBeLessThan(start.height);
+  await expect.poll(async () => (await camera()).y).not.toBe(start.y);
+  await card(page).evaluate(node => node.status(''));
+  await expect.poll(async () => (await camera()).height).toBe(start.height);
+  const moved = await card(page).evaluate(node => {
+    node.moveCamera({ ...node.camera, scale: node.camera.scale * 1.5 }, false);
+    return node.camera.scale;
+  });
+  await card(page).evaluate(node => node.status('Mensaje de prueba'));
+  await expect.poll(async () => (await camera()).height).toBeLessThan(start.height);
+  await page.waitForTimeout(100);
+  expect((await camera()).scale).toBe(moved);
+});
+
 test('critical alerts propagate to the symbol, room and pill, and the pill frames the sensor', async ({ page }) => {
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'on', { device_class: 'moisture' }),

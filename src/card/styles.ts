@@ -10,7 +10,7 @@ import { layerStyles } from '../shell/layers.js';
 
 export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}${alertComponentStyles}
 :host{display:block}
-.shell{background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
+.shell{height:var(--hm-shell-height,auto);box-sizing:border-box;grid-template-rows:auto auto minmax(0,1fr);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
 h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logo{font-size:20px;color:var(--hm-accent)}
@@ -23,7 +23,7 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .rooms button{flex:0 0 auto;min-height:36px;border-radius:18px;padding:0 14px;font-size:14px;background:var(--hm-surface);border-color:transparent;white-space:nowrap;scroll-snap-align:start}
 .rooms button[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent)}
 .rooms .all{font-weight:600}
-.workspace{position:relative;grid-area:workspace;min-width:0}
+.workspace{position:relative;grid-area:workspace;min-width:0;min-height:0}
 .viewport{height:var(--hm-viewport-height,clamp(420px,66vh,920px));min-width:0;position:relative;overflow:hidden;background:var(--hm-surface);touch-action:none;outline-offset:-3px;user-select:none;-webkit-user-select:none}
 .architecture{position:absolute;inset:0 auto auto 0;transform-origin:0 0;pointer-events:none}
 .overlay{position:absolute;inset:0;pointer-events:none}
@@ -77,7 +77,7 @@ dialog .choices button{text-align:left;display:flex;align-items:center;gap:10px}
 dt{font-weight:600}dd{margin:0}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--hm-muted);padding:30px;text-align:center;pointer-events:none}
 .shell:fullscreen{border-radius:0;width:100%;height:100%;overflow:auto}
-.shell:fullscreen .viewport{height:calc(100dvh - 120px)}
+.shell:fullscreen .viewport{height:100%}
 @media(max-width:650px){
   .header{padding:8px 6px 4px 12px}
   h1{font-size:17px}

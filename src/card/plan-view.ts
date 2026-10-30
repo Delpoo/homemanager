@@ -56,11 +56,29 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
   this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
   // A space's framing (CP8): how much of its surroundings the view keeps.
   const padding = room ? { tight: 12, normal: 34, wide: 96 }[space?.frame ?? 'normal'] : 24;
-  this.moveCamera(fitCamera(bounds, { width: r.width, height: r.height }, padding), animate);
+  const target = fitCamera(bounds, { width: r.width, height: r.height }, padding);
+  this.fitted = { camera: target, width: r.width };
+  this.moveCamera(target, animate);
   this.root
     .querySelectorAll('[data-room]')
     .forEach(b => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.room === room)));
   this.root.querySelector('.rooms .all')?.setAttribute('aria-pressed', String(room === null));
+}
+
+/** A height-only resize (edit bar, status line) must not undo a camera the person moved. */
+export function refit(this: HomeManagerCard) {
+  const { fitted, camera } = this;
+  const r = this.viewport.getBoundingClientRect();
+  const moved =
+    !!fitted &&
+    (Math.abs(camera.scale - fitted.camera.scale) > 0.001 ||
+      Math.abs(camera.x - fitted.camera.x) > 0.5 ||
+      Math.abs(camera.y - fitted.camera.y) > 0.5);
+  if (!moved || r.width !== fitted.width || !r.height) {
+    this.fit(this.currentRoom, false);
+    return;
+  }
+  this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
 }
 
 export function moveCamera(this: HomeManagerCard, target: Camera, animate = true) {
