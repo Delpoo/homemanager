@@ -151,7 +151,8 @@ Se hace en **checkpoints**: un PR chico por punto, auditado y probado antes de a
 | CP | Quién | Qué | Beta |
 |---|---|---|---|
 | 1 | Claude | Diseño: maqueta §12–§14, vision §12–§14, D21 y D22. Sólo documentos | — |
-| 3 | Claude | **Categoría elegible** en el inspector acoplado (maqueta §3 y §12). Secciones por categoría; sin `kind` técnico; `display.category` en los tres validadores | 0.9.0-beta.1 |
+| 3 | Claude | **Categoría elegible** en la ficha (maqueta §12). Secciones por categoría; sin `kind` técnico; `display.category` en los tres validadores | 0.9.0-beta.1 |
+| 3b | Claude | **Inspector acoplado** en lugar de la ficha flotante (maqueta §3), con vista previa en vivo | (con beta.2) |
 | 4 | ChatGPT | **Reglas de aviso** por categoría (`display.alerts`, `display.highlight`): planta, alerta, presencia y medidor. Modelo puro y secciones del inspector | 0.9.0-beta.2 |
 | 5 | Claude | **Espacios propios**: `rooms[].shape`, copia desde las zonas del SVG, migración; los consumidores de zonas pasan a la forma | (con beta.2) |
 | 6 | ChatGPT | **Controles RF, Equipos RF y diálogos** con el diseño de la maqueta §10–§11. Sin cambios de comportamiento | (con beta.2) |
@@ -163,7 +164,7 @@ CP2 (los 7 espacios de la vivienda) es del repositorio privado y no se describe 
 
 **Diseño en todas las pantallas** (sigue vigente; cada checkpoint lo cumple en lo que toca):
 1. **Componentes** (`src/ui/`), como la maqueta §6. Ninguna pantalla define colores, bordes, radios ni tamaños propios. Una prueba falla si aparece un color literal o un `<style>` con reglas propias fuera de `src/ui/`.
-2. **Inspector acoplado** en lugar de la ficha (maqueta §3), en CP3: 360 px a la derecha en escritorio y, en el móvil, una hoja de hasta el 55 % de la altura. Escribe en el `draft`, y el símbolo se redibuja con cada cambio. Tiene ✓, ✕ (revertir ese dispositivo), deshacer y rehacer.
+2. **Inspector acoplado** en lugar de la ficha (maqueta §3), en CP3b: 360 px a la derecha en escritorio y, en el móvil, una hoja de hasta el 55 % de la altura. Escribe en el `draft`, y el símbolo se redibuja con cada cambio. Tiene ✓, ✕ (revertir ese dispositivo), deshacer y rehacer.
 3. **Ajustes del plano como página** (maqueta §9), en CP9.
 4. **Controles RF y Equipos ESPHome** (maqueta §10), en CP6.
 5. **Paneles nativos, diálogos** (maqueta §11), *Almacenamiento*, *Nuevo hogar* y *Revisar cambios*, en CP6 y CP9. Nunca un diálogo sobre otro.

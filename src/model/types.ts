@@ -1,6 +1,7 @@
 /** Structural inputs keep the model independent of HA, DOM and rendering layers. */
 export type Archetype = 'actuator' | 'equipment' | 'sensor' | 'meter' | 'remote' | 'infrastructure';
 export type DisplayShow = 'icon' | 'value' | 'both';
+export type Category = 'switch' | 'equipment' | 'remote' | 'meter' | 'plant' | 'alert' | 'presence' | 'infrastructure';
 export type ModelConfidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
 export interface ModelEntity {
   state: string;
@@ -48,6 +49,7 @@ export interface ModelDevice {
     size?: 's' | 'm' | 'l';
     archetype?: Archetype;
     show?: DisplayShow;
+    category?: Category;
   };
   bindings: {
     entityId: string | null;

@@ -45,7 +45,9 @@ import { enhanceEntityInput, friendlyName, areaOf, pickerStyles } from './entity
 import { openDevicePicker, type DevicePicker } from './device-picker.js';
 import { deviceName, readingName, personName } from '../model/names.js';
 import { bindingIssues, type DeviceSelection } from '../model/device-catalog.js';
-import { uiBinding, uiButton, uiNotice, useBindingComponents } from '../ui/components.js';
+import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
+import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
+import type { Category } from '../model/types.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
@@ -98,6 +100,30 @@ function value(form: FormData, name: string): string {
 }
 
 /** Configuration-only editor. It never calls an HA action or interprets an imported command. */
+/** New devices without an entity get a kind that matches their category. */
+const CATEGORY_KIND: Record<Category, Device['kind']> = {
+  switch: 'switch',
+  equipment: 'appliance',
+  remote: 'other',
+  meter: 'sensor',
+  plant: 'plant',
+  alert: 'sensor',
+  presence: 'sensor',
+  infrastructure: 'infra',
+};
+function categoryInfo(category: Category): { label: string; icon: string } {
+  return {
+    switch: { label: t('Interruptor'), icon: 'mdi:lightbulb-outline' },
+    equipment: { label: t('Equipo'), icon: 'mdi:air-conditioner' },
+    remote: { label: t('Control remoto'), icon: 'mdi:remote' },
+    meter: { label: t('Medidor'), icon: 'mdi:gauge' },
+    plant: { label: t('Planta'), icon: 'mdi:sprout-outline' },
+    alert: { label: t('Alerta'), icon: 'mdi:alert-outline' },
+    presence: { label: t('Presencia'), icon: 'mdi:motion-sensor' },
+    infrastructure: { label: t('Infraestructura'), icon: 'mdi:router-network' },
+  }[category];
+}
+
 export class HomeManagerEditor extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private config?: CardConfig;
@@ -496,16 +522,62 @@ export class HomeManagerEditor extends HTMLElement {
       ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se dibuja en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
       : '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
-      <label class="field">${esc(t('Tipo de dispositivo'))}<select form="device-form" name="kind" aria-label="${esc(t('Tipo de dispositivo'))}">${KINDS.map(kind => option(kind, kind, device?.kind ?? 'light')).join('')}</select></label>
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></div>
       ${input('x', t('Posición X'), device?.position.x ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), device?.position.y ?? 0.5, `form="device-form" type="number" min="0" max="1" step="0.000001" required data-location${fixed ? ' disabled' : ''}`)}
-      ${remotes}<div class="field">${help(t('Panel nativo'), t('Un panel con acciones fijas definido en Ajustes del plano. Se muestra junto a los controles.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
-    return `<form id="device-form"><div class="basic">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
+      <div class="field">${help(t('Panel nativo'), t('Un panel con acciones fijas definido en Ajustes del plano. Se muestra junto a los controles.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
+    const category = this.sheetCategory(device);
+    const sections = sectionsOf(category);
+    const show = `<div data-section="show"${sections.show ? '' : ' hidden'}>${uiSegmented(
+      t('Qué muestra el símbolo'),
+      'show',
+      [
+        { value: 'icon', label: t('Icono') },
+        { value: 'value', label: t('Valor') },
+        { value: 'both', label: t('Los dos') },
+      ],
+      device?.display.show ?? 'value',
+    )}</div>`;
+    return `<form id="device-form"><div class="basic">${uiChoices(
+      t('Categoría'),
+      'category',
+      CATEGORIES.map(value => ({ value, ...categoryInfo(value) })),
+      category,
+    )}<input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
       <div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>
-      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
-      <div class="ctl-host">${this.controlsSection()}</div>
+      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div>${show}${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${remotes}</div>` : ''}</div></form>
+      <div class="ctl-host" data-section="controls"${sections.controls ? '' : ' hidden'}>${this.controlsSection()}</div>
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
+  }
+  /** The category the sheet starts with: stored, else suggested by the device and its entity. */
+  private sheetCategory(device?: Device): Category {
+    if (device) return categoryOf(device, this._hass);
+    const entityId = this.sheetEntity();
+    if (!entityId) return 'switch';
+    const kind = suggestPresentation(entityId, this._hass?.states[entityId]).kind;
+    return categoryOf(
+      { id: 'new', roomId: null, kind, display: { label: '', icon: '' }, bindings: { entityId } },
+      this._hass,
+    );
+  }
+  /** Linking another entity proposes its category, unless the person already chose one. */
+  private proposeCategory(entityId: string): void {
+    const choices = this.root.querySelector<HTMLFieldSetElement>('#device-form .k-choices');
+    if (!choices || choices.hasAttribute('data-chosen') || !entityId) return;
+    const kind = suggestPresentation(entityId, this._hass?.states[entityId]).kind;
+    const category = categoryOf(
+      { id: 'new', roomId: null, kind, display: { label: '', icon: '' }, bindings: { entityId } },
+      this._hass,
+    );
+    const radio = choices.querySelector<HTMLInputElement>(`input[value="${category}"]`);
+    if (radio) radio.checked = true;
+    this.applySections(category);
+  }
+  /** Shows only the chosen category's sections; hidden ones keep their data until saved. */
+  private applySections(category: Category): void {
+    const sections = sectionsOf(category);
+    for (const [name, visible] of Object.entries(sections))
+      for (const node of this.root.querySelectorAll<HTMLElement>(`[data-section="${name}"]`)) node.hidden = !visible;
   }
   /** Sheet model of the device being edited (controls, tap, pins, size). */
   private sheet?: SheetModel;
@@ -933,6 +1005,12 @@ export class HomeManagerEditor extends HTMLElement {
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (!this.config) return;
+    if (target.getAttribute('name') === 'category' && target.closest('#device-form')) {
+      // Chosen by the person: a new entity no longer proposes another one.
+      target.closest('fieldset')?.setAttribute('data-chosen', '');
+      this.applySections(target.value as Category);
+      return;
+    }
     if (target.hasAttribute('data-room-icon')) {
       const index = target.dataset.roomIcon!;
       const hidden = this.root.querySelector<HTMLInputElement>(`[name="room-icon-${index}"]`);
@@ -952,6 +1030,7 @@ export class HomeManagerEditor extends HTMLElement {
       // A device that has no controls yet gets the ones its new entity suggests, visibly.
       if (this.sheet && !this.sheet.controls.length) this.resetSheet(false);
       else this.refreshSuggestions();
+      this.proposeCategory(target.value);
       return;
     }
     if (target.getAttribute('name') === 'remoteId') {
@@ -1017,6 +1096,14 @@ export class HomeManagerEditor extends HTMLElement {
             t('Completá las acciones de: {names}. O quitá ese control.', { names: held.incomplete.join(', ') }),
           );
         const tap = held.controls.find(control => control.id === held.tap);
+        const category = (CATEGORIES as readonly string[]).includes(value(data, 'category'))
+          ? (value(data, 'category') as Category)
+          : this.sheetCategory(previous);
+        const entityId = value(data, 'entityId');
+        const suggested = entityId ? suggestPresentation(entityId, this._hass?.states[entityId]).kind : '';
+        // The technical kind is no longer chosen: kept, else suggested by the entity or the category.
+        const kind = (value(data, 'kind') ||
+          ((KINDS as readonly string[]).includes(suggested) ? suggested : CATEGORY_KIND[category])) as Device['kind'];
         // Without RF remotes the field is not shown: keep what the device had.
         const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
         const device: Device = {
@@ -1027,9 +1114,14 @@ export class HomeManagerEditor extends HTMLElement {
             ...(held.size !== 'm' ? { size: held.size } : {}),
             ...(held.pinned.length ? { pinned: held.pinned } : {}),
             ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
-            ...(previous?.display.show ? { show: previous.display.show } : {}),
+            ...(sectionsOf(category).show
+              ? { show: value(data, 'show') as NonNullable<Device['display']['show']> }
+              : previous?.display.show
+                ? { show: previous.display.show }
+                : {}),
+            category,
           },
-          kind: value(data, 'kind') as Device['kind'],
+          kind,
           roomId: value(data, 'roomId') || null,
           mobility: value(data, 'mobility') as Device['mobility'],
           position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },

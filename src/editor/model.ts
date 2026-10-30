@@ -110,6 +110,7 @@ export function upsertDevice(
       ...(input.display.pinned?.length ? { pinned: [...input.display.pinned] } : {}),
       ...(input.display.archetype ? { archetype: input.display.archetype } : {}),
       ...(input.display.show ? { show: input.display.show } : {}),
+      ...(input.display.category ? { category: input.display.category } : {}),
     },
     bindings: {
       entityId: input.bindings.entityId,

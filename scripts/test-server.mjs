@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(fileURLToPath(new URL('../', import.meta.url)));
-const origin = ['http:', '', '127.0.0.1:4184'].join('/');
+const port = Number(process.env.HM_TEST_PORT ?? 4184);
+const origin = ['http:', '', `127.0.0.1:${port}`].join('/');
 const types = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -34,4 +35,4 @@ http
       res.writeHead(404).end('Not found');
     }
   })
-  .listen(4184, '127.0.0.1', () => console.log('Synthetic frontend harness ready on port 4184.'));
+  .listen(port, '127.0.0.1', () => console.log(`Synthetic frontend harness ready on port ${port}.`));

@@ -1,5 +1,5 @@
 import { entityOf, finiteNumber } from './types.js';
-import type { Archetype, ModelDevice, ModelEntity, ModelHass, SymbolLayer } from './types.js';
+import type { Archetype, Category, ModelDevice, ModelEntity, ModelHass, SymbolLayer } from './types.js';
 
 export const ARCHETYPES: readonly Archetype[] = [
   'actuator',
@@ -54,8 +54,21 @@ const METER_CLASSES = new Set([
 ]);
 const ENERGY_CLASSES = new Set(['power', 'energy', 'apparent_power', 'reactive_power', 'voltage', 'current']);
 
+/** A chosen category (D21) decides the archetype before anything stored or inferred. */
+const CATEGORY_ARCHETYPE: Record<Category, Archetype> = {
+  switch: 'actuator',
+  equipment: 'equipment',
+  remote: 'remote',
+  meter: 'meter',
+  plant: 'meter',
+  alert: 'sensor',
+  presence: 'sensor',
+  infrastructure: 'infrastructure',
+};
+
 /** All kind decisions live here; consumers only receive presentation semantics. */
 export function archetypeOf(device: ModelDevice, hass?: ModelHass): Archetype {
+  if (device.display.category) return CATEGORY_ARCHETYPE[device.display.category];
   if (device.display.archetype) return device.display.archetype;
   const entity = entityOf(device, hass);
   const remote = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;

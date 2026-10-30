@@ -46,6 +46,17 @@ export const SYMBOL_ARCHETYPES = Object.freeze([
   'infrastructure',
 ]);
 export const SYMBOL_SHOW = Object.freeze(['icon', 'value', 'both']);
+/** What the person chose (D21); it decides the archetype and the sheet's sections. */
+export const DEVICE_CATEGORIES = Object.freeze([
+  'switch',
+  'equipment',
+  'remote',
+  'meter',
+  'plant',
+  'alert',
+  'presence',
+  'infrastructure',
+]);
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
@@ -239,13 +250,15 @@ function shape(configuration) {
     one(device.kind, KINDS, `${path}.kind`);
     one(device.mobility, ['fixed', 'editable', 'portable'], `${path}.mobility`);
     position(device.position, `${path}.position`);
-    fields(device.display, ['label', 'icon'], ['size', 'pinned', 'archetype', 'show'], `${path}.display`);
+    fields(device.display, ['label', 'icon'], ['size', 'pinned', 'archetype', 'show', 'category'], `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
     if (Object.hasOwn(device.display, 'size')) one(device.display.size, SYMBOL_SIZES, `${path}.display.size`);
     if (Object.hasOwn(device.display, 'archetype'))
       one(device.display.archetype, SYMBOL_ARCHETYPES, `${path}.display.archetype`);
     if (Object.hasOwn(device.display, 'show')) one(device.display.show, SYMBOL_SHOW, `${path}.display.show`);
+    if (Object.hasOwn(device.display, 'category'))
+      one(device.display.category, DEVICE_CATEGORIES, `${path}.display.category`);
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],

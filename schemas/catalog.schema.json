@@ -86,6 +86,10 @@
               "$comment": "Optional presentation override; inferred without changing the stored document when absent."
             },
             "show": { "enum": ["icon", "value", "both"], "$comment": "Body content; value for meters and icon for other archetypes when absent." },
+            "category": {
+              "enum": ["switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure"],
+              "$comment": "What the person chose (D21). Decides the archetype; inferred from archetype or kind when absent."
+            },
             "pinned": {
               "type": "array",
               "maxItems": 3,

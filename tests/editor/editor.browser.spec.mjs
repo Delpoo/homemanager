@@ -52,7 +52,8 @@ test.beforeEach(async ({ page }) => {
 test('add/edit a complete device emits a persistent draft without calling HA', async ({ page }) => {
   await button(page, 'Agregar dispositivo').click();
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
-  await field(page, 'Tipo de dispositivo').selectOption('purifier');
+  // The category replaces the technical kind; a chosen one survives linking an entity.
+  await editor(page).getByRole('group', { name: 'Categoría' }).getByRole('radio', { name: 'Equipo' }).check();
   // The icon chooser searches by Spanish words too.
   await button(page, 'Icono del dispositivo').click();
   await editor(page).getByRole('searchbox', { name: 'Buscar icono' }).fill('purificador');
@@ -66,7 +67,8 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   const first = (await current(page)).catalog.devices.find(device => device.id === 'test-portatil');
   expect(first).toMatchObject({
     roomId: 'office',
-    kind: 'purifier',
+    kind: 'fan',
+    display: { category: 'equipment' },
     mobility: 'portable',
     position: { x: 0.61, y: 0.73 },
     bindings: { entityId: 'fan.not_configured_yet', primaryAction: null, advancedPopupId: null },

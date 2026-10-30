@@ -86,6 +86,22 @@ def test_07_presentation_fields_round_trip_independently(archetype: str | None, 
     assert validate_configuration(value) == value
 
 
+@pytest.mark.parametrize("category", ["switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure"])
+def test_09_category_round_trips(category: str) -> None:
+    value = presentation_configuration()
+    value["catalog"]["devices"][0]["display"]["category"] = category
+    assert validate_configuration(value) == value
+
+
+@pytest.mark.parametrize("category", [None, False, 1, [], {}, "", "Switch", "actuator", "planta", "plant\n"])
+def test_09_category_rejects_unknown_values(category) -> None:
+    value = presentation_configuration()
+    value["catalog"]["devices"][0]["display"]["category"] = category
+    with pytest.raises(ModelError) as error:
+        validate_configuration(value)
+    assert error.value.code == "invalid_configuration"
+
+
 @pytest.mark.parametrize("icon", [
     None, False, 1, [], {}, "", "mdi:", "mdi:Bad", "lightbulb", "mdi:sofa ",
     "mdi:sofa\n", "mdi:sofa\r\n", "mdi:sofa\u2028", "mdi:sofa--outline", "mdi:sofa-",

@@ -128,4 +128,13 @@ export const enShell: Record<string, string> = {
   'En línea': 'Online',
   'Estado estimado': 'Estimated state',
   estimado: 'estimated',
+  Categoría: 'Category',
+  Equipo: 'Equipment',
+  Medidor: 'Meter',
+  Planta: 'Plant',
+  Alerta: 'Alert',
+  Presencia: 'Presence',
+  Valor: 'Value',
+  'Los dos': 'Both',
+  'Qué muestra el símbolo': 'What the symbol shows',
 };

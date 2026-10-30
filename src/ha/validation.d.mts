@@ -1,4 +1,12 @@
-import type { Configuration, ControlType, DeviceKind, SymbolArchetype, SymbolShow, SymbolSize } from './types.js';
+import type {
+  Configuration,
+  ControlType,
+  DeviceCategory,
+  DeviceKind,
+  SymbolArchetype,
+  SymbolShow,
+  SymbolSize,
+} from './types.js';
 export const KINDS: readonly DeviceKind[];
 export const MAX_ROOMS: number;
 export const MAX_CONFIGURATION_BYTES: number;
@@ -10,6 +18,7 @@ export const MAX_READINGS: number;
 export const SYMBOL_SIZES: readonly SymbolSize[];
 export const SYMBOL_ARCHETYPES: readonly SymbolArchetype[];
 export const SYMBOL_SHOW: readonly SymbolShow[];
+export const DEVICE_CATEGORIES: readonly DeviceCategory[];
 export interface ConfigurationIssue {
   path: string;
   code: string;

@@ -49,6 +49,22 @@ export const uiPane = (
 export const uiBinding = (name: string, detail: string, buttonText: string): string =>
   `<div class="k-binding">${uiRow({ name, detail })}${uiButton(buttonText, 'binding', 'secondary', 'mdi:link-variant')}</div>`;
 
+/** A labelled radio group drawn as tiles (mockup §12): one choice, icon above its name. */
+export const uiChoices = (
+  legend: string,
+  name: string,
+  options: readonly { value: string; label: string; icon: string }[],
+  selected: string,
+): string =>
+  `<fieldset class="k-choices"><legend>${uiEscape(legend)}</legend>${options.map(option => `<label><input type="radio" name="${uiEscape(name)}" value="${uiEscape(option.value)}"${option.value === selected ? ' checked' : ''}>${uiIcon(option.icon)}<span>${uiEscape(option.label)}</span></label>`).join('')}</fieldset>`;
+/** A labelled radio group drawn as one segmented bar (mockup §3). */
+export const uiSegmented = (
+  legend: string,
+  name: string,
+  options: readonly { value: string; label: string }[],
+  selected: string,
+): string =>
+  `<fieldset class="k-segmented"><legend>${uiEscape(legend)}</legend><span>${options.map(option => `<label><input type="radio" name="${uiEscape(name)}" value="${uiEscape(option.value)}"${option.value === selected ? ' checked' : ''}><span>${uiEscape(option.label)}</span></label>`).join('')}</span></fieldset>`;
 export const componentStyles = `
 .k-input input::-webkit-search-cancel-button{display:none}
 .k-pane{width:440px;max-width:calc(100vw - 32px);height:min(760px,calc(100dvh - 48px));max-height:calc(100dvh - 48px);padding:0;border:1px solid var(--hm-line);border-radius:18px;background:var(--hm-bg);color:var(--hm-ink);box-shadow:var(--hm-shadow);overflow:hidden}
@@ -61,6 +77,9 @@ export const componentStyles = `
 .k-radio,.k-checkbox{appearance:none;min-height:20px!important;width:20px!important;height:20px;margin:0;padding:0;border:2px solid var(--hm-line);background:transparent;flex:none;border-radius:6px!important}.k-radio{border-radius:50%!important}.k-radio:checked{border-color:var(--hm-brand);background:radial-gradient(circle,var(--hm-brand) 0 5px,transparent 5px)}.k-checkbox:checked{border-color:var(--hm-brand);background:var(--hm-brand)}.k-checkbox:checked::after{content:'';display:block;width:6px;height:10px;border:solid var(--hm-on-accent);border-width:0 2px 2px 0;transform:translate(5px,1px) rotate(45deg)}
 .k-status{display:inline-flex;align-items:center;gap:5px;min-height:22px;padding:2px 8px;border-radius:11px;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand)}.k-status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}.k-notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;margin-top:14px;font-size:14px;line-height:1.45;background:color-mix(in srgb,var(--hm-brand) 10%,transparent)}.k-notice.alert{background:color-mix(in srgb,var(--hm-alert) 11%,transparent);color:var(--hm-alert)}.k-notice ha-icon{flex:none;color:var(--hm-brand)}.k-notice.alert ha-icon{color:var(--hm-alert)}.k-empty{border:1px dashed var(--hm-line);border-radius:14px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--hm-muted)}
 .k-fold{margin-top:14px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);overflow:hidden}.k-fold summary{padding:12px 14px;min-height:44px;display:flex;gap:10px;align-items:center;cursor:pointer;font-size:14px}.k-fold[open]>summary ha-icon{transform:rotate(90deg)}.k-fold .k-list{border:0;border-radius:0;border-top:1px solid var(--hm-line)}.k-steps{display:flex;gap:6px;align-items:center;color:var(--hm-muted);font-size:12px}.k-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;border:1px solid var(--hm-line)}.k-steps .on{background:var(--hm-brand);color:var(--hm-on-accent);border-color:var(--hm-brand)}.k-steps .done{color:var(--hm-brand);border-color:var(--hm-brand)}.k-steps hr{width:20px;border:0;border-top:1px solid var(--hm-line)}.k-binding{display:grid;gap:8px}.k-binding .k-row{background:transparent;padding:0}.k-binding .k-btn{justify-self:start}.k-binding .k-notice{margin:0}.k-pane ha-icon,.k-binding ha-icon{--mdc-icon-size:20px}
+.k-choices,.k-segmented{border:0;margin:0 0 14px;padding:0;min-width:0}.k-choices legend,.k-segmented legend{font-size:13px;color:var(--hm-muted);padding:0;margin-bottom:6px}
+.k-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.k-choices legend{grid-column:1/-1}.k-choices label{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:58px;padding:8px 2px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-muted);font-size:11px;line-height:1.15;text-align:center;cursor:pointer;hyphens:auto;overflow-wrap:break-word}.k-choices label:has(input:checked){border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface));color:var(--hm-ink);font-weight:600}.k-choices label:has(input:focus-visible),.k-segmented label:has(input:focus-visible){box-shadow:var(--hm-focus)}.k-choices input[type=radio],.k-segmented input[type=radio]{position:absolute;inset:0;opacity:0;width:100%!important;height:100%!important;min-height:0!important;margin:0;padding:0;border:0;cursor:pointer}.k-choices ha-icon{--mdc-icon-size:20px}
+.k-segmented>span{display:flex;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden;background:var(--hm-surface)}.k-segmented label{position:relative;flex:1;display:grid;place-items:center;min-height:40px;padding:0 6px;font-size:13px;color:var(--hm-ink);cursor:pointer;text-align:center}.k-segmented label+label{border-left:1px solid var(--hm-line)}.k-segmented label:has(input:checked){background:color-mix(in srgb,var(--hm-brand) 16%,var(--hm-surface));font-weight:600}
 @media(max-width:650px){.k-pane{width:100%;max-width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:18px 18px 0 0}.pane-head{padding-top:max(14px,env(safe-area-inset-top))}.pane-foot{padding-bottom:max(12px,env(safe-area-inset-bottom))}.k-row{gap:10px;padding:10px 12px}.k-row .val{font-size:14px}.k-btn{min-height:44px}.k-tabs button{min-height:40px}}
 `;
 /** Constructed sheets survive screen content updates without style tags in screens. */
