@@ -97,6 +97,74 @@ test('a height-only resize keeps a moved camera, and refits an untouched one', a
   expect((await camera()).scale).toBe(moved);
 });
 
+test('capture activity and height evidence next to the mockup', async ({ page }, info) => {
+  test.setTimeout(120000);
+  const mobile = info.project.name === 'mobile';
+  const folder = process.env.HM_CAPTURE_ACTIVITY_HEIGHTS
+    ? 'docs/evidence/0.9-activity-heights'
+    : info.outputPath('visuals');
+  await mkdir(folder, { recursive: true });
+  const size = mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+  const shot = async (theme, name, expected = size) => {
+    const path = `${folder}/${info.project.name}-${theme}-${name}.png`;
+    await page.waitForTimeout(350);
+    const bytes = await page.screenshot({ path, scale: 'css', animations: 'disabled' });
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([expected.width, expected.height]);
+  };
+  const open = async theme => {
+    await page.setViewportSize(size);
+    await page.goto('/tests/browser/fixtures/shell.html');
+    await page.waitForFunction(() => window.shellHarnessReady);
+    await page.evaluate(dark => {
+      const harness = window.testHarness;
+      harness.hass.themes = { darkMode: dark };
+      harness.card.hass = { ...harness.hass };
+    }, theme === 'dark');
+    await expect(card(page)).toHaveAttribute('data-theme', theme);
+  };
+  for (const theme of ['light', 'dark']) {
+    await open(theme);
+    await shot(theme, 'plan');
+    await card(page).getByRole('button', { name: 'Encuadrar Living', exact: true }).click();
+    // A click during the camera's move would scroll the clipped viewport to reach the symbol.
+    await page.waitForTimeout(500);
+    await card(page).getByRole('button', { name: 'Ventilador Living', exact: true }).click();
+    await expect(card(page).locator('.activity')).toContainText('Enviado');
+    await page.evaluate(() => {
+      for (const value of ['3.19994068145752', '3.26295804977417', '2.89073395729065'])
+        window.testHarness.updateState('sensor.synthetic_power', value, {
+          device_class: 'power',
+          unit_of_measurement: 'kW',
+        });
+    });
+    await expect(card(page).locator('.activity')).toContainText('Enviado');
+    await shot(theme, 'activity');
+    await open(theme);
+    await card(page).locator('.hm-menu > summary').click();
+    await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+    await expect(card(page).locator('.editor-wrap')).toBeVisible();
+    await shot(theme, 'edit');
+    await card(page).locator('[data-id=lamp] .primary').click();
+    await expect(card(page).locator('.workspace > .editor')).toBeVisible();
+    await shot(theme, 'inspector');
+    if (!mobile) {
+      const window1278 = { width: 1278, height: 900 };
+      await open(theme);
+      await page.setViewportSize(window1278);
+      await page.evaluate(() => {
+        document.getElementById('mount').style.width = '1022px';
+      });
+      await shot(theme, 'sidebar', window1278);
+    }
+  }
+  await page.setViewportSize(size);
+  await page.goto('/docs/vision-mockup.html');
+  await page.locator(mobile ? '#phone' : 'div#desk').scrollIntoViewIfNeeded();
+  await shot('light', 'reference-plan');
+  await page.locator('.app.edit').first().scrollIntoViewIfNeeded();
+  await shot('light', 'reference-edit');
+});
+
 test('critical alerts propagate to the symbol, room and pill, and the pill frames the sensor', async ({ page }) => {
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'on', { device_class: 'moisture' }),

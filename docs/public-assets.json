@@ -1454,6 +1454,160 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
       "sha256": "a859f2b6b96daa065ce58feee55b503de8264b836ca67ee869ef3e4a9b4712a9"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5382fb84ef73a1d458df7fd37cee1773082108ae5bdec40408ca41243d507dd4"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fa733b5dfe6a27e11c92c573a8103e5a33a5499552bfa99912b94b89e9aa854f"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e793f70c15338f720bbf7c7eaec28cc35d88d4514c7c8430e4d2458381937f0e"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "98192e9bc2b63d57db83d9e7e2632e3dba5393ffd9e42038bb1056f9512cf435"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-sidebar.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "891571f2ab2b6fd70410e57f271a666f73e751fcdb73e925b07981673fa369ad"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8be323c05f656fc21b45f49582bc6a3b8ad3937577e93d995b454db2ba0ecd8b"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "71afc0f13c05815c0f4438c6f23ae0a44c8d0c71909a4174bc3b2dcdad870252"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "453397b760d1529633ecb94463b2e2abd097f8a308beff360d664f015b6242ce"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "82fbdb69efa9675936ff135fcb6e375589b017f6314f091548665ccf10312f21"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-edit.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "add3673461a5630a897a4005c17abdf464d25b95e61a3bf049eeb2c8cd27dc6c"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-plan.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5f6f733b5378143610646095c4ee68bcb31dee90e6d70f96f6f5312b71d4e672"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-sidebar.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d86d048b07417d5d94d24d71d3715eabe747b9d10745b9901a4c7add29fc16cf"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "90bae65a5b44afcbef98c759a193a8c33757224b9e41f673a2f5694ea4788d90"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "6ba9bf90ff94fabc7962efcf943cedbc88d9db263bd60f5cf3605632d165ba8a"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "38e933b3fc88ec347b29178e73cbf37df3fc1ef0ea2bca6df54b1d63614ece42"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8b0dbd28fed8d8fd6a3e9a8327c3c663fea36c946d6613a5fde77084cddc7e97"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "14500f9b1f311fec9290e21024366f148966e826665072fddede5d1ac9923dcd"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a24ecf2db546017e2adb7bd13e7f10ad758c3408e2c168164425911791d863b6"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ec3485fad1f8db171c620ccc41ae84364c93caf8cd6479a18de2b3d5adde1578"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8b331c8bfe5643b2d3e68d8ea39413591644a95e644a8a88f53deff09686494f"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-edit.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "25fe424a697496883e8191e70766fcd25a6b5de906268d9e06c5e07aa536343e"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-plan.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "bfb8a75f2bd21ea6d1abf64500161d7c1b800389f5db9b846b5c1c934855db59"
     }
   ]
 }
