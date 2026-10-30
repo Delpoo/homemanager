@@ -18,7 +18,7 @@ Guía para cualquier agente (ChatGPT, Claude u otro) que trabaje en el rediseño
 2. [ESTADO.md](ESTADO.md): qué está hecho, en curso y pendiente.
 3. [decisiones-propietario.md](decisiones-propietario.md): lo que pidió el propietario, con sus palabras.
 4. La guía de **tu** etapa, en [etapas/](etapas/).
-5. [maqueta-modulos.html](maqueta-modulos.html): abrirla en un navegador.
+5. [maqueta.md](maqueta.md): los dibujos como imágenes. Si tu herramienta puede abrirla, la misma maqueta está en [maqueta-modulos.html](maqueta-modulos.html). E00 no la necesita.
 6. Lo que indique la etapa de [../vision.md](../vision.md), [../vision-mockup.html](../vision-mockup.html), [../contract.md](../contract.md) y [../roadmap.md](../roadmap.md).
 
 ## Qué manda si dos cosas chocan
@@ -63,6 +63,24 @@ Es obligatorio siempre, aunque la etapa quede incompleta:
 3. **PR:** completar la plantilla del repositorio y pegar el reporte.
 4. **Mensaje al propietario:** enviar el reporte de [reporte.md](reporte.md).
 5. **Parar.** No empezar otra etapa hasta que el propietario lo pida.
+
+## Si tu herramienta no te deja ver o probar algo
+
+Un límite de tu herramienta no es una decisión del propietario: no le trasladés el problema ni pauses la etapa por eso. Si tu herramienta prohíbe algo, no lo eludas: seguí con la siguiente opción.
+
+**Para ver la maqueta**
+1. [maqueta.md](maqueta.md), desde GitHub o desde tu copia.
+2. Con el servidor de pruebas: la ruta `/docs/rediseno/maqueta-modulos.html`, en `127.0.0.1` y tu puerto.
+
+**Para ver la app**
+1. Levantar el servidor con un puerto propio, para no usar el de otra copia: `HM_TEST_PORT=<puerto> npm run dev`.
+2. Si tu navegador integrado no llega a ese servidor, usar Playwright desde la terminal: lanza el Chrome del equipo. `HM_TEST_PORT=<puerto> npx playwright test <archivo> --project=desktop`. Si tus herramientas de terminal tampoco llegan a `127.0.0.1`, anotarlo.
+3. Mirar las capturas de `docs/evidence/`, que muestran casi todas las pantallas con datos inventados. Pueden estar atrasadas: decir de qué versión son.
+4. Leer el código y las pruebas (`tests/**/*.browser.spec.mjs`).
+
+**Si `npm ci` no puede descargar paquetes,** copiar `node_modules` de otra copia local del mismo repositorio, con el mismo `package-lock.json`, y decirlo en el reporte.
+
+**Si nada de esto alcanza,** seguir con lo que no dependa de eso y decir cómo se comprobó cada cosa (código, captura o app). El auditor completa lo que falte. No marcar como cumplido lo que no se pudo comprobar. Sólo entonces pedirle algo al propietario: qué probaste y qué necesitás, en una frase.
 
 ## Estados
 

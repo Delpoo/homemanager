@@ -2,7 +2,7 @@
 
 El auditor revisa una etapa terminada antes de que el propietario la valide. Quien implementó no se audita a sí mismo.
 
-No alcanza con leer el reporte: hay que abrir la app y mirar el código. Los hallazgos son de comportamiento, no de estilo.
+No alcanza con leer el reporte: hay que abrir la app y mirar el código. Los hallazgos son de comportamiento, no de estilo. Si el implementador no pudo recorrer algo en la app, el auditor lo recorre y lo deja anotado.
 
 ## Qué revisar
 

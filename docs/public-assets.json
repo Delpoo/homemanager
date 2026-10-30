@@ -1608,6 +1608,48 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
       "sha256": "bfb8a75f2bd21ea6d1abf64500161d7c1b800389f5db9b846b5c1c934855db59"
+    },
+    {
+      "path": "docs/rediseno/maqueta/1-ficha-ventilador.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "ae4d1b490fcdfcc9a3c66bac3239519234646448d3acc74090b8a6bbd5a2f403"
+    },
+    {
+      "path": "docs/rediseno/maqueta/2-ficha-planta.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "b53e7090d1ce71b85b7061c6cc2218a4880b7f128a3568b8715b34a3f31ba1ef"
+    },
+    {
+      "path": "docs/rediseno/maqueta/3-agregar.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "446e4529d8634505805eff71c945ccdf369cb92c527fe9831b863b4cd0192365"
+    },
+    {
+      "path": "docs/rediseno/maqueta/4-telefono.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "702d7cf1fbb01db55787e332dd0dfeb41adc07e9e37c1c499138d0a28004f7d5"
+    },
+    {
+      "path": "docs/rediseno/maqueta/5-reglas.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "49729d0d408049e0bf1b1d34d875a10fbcc0a173ab26eee44075e2ddbe2e4231"
+    },
+    {
+      "path": "docs/rediseno/maqueta/6-alternativas.png",
+      "source": "docs/rediseno/maqueta-modulos.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "39b5356f926294dcb462784e80ee7f2b435d7fec3d09f76086d57cd2249cce54"
     }
   ]
 }

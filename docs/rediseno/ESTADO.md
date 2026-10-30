@@ -31,7 +31,7 @@ No son parte de este rediseño, pero pueden tocar los mismos archivos. Antes de 
 
 | Trabajo | Riesgo de choque | Estado al 31/10/2026 |
 |---|---|---|
-| 0.10 · etapa 4, plano vinculado | E11 | Sin empezar según la hoja de ruta |
+| 0.10 · etapa 4, plano vinculado | E00, E11 | Fusionada en `main` (#47), sin publicar |
 | 0.10 · etapa 5, áreas de Home Assistant | E05 (hoy propone categorías) | Sin empezar según la hoja de ruta |
 | 0.10 · etapa 6, limpieza | Todas | Sin empezar según la hoja de ruta |
 | Pista B · ESPHome | E09, E10 | El propietario pidió revisarla más adelante |
@@ -52,4 +52,5 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-10-31 · Claude (guía y auditor) · — · Agregó la maqueta como imágenes y qué hacer si una herramienta no puede abrir algo.
 - 2026-10-31 · Claude (guía y auditor) · — · Creó las guías y la maqueta de módulos. Todavía sin validar por el propietario.

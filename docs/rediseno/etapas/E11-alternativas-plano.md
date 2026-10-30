@@ -30,7 +30,11 @@ Las imágenes **las prepara el usuario**: la app no las genera. Debe poder carga
 
 ## Fuera de alcance
 
-Generar versiones oscuras en forma automática. **Plano vinculado** (0.10, etapa 4): coordinar antes de empezar, porque toca el mismo dato.
+Generar versiones oscuras en forma automática.
+
+## Plano vinculado
+
+La 0.10 ya permite que el dibujo viva en un archivo de Home Assistant, `homemanager/<hogar>.svg`, y se actualice solo (`custom_components/homemanager/plan_link.py`, `src/card/linked-plan.ts`, [integration.md](../../integration.md#plano-vinculado)). Definir en la propuesta cómo convive con las alternativas. Recomendación: que cada imagen de una alternativa pueda estar subida o vinculada a su archivo. Esa carpeta también puede resolver dónde guardar las imágenes, porque ya entra en las copias de seguridad.
 
 ## No se puede perder
 
