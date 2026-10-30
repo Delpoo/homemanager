@@ -1,6 +1,6 @@
 # CP6 · RF y diálogos · verificación visual
 
-Rama: `chatgpt/0.9-rf-dialogs`, creada desde `origin/main` (`9f75e1d`), actualizada a `0288882` antes del PR y a `495c930` para integrar los checkpoints publicados por el propietario durante la tarea. Se heredan la versión 0.9.0-beta.3 y esos cambios de `main`; CP6 no modifica versión ni CHANGELOG. Alcance: presentación de RF, confirmación compartida y bloque Nuevo hogar / Todavía no hay hogares. No implica que toda la etapa 0.9 esté terminada.
+El CP6 inicial se entregó en el PR #33 y fue fusionado por el propietario como `f008850`, incluyendo su mejora `128e50f` para leer los nombres RF en móvil. La revisión adicional continúa en `chatgpt/0.9-rf-dialogs-followup`, desde ese `main`, conservando la mejora. Se hereda la versión 0.9.0-beta.3; el seguimiento no modifica versión ni CHANGELOG. Su alcance son dos correcciones en los componentes compartidos y RF: foco tras cancelar y ancho del grupo Tipo. No implica que toda la etapa 0.9 esté terminada.
 
 ## Ejecución y arquitectura
 
@@ -31,23 +31,31 @@ Las pruebas RF existentes mantienen las comprobaciones de servicios, payloads, r
 
 CP6 añade un recorrido de navegador en las dos resoluciones y los dos temas. Recorre lista, creación, envío, aprendizaje, captura, prueba, diseñador, elemento, funciones, avanzado, confirmar, equipos, YAML y hogares. Escanea texto visible, opciones seleccionadas y valores editables: falla con `_`, patrones de `entity_id` o vocabulario técnico de la lista de la prueba. La única excepción es `pre[data-yaml]`. Los nombres del fixture incluyen guiones bajos deliberadamente: se limpian sólo para mostrarlos. Un segundo caso comprueba que cambiar un icono o un rol conserva los nombres almacenados exactamente; el adaptador de presentación `rfEditedText` evita que la limpieza visual renombre datos por accidente. También se comprueban las ayudas junto al título, ✓ accesible, ausencia de desbordamiento horizontal, dimensiones PNG y cancelación sin mutaciones. Una prueba de código rechaza estilos, colores y geometría CSS dentro de las pantallas RF.
 
+### Revisión adicional: apariencia global y foco
+
+La revisión posterior al primer cierre reprodujo un fallo en RF: el diálogo devolvía el foco al botón original, pero el dibujo posterior de la pantalla lo reemplazaba por otro nodo. El foco terminaba perdido al cancelar o usar Esc. `keepPanelFocus`, en el componente compartido, conserva la identidad lógica del control mediante sus identificadores estables y mantiene la selección de los campos. RF reutiliza ese mecanismo al dibujarse; no se añaden excepciones a cada acción destructiva.
+
+La nueva prueba comprueba el foco inicial, el ciclo de Tab, Esc, Cancelar y la vuelta al botón recreado, sin cambiar la configuración RF. También comprueba que Claro y Oscuro elegidos en HomeManager prevalecen sobre el tema de HA, y que Automático vuelve a seguirlo. Ambos recorridos pasan en escritorio y móvil. No se cambian los comandos, el almacenamiento ni el criterio de confirmación física.
+
+La comparación visual detectó además una colisión con el selector de categorías agregado en `main`: su clase de cuadrícula `k-choices` estrechaba el grupo Tipo del diseñador RF. El campo agrupado genérico usa ahora `k-fieldset`, separado del selector de tarjetas por categoría. Una comprobación geométrica exige que las opciones ocupen el ancho disponible del diálogo en ambos temas y tamaños; no se sobreescriben los estilos de categorías ni se introducen reglas por pantalla.
+
 ### Resultados locales
 
-Verificación del 30/10/2026, sobre la base `495c930` y la implementación final:
+Verificación del 30/10/2026, sobre la base `f008850` y la implementación final:
 
 | Comprobación | Resultado |
 | --- | --- |
 | `npm ci --ignore-scripts` | Pasa; 0 vulnerabilidades en la instalación |
 | `npm run check` | Pasa: frontera pública, tres contratos, TypeScript y 193 pruebas |
 | `npm run format:check` | Pasa |
-| `npm run test:browser` | 289 pasan, 3 omisiones previstas de gestos táctiles en escritorio; esos casos corren en móvil |
-| RF + CP6 focalizados | 18 pasan en escritorio y móvil, sin relajar las comprobaciones RF existentes |
+| `npm run test:browser` | 291 pasan, 3 omisiones previstas de gestos táctiles en escritorio; esos casos corren en móvil |
+| RF, CP6 y diálogos compartidos | 32 casos de regresión pasan en escritorio y móvil, sin relajar las comprobaciones RF existentes |
 | `python -m pytest -q` · HA 2026.2.3 | 226 pasan |
 | `python -m pytest -q` · HA 2026.10.4 | 226 pasan |
 | E2E local · HA temporal y bundle final | 13 comprobaciones pasan; vivienda, persistencia, comandos, conflictos, móvil y RF |
 | Alcance del diff respecto de `main` | Sin cambios en los directorios excluidos, contrato, versión ni CHANGELOG |
 
-Los dos pytest locales usan una adaptación del entorno de pruebas para los sockets/eventos de Windows, fuera del repositorio publicado. La CI ejecuta las mismas versiones de HA en Linux sin esa adaptación. El E2E ignora cinco errores de página externos a HomeManager mediante su filtro existente; los errores de HomeManager siguen siendo fallos. Son pruebas sintéticas/de integración, no evidencia de ejecución RF ni reacción de hardware real.
+Los dos pytest locales usan una adaptación del entorno de pruebas para los sockets/eventos de Windows, fuera del repositorio publicado. La CI ejecuta las mismas versiones de HA en Linux sin esa adaptación. El E2E ignora cuatro errores de página externos a HomeManager mediante su filtro existente; los errores de HomeManager siguen siendo fallos. Son pruebas sintéticas/de integración, no evidencia de ejecución RF ni reacción de hardware real.
 
 ### Auditoría por pedido
 
@@ -95,7 +103,7 @@ Se conserva la navegación existente por pestañas para Equipos; la maqueta los 
 
 ### Control
 
-§10. Se conserva la cuadrícula persistida de cuatro columnas, no las tres del ejemplo: cambiarla reubicaría elementos guardados. Las etiquetas largas se acortan visualmente en móvil y conservan su nombre accesible.
+§10. Se conserva la cuadrícula persistida de cuatro columnas, no las tres del ejemplo: cambiarla reubicaría elementos guardados. Se conserva la mejora del propietario para mostrar los nombres largos en varias líneas en móvil, además de su nombre accesible completo.
 
 | Tamaño / tema | Producto | Maqueta |
 | --- | --- | --- |
