@@ -24,11 +24,16 @@ Implementa [vision.md](vision.md) en etapas que se pueden probar. Hay dos pistas
 - Respetar [vision.md §10](vision.md#10-arquitectura-del-código): la lógica nueva va a `src/model/` con pruebas unitarias.
 - Los marcadores y paneles sólo dibujan lo que esas funciones devuelven.
 
+**Diseño**
+- [vision-mockup.html](vision-mockup.html) es el objetivo visual de **todas** las pantallas. Si una pantalla no está en la maqueta, se arma sólo con los componentes de su sección 6, y se avisa en el PR para agregarla.
+- Ningún texto visible contiene un `entity_id`, un nombre con `_` ni una palabra técnica, salvo en las secciones avanzadas.
+
 **Antes de pedir revisión**
 - Pasar `npm run check`, `npm run format:check`, las pruebas de navegador (escritorio y móvil), `pytest` en las dos versiones de HA de la CI y el E2E local.
-- Adjuntar capturas a 1440×900 y 390×844 de cada pantalla que cambió.
+- Adjuntar capturas a 1440×900 y 390×844 de **cada** pantalla que cambió, al lado de su sección de la maqueta, y explicar cada diferencia.
+- Una etapa no está terminada mientras quede una pantalla de su lista con el aspecto anterior.
 
-## Etapa 0.7 · Base visual, arquetipos y respuesta (pista A)
+## Etapa 0.7 · Base visual, arquetipos y respuesta (pista A) · publicada como 0.7.0-beta.1
 
 Objetivo: el día a día se ve profesional, cada símbolo dice qué es, y todo toque tiene respuesta.
 
@@ -94,44 +99,85 @@ Objetivo: el día a día se ve profesional, cada símbolo dice qué es, y todo t
 - unitarias de `planImportReport` y `mergeRoom`: espacio vacío, dispositivos en una sola zona o repartidos, ambiguo, fuera, zonas nuevas e IDs sin cambios;
 - navegador: importación de zonas que se fusionan, revisión del plano guardado, espacios desde el riel y posición fija; capturas de Revisar cambios a 1440×900 y 390×844.
 
-## Etapa 0.8 · Dispositivos de HA completos (pista A)
+## Etapa 0.8 · Dispositivos primero (pista A)
 
-1. `bindings.deviceId` en el contrato y en el adaptador. La entidad principal debe pertenecer a ese dispositivo; si no pertenece, la validación en vivo lo informa, sin romper.
-2. **Selector en dos pasos** (`src/editor/device-picker.ts`): dispositivo y luego entidad principal preseleccionada. Se mantiene *Buscar cualquier entidad*.
-3. **Pantalla del dispositivo** (`src/panels/device-screen.ts`, `src/model/device-screen.ts`):
-   - las lecturas agrupadas por clase;
-   - un medidor de varios canales como tabla;
-   - las entidades de diagnóstico plegadas;
-   - *Abrir en Home Assistant* para administradores.
-4. Toque por arquetipo: sensores, medidores, equipos e infraestructura abren su pantalla.
-5. **Columna *Ahora***: clima, activos con apagado rápido, energía y alertas. Se filtra por espacio.
+Objetivo: vincular y consultar **dispositivos**, con nombres de persona. Nadie vuelve a buscar en una lista de 80 entidades con guiones bajos. Maqueta: secciones [7](vision-mockup.html#s7) y [8](vision-mockup.html#s8).
+
+Se publica en dos betas, para que el propietario pruebe el selector cuanto antes.
+
+**0.8.0-beta.1 · Selector y nombres**
+
+1. **Nombres de persona** (`src/model/names.ts`, función pura):
+   - dispositivo: `name_by_user`; si no, `name` del registro de dispositivos;
+   - lectura: el nombre de la entidad **sin el prefijo del nombre del dispositivo**; si queda vacío, su clase traducida (*Potencia*, *Temperatura*);
+   - espacio: el área de la entidad si tiene una propia; si no, la del dispositivo;
+   - nunca se muestra un `entity_id` ni un nombre con `_` fuera de *Buscar cualquier entidad*.
+2. **Selector en dos pasos** (`src/editor/device-picker.ts`), como la maqueta §7:
+   - **Paso 1, dispositivo:** agrupado por espacio; pestañas *Todos* / *Sin ubicar*; búsqueda por nombre, espacio, fabricante y modelo; los que ya están en el plano llevan *En el plano*.
+   - **Paso 2, qué mostrar:** una **lectura principal** preseleccionada según el arquetipo, y **hasta 3 lecturas adicionales**, cada una con su valor actual. El resto queda plegado.
+   - **Se excluyen siempre** las entidades de diagnóstico o configuración (`entity_category`), las ocultas y las desactivadas. Un dispositivo sin ninguna entidad útil no aparece.
+   - *Buscar cualquier entidad* queda como acción secundaria, para casos especiales.
+3. **Contrato:** `bindings.deviceId` y `bindings.readings` (hasta 3 `entity_id` del mismo dispositivo), opcionales y validados en los tres validadores. La entidad principal sigue en `entityId`. Si una entidad deja de pertenecer al dispositivo, la validación en vivo lo informa, sin romper.
+4. **En el plano:** un medidor muestra su lectura principal y, si la hay, la primera adicional (*23,4° · 52 %*).
+5. La ficha actual usa el selector nuevo. Su rediseño completo es de 0.9.
+
+**0.8.0-beta.2 · Pantalla del dispositivo y *Ahora***
+
+6. **Pantalla del dispositivo** (`src/panels/device-screen.ts`, `src/model/device-screen.ts`), como la maqueta §8:
+   - encabezado con icono, nombre, espacio, antigüedad del dato y estado;
+   - hasta 3 valores grandes; un medidor de varios canales, como tabla (canal, ahora, hoy);
+   - los controles, si los tiene, y las alertas activas;
+   - *Actividad* y *Diagnóstico* plegados; *Abrir en Home Assistant* sólo para administradores;
+   - en escritorio ocupa el lugar de *Ahora*, sin tapar el plano; en el móvil es una hoja.
+7. Tocar un sensor, un medidor, un equipo o infraestructura abre su pantalla.
+8. **Columna *Ahora***: alertas, clima por espacio, activos con apagado rápido y energía. Muestra sólo las secciones con datos y se filtra por el espacio elegido. En el móvil es una hoja deslizable.
 
 **Aceptación:**
-- [ ] Vincular un medidor de energía de 6 canales se hace eligiendo el dispositivo, no una de sus 20 entidades. Su pantalla muestra los 6 canales.
-- [ ] Con el campo vacío, el selector sugiere primero los dispositivos que todavía no están en el plano.
-- [ ] La columna *Ahora* sólo muestra secciones que tienen datos.
+- [ ] Con un dispositivo de 6 canales y 20 entidades, el paso 1 muestra **una** fila y el paso 2 muestra nombres como *Canal 1 · Potencia*.
+- [ ] Ningún texto visible del selector ni de la pantalla del dispositivo contiene `_` ni un `entity_id`, salvo dentro de *Buscar cualquier entidad*. Lo comprueba una prueba de navegador.
+- [ ] Las entidades de diagnóstico, configuración, ocultas o desactivadas no aparecen en el paso 1 ni entre las lecturas sugeridas.
+- [ ] Un plano de 0.7 sin `deviceId` funciona igual, y su ficha ofrece vincular el dispositivo de su entidad.
+- [ ] La pantalla del medidor muestra los 6 canales; la de un aire, su consigna y sus modos.
+- [ ] *Ahora* no muestra secciones vacías.
 
-## Etapa 0.9 · Editar es ver (pista A)
+**Pruebas nuevas:**
+- unitarias de `names` (con y sin `has_entity_name`, con prefijos, con nombres del usuario y en varios idiomas) y de `device-screen`;
+- de navegador del selector, la pantalla del dispositivo y *Ahora*, en escritorio y móvil, con un registro sintético de al menos 15 dispositivos y 80 entidades.
 
-1. **Inspector acoplado**:
-   - 360 px a la derecha en escritorio; hoja de hasta el 55 % en el móvil;
-   - la cámara desplaza el símbolo elegido al área visible.
-2. **Vista previa en vivo:**
-   - el inspector escribe en el `draft`;
-   - el símbolo y una miniatura se redibujan con cada cambio;
-   - ✓ (listo), ✕ (revertir ese dispositivo), y deshacer / rehacer por cada edición.
-3. **Secciones por arquetipo**, en el orden de [vision.md §7](vision.md#7-editar-es-ver). La sección *Alertas* trae sus reglas editables.
-4. **Fusionar en…** en *Ajustes del plano*, y su oferta automática al reemplazar el plano.
+## Etapa 0.9 · El mismo diseño en todas las pantallas (pista A)
+
+Objetivo: **ninguna pantalla conserva el aspecto de 0.6**. Hoy sólo el panel principal sigue la maqueta. La ficha, Ajustes del plano, los controles RF, los paneles nativos y los diálogos tienen estilos propios. Maqueta: secciones [3](vision-mockup.html#s3), [6](vision-mockup.html#s6), [9](vision-mockup.html#s9), [10](vision-mockup.html#s10) y [11](vision-mockup.html#s11).
+
+1. **Componentes** (`src/ui/`), como la maqueta §6:
+   - botones (principal, secundario, discreto, destructivo, de icono), campo, búsqueda, selector, pestañas, interruptor, casilla, opción, fila de lista, grupo, estado, aviso, estado vacío, plegable, diálogo y hoja;
+   - una página de prueba los muestra todos, en claro y en oscuro;
+   - ninguna pantalla define colores, bordes, radios ni tamaños propios: sólo tokens y estos componentes. Una prueba falla si aparece un color literal o un `<style>` con reglas propias fuera de `src/ui/`.
+2. **Inspector acoplado** en lugar de la ficha (maqueta §3):
+   - 360 px a la derecha en escritorio; en el móvil, hoja de hasta el 55 % de la altura; la cámara lleva el símbolo al área visible;
+   - escribe en el `draft`, y el símbolo se redibuja con cada cambio; ✓, ✕ (revertir ese dispositivo), deshacer y rehacer;
+   - secciones por arquetipo ([vision.md §7](vision.md#7-editar-es-ver)); *Alertas* trae sus reglas editables.
+3. **Ajustes del plano como página** (maqueta §9): secciones a la izquierda, los problemas arriba, el plano con su miniatura, y los espacios en una lista que se ordena arrastrando y se toca para editar.
+4. **Controles RF y Equipos ESPHome** (maqueta §10), incluido el diseñador del control:
+   - la lista de controles; el control con sus botones aprendidos;
+   - el aprendizaje, un botón por vez, con los detalles técnicos plegados;
+   - los equipos, con un estado y una acción cada uno.
+5. **Paneles nativos** del dispositivo, **diálogos** (maqueta §11), *Almacenamiento*, *Nuevo hogar* y *Revisar cambios*, con los mismos componentes. Nunca un diálogo sobre otro.
 
 **Aceptación:**
-- [ ] Mientras se edita, el símbolo editado siempre está visible, en escritorio y en el móvil.
-- [ ] Agregar un control fijado o cambiar el tamaño se ve en el plano antes de tocar ✓.
-- [ ] ✕ devuelve el dispositivo exactamente a como estaba al abrir el inspector.
-- [ ] Un medidor no muestra la sección *Controles*.
+- [ ] Cada pantalla de la lista de abajo tiene en el PR su captura a 1440×900 y a 390×844, al lado de su sección de la maqueta.
+- [ ] Mientras se edita, el símbolo editado siempre está visible. Un cambio de tamaño o un control fijado se ve antes de tocar ✓, y ✕ devuelve el dispositivo a como estaba.
+- [ ] La prueba de estilos no encuentra colores literales ni estilos propios fuera de `src/ui/`.
+- [ ] Todas las pantallas funcionan con el tema claro y el oscuro de Home Assistant.
+
+**Pantallas que se revisan:**
+- panel principal, *Ahora*, pantalla del dispositivo, inspector y selector;
+- Ajustes del plano (cada sección), Revisar cambios y acciones del espacio;
+- Controles RF (lista, control, aprendizaje, diseñador) y Equipos ESPHome;
+- paneles nativos, confirmar, Almacenamiento, Nuevo hogar y estado vacío.
 
 ## Pista B · ESPHome sin copiar y pegar
 
-Requiere que el propietario **apruebe D19** ([decisions.md](decisions.md)). Puede ir en 0.7 si está lista a tiempo; si no, en 0.8.
+Requiere que el propietario **apruebe D19** ([decisions.md](decisions.md)). Puede avanzar en paralelo con 0.8. Su interfaz usa los componentes de 0.9 (maqueta [§5](vision-mockup.html#s5) y [§10](vision-mockup.html#s10)).
 
 1. **Sonda de sólo lectura** (`homemanager/esphome/inspect`), primero y sola. Para cada equipo ESPHome devuelve:
    - si se encontró ESPHome Builder;
