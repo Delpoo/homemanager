@@ -4,6 +4,8 @@ Propuesta del 29/10/2026, **pendiente de aprobación del propietario**. Describe
 
 Este documento es genérico: no contiene datos de ninguna vivienda. Los ejemplos usan nombres inventados.
 
+**Actualización del 31/10/2026:** la ficha, las categorías, los avisos y las capas están cambiando con el [rediseño](rediseno/LEEME.md). Donde este documento choque con [rediseno/decisiones-propietario.md](rediseno/decisiones-propietario.md), manda este último.
+
 ## 1. Por qué hoy se siente pesado
 
 Una revisión con capturas de 0.6.0-beta.1 (escritorio 1440 px y móvil 390 px, un catálogo real de 20 dispositivos en un Home Assistant de prueba) muestra que el problema no son las funciones que faltan. Las que hay no forman un sistema.

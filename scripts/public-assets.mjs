@@ -23,24 +23,31 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/0\.9-activity-heights\/(?:desktop|mobile)-(?:light|dark)-(?:plan|activity|edit|inspector|sidebar|reference-plan|reference-edit)\.png$/.test(
       relative,
     );
-  if (!legacy && !picker && !deviceScreen && !rfDialogs && !alertRules && !activityHeights) return false;
+  const redesignMockup =
+    /^docs\/rediseno\/maqueta\/(?:1-ficha-ventilador|2-ficha-planta|3-agregar|4-telefono|5-reglas|6-alternativas)\.png$/.test(
+      relative,
+    );
+  if (!legacy && !picker && !deviceScreen && !rfDialogs && !alertRules && !activityHeights && !redesignMockup)
+    return false;
   if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.assets)) return false;
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (/-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
-        relative,
-      )
-        ? 'docs/vision-mockup.html'
-        : picker
-          ? 'tests/browser/fixtures/picker.html'
-          : alertRules
-            ? 'tests/editor/alerts.browser.spec.mjs'
-            : rfDialogs
-              ? 'tests/rf/cp6.browser.spec.mjs'
-              : deviceScreen
-                ? 'tests/browser/fixtures/device-screen.html'
-                : 'tests/browser/fixtures/shell.html') &&
+      (redesignMockup
+        ? 'docs/rediseno/maqueta-modulos.html'
+        : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
+              relative,
+            )
+          ? 'docs/vision-mockup.html'
+          : picker
+            ? 'tests/browser/fixtures/picker.html'
+            : alertRules
+              ? 'tests/editor/alerts.browser.spec.mjs'
+              : rfDialogs
+                ? 'tests/rf/cp6.browser.spec.mjs'
+                : deviceScreen
+                  ? 'tests/browser/fixtures/device-screen.html'
+                  : 'tests/browser/fixtures/shell.html') &&
     entry?.review === 'fictional-only' &&
     entry?.sha256 === createHash('sha256').update(bytes).digest('hex') &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
