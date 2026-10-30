@@ -49,6 +49,24 @@ test('meter pills stay bounded without losing the complete formatted value', () 
   assert.equal(spec.body.fullValue, '1234567890 kWh');
 });
 
+test('a linked meter shows the first additional reading only while both registry memberships match', () => {
+  const { device, hass } = fixture('sensor', 'sensor.test_temperature', '23.4', {
+    device_class: 'temperature',
+    unit_of_measurement: '°C',
+  });
+  device.bindings.deviceId = 'registry-device';
+  device.bindings.readings = ['sensor.humidity', 'sensor.other'];
+  hass.states['sensor.humidity'] = { state: '52', attributes: { unit_of_measurement: '%' } };
+  hass.states['sensor.other'] = { state: '99', attributes: { unit_of_measurement: 'W' } };
+  hass.entities = {
+    'sensor.test_temperature': { device_id: 'registry-device' },
+    'sensor.humidity': { device_id: 'registry-device' },
+  };
+  assert.equal(symbolSpec(device, hass, now).body.value, '23,4 °C · 52 %');
+  hass.entities['sensor.humidity'].device_id = 'another';
+  assert.equal(symbolSpec(device, hass, now).body.value, '23,4 °C');
+});
+
 test('binary sensor changes icon and a leak has a critical badge', () => {
   const { device, hass, entity } = fixture('sensor', 'binary_sensor.test_door', 'off', { device_class: 'door' });
   assert.equal(symbolSpec(device, hass, now).body.icon, 'mdi:door-closed');

@@ -1,5 +1,34 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'Sin vincular': 'Not linked',
+  'Usar esta entidad': 'Use this entity',
+  'Vincular dispositivo': 'Link device',
+  'Cambiar dispositivo': 'Change device',
+  'Dispositivo de Home Assistant': 'Home Assistant device',
+  'Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.':
+    'Choose the device and readings to display. Existing controls are preserved.',
+  'Vínculo de lectura conservado': 'Existing reading link preserved',
+  'Elegí qué querés ver en el plano.': 'Choose what to show on the plan.',
+  'Una lectura falta o ya no pertenece a este dispositivo. Revisá el vínculo.':
+    'A reading is missing or no longer belongs to this device. Review the link.',
+  'Buscar cualquier entidad': 'Search any entity',
+  'Buscar por nombre o entidad': 'Search by name or entity',
+  'Todas las entidades': 'All entities',
+  'Buscar dispositivo o espacio': 'Search devices or spaces',
+  'Todos · {count}': 'All · {count}',
+  'Sin ubicar · {count}': 'Not on plan · {count}',
+  '{count} lecturas': '{count} readings',
+  'En el plano': 'On plan',
+  'No hay dispositivos que coincidan.': 'No matching devices.',
+  'Lectura principal · se ve en el símbolo': 'Primary reading · shown on the symbol',
+  Sugerida: 'Suggested',
+  'Lecturas adicionales · hasta 3': 'Additional readings · up to 3',
+  'Otras lecturas ({count})': 'Other readings ({count})',
+  'Lectura principal': 'Primary reading',
+  'Diagnóstico, configuración, ocultas y desactivadas ({count}) no se muestran.':
+    'Diagnostic, configuration, hidden and disabled readings ({count}) are excluded.',
+  Vincular: 'Link',
+  'El dispositivo cambió. Volvé a elegir sus lecturas.': 'The device changed. Choose its readings again.',
   'Se importó sólo el plano. Los espacios y dispositivos conservan su asignación; revisá los conflictos pendientes.':
     'Only the plan was imported. Room assignments were preserved; review the remaining conflicts.',
   'Cambios aplicados al borrador. Guardá para persistirlos.': 'Changes applied to the draft. Save to persist them.',

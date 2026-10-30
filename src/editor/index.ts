@@ -42,6 +42,10 @@ import {
 type Box = { x: number; y: number; width: number; height: number };
 export { LovelaceConfigurationStore, type ConfigurationStore } from './storage.js';
 import { enhanceEntityInput, friendlyName, areaOf, pickerStyles } from './entity-picker.js';
+import { openDevicePicker, type DevicePicker } from './device-picker.js';
+import { deviceName, readingName, personName } from '../model/names.js';
+import { bindingIssues, type DeviceSelection } from '../model/device-catalog.js';
+import { uiBinding, uiButton, uiNotice, useBindingComponents } from '../ui/components.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
@@ -132,6 +136,7 @@ export class HomeManagerEditor extends HTMLElement {
   private plans?: { plan_id: string; created_at: string; bytes: number; revision: number }[];
   constructor() {
     super();
+    useBindingComponents(this.root);
     this.root.addEventListener('click', this.onClick);
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
@@ -203,6 +208,25 @@ export class HomeManagerEditor extends HTMLElement {
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
+    const picker = this.root.querySelector<DevicePicker>('homemanager-device-picker');
+    if (picker) picker.hass = hass;
+    const form = this.root.querySelector<HTMLFormElement>('#device-form');
+    const summary = this.root.querySelector('[data-binding-summary]');
+    if (form && summary) {
+      const data = new FormData(form),
+        entityId = value(data, 'entityId') || null,
+        deviceId = value(data, 'deviceId'),
+        readings = value(data, 'readings');
+      const nextSummary = this.bindingSummary({
+        entityId,
+        ...(deviceId ? { deviceId } : {}),
+        ...(readings ? { readings: JSON.parse(readings) } : {}),
+      } as Device['bindings']);
+      if (summary.innerHTML !== nextSummary) {
+        summary.innerHTML = nextSummary;
+        this.wirePickers();
+      }
+    }
     if (first) this.loadRemotes();
     if (first && (this.homeConfig || integrationAvailable(hass))) {
       void this.refreshHomes();
@@ -405,7 +429,7 @@ export class HomeManagerEditor extends HTMLElement {
       selected = this.adding ? undefined : this.device();
     const key = selected?.id ?? '';
     if (!this.sheet || this.sheet.key !== key) this.sheet = sheetFromDevice(selected, key, configuration);
-    const quick = `<div class="quick"><label class="field">${esc(t('Agregar dispositivo desde Home Assistant'))}<input id="quick-add" aria-label="${esc(t('Agregar dispositivo desde Home Assistant'))}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></label></div>`;
+    const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
     const toolbar = this._embedded
       ? ''
       : `<div class="toolbar"><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select>${iconButton('add', t('Agregar dispositivo'), 'plus')}${iconButton('settings', t('Ajustes del plano'), 'settings')}</div>`;
@@ -478,7 +502,7 @@ export class HomeManagerEditor extends HTMLElement {
       ${remotes}<div class="field">${help(t('Panel nativo'), t('Un panel con acciones fijas definido en Ajustes del plano. Se muestra junto a los controles.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
     return `<form id="device-form"><div class="basic">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
-      <div class="field">${help(t('Entidad del dispositivo'), t('El equipo de Home Assistant que representa este símbolo. Sus acciones aparecen como sugerencias en los controles.'))}<input name="entityId" aria-label="${esc(t('Entidad del dispositivo'))}" value="${esc(device?.bindings.entityId ?? '')}" data-entity-picker="" placeholder="${esc(t('Buscá por nombre, área o entidad'))}"></div>
+      <div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>
       <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div></form>
       <div class="ctl-host">${this.controlsSection()}</div>
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
@@ -511,6 +535,8 @@ export class HomeManagerEditor extends HTMLElement {
     this.wirePickers();
   }
   private wirePickers(): void {
+    for (const button of this.root.querySelectorAll<HTMLButtonElement>('[data-action=binding],[data-action=pick-new]'))
+      button.onclick = () => this.pickDevice(button.dataset.action === 'pick-new');
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
     // Icons of the session's entities join the built-in suggestions.
@@ -523,6 +549,64 @@ export class HomeManagerEditor extends HTMLElement {
     ].slice(0, 300);
     for (const picker of this.root.querySelectorAll<HTMLElement & { extra: string[] }>('homemanager-icon-picker'))
       picker.extra = extra;
+  }
+  private bindingSummary(bindings?: Device['bindings'] | DeviceSelection): string {
+    const entityId = bindings?.entityId,
+      deviceId = bindings?.deviceId;
+    const registry = deviceId ? this._hass?.devices?.[deviceId] : undefined;
+    const name = registry
+      ? deviceName(registry, this._hass)
+      : entityId
+        ? personName(this._hass?.states[entityId]?.attributes?.friendly_name, readingName(entityId, this._hass))
+        : t('Sin vincular');
+    const detail =
+      deviceId && entityId
+        ? readingName(entityId, this._hass)
+        : entityId
+          ? t('Vínculo de lectura conservado')
+          : t('Elegí qué querés ver en el plano.');
+    return (
+      uiBinding(name, detail, deviceId ? t('Cambiar dispositivo') : t('Vincular dispositivo')) +
+      (bindings && bindingIssues(bindings, this._hass).length
+        ? uiNotice(t('Una lectura falta o ya no pertenece a este dispositivo. Revisá el vínculo.'), 'alert')
+        : '')
+    );
+  }
+  private pickDevice(adding = false): void {
+    const form = this.root.querySelector<HTMLFormElement>('#device-form');
+    const get = (name: string) => form?.querySelector<HTMLInputElement>(`[name=${name}]`)?.value ?? '';
+    const entityId = get('entityId');
+    const binding =
+      !adding && entityId
+        ? {
+            entityId,
+            ...(get('deviceId') ? { deviceId: get('deviceId') } : {}),
+            readings: get('readings') ? JSON.parse(get('readings')) : [],
+          }
+        : undefined;
+    const preferred = this.configuration.rooms.find(room => room.id === get('roomId'))?.label;
+    const trigger = this.root.activeElement as HTMLElement | null;
+    openDevicePicker(this.root, this._hass, this.configuration.catalog.devices, binding, preferred, selection => {
+      if (!selection) {
+        trigger?.focus();
+        return;
+      }
+      if (adding) {
+        this.addFromEntity(selection.entityId, selection);
+        return;
+      }
+      if (!form?.isConnected) return;
+      for (const [name, value] of Object.entries({
+        entityId: selection.entityId,
+        deviceId: selection.deviceId ?? '',
+        readings: selection.deviceId ? JSON.stringify(selection.readings) : '',
+      }))
+        form.querySelector<HTMLInputElement>(`[name=${name}]`)!.value = value;
+      this.root.querySelector('[data-binding-summary]')!.innerHTML = this.bindingSummary(selection);
+      form.querySelector<HTMLInputElement>('[name=entityId]')!.dispatchEvent(new Event('change', { bubbles: true }));
+      this.wirePickers();
+      this.root.querySelector<HTMLButtonElement>('[data-action=binding]')?.focus();
+    });
   }
   /** Entity of the sheet: the field as typed, else the saved binding. */
   private sheetEntity(): string | null {
@@ -701,9 +785,7 @@ export class HomeManagerEditor extends HTMLElement {
           this.closeSurface();
           break;
         case 'from-entity':
-          this.fromEntity = true;
-          this.render();
-          this.root.querySelector<HTMLInputElement>('#quick-add')?.focus();
+          this.pickDevice(true);
           break;
         case 'add':
           this.adding = true;
@@ -953,6 +1035,8 @@ export class HomeManagerEditor extends HTMLElement {
           position: fixed ? clone(previous.position) : { x: Number(value(data, 'x')), y: Number(value(data, 'y')) },
           bindings: {
             entityId: value(data, 'entityId') || null,
+            ...(value(data, 'deviceId') ? { deviceId: value(data, 'deviceId') } : {}),
+            ...(value(data, 'readings') ? { readings: JSON.parse(value(data, 'readings')) as string[] } : {}),
             // Kept for readers before 0.6: a tap that is a single button.
             primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
             advancedPopupId: value(data, 'panelId') || null,
@@ -1151,18 +1235,28 @@ export class HomeManagerEditor extends HTMLElement {
     )?.fields;
     return !fields || !Object.values(fields).some(field => field?.required === true);
   }
-  private addFromEntity(entityId: string): void {
+  private addFromEntity(entityId: string, selection?: DeviceSelection): void {
     const hass = this._hass;
     if (!entityId || !hass?.states[entityId]) return;
     const configuration = this.configuration;
-    const existing = configuration.catalog.devices.find(device => device.bindings.entityId === entityId);
+    const existing = configuration.catalog.devices.find(
+      device =>
+        device.bindings.entityId === entityId ||
+        (selection?.deviceId &&
+          (device.bindings.deviceId === selection.deviceId ||
+            (device.bindings.entityId && hass.entities?.[device.bindings.entityId]?.device_id === selection.deviceId))),
+    );
     if (existing) {
       this.selectedDeviceId = existing.id;
       this.notice(t('«{label}» ya está en el plano.', { label: existing.display.label }));
       return;
     }
     const entity = hass.states[entityId];
-    const label = friendlyName(hass, entityId).slice(0, 240);
+    const label = (
+      selection?.deviceId
+        ? deviceName(hass.devices?.[selection.deviceId], hass)
+        : personName(friendlyName(hass, entityId), readingName(entityId, hass))
+    ).slice(0, 240);
     const id = newDeviceId(label, configuration);
     const presentation = suggestPresentation(entityId, entity);
     const area = areaOf(hass, entityId);
@@ -1200,6 +1294,7 @@ export class HomeManagerEditor extends HTMLElement {
       display: { label, icon: presentation.icon },
       bindings: {
         entityId,
+        ...(selection?.deviceId ? { deviceId: selection.deviceId, readings: selection.readings } : {}),
         primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
         advancedPopupId: null,
         ...(suggested.controls.length ? { controls: suggested.controls } : {}),

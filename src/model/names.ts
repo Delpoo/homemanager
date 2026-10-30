@@ -109,6 +109,7 @@ export const foldName = (value: string): string =>
 export function personName(value: unknown, fallback = ''): string {
   return (
     (typeof value === 'string' ? value : '')
+      .normalize('NFC')
       .replace(/\b[a-z][a-z0-9_]*\.[a-z0-9_]+\b/gi, '')
       .replace(/_/g, ' ')
       .replace(/\s+/g, ' ')

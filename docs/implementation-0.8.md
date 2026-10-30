@@ -20,6 +20,8 @@ Segundo PR `chatgpt/0.8-device-screen`: se crea desde `main` sólo después de q
 
 ## Continuación
 
-Paso 1 completo antes de construir el selector: 159 pruebas JS, tipos y esquemas aprobados; 125 pruebas Python del contrato/modelo aprobadas con HA 2026.2.3 en el arnés Windows local; formato aprobado. Registro ficticio de 15 dispositivos y 91 entidades. Punto de revisión intermedia para el propietario. Próximo paso: componentes y selector.
+Pasos 1–3 completos en el PR borrador #21. El punto de revisión intermedia se comunicó en `4f65d5d`, antes de construir el selector: 159 pruebas JS y 125 Python de contrato/modelo. El selector usa los componentes de `src/ui/`; el registro ficticio tiene 15 dispositivos y 91 entidades. La verificación local incluye 162 pruebas JS, 238 de navegador (dos omisiones táctiles previstas en escritorio), 186 Python en cada versión HA y 13 comprobaciones E2E. Capturas, comparación y diferencias en [verification-0.8-picker.md](verification-0.8-picker.md).
+
+Paso 4: comprobar la CI del head final y conservar el PR en borrador. El segundo PR espera la fusión del primero en `main` por el propietario; su pantalla del dispositivo y Ahora siguen pendientes. No se cambian versiones ni se publica.
 
 La pertenencia a un dispositivo depende del registro vivo de HA: se informa si cambia sin invalidar ni reescribir un plano guardado. El contrato valida formato, listas de hasta tres, unicidad y que las adicionales no repitan la principal; la pertenencia no se adivina en validadores sin registro.

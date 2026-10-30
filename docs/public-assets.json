@@ -98,6 +98,146 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-30",
       "sha256": "6c34461233510a43e59296e9f8b655425efb314024aa43613f970bca14b01b3b"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-advanced.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fccde2b31c2f57b36f276b09f82d6984c2437e24ad5c3e27784bb54db8cf535c"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-binding.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5981f8c97fd4e7d67b70fdbf7e1ffb27dca3f80fffd7ea0b85c8db85ca0561fb"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-dark.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "127bcef0de7d200175ca9f27521b538e35eb3ec596fa896bd5605218eb0fbefe"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-devices.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ca010ac6de3f5f9b3c3addc7d04dba8d54e45b1d83a8c517d3a69d6c7f0aa244"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-empty.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "580de7efcbd55df7af3641f1c6d6a4ff7e1d555f927b2051d4e4cc6e60bec5ba"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-plan.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "70d8e7e66f38652abe48fbb5ce6426d1360ce5645ce3ef5743f0df9e2d04df2e"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-readings.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5039f2e094f360bbfd97b5b793df0bf779ace8c1b758ee64ea3486f8249060c0"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-reference-devices.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d7bbd0173345aa258af5f860389d2d10702f95e63c680cd89b675205bc746901"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/desktop-reference-readings.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "2dd2dc3c3d59ed972be80ce28ceda7d8efaeb5067054e41abdd0e7d13e1df32b"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-advanced.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8cb73ca0e8764f0bd5b3d8b64d7cf688ddffbf8f1f210118d1ae39a9cddd1b97"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-binding.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "9685a923536c6694a542a2341506337afca44fece3c4dae6dce3bb7db13e0d15"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-dark.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d53869ca00f5ae453d403f82b9412fb6dfa9e1467364961a07516b1be501a9ef"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-devices.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0d9ef83c1a86b5a1a70cf172209c5a15d7d3561d14c319bfdb4e1d86f76dd4e7"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-empty.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0718316135f01009a3064b44e4e435a81a9ee740f44d03ddda3436882f690895"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-plan.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "dfc2e87481d95770d3526bc5c65b3b621faf3b46401e04af99ee53221850c1b3"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-readings.png",
+      "source": "tests/browser/fixtures/picker.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f6299bf094c05fda5d3f8d53403bcee65ff0f053260bd167dd35b40b6f9e7698"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4c77aef0aea9fe22dca995efdf6a21fb78e926a6275bf01224648c6be312915c"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-reference-devices.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "7d13b4f46aac88f51bd7c54f635bcdb77615d3b27a3648a3bf0f49b51068dc8e"
+    },
+    {
+      "path": "docs/evidence/0.8-picker/mobile-reference-readings.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d915b5ee0fee3dc7dc9952827c0b1456024228d761fd8ed70dabc611920e328b"
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { picker } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '@playwright/test';
 
 // Device controls (contract V2, optional): what a tap runs, the controls of the
@@ -322,13 +323,11 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
   // Entity: focusing shows every entity, the current one first.
-  const entity = editor.getByLabel('Entidad del dispositivo', { exact: true });
-  await entity.click();
-  const list = editor.getByRole('listbox');
-  await expect(list.getByRole('option').first()).toContainText('light.synthetic_light');
-  expect(await list.getByRole('option').count()).toBeGreaterThan(2);
-  await entity.fill('spare');
-  await expect(list.getByRole('option')).toHaveCount(1);
+  await editor.getByRole('button', { name: 'Vincular dispositivo', exact: true }).click();
+  await picker(page).getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
+  expect(await picker(page).locator('[data-action=entity]').count()).toBeGreaterThan(2);
+  await picker(page).getByRole('searchbox').fill('spare');
+  await expect(picker(page).locator('[data-action=entity]')).toHaveCount(1);
   await page.keyboard.press('Escape');
   // Icon: the grid opens with suggestions and filters by Spanish words.
   await editor.getByRole('button', { name: 'Icono del dispositivo', exact: true }).click();

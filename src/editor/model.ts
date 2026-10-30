@@ -113,6 +113,8 @@ export function upsertDevice(
     },
     bindings: {
       entityId: input.bindings.entityId,
+      ...(input.bindings.deviceId !== undefined ? { deviceId: input.bindings.deviceId } : {}),
+      ...(input.bindings.readings !== undefined ? { readings: structuredClone(input.bindings.readings) } : {}),
       primaryAction: input.bindings.primaryAction,
       advancedPopupId: input.bindings.advancedPopupId,
       ...(quick?.length

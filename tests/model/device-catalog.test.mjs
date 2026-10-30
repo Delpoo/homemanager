@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deviceCatalog, searchDevices, bindingIssues } from '../../.work/model/device-catalog.js';
+import { deviceCatalog, searchDevices, bindingIssues, pickerReadings } from '../../.work/model/device-catalog.js';
 import { syntheticRegistry } from '../browser/fixtures/registry.js';
 test('15 devices and over 80 entities produce one row for the 6-channel/20-entity device', () => {
   const hass = syntheticRegistry(),
@@ -14,6 +14,15 @@ test('15 devices and over 80 entities produce one row for the 6-channel/20-entit
   assert.equal(meter[0].readings.length, 16);
   assert.equal(meter[0].excluded, 4);
   assert.equal(meter[0].primaryEntityId, 'sensor.energy_meter_6ch_total_power');
+  const suggested = pickerReadings(meter[0]);
+  assert.deepEqual(
+    suggested.primary.map(reading => reading.name),
+    ['Potencia total', 'Energía de hoy'],
+  );
+  assert.deepEqual(
+    suggested.additional.slice(0, 4).map(reading => reading.name),
+    ['Canal 1 · Potencia', 'Canal 2 · Potencia', 'Tensión', 'Corriente'],
+  );
   assert.equal(
     catalog.find(device => device.deviceId === 'device-2').primaryEntityId,
     'sensor.synthetic_2_temperature',

@@ -30,6 +30,29 @@ export interface DeviceSelection {
   entityId: string;
   readings: string[];
 }
+
+/** Compact suggestions from §7; every other useful reading remains available in the fold. */
+export function pickerReadings(device: CatalogDevice): { primary: CatalogReading[]; additional: CatalogReading[] } {
+  const primary = device.readings.find(reading => reading.entityId === device.primaryEntityId)!;
+  const isChannel = (reading: CatalogReading) => /^(?:canal|channel|kanal)\s*\d/i.test(reading.name);
+  const summary = device.readings.find(
+    reading =>
+      reading.entityId !== primary.entityId &&
+      !isChannel(reading) &&
+      reading.deviceClass === (primary.deviceClass === 'power' ? 'energy' : 'humidity'),
+  );
+  const channels = device.readings
+    .filter(reading => isChannel(reading) && reading.deviceClass === primary.deviceClass)
+    .slice(0, 2);
+  const secondary = device.readings
+    .filter(reading => ['voltage', 'current'].includes(reading.deviceClass))
+    .sort((a, b) => Number(a.deviceClass === 'current') - Number(b.deviceClass === 'current'));
+  const preferred = [...channels, ...secondary];
+  return {
+    primary: [primary, ...(summary ? [summary] : [])],
+    additional: [...preferred, ...device.readings.filter(reading => !preferred.includes(reading))],
+  };
+}
 const EXCLUDED_DOMAINS = new Set([
   'update',
   'automation',
@@ -65,7 +88,7 @@ function priority(reading: CatalogReading, archetype?: Archetype): number {
   const domain = reading.entityId.split('.')[0];
   if (!archetype || archetype === 'actuator' || archetype === 'equipment')
     if (!['sensor', 'binary_sensor'].includes(domain)) return -10;
-  if (reading.deviceClass === 'power') return /(?:total|gesamt)/i.test(reading.name) ? 0 : 2;
+  if (reading.deviceClass === 'power') return /^(?:canal|channel|kanal)\s*\d/i.test(reading.name) ? 2 : 0;
   if (reading.deviceClass === 'temperature') return 1;
   if (!['sensor', 'binary_sensor'].includes(domain)) return 2;
   if (reading.deviceClass === 'energy') return 3;

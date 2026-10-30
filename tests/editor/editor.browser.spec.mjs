@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 
 const editor = page => page.locator('homemanager-editor');
@@ -60,7 +61,7 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
   await field(page, 'Posición X').fill('0.61');
   await field(page, 'Posición Y').fill('0.73');
-  await field(page, 'Entidad del dispositivo').fill('fan.not_configured_yet');
+  await chooseAnyEntity(page, 'fan.not_configured_yet');
   await button(page, 'Guardar dispositivo').click();
   const first = (await current(page)).catalog.devices.find(device => device.id === 'test-portatil');
   expect(first).toMatchObject({
@@ -112,13 +113,8 @@ test('live hass updates preserve unsubmitted form values and expose actual entit
   });
   await expect(field(page, 'Nombre del dispositivo')).toHaveValue('Unsubmitted label');
   // The entity selector searches the live session by friendly name; no ID typing needed.
-  const entity = field(page, 'Entidad del dispositivo');
-  await entity.click();
-  await entity.pressSequentially('new actual');
-  await editor(page)
-    .getByRole('option', { name: /New actual entity/ })
-    .click();
-  await expect(entity).toHaveValue('light.new_actual_entity');
+  await chooseAnyEntity(page, 'light.new_actual_entity');
+  await expect(editor(page).locator('#device-form [name=entityId]')).toHaveValue('light.new_actual_entity');
   expect(await page.evaluate(() => window.editorTest.events.length)).toBe(0);
 });
 test('adding a device from a real entity derives its name, icon, room and visible controls', async ({ page }) => {
@@ -140,10 +136,7 @@ test('adding a device from a real entity derives its name, icon, room and visibl
       areas: { 'area-b': { name: 'Espacio B' } },
     };
   });
-  const quick = field(page, 'Agregar dispositivo desde Home Assistant');
-  await quick.click();
-  await quick.pressSequentially('lectura');
-  await editor(page).locator('.quick [role=option]', { hasText: 'Lámpara de lectura' }).click();
+  await chooseAnyEntity(page, 'light.reading_lamp', { adding: true });
   const config = await current(page);
   const device = config.catalog.devices.find(item => item.bindings.entityId === 'light.reading_lamp');
   // A tap runs an on/off cycle; its steps are ordinary plan actions the user sees.
@@ -174,10 +167,7 @@ test('adding a device from a real entity derives its name, icon, room and visibl
   });
   expect(await placed).toEqual({ deviceId: 'lampara-de-lectura' });
   // Adding the same entity again selects the existing device instead of duplicating it.
-  await quick.click();
-  await quick.fill('');
-  await quick.pressSequentially('lectura');
-  await editor(page).locator('.quick [role=option]', { hasText: 'Lámpara de lectura' }).click();
+  await chooseAnyEntity(page, 'light.reading_lamp', { adding: true });
   await expect(editor(page).getByRole('status')).toContainText('ya está en el plano');
   expect(
     (await current(page)).catalog.devices.filter(item => item.bindings.entityId === 'light.reading_lamp'),
