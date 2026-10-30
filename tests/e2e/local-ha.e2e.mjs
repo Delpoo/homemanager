@@ -172,8 +172,7 @@ async function save() {
 async function openImport() {
   if (!(await card.getByRole('dialog', { name: 'Ajustes del plano' }).isVisible()))
     await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  if (!(await card.locator('details#import-section').evaluate(node => node.open)))
-    await card.locator('summary').filter({ hasText: 'Importar y exportar' }).click();
+  await card.locator('[data-settings="import-section"]').click();
 }
 
 await step('the sidebar panel is registered and served by the integration', async () => {

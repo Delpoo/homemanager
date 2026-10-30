@@ -35,7 +35,7 @@ export function mountArchitecture(this: HomeManagerCard) {
   const shown = this.draft.rooms.filter(
     room => hasSpaceGeometry(this.svg!, room) || this.draft!.catalog.devices.some(d => d.roomId === room.id),
   );
-  updateRoomRail(this.root, shown, this.currentRoom);
+  updateRoomRail(this.root, shown, this.currentRoom, this.editing);
   (this.root.querySelector('.empty') as HTMLElement).hidden = this.svg.children.length > 0;
 }
 

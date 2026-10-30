@@ -87,6 +87,7 @@ export class HomeManagerCard extends HTMLElement {
           ),
         })),
         this.currentRoom,
+        this.editing,
       );
   }
   insights?: DeviceScreenView;
@@ -131,7 +132,9 @@ export class HomeManagerCard extends HTMLElement {
   };
   navHinted = false;
   /** CP8: the shape being edited on the plan, and the handle being dragged. */
+  /** An empty id draws a new space (CP9). */
   shapeEdit?: { id: string; shape: import('../model/room-shapes.js').RoomShape };
+  zonelessOffered = false;
   shapeDrag?: {
     handle: string;
     x: number;
@@ -378,6 +381,18 @@ export class HomeManagerCard extends HTMLElement {
   renderShapeEdit: OmitThisParameter<typeof shapeEdit.renderShapeEdit> = shapeEdit.renderShapeEdit.bind(this);
   endShapeEdit: OmitThisParameter<typeof shapeEdit.endShapeEdit> = shapeEdit.endShapeEdit.bind(this);
   bindShapeEdit: OmitThisParameter<typeof shapeEdit.bindShapeEdit> = shapeEdit.bindShapeEdit.bind(this);
+  offerFirstSpace: OmitThisParameter<typeof shapeEdit.offerFirstSpace> = shapeEdit.offerFirstSpace.bind(this);
+  /** What a space's window needs from the plan; editing its shape closes plan settings. */
+  roomViewFor(room: string) {
+    return {
+      arrows: this.arrowChoices(room),
+      hasZone: !!this.svg?.querySelector(`[id="room-${CSS.escape(room)}"]`),
+      editShape: () => {
+        this.editor?.closeSurface();
+        this.startShapeEdit(room);
+      },
+    };
+  }
   onClick = (event: Event) => {
     const target = (event.target as Element).closest<HTMLElement>('button');
     if (!target) return;
@@ -410,16 +425,7 @@ export class HomeManagerCard extends HTMLElement {
     const room = target.dataset.room as RoomId | undefined;
     if (room) {
       this.fit(room);
-      if (this.editing)
-        this.editor?.openRoom(room, {
-          arrows: this.arrowChoices(room),
-          hasZone: !!this.svg?.querySelector(`[id="room-${CSS.escape(room)}"]`),
-          // Plan settings close: the shape is edited on the plan itself.
-          editShape: () => {
-            this.editor?.closeSurface();
-            this.startShapeEdit(room);
-          },
-        });
+      if (this.editing) this.editor?.openRoom(room, this.roomViewFor(room));
       return;
     }
     const command = target.dataset.command;
@@ -475,6 +481,9 @@ export class HomeManagerCard extends HTMLElement {
         break;
       case 'shape-cancel':
         this.endShapeEdit(false);
+        break;
+      case 'room-new':
+        this.startShapeEdit('');
         break;
       case 'in':
         this.zoom(1.3);

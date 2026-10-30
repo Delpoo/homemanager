@@ -446,7 +446,8 @@ Maqueta: [§14](vision-mockup.html#s14).
 - Mientras la zona exista, un espacio que sigue al SVG usa su **geometría exacta**: un living en L no invade a sus vecinos.
 - La forma rectangular es la **copia de respaldo** de esa zona: se guarda al importar un plano y sólo se usa si un plano posterior ya no trae la zona.
 - Una forma `app` gana siempre, al encuadrar, al resaltar y al ubicar un dispositivo. Ningún SVG la cambia.
-- Un espacio con `shapeSource: 'svg'` sigue a su zona sin preguntar. Ofrecer, al importar un SVG, que un espacio dibujado a mano tome la zona nueva queda para CP9; hasta entonces se hace con *Volver a la zona del SVG*.
+- Un espacio con `shapeSource: 'svg'` sigue a su zona sin preguntar. Al importar un SVG que trae otra zona para un espacio dibujado a mano, *Revisar cambios* ofrece usarla, desmarcado por defecto (CP9a).
+- *Nuevo espacio* (el `+` de la barra en modo edición) dibuja un rectángulo en el centro de la vista; se ajusta con los tiradores y se crea con su nombre. Un plano sin zonas ni espacios dibujados lo ofrece al entrar en edición.
 
 **Cómo quedó el editor (CP8):** en modo edición, tocar un espacio en la barra abre su ventana con:
 - *Encuadre al 100 %*: Ajustado, Normal o Amplio (`rooms[].frame`);

@@ -114,7 +114,7 @@ test('capture the five requested visual scenarios and the import review', async 
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   const editor = card(page).locator('homemanager-editor');
-  await editor.locator('#import-section').evaluate(node => (node.open = true));
+  await editor.locator('[data-settings="import-section"]').click();
   await editor.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
     name: 'joined.svg',
     mimeType: 'image/svg+xml',

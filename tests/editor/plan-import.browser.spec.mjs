@@ -14,9 +14,7 @@ async function settings(page) {
 }
 async function upload(page, svg = merged) {
   await settings(page);
-  await editor(page)
-    .locator('#import-section')
-    .evaluate(node => (node.open = true));
+  await editor(page).locator('[data-settings="import-section"]').click();
   await editor(page)
     .getByLabel('Importar JSON o SVG', { exact: true })
     .setInputFiles({ name: 'synthetic.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) });
@@ -59,9 +57,7 @@ test('plan-only import can be reconciled later against the saved geometry withou
   await card(page).getByRole('button', { name: 'Salir de edición', exact: true }).click();
   await begin(page);
   await settings(page);
-  await editor(page)
-    .locator('#rooms-section')
-    .evaluate(node => (node.open = true));
+  await editor(page).locator('[data-settings="rooms-section"]').click();
   await editor(page).getByRole('button', { name: 'Revisar espacios con el plano', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Revisar cambios', exact: true })).toBeVisible();
   await page

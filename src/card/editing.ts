@@ -18,6 +18,8 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.editor?.closeSurface();
     this.updateControls();
     this.renderMarkers();
+    this.mountArchitecture();
+    this.updateShell();
     return;
   }
   if (!this.config || this._hass?.user?.is_admin !== true) {
@@ -61,6 +63,8 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.mountArchitecture();
     this.fit(null);
     this.renderMarkers();
+    this.updateShell();
+    this.offerFirstSpace();
     this.status(
       this.home?.revision === null ? `Hogar nuevo: «${this.home.homeId}» se creará en la integración al guardar.` : '',
     );
@@ -76,6 +80,8 @@ export function mountEditor(this: HomeManagerCard) {
   const host = this.root.querySelector('.editor')!;
   this.editor = document.createElement('homemanager-editor') as HomeManagerEditor;
   this.editor.embedded = true;
+  this.editor.roomView = id => this.roomViewFor(id);
+  this.editor.drawSpace = () => this.startShapeEdit('');
   this.editor.homeId = this.home?.homeId;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });
