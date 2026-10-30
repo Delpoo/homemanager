@@ -215,7 +215,7 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.5',
+      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.10.0-beta.1',
     ].join('\n'),
   );
   await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(
