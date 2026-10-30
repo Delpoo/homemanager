@@ -59,7 +59,7 @@ async function setup(page, { remotes = [] } = {}) {
               },
             ],
             default_receiver: defaultReceiver,
-            package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.2',
+            package: 'github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.3',
             builder_url: '/hassio/ingress/5c53de3b_esphome',
           };
         case 'homemanager/rf/default_receiver':
@@ -387,7 +387,7 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.2',
+      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.9.0-beta.3',
     ].join('\n'),
   );
   await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(
