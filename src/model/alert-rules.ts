@@ -3,9 +3,9 @@ import { readingName } from './names.js';
 import { finiteNumber, type AlertRuleConfig, type ModelDevice, type ModelEntity, type ModelHass } from './types.js';
 
 export interface AlertObservation {
-  since: number;
-  observedAt: number;
-  side: 'below' | 'above' | 'on';
+  readonly since: number;
+  readonly observedAt: number;
+  readonly side: 'below' | 'above' | 'on';
 }
 /** Runtime evidence only. This is never serialized into a device or configuration. */
 export type AlertContext = Readonly<Record<string, AlertObservation>>;
@@ -144,6 +144,16 @@ export function configuredAlertsOf(
     if (!found.has(key) || alert.level === 'critical') found.set(key, alert);
   }
   return [...found.values()];
+}
+
+/** Only a valid, associated reading can prove that a previously active condition cleared. */
+export function configuredAlertCleared(device: ModelDevice, key: string, hass?: ModelHass): boolean {
+  const rule = device.display.alerts?.find(item => applicable(device, item, hass) && keyOf(device, item, hass) === key);
+  if (!rule) return false;
+  const source = alertReading(device, rule.reading, hass);
+  if (!source || ['unknown', 'unavailable'].includes(source.state)) return false;
+  if (rule.reading.startsWith('binary_sensor.')) return source.state === 'off';
+  return finiteNumber(source.state) !== null && condition(rule, source) === null;
 }
 
 /** A configured principal binary condition replaces the category's immediate default. */

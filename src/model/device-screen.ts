@@ -1,4 +1,4 @@
-import { alertsOf, type DeviceAlert } from './alerts.js';
+import { alertsOf, type AlertContext, type DeviceAlert } from './alerts.js';
 import { bindingIssues, deviceCatalog, usefulEntity, type CatalogReading } from './device-catalog.js';
 import { entityControls, type Control } from './control-capabilities.js';
 import { deviceName, nameWord, personName, readingName } from './names.js';
@@ -62,6 +62,7 @@ export function deviceScreen(
   now: number,
   activity: readonly ActivityEntry[] = [],
   panels: Record<string, { controls: readonly { actionId: string; label: string }[] }> = {},
+  context: AlertContext = {},
 ): DeviceScreen {
   const primary = device.bindings.entityId;
   const rawEntity = primary ? hass?.states[primary] : undefined;
@@ -198,7 +199,7 @@ export function deviceScreen(
       id: control.actionId,
       label: personName(control.label, 'Acción'),
     })),
-    alerts: alertsOf(device, hass, now),
+    alerts: alertsOf(device, hass, now, context),
     diagnosis,
     issues: bindingIssues(device.bindings, hass).map(issue => issue.code),
     activity: activity

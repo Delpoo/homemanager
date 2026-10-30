@@ -73,6 +73,7 @@ export class HomeManagerCard extends HTMLElement {
           ? this.activity.latest.tone
           : 'neutral',
       alertCount: this.feed.alerts.length,
+      alertLevel: this.feed.alerts.some(alert => alert.level === 'critical') ? 'critical' : 'warning',
     });
     if (this.draft)
       updateRoomRail(
@@ -80,10 +81,13 @@ export class HomeManagerCard extends HTMLElement {
         this.draft.rooms.map(room => ({
           ...room,
           alerts: this.feed.alerts.filter(alert => alert.roomId === room.id).length,
+          alertLevel: this.feed.alerts.some(alert => alert.roomId === room.id && alert.level === 'critical')
+            ? 'critical'
+            : 'warning',
           active: this.draft!.catalog.devices.some(
             device =>
               device.roomId === room.id &&
-              !!symbolSpec(device, this._hass, Date.now(), this.runtime.states[device.id]).ring,
+              !!symbolSpec(device, this._hass, Date.now(), this.runtime.states[device.id], this.feed.alertContext).ring,
           ),
         })),
         this.currentRoom,
@@ -417,7 +421,9 @@ export class HomeManagerCard extends HTMLElement {
       const d = this.draft?.catalog.devices.find(item => item.id === id);
       if (!d) return;
       const tap =
-        symbolSpec(d, this._hass, Date.now(), this.runtime.states[d.id]).tap === 'control' ? tapControl(d) : null;
+        symbolSpec(d, this._hass, Date.now(), this.runtime.states[d.id], this.feed.alertContext).tap === 'control'
+          ? tapControl(d)
+          : null;
       if (!tap) this.showDetails(id, target);
       else void this.runStep(d, tap, this.tapStep(d, tap), target);
       return;

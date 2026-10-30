@@ -15,6 +15,7 @@ export interface TopBarOptions {
   activityText?: string;
   activityTone?: 'neutral' | 'ok' | 'alert' | 'warning';
   alertCount?: number;
+  alertLevel?: 'critical' | 'warning';
 }
 const glyph = (name: string) => `<ha-icon icon="mdi:${name}" aria-hidden="true"></ha-icon>`;
 const item = (command: string, label: string, icon: string, app = false) =>
@@ -54,6 +55,7 @@ export function updateTopBar(root: ParentNode, options: TopBarOptions): void {
   }
   const pill = header.querySelector<HTMLElement>('.alert-pill');
   if (pill) {
+    pill.dataset.level = options.alertLevel ?? 'critical';
     pill.hidden = !(options.alertCount ?? 0);
     pill.querySelector('span')!.textContent = String(options.alertCount ?? 0);
   }

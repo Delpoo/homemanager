@@ -29,7 +29,7 @@ La categoría alerta ofrece su nivel; presencia/aperturas ofrece Resaltar al det
 
 La lectura principal es una asociación explícita. Para las lecturas auxiliares se exige pertenencia al mismo dispositivo de HA mediante el registro, nunca por un prefijo de nombre. Los niveles del contrato `alert`/`warning` se traducen al vocabulario interno existente `critical`/`warning`. Se conservan las reglas de salud de 0.7 para los planos sin configuración nueva.
 
-Para las duraciones, el siguiente paso implementará un reductor puro de observaciones de condiciones: las actualizaciones numéricas que siguen cumpliendo el umbral no reinician el tiempo; las lecturas desconocidas, la pérdida de asociación o la desconexión no prueban continuidad. Sin observaciones previas, sólo una fecha válida de estado estable de HA puede aportar tiempo anterior. El contexto temporal se pasará explícitamente a los consumidores del modelo, separado del contrato y sin consultar datos privados ni inventar un historial.
+Para las duraciones se implementó un reductor puro de observaciones de condiciones: las actualizaciones numéricas que siguen cumpliendo el umbral no reinician el tiempo; las lecturas desconocidas, la pérdida de asociación o la desconexión no prueban continuidad. Sin observaciones previas, sólo una fecha válida de estado estable de HA puede aportar tiempo anterior. El contexto temporal se pasa explícitamente a los consumidores del modelo, separado del contrato y sin consultar datos privados ni inventar un historial.
 
 ## Verificación
 
@@ -43,4 +43,15 @@ Contrato y modelo inicial implementados, todavía sin interfaz:
 - `src/model/alert-rules.ts`: lectura asociada, condiciones, reductor puro `observeAlertRules`, duración y resaltado. `alertsOf` combina las condiciones configuradas con las reglas anteriores. Los niveles personalizados no duplican la alerta crítica por defecto.
 - 17 pruebas del motor (11 nuevas y seis anteriores) pasan: límites estrictos, estados desconocidos, pertenencia al dispositivo, duración estable y observada con valores cambiantes, reinicio por desconexión, cambio de lado, retroceso del reloj, niveles, resaltado independiente y datos conservados entre categorías.
 
-Pendiente inmediato: integrar el contexto de duración en RuntimeFeed y pasarlo explícitamente a símbolo, Ahora y pantalla del dispositivo; añadir nombres de lectura a la presentación de los avisos; implementar las secciones y la conservación durante la edición. Aún no se abrió un PR de CP4. Las comprobaciones completas y capturas se registrarán aquí; este archivo es el plan y el informe único.
+Integración e interfaz implementadas:
+
+- RuntimeFeed mantiene la evidencia de duración y la pasa a símbolos, Ahora y pantalla del dispositivo. Los avisos nuevos, su nivel y su lectura llegan también al historial, la barra y el riel. Una lectura desconocida o desconectada no registra una resolución; un valor válido puede demostrarla después.
+- El adaptador observa también lecturas usadas sólo para avisos. El resaltado de presencia no crea anillo de actividad ni confirmación de comandos.
+- `src/ui/alert-editor.ts` contiene la composición de §6/§12, sus controles y todos sus estilos; el editor sólo la configura. Planta muestra sugerencias apagadas con sus valores visibles; medidor permite elegir una lectura asociada; alerta ofrece nivel/duración; presencia separa Resaltar al detectar y Contar como alerta, apagados al abrir un plano anterior.
+- Las condiciones de secciones ocultas se conservan. Se pueden quitar explícitamente y el máximo de cuatro se comprueba antes de guardar. Editar el dispositivo escribe un paso de deshacer; guardar el plano persiste como antes.
+- Traducciones inglesas para las opciones y los mensajes; la lectura numérica de humedad del suelo no usa el nombre binario Fuga.
+- `npm ci --ignore-scripts`: sin problemas; `npm run check`: 212 pruebas; formato: pasa. Pytest: 227 pruebas con cada HA de la matriz (2026.2.3 y 2026.10.4), con adaptación de bucle de Windows sólo local.
+- E2E en HA descartable: pasa el recorrido completo y el caso CP4 de guardado/recarga, nivel de aviso y resaltado independiente. Cero errores de HomeManager; seis errores de la interfaz mínima de HA, ajenos al bundle, ignorados por el filtro existente.
+- La primera pasada completa de navegador dio 298 aprobadas, tres omitidas por dispositivo y un fallo en una prueba nueva: intentaba tocar en móvil un símbolo que estaba agrupado. El recorrido ya abre primero el grupo; su comprobación móvil pasa. Las comprobaciones existentes, RF incluidas, no cambiaron.
+
+Actualización de base: antes de abrir el PR se detectaron #35 y #36 nuevos en `main` (`8afcbb3`). Se integran conservando su implementación; no se continúa el seguimiento de CP6. Pendiente: verificar todo sobre esa base, revisar y registrar las capturas definitivas y abrir el PR borrador. Este archivo sigue siendo el plan e informe único.

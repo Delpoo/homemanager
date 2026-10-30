@@ -1,5 +1,5 @@
 import { ActivityLog } from '../model/activity.js';
-import { alertsOf, type DeviceAlert } from '../model/alerts.js';
+import { alertCleared, alertsOf, observeAlertRules, type AlertContext, type DeviceAlert } from '../model/alerts.js';
 import { airStamp, onAir } from '../integration/rf.js';
 import type { Configuration, Hass, RuntimeState } from '../card/types.js';
 
@@ -24,9 +24,15 @@ export class RuntimeFeed {
   private tracked = new Map<string, Tracked>();
   private previous = new Map<string, string>();
   private active = new Map<string, DeviceAlert>();
+  private unresolved = new Map<string, DeviceAlert>();
+  private observations: AlertContext = {};
+  private online = false;
   constructor(readonly log: ActivityLog) {}
   get alerts(): DeviceAlert[] {
-    return [...this.active.values()].map(alert => ({ ...alert }));
+    return this.online ? [...this.active.values()].map(alert => ({ ...alert })) : [];
+  }
+  get alertContext(): AlertContext {
+    return this.observations;
   }
   configure(configuration: Configuration): void {
     this.configuration = configuration;
@@ -34,6 +40,9 @@ export class RuntimeFeed {
     this.tracked.clear();
     this.previous.clear();
     this.active.clear();
+    this.unresolved.clear();
+    this.observations = {};
+    this.online = false;
   }
   prepareCommand(
     deviceId: string,
@@ -84,12 +93,14 @@ export class RuntimeFeed {
     });
   }
   update(hass: Hass | undefined, runtime: RuntimeState, verified: ReadonlySet<string>, now: number): void {
-    if (!this.configuration || !hass) return;
-    const alerts = this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now));
+    this.online = !!hass && hass.connection?.connected !== false;
+    this.observations = observeAlertRules(this.configuration?.catalog.devices ?? [], hass, now, this.observations);
+    if (!this.configuration || !hass || !this.online) return;
+    const alerts = this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now, this.observations));
     const next = new Map(alerts.map(alert => [alert.id, alert]));
     const alertChanged = new Set<string>();
     for (const alert of alerts)
-      if (!this.active.has(alert.id)) {
+      if (!this.active.has(alert.id) || this.active.get(alert.id)?.level !== alert.level) {
         alertChanged.add(alert.deviceId);
         const device = this.configuration.catalog.devices.find(item => item.id === alert.deviceId);
         this.log.record({
@@ -100,10 +111,16 @@ export class RuntimeFeed {
           deviceLabel: device?.display.label,
           message: alert.message,
           level: alert.level,
+          detail: alert.readingLabel,
         });
       }
-    for (const alert of this.active.values())
-      if (!next.has(alert.id)) {
+    for (const alert of this.unresolved.values())
+      if (
+        !next.has(alert.id) &&
+        this.configuration.catalog.devices.some(
+          device => device.id === alert.deviceId && alertCleared(alert, device, hass),
+        )
+      ) {
         alertChanged.add(alert.deviceId);
         this.log.record({
           type: 'resolved',
@@ -111,8 +128,11 @@ export class RuntimeFeed {
           at: now,
           deviceId: alert.deviceId,
           message: 'Alerta resuelta',
+          detail: alert.readingLabel,
         });
+        this.unresolved.delete(alert.id);
       }
+    for (const alert of alerts) this.unresolved.set(alert.id, alert);
     this.active = next;
     for (const device of this.configuration.catalog.devices) {
       const state = runtime.states[device.id],

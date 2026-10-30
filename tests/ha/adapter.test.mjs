@@ -111,6 +111,25 @@ test('additional reading and registry changes republish without confirming a sen
   assert.equal(state(adapter).confidence, 'sent');
 });
 
+test('configured alert readings are observed even when they are not displayed additional readings', async t => {
+  const { adapter, hass } = setup(t);
+  const configuration = adapter.configuration;
+  configuration.catalog.devices[0].display.alerts = [
+    { reading: 'sensor.extra_condition', below: 20, level: 'warning' },
+  ];
+  adapter.configure(configuration);
+  hass.states['sensor.extra_condition'] = { state: '22', attributes: {} };
+  adapter.setHass(hass);
+  const published = [];
+  adapter.subscribe(snapshot => published.push(snapshot));
+  await adapter.executeAction('contract-on');
+  const before = published.length;
+  hass.states['sensor.extra_condition'] = { state: '18', attributes: {} };
+  adapter.setHass({ ...hass });
+  assert.equal(published.length, before + 1);
+  assert.equal(state(adapter).confidence, 'sent');
+});
+
 test('runtime schema is separate from persistent configuration and starts unknown', t => {
   const { adapter, hass, configuration } = setup(t);
   const before = structuredClone(configuration);

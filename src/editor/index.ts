@@ -47,6 +47,9 @@ import { deviceName, readingName, personName } from '../model/names.js';
 import { bindingIssues, type DeviceSelection } from '../model/device-catalog.js';
 import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
+import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
+import type { AlertEditor } from '../ui/alert-editor.js';
+import '../ui/alert-editor.js';
 import type { Category } from '../model/types.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
@@ -538,7 +541,10 @@ export class HomeManagerEditor extends HTMLElement {
     const configuration = this.configuration,
       selected = this.adding ? undefined : this.device();
     const key = selected?.id ?? '';
-    if (!this.sheet || this.sheet.key !== key) this.sheet = sheetFromDevice(selected, key, configuration);
+    if (!this.sheet || this.sheet.key !== key) {
+      this.sheet = sheetFromDevice(selected, key, configuration);
+      this.alertDraft = alertSettingsDraft(selected);
+    }
     const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
     const toolbar = this._embedded
       ? ''
@@ -627,7 +633,7 @@ export class HomeManagerEditor extends HTMLElement {
     )}<input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div>
       <div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>
-      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div>${show}${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${remotes}</div>` : ''}</div></form>
+      <div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div>${show}<homemanager-alert-editor></homemanager-alert-editor>${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${remotes}</div>` : ''}</div></form>
       <div class="ctl-host" data-section="controls"${sections.controls ? '' : ' hidden'}>${this.controlsSection()}</div>
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}</details>`;
   }
@@ -660,6 +666,29 @@ export class HomeManagerEditor extends HTMLElement {
     const sections = sectionsOf(category);
     for (const [name, visible] of Object.entries(sections))
       for (const node of this.root.querySelectorAll<HTMLElement>(`[data-section="${name}"]`)) node.hidden = !visible;
+    this.configureAlerts(category);
+  }
+  private alertDraft?: AlertSettingsDraft;
+  private configureAlerts(category?: Category): void {
+    const editor = this.root.querySelector<AlertEditor>('homemanager-alert-editor');
+    if (!editor || !this.alertDraft) return;
+    const get = (name: string) =>
+      this.root.querySelector<HTMLInputElement>(`#device-form [name="${name}"]`)?.value ?? '';
+    const chosen =
+      category ??
+      (this.root.querySelector<HTMLInputElement>('#device-form [name="category"]:checked')?.value as Category);
+    editor.configure(
+      this.alertDraft,
+      {
+        id: this.device()?.id ?? 'new',
+        roomId: get('roomId') || null,
+        kind: get('kind'),
+        display: { label: get('label'), icon: get('icon'), category: chosen },
+        bindings: { entityId: get('entityId') || null, ...(get('deviceId') ? { deviceId: get('deviceId') } : {}) },
+      },
+      chosen,
+      this._hass,
+    );
   }
   /** Sheet model of the device being edited (controls, tap, pins, size). */
   private sheet?: SheetModel;
@@ -689,6 +718,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.wirePickers();
   }
   private wirePickers(): void {
+    this.configureAlerts();
     for (const button of this.root.querySelectorAll<HTMLButtonElement>('[data-action=binding],[data-action=pick-new]'))
       button.onclick = () => this.pickDevice(button.dataset.action === 'pick-new');
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
@@ -1181,6 +1211,13 @@ export class HomeManagerEditor extends HTMLElement {
         return;
       }
       if (formId === 'device-form') {
+        if (!this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid()) return;
+        let alertDisplay: ReturnType<typeof alertSettingsDisplay>;
+        try {
+          alertDisplay = alertSettingsDisplay(this.alertDraft ?? { rules: [] });
+        } catch (error) {
+          throw new Error(t((error as Error).message));
+        }
         const previous = this.adding ? undefined : this.device(),
           label = value(data, 'label');
         const fixed = previous?.mobility === 'fixed' && !this.allowFixedPosition;
@@ -1216,6 +1253,10 @@ export class HomeManagerEditor extends HTMLElement {
                 ? { show: previous.display.show }
                 : {}),
             category,
+            ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
+              ? { alerts: alertDisplay.alerts }
+              : {}),
+            ...(alertDisplay.highlight !== undefined ? { highlight: alertDisplay.highlight } : {}),
           },
           kind,
           roomId: value(data, 'roomId') || null,

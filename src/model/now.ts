@@ -1,4 +1,4 @@
-import { alertsOf } from './alerts.js';
+import { alertsOf, type AlertContext, type DeviceAlert } from './alerts.js';
 import { archetypeOf, activeStateOf } from './archetype.js';
 import { deviceScreen, friendlyState } from './device-screen.js';
 import { personName } from './names.js';
@@ -15,6 +15,7 @@ export interface NowRow {
   tone?: 'alert' | 'warning';
   /** HA assumes the value (IR/RF): it is the last command, not a reading. */
   estimated?: boolean;
+  alert?: DeviceAlert;
 }
 export interface NowSection {
   id: 'alerts' | 'climate' | 'active' | 'energy';
@@ -29,6 +30,7 @@ export function nowSections(
   now: number,
   roomId: string | null = null,
   runtime: Record<string, ModelRuntime> = {},
+  context: AlertContext = {},
 ): NowSection[] {
   const sections: NowSection[] = [
     { id: 'alerts', title: 'Alertas', rows: [] },
@@ -40,12 +42,13 @@ export function nowSections(
   const energy = new Set<string>();
   for (const device of devices.filter(item => !roomId || item.roomId === roomId)) {
     const room = personName(rooms.find(item => item.id === device.roomId)?.label);
-    const screen = deviceScreen(device, hass, rooms, now);
+    const screen = deviceScreen(device, hass, rooms, now, [], {}, context);
     const base = { id: device.id, name: screen.name, icon: screen.icon };
-    for (const alert of alertsOf(device, hass, now))
+    for (const alert of alertsOf(device, hass, now, context))
       sections[0].rows.push({
         ...base,
         name: alert.message,
+        alert,
         tone: alert.level === 'critical' ? 'alert' : 'warning',
         detail: [screen.name, room].filter(Boolean).join(' · '),
       });

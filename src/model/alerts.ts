@@ -1,7 +1,12 @@
 import { entityOf, finiteNumber } from './types.js';
 import type { ModelDevice, ModelEntity, ModelHass } from './types.js';
 import { categoryOf } from './category.js';
-import { configuredAlertsOf, hasBinaryAlertOverride, type AlertContext } from './alert-rules.js';
+import {
+  configuredAlertCleared,
+  configuredAlertsOf,
+  hasBinaryAlertOverride,
+  type AlertContext,
+} from './alert-rules.js';
 export { observeAlertRules, presenceHighlightOf } from './alert-rules.js';
 export type { AlertContext, AlertObservation } from './alert-rules.js';
 
@@ -124,4 +129,22 @@ export function summarizeAlerts(alerts: readonly DeviceAlert[]) {
     count: alerts.length,
     level: alerts.some(alert => alert.level === 'critical') ? ('critical' as const) : ('warning' as const),
   };
+}
+
+/** Missing evidence is not recovery. Used by the activity feed, separate from visibility. */
+export function alertCleared(alert: DeviceAlert, device: ModelDevice, hass: ModelHass): boolean {
+  if (hass.connection?.connected === false) return false;
+  const prefix = `${device.id}:configured:`;
+  if (alert.id.startsWith(prefix)) return configuredAlertCleared(device, alert.id.slice(prefix.length), hass);
+  const source = hass.states[alert.entityId];
+  if (!source || ['unknown', 'unavailable'].includes(source.state)) return false;
+  if (alert.rule === 'unavailable') return true;
+  if (alert.rule === 'battery') {
+    const battery =
+      source.attributes?.device_class === 'battery'
+        ? finiteNumber(source.state)
+        : finiteNumber(source.attributes?.battery_level ?? source.attributes?.battery);
+    return battery !== null && battery >= 15 && battery <= 100;
+  }
+  return alert.entityId.startsWith('binary_sensor.') && source.state === 'off';
 }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>
+    HomeManager CP4 · avisos inventados</title
+  ><style>
+    html,
+    body {
+      margin: 0;
+      background: var(--hm-bg, #f4f5f0);
+      font-family: system-ui;
+    }
+    homemanager-card {
+      --hm-viewport-height: calc(100dvh - 58px);
+    }
+    @media (max-width: 1099px) {
+      homemanager-card {
+        --hm-viewport-height: calc(100dvh - 114px);
+      }
+    }
+  </style>
+  <main id="mount"></main>
+  <script type="module" src="./alerts-harness.js"></script>
+</html>

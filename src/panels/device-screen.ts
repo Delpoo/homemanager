@@ -1,5 +1,6 @@
 import { t } from '../i18n/index.js';
 import { deviceScreen, type DeviceScreen } from '../model/device-screen.js';
+import { alertText, alertComponentStyles } from '../ui/alert-components.js';
 import { nowSections } from '../model/now.js';
 import { commandFor, type Command } from '../model/control-capabilities.js';
 import { personName } from '../model/names.js';
@@ -33,7 +34,7 @@ export class DeviceScreenView extends HTMLElement {
     super();
     useComponents(this.root);
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(deviceComponentStyles + controlViewStyles);
+    sheet.replaceSync(deviceComponentStyles + controlViewStyles + alertComponentStyles);
     this.root.adoptedStyleSheets = [...this.root.adoptedStyleSheets, sheet];
     this.root.addEventListener('click', event => void this.onClick(event));
     this.root.addEventListener('focusout', () =>
@@ -95,7 +96,15 @@ export class DeviceScreenView extends HTMLElement {
     if (!device) this.deviceId = null;
     this.dataset.device = String(!!device);
     this.screen = device
-      ? deviceScreen(device, card._hass, card.draft.rooms, Date.now(), card.activity.entries, card.draft.panels)
+      ? deviceScreen(
+          device,
+          card._hass,
+          card.draft.rooms,
+          Date.now(),
+          card.activity.entries,
+          card.draft.panels,
+          card.feed.alertContext,
+        )
       : undefined;
     const title = this.screen?.name ?? t('Ahora');
     const html = uiInsightsFrame(
@@ -198,7 +207,9 @@ export class DeviceScreenView extends HTMLElement {
       screen.issues
         .map(() => uiNotice(t('Revisá el vínculo: una lectura ya no está disponible en este dispositivo.'), 'alert'))
         .join('') +
-      screen.alerts.map(alert => uiNotice(t(alert.message), 'alert')).join('') +
+      screen.alerts
+        .map(alert => uiNotice(alertText(alert), alert.level === 'critical' ? 'alert' : 'warning'))
+        .join('') +
       screen.controls.map(uiEntityControl).join('') +
       (screen.actions.length
         ? uiGroup(
@@ -246,6 +257,7 @@ export class DeviceScreenView extends HTMLElement {
       Date.now(),
       card.currentRoom,
       card.runtime.states,
+      card.feed.alertContext,
     );
     return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
   }
@@ -291,6 +303,7 @@ export class DeviceScreenView extends HTMLElement {
         Date.now(),
         this.card.currentRoom,
         this.card.runtime.states,
+        this.card.feed.alertContext,
       );
       const command = sections.find(section => section.id === 'active')?.rows.find(row => row.id === id)?.off;
       if (command) await this.send(id, command);
