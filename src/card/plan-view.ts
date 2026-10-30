@@ -13,9 +13,9 @@ import {
 } from './geometry.js';
 import { boundsOf, clusterPoints, interpolateCamera, renderSymbol } from './markers.js';
 import { symbolSpec } from '../model/symbol-spec.js';
+import { updateRoomRail } from '../shell/room-rail.js';
 import { escapeHTML as e, type RoomId } from './types.js';
 
-import { updateRoomRail } from '../shell/room-rail.js';
 import type { HomeManagerCard } from './home-manager-card.js';
 export function mountArchitecture(this: HomeManagerCard) {
   if (!this.draft) return;
@@ -32,11 +32,38 @@ export function mountArchitecture(this: HomeManagerCard) {
   host.replaceChildren(inner);
   this.svg.setAttribute('width', String(this.box.width));
   this.svg.setAttribute('height', String(this.box.height));
-  const shown = this.draft.rooms.filter(
-    room => hasSpaceGeometry(this.svg!, room) || this.draft!.catalog.devices.some(d => d.roomId === room.id),
-  );
-  updateRoomRail(this.root, shown, this.currentRoom, this.editing);
+  this.updateShell();
   (this.root.querySelector('.empty') as HTMLElement).hidden = this.svg.children.length > 0;
+}
+
+/** The room rail. Day to day a space with nothing to show stays off it; editing shows them all, to fix them. */
+export function updateRail(this: HomeManagerCard) {
+  if (!this.draft) return;
+  updateRoomRail(
+    this.root,
+    this.draft.rooms
+      .filter(
+        room =>
+          this.editing ||
+          !this.svg ||
+          hasSpaceGeometry(this.svg, room) ||
+          this.draft!.catalog.devices.some(device => device.roomId === room.id),
+      )
+      .map(room => ({
+        ...room,
+        alerts: this.feed.alerts.filter(alert => alert.roomId === room.id).length,
+        alertLevel: this.feed.alerts.some(alert => alert.roomId === room.id && alert.level === 'critical')
+          ? 'critical'
+          : 'warning',
+        active: this.draft!.catalog.devices.some(
+          device =>
+            device.roomId === room.id &&
+            !!symbolSpec(device, this._hass, Date.now(), this.runtime.states[device.id], this.feed.alertContext).ring,
+        ),
+      })),
+    this.currentRoom,
+    this.editing,
+  );
 }
 
 export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) {

@@ -186,6 +186,24 @@ CP2 (los 7 espacios de la vivienda) es del repositorio privado y no se describe 
 - Controles RF (lista, control, aprendizaje, diseñador) y Equipos ESPHome;
 - paneles nativos, confirmar, *Almacenamiento*, *Nuevo hogar* y el estado vacío.
 
+## Etapa 0.10 · Una sola casa: conectar y olvidarse
+
+Problema: el plano y los espacios se corrigieron muchas veces en copias (el SVG, el repositorio privado), pero lo que se ve está guardado en Home Assistant y nada conecta una cosa con la otra. Por eso reaparecen cuartos que no van.
+
+**Decisiones del propietario**
+- El SVG es sólo una imagen de fondo. Las zonas son de la app.
+- Una zona se arma con **rectángulos que se pueden fusionar**, sin formas libres: una L son dos rectángulos unidos.
+- Un usuario trae una sola cosa de afuera: el dibujo de su casa. Todo lo demás vive en Home Assistant y queda en sus copias de seguridad.
+
+| Etapa | Qué | Estado |
+|---|---|---|
+| 1 | **Diagnóstico** en Ajustes: qué plano y qué datos hay guardados, cada problema con su arreglo. Posiciones en una grilla fina (el error al guardar tras mover un icono). La barra oculta los espacios vacíos sin zona | esta entrega |
+| 2 | **Editor de zonas:** el plano de fondo y todas las zonas encima; dibujar rectángulos arrastrando, moverlos, cambiar su tamaño, fusionarlos, renombrar, eliminar. Al importar, las zonas del SVG se convierten en rectángulos editables. Antes de aplicar, avisa qué dispositivos cambian de espacio | |
+| 3 | **Una sola fuente:** Home Assistant es la única verdad; el repositorio privado deja de ser fuente de datos. La casa del propietario se ordena con su plano 2.5 | |
+| 4 | **Plano vinculado:** el dibujo se actualiza sin volver a subirlo. Sin conflictos se aplica solo y se puede deshacer; con conflictos, pregunta | |
+| 5 | **Áreas de Home Assistant:** el asistente *Conectar mi casa* asocia zonas y áreas, y propone los dispositivos por área. Ofrece crear las áreas que faltan | |
+| 6 | **Limpieza** de copias y de lo que ya no se use | |
+
 ## Pista B · ESPHome sin copiar y pegar
 
 Requiere que el propietario **apruebe D19** ([decisions.md](decisions.md)). Puede avanzar en paralelo con 0.8. Su interfaz usa los componentes de 0.9 (maqueta [§5](vision-mockup.html#s5) y [§10](vision-mockup.html#s10)).

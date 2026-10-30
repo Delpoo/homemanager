@@ -64,6 +64,7 @@ await build({
     'src/model/category.ts',
     'src/model/room-shapes.ts',
     'src/model/room-nav.ts',
+    'src/model/plan-health.ts',
     'src/model/names.ts',
     'src/model/device-screen.ts',
     'src/model/now.ts',
