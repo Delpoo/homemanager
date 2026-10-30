@@ -277,6 +277,44 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
   .kit{grid-template-columns:1fr}
   .screens{grid-template-columns:1fr}
 }
+/* 12 · Categories */
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.cat{background:#fff;border-radius:12px;padding:14px;display:grid;grid-template-rows:72px auto auto 1fr;gap:6px;box-shadow:0 1px 3px rgba(31,42,36,.08)}
+.cat .stage{display:grid;place-items:center;background:#F4F5F0;border-radius:10px;position:relative}
+.cat .stage>.sym{position:relative;transform:none}
+.cat b{font-size:15px}
+.cat .ex{font-size:12px;color:#5F6E66}
+.cat dl{margin:4px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:12px}
+.cat dt{color:#5F6E66}
+.cat dd{margin:0;color:#1F2A24}
+.inspectors{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.inspector.solo{width:360px;max-width:100%;border:0;border-radius:14px;box-shadow:0 10px 30px rgba(31,42,36,.15);overflow:hidden;color:var(--hm-ink)}
+.catpick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.catpick span{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;border-radius:10px;border:1px solid var(--hm-line);font-size:10.5px;color:var(--hm-muted);text-align:center;line-height:1.15}
+.catpick span.on{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-ink);font-weight:600}
+.catpick .i{width:18px;height:18px}
+/* 13 · Room view */
+.zoom span.on{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.navmodes{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:4px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px;padding:4px;z-index:2}
+.navmodes span{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:9px;font-size:12px;color:var(--hm-muted)}
+.navmodes span.on{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-ink)}
+.map svg.rv,.draw svg{position:absolute;inset:0;width:100%;height:100%}
+.rv .nav-arrow path{fill:none;stroke:var(--hm-ink);stroke-linecap:round;stroke-linejoin:round}
+.rv .nav-arrow .halo{stroke:var(--hm-bg);stroke-opacity:.85}
+.rv .tip rect{fill:var(--hm-surface);stroke:var(--hm-line)}
+.rv .tip text{fill:var(--hm-ink);font:600 12px Roboto,"Segoe UI",sans-serif}
+.rv .trail{fill:none;stroke:var(--hm-brand);stroke-dasharray:4 4}
+.rv .finger{fill:color-mix(in srgb,var(--hm-brand) 25%,transparent);stroke:var(--hm-brand)}
+.explain{flex:1;min-width:280px;max-width:560px}
+.explain h3{font-size:15px;margin:0 0 4px}
+.explain p{margin:0 0 14px;color:#5F6E66}
+/* 14 · Room editor */
+.dir{width:28px;height:28px;display:grid;place-items:center;color:var(--hm-brand);transform:rotate(var(--a));flex:none}
+.rv .shape{fill:color-mix(in srgb,var(--hm-brand) 14%,transparent);stroke:var(--hm-brand);stroke-width:2}
+.rv .frame{fill:none;stroke:var(--hm-brand);stroke-width:1.5;stroke-dasharray:6 5}
+.rv .handle{fill:var(--hm-surface);stroke:var(--hm-brand);stroke-width:2}
+.draw{position:relative;height:170px;border-radius:12px;overflow:hidden;background:color-mix(in srgb,var(--hm-ink) 3%,var(--hm-bg))}
+.draw svg.plan{position:absolute}
 </style>
 </head>
 <body>
@@ -355,7 +393,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 <main>
   <h1>HomeManager · maqueta del panel de control</h1>
   <p class="lead">Referencia visual de <a href="vision.md">vision.md</a>. Es un dibujo, no código, y muestra una casa inventada. Colores, tamaños y textos son los propuestos; los iconos definitivos son los de MDI. <b>Cada pantalla de HomeManager tiene que parecerse a una de estas</b>: si una pantalla no está acá, se arma sólo con las piezas de la sección 6.</p>
-  <nav class="toc"><a href="#s1">1 · Panel de control</a><a href="#s2">2 · Símbolos</a><a href="#s3">3 · Editar es ver</a><a href="#s4">4 · Móvil y pared</a><a href="#s5">5 · ESPHome</a><a class="new" href="#s6">6 · Componentes</a><a class="new" href="#s7">7 · Vincular un dispositivo</a><a class="new" href="#s8">8 · Pantalla del dispositivo</a><a class="new" href="#s9">9 · Ajustes del plano</a><a class="new" href="#s10">10 · Controles RF</a><a class="new" href="#s11">11 · Diálogos</a></nav>
+  <nav class="toc"><a href="#s1">1 · Panel de control</a><a href="#s2">2 · Símbolos</a><a href="#s3">3 · Editar es ver</a><a href="#s4">4 · Móvil y pared</a><a href="#s5">5 · ESPHome</a><a class="new" href="#s6">6 · Componentes</a><a class="new" href="#s7">7 · Vincular un dispositivo</a><a class="new" href="#s8">8 · Pantalla del dispositivo</a><a class="new" href="#s9">9 · Ajustes del plano</a><a class="new" href="#s10">10 · Controles RF</a><a class="new" href="#s11">11 · Diálogos</a><a class="new" href="#s12">12 · Categorías</a><a class="new" href="#s13">13 · Vista por espacio</a><a class="new" href="#s14">14 · Editor de espacios</a></nav>
 
   <h2 id="s1">1 · Panel de control en escritorio</h2>
   <p class="note">El día a día y nada más: arriba la barra de actividad y las alertas; los espacios como iconos; a la derecha, lo que pasa ahora. La administración vive en ⋮.</p>
@@ -760,6 +798,174 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
       <div class="df"><span class="k-btn">Cancelar</span><span class="k-btn primary">Crear hogar</span></div>
     </div>
   </div>
+
+  <h2 id="s12">12 · Categorías</h2>
+  <p class="note">Al vincular un dispositivo, la app propone una categoría; en la ficha se puede cambiar con un toque. La categoría decide tres cosas: cómo se ve el símbolo, qué hace un toque y <b>qué secciones muestra la ficha</b>. Un medidor no tiene editor de botones; un control remoto sí. Todas comparten la gramática de la sección 2.</p>
+  <div class="cats" id="cats"></div>
+
+  <p class="note" style="margin-top:22px">La ficha cambia con la categoría. Arriba, la categoría; después, sólo las secciones que esa categoría usa. Las comunes (nombre, icono, espacio, dispositivo de Home Assistant, tamaño) están siempre.</p>
+  <div class="inspectors">
+    <aside class="inspector solo">
+      <div class="ins-head"><span class="sym" style="position:relative;transform:none"><span class="meter">38<small> %</small></span></span><b>Monstera</b><svg class="i" style="color:var(--hm-muted)"><use href="#x"/></svg></div>
+      <div class="ins-body">
+        <h4>Categoría</h4>
+        <div class="catpick" data-on="plant"></div>
+        <h4>Básico</h4>
+        <label class="f">Nombre<span class="k-input">Monstera</span></label>
+        <label class="f">Dispositivo de Home Assistant<span class="k-input"><svg class="i" style="width:16px;height:16px"><use href="#plant"/></svg>Sensor de planta Living<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg></span></span></label>
+        <h4>En el plano</h4>
+        <label class="f">Mostrar<span class="seg"><span>Icono</span><span class="on">Valor</span><span>Los dos</span></span></label>
+        <label class="f">Valor en el plano<span class="k-input">Humedad del suelo<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chevdown"/></svg></span></span></label>
+        <h4>Avisar si</h4>
+        <div class="k-list">
+          <div class="k-row"><span class="txt"><b>Humedad del suelo</b><span>menos de 20 % · aviso</span></span><span class="k-switch on"></span></div>
+          <div class="k-row"><span class="txt"><b>Luz</b><span>menos de 800 lx durante 3 días · aviso</span></span><span class="k-switch"></span></div>
+          <div class="k-row"><span class="txt"><b>Temperatura</b><span>menos de 10 °C · alerta</span></span><span class="k-switch on"></span></div>
+        </div>
+        <span class="k-help">Sin editor de botones: una planta no se controla. Tocarla abre su pantalla.</span>
+      </div>
+      <div class="ins-foot"><span class="b danger"><svg class="i"><use href="#trash"/></svg></span><span class="b"><svg class="i"><use href="#move"/></svg></span><span class="b"><svg class="i"><use href="#undo"/></svg></span><span class="done"><svg class="i"><use href="#check"/></svg></span></div>
+    </aside>
+    <aside class="inspector solo">
+      <div class="ins-head"><span class="sym" style="position:relative;transform:none"><span class="c"><svg class="i"><use href="#remote"/></svg><span class="remote-mark"></span></span></span><b>Ventilador Dormitorio</b><svg class="i" style="color:var(--hm-muted)"><use href="#x"/></svg></div>
+      <div class="ins-body">
+        <h4>Categoría</h4>
+        <div class="catpick" data-on="remote"></div>
+        <h4>Básico</h4>
+        <label class="f">Nombre<span class="k-input">Ventilador Dormitorio</span></label>
+        <label class="f">Control<span class="k-input"><svg class="i" style="width:16px;height:16px"><use href="#remote"/></svg>Ventilador de techo · 6 botones<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg></span></span></label>
+        <h4>Al tocar el símbolo</h4>
+        <div class="k-tabs"><span>Abrir el control</span><span class="on">Un botón</span></div>
+        <label class="f" style="margin-top:8px">Botón<span class="k-input">Luz · ciclo encender / apagar<span class="end"><svg class="i" style="width:16px;height:16px"><use href="#chevdown"/></svg></span></span></label>
+        <h4>Junto al símbolo · hasta 3</h4>
+        <div class="chipset"><span class="chip on">Velocidad ▮</span><span class="chip on">Apagar</span><span class="chip">+ fijar</span></div>
+        <span class="k-help">Mantener pulsado abre siempre el control completo.</span>
+      </div>
+      <div class="ins-foot"><span class="b danger"><svg class="i"><use href="#trash"/></svg></span><span class="b"><svg class="i"><use href="#move"/></svg></span><span class="b"><svg class="i"><use href="#undo"/></svg></span><span class="done"><svg class="i"><use href="#check"/></svg></span></div>
+    </aside>
+  </div>
+  <p class="note" style="margin-top:14px"><b>La marca de salud no es un botón.</b> Mide 14 px y sólo aparece cuando algo anda mal: tocarla sería un accidente. Toda acción está en el cuerpo del símbolo, en los controles fijados o en la pantalla del dispositivo.</p>
+
+  <h2 id="s13">13 · Vista por espacio</h2>
+  <p class="note">Un botón junto al zoom lleva al espacio que está más al centro, encuadrado al 100 %. Los vecinos se ven atenuados, sin un corte tajante. Fuera del borde del espacio, apenas, hay <b>flechas sin fondo</b>: cada una apunta al <b>centro</b> de un espacio al que se puede ir, con su ángulo real, y es más chica y más tenue cuanto más lejos está. Se recalculan en vivo al mover o hacer zoom.</p>
+  <div class="scroll">
+    <div class="app" id="roomview">
+      <header class="top">
+        <span class="brand"><svg class="i" style="width:24px;height:24px;color:var(--hm-brand)"><use href="#logo"/></svg>HomeManager <small>· Cocina</small></span>
+        <span class="activity">Sin novedades</span>
+        <span class="clock">18:42</span>
+        <span class="kebab"><svg class="i"><use href="#dots"/></svg></span>
+      </header>
+      <div class="body">
+        <nav class="rail">
+          <span class="room"><svg class="i"><use href="#home"/></svg></span>
+          <span class="room"><svg class="i"><use href="#sofa"/></svg></span>
+          <span class="room on"><svg class="i"><use href="#pot"/></svg></span>
+          <span class="room"><svg class="i"><use href="#bed"/></svg></span>
+          <span class="room"><svg class="i"><use href="#shower"/></svg></span>
+          <span class="room"><svg class="i"><use href="#desk"/></svg></span>
+          <span class="room"><svg class="i"><use href="#plant"/></svg></span>
+        </nav>
+        <section class="map" data-roomview="kitchen" data-hold="bedroom">
+          <div class="zoom"><span><svg class="i"><use href="#plus"/></svg></span><span><svg class="i"><use href="#minus"/></svg></span><span class="on" title="Vista por espacio"><svg class="i"><use href="#layers"/></svg></span></div>
+          <div class="navmodes"><span class="on"><svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg>Flechas</span><span class="on"><svg class="i" style="width:16px;height:16px"><use href="#move"/></svg>Deslizar</span></div>
+        </section>
+        <aside class="now">
+          <h3>Cómo se navega</h3>
+          <div class="row"><svg class="i"><use href="#chev"/></svg>Tocar una flecha no hace nada</div>
+          <div class="row"><svg class="i"><use href="#info"/></svg>Mantenerla muestra a dónde va</div>
+          <div class="row"><svg class="i"><use href="#move"/></svg>Tirarla hacia atrás viaja</div>
+          <div class="row"><svg class="i"><use href="#back"/></svg>Deslizar el plano viaja al espacio de ese lado</div>
+          <h3>Qué flechas se ven</h3>
+          <div class="row" style="display:block">Una por espacio alcanzable, hasta 8. Si dos quedan casi en la misma dirección (menos de 20°), se ve la del más cercano; el otro se alcanza deslizando dos veces o desde la barra.</div>
+          <div class="row" style="display:block">Desde Cocina: Living, Dormitorio, Baño y Lavadero en diagonal. Oficina y Balcón quedan detrás de Baño y Lavadero.</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <div class="phones" style="margin-top:20px">
+    <div class="phone" style="grid-template-rows:48px 1fr 64px">
+      <header class="top"><svg class="i" style="width:22px;height:22px;color:var(--hm-brand)"><use href="#logo"/></svg><span class="activity"><b>Baño</b></span></header>
+      <section class="map" data-roomview="bath" data-pull="office" data-phone></section>
+      <nav class="bottom"><span class="room"><svg class="i"><use href="#home"/></svg></span><span class="room"><svg class="i"><use href="#sofa"/></svg></span><span class="room"><svg class="i"><use href="#pot"/></svg></span><span class="room on"><svg class="i"><use href="#shower"/></svg></span><span class="room"><svg class="i"><use href="#desk"/></svg></span></nav>
+    </div>
+    <div class="explain">
+      <h3>Tirar de la flecha</h3>
+      <p>Se apoya el dedo en la flecha y se la arrastra en sentido <b>contrario</b> a donde apunta, como si se tirara de ella. Pasados 40 px aparece el nombre y el plano empieza a moverse; al soltar, viaja con una transición de 320 ms, sin recargar. Si se suelta antes, vuelve a su lugar.</p>
+      <h3>Deslizar</h3>
+      <p>Deslizar el plano lo empuja: hacia arriba muestra lo que está abajo. Se elige el espacio cuya flecha está más cerca de esa dirección, dentro de 35°; si no hay ninguno, el plano rebota. Desde Baño, deslizar hacia abajo lleva a Cocina.</p>
+      <h3>Interruptores</h3>
+      <p><b>Flechas</b> y <b>Deslizar</b> se prenden y apagan por separado, con los dos botones de abajo del plano. Quedan guardados en ese navegador, como la apariencia.</p>
+      <h3>Teclado y lector de pantalla</h3>
+      <p>Cada flecha es un botón «Ir a Cocina»: Enter viaja. Las flechas del teclado eligen el espacio más cercano a esa dirección. Con movimiento reducido, el cambio es inmediato.</p>
+    </div>
+  </div>
+
+  <h2 id="s14">14 · Editor de espacios</h2>
+  <p class="note">Los espacios son <b>de la app</b>. Si el SVG trae zonas, al importarlo se copian como formas propias y editables. Desde ahí, un SVG nuevo con otras zonas no pisa nada: la revisión ofrece actualizar cada forma, una por una. Un SVG sin zonas también sirve, porque cada espacio se dibuja sobre el plano.</p>
+  <div class="scroll">
+    <div class="app edit" id="roomedit">
+      <header class="top">
+        <span class="brand"><svg class="i" style="width:24px;height:24px;color:var(--hm-brand)"><use href="#logo"/></svg>HomeManager <small>· Ajustes del plano · Espacios</small></span>
+        <span class="activity">Cambios sin guardar · 1</span>
+        <span class="kebab"><svg class="i"><use href="#dots"/></svg></span>
+      </header>
+      <div class="body" style="grid-template-columns:72px 1fr 340px">
+        <nav class="rail">
+          <span class="room"><svg class="i"><use href="#sofa"/></svg></span>
+          <span class="room on"><svg class="i"><use href="#pot"/></svg></span>
+          <span class="room"><svg class="i"><use href="#bed"/></svg></span>
+          <span class="room"><svg class="i"><use href="#shower"/></svg></span>
+          <span class="room"><svg class="i"><use href="#desk"/></svg></span>
+          <span class="room" style="border:1px dashed var(--hm-line)"><svg class="i"><use href="#plus"/></svg></span>
+        </nav>
+        <section class="map" data-roomedit="kitchen"></section>
+        <aside class="inspector">
+          <div class="ins-head"><span class="k-row" style="padding:0;min-height:0;border:0"><span class="ico warm"><svg class="i"><use href="#pot"/></svg></span></span><b>Cocina</b><svg class="i" style="color:var(--hm-muted)"><use href="#x"/></svg></div>
+          <div class="ins-body">
+            <h4>Forma</h4>
+            <span class="k-help">Rectángulo copiado de la zona del SVG. Arrastrá el borde o las esquinas.</span>
+            <div style="display:flex;gap:8px;margin-top:8px"><span class="k-btn" style="height:34px;font-size:13px">Volver a la zona del SVG</span></div>
+            <h4>Encuadre al 100 %</h4>
+            <div class="seg"><span>Ajustado</span><span class="on">Normal</span><span>Amplio</span></div>
+            <span class="k-help">Es el marco punteado: también se arrastra.</span>
+            <h4>Flechas desde Cocina</h4>
+            <div class="k-list">
+              <div class="k-row"><span class="dir" style="--a:186deg"><svg class="i"><use href="#chev"/></svg></span><span class="txt"><b>Living</b><span>comparte pared</span></span><span class="k-switch on"></span></div>
+              <div class="k-row"><span class="dir" style="--a:-12deg"><svg class="i"><use href="#chev"/></svg></span><span class="txt"><b>Dormitorio</b><span>comparte pared</span></span><span class="k-switch on"></span></div>
+              <div class="k-row"><span class="dir" style="--a:90deg"><svg class="i"><use href="#chev"/></svg></span><span class="txt"><b>Baño</b><span>comparte pared</span></span><span class="k-switch on"></span></div>
+              <div class="k-row"><span class="dir" style="--a:54deg"><svg class="i"><use href="#chev"/></svg></span><span class="txt"><b>Lavadero</b><span>en diagonal</span></span><span class="k-switch on"></span></div>
+              <div class="k-row"><span class="dir" style="--a:90deg;opacity:.5"><svg class="i"><use href="#chev"/></svg></span><span class="txt"><b>Oficina</b><span>detrás de Baño</span></span><span class="k-switch"></span></div>
+            </div>
+            <h4>Este espacio</h4>
+            <div class="k-list"><div class="k-row"><span class="txt"><b>Saltear al navegar</b><span>Como un pasillo: se pasa de largo</span></span><span class="k-switch"></span></div></div>
+          </div>
+          <div class="ins-foot"><span class="b danger"><svg class="i"><use href="#trash"/></svg></span><span class="b"><svg class="i"><use href="#undo"/></svg></span><span class="done"><svg class="i"><use href="#check"/></svg></span></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <div class="dialogs" style="margin-top:20px">
+    <div class="k-dialog">
+      <div class="dh"><b>Este plano no tiene zonas</b></div>
+      <div class="db">
+        <span>Dibujá cada espacio: arrastrá un rectángulo sobre el plano, y después elegí su nombre y su icono. La forma se ajusta cuando quieras.</span>
+        <div class="draw" data-draw></div>
+      </div>
+      <div class="df"><span class="k-btn">Más tarde</span><span class="k-btn primary">Dibujar el primero</span></div>
+    </div>
+    <div class="k-dialog">
+      <div class="dh"><b>El plano nuevo cambia 2 zonas</b></div>
+      <div class="db">
+        <span class="k-sub">Tus espacios no cambian solos. Elegí cuáles toman la forma nueva.</span>
+        <div class="k-list">
+          <div class="k-row sel"><span class="k-check on"><svg class="i" style="width:14px;height:14px;stroke-width:3"><use href="#check"/></svg></span><span class="txt"><b>Cocina</b><span>la zona creció 12 %</span></span></div>
+          <div class="k-row"><span class="k-check"></span><span class="txt"><b>Dormitorio</b><span>la editaste a mano · se conserva</span></span></div>
+        </div>
+      </div>
+      <div class="df"><span class="k-btn">Cancelar</span><span class="k-btn primary">Aplicar</span></div>
+    </div>
+  </div>
 </main>
 <script>
 // Symbols are placed in plan coordinates (0–600, 0–400) on every frame.
@@ -858,6 +1064,133 @@ document.getElementById('grammar').innerHTML = grammar
   .join('');
 for (const pane of document.querySelectorAll('[data-kit]')) pane.append(document.getElementById('kit').content.cloneNode(true));
 for (const thumb of document.querySelectorAll('[data-thumb]')) thumb.append(document.getElementById('plan').content.cloneNode(true));
+// 12 · Categories: what each one draws, does and asks for.
+const CATS = [
+  ['switch', 'bulb', 'Interruptor', 'Luces, enchufes, ventiladores, cortinas', S.actuatorOn('bulb'), 'su control: encender, un ciclo o un nivel', 'el panel con todos sus controles', 'Al tocar · Controles · Fijados (hasta 3)'],
+  ['equipment', 'ac', 'Equipo', 'Aire, purificador, robot, TV', S.equipment('ac', '22°'), 'abre su pantalla, o un control rápido', 'su pantalla', 'Etiqueta (consigna, modo o nada) · Control rápido'],
+  ['remote', 'remote', 'Control remoto', 'RF o IR: ventiladores y aires sin wifi', S.remote(), 'abre el control, o un botón elegido', 'el control completo', 'Control · Al tocar · Botones fijados (hasta 3)'],
+  ['meter', 'gauge', 'Medidor', 'Temperatura, humedad, energía, aire', S.meter('23,4°', ' · 52 %'), 'abre su pantalla', '—', 'Mostrar (valor, icono o los dos) · Valores · Avisar si'],
+  ['plant', 'plant', 'Planta', 'Sensores de planta', `<span class="meter">${ic('plant', ' style="width:14px;height:14px;color:var(--hm-brand)"')}38<small> %</small></span>`, 'abre su pantalla', '—', 'Valor en el plano · Avisar si (humedad del suelo, luz, temperatura)'],
+  ['alert', 'drop', 'Alerta', 'Agua, humo, gas', S.sensorAlert('drop'), 'abre su pantalla', '—', 'Nivel (alerta o aviso). Siempre aparece en Ahora y arriba'],
+  ['presence', 'eye', 'Presencia y aperturas', 'Movimiento, puertas, ventanas', S.sensor('door'), 'abre su pantalla', '—', 'Resaltar al detectar · Contar como alerta (no, por defecto)'],
+  ['infrastructure', 'hub', 'Infraestructura', 'Router, hub, puente RF, cuadro', S.infra(), 'abre su pantalla', '—', 'Sólo salud. Capa apagada por defecto'],
+];
+document.getElementById('cats').innerHTML = CATS.map(
+  ([, , name, examples, html, tap, hold, sheet]) =>
+    `<div class="cat"><div class="stage"><span class="sym">${html}</span></div><b>${name}</b><span class="ex">${examples}</span><dl><dt>Tocar</dt><dd>${tap}</dd><dt>Mantener</dt><dd>${hold}</dd><dt>Ficha</dt><dd>${sheet}</dd></dl></div>`,
+).join('');
+for (const pick of document.querySelectorAll('.catpick'))
+  pick.innerHTML = CATS.map(([id, icon, name]) => `<span class="${id === pick.dataset.on ? 'on' : ''}">${ic(icon)}${name.replace(' y aperturas', '')}</span>`).join('');
+
+// 13–14 · Rooms of the invented plan, in plan coordinates (0–600, 0–400).
+const ROOMS = {
+  living: { name: 'Living', r: [20, 20, 290, 380] },
+  kitchen: { name: 'Cocina', r: [290, 20, 440, 170] },
+  bedroom: { name: 'Dormitorio', r: [440, 20, 580, 230] },
+  bath: { name: 'Baño', r: [290, 170, 440, 280] },
+  laundry: { name: 'Lavadero', r: [440, 230, 580, 310] },
+  office: { name: 'Oficina', r: [290, 280, 440, 380] },
+  balcony: { name: 'Balcón', r: [440, 310, 580, 380] },
+};
+const centre = ([x1, y1, x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs, parent) => {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  parent?.append(el);
+  return el;
+};
+/** The arrows a room shows: one per reachable room, nearest wins within 20°, at most 8. */
+function arrowsFrom(id) {
+  const [cx, cy] = centre(ROOMS[id].r);
+  const all = Object.entries(ROOMS)
+    .filter(([other]) => other !== id)
+    .map(([other, room]) => {
+      const [tx, ty] = centre(room.r);
+      return { id: other, angle: Math.atan2(ty - cy, tx - cx), d: Math.hypot(tx - cx, ty - cy) };
+    })
+    .sort((a, b) => a.d - b.d);
+  const kept = [];
+  for (const c of all) {
+    const near = kept.some(k => Math.abs(((c.angle - k.angle + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) < (20 * Math.PI) / 180);
+    if (!near && kept.length < 8) kept.push(c);
+  }
+  const d0 = kept[0]?.d ?? 1;
+  return kept.map(k => ({ ...k, scale: Math.max(0.7, Math.min(1, 1 - 0.3 * (k.d / d0 - 1))), opacity: Math.max(0.5, Math.min(1, 1 - 0.45 * (k.d / d0 - 1))) }));
+}
+/** Where the ray from the centre leaves the room, plus a small gap: just outside the edge. */
+function exitPoint(id, angle, gap) {
+  const [x1, y1, x2, y2] = ROOMS[id].r;
+  const [cx, cy] = centre(ROOMS[id].r);
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  const t = Math.min(dx ? (x2 - x1) / 2 / Math.abs(dx) : Infinity, dy ? (y2 - y1) / 2 / Math.abs(dy) : Infinity);
+  return [cx + dx * (t + gap), cy + dy * (t + gap)];
+}
+function planInto(host, viewBox) {
+  host.prepend(document.getElementById('plan').content.cloneNode(true));
+  const plan = host.querySelector('svg.plan');
+  plan.setAttribute('viewBox', viewBox);
+  plan.style.cssText = 'inset:0;width:100%;height:100%';
+  const over = svgEl('svg', { class: 'rv', viewBox, preserveAspectRatio: 'xMidYMid meet' });
+  host.append(over);
+  return over;
+}
+for (const host of document.querySelectorAll('[data-roomview]')) {
+  const id = host.dataset.roomview;
+  const [x1, y1, x2, y2] = ROOMS[id].r;
+  const pad = host.hasAttribute('data-phone') ? 30 : 46;
+  const over = planInto(host, `${x1 - pad} ${y1 - pad} ${x2 - x1 + 2 * pad} ${y2 - y1 + 2 * pad}`);
+  // Arrows and labels keep their size on screen: k = plan units per pixel.
+  const k = Math.max((x2 - x1 + 2 * pad) / host.clientWidth, (y2 - y1 + 2 * pad) / host.clientHeight);
+  // Neighbours stay visible but quieter: no hard cut at the room's edge.
+  svgEl('path', { d: `M-100 -100H700V500H-100Z M${x1} ${y1}V${y2}H${x2}V${y1}Z`, 'fill-rule': 'evenodd', fill: 'var(--hm-bg)', 'fill-opacity': '.55' }, over);
+  for (const a of arrowsFrom(id)) {
+    const [px, py] = exitPoint(id, a.angle, 16 * k);
+    const g = svgEl('g', { class: 'nav-arrow', transform: `translate(${px} ${py}) rotate(${(a.angle * 180) / Math.PI}) scale(${a.scale * k * 1.5})`, opacity: a.opacity }, over);
+    svgEl('path', { class: 'halo', d: 'M-5 -8 L4 0 L-5 8', 'stroke-width': 7 }, g);
+    svgEl('path', { d: 'M-5 -8 L4 0 L-5 8', 'stroke-width': 3 }, g);
+    if (a.id === host.dataset.hold) {
+      const name = ROOMS[a.id].name;
+      const tip = svgEl('g', { class: 'tip', transform: `translate(${px + 10 * k} ${py - 34 * k}) scale(${k})` }, over);
+      svgEl('rect', { x: 0, y: 0, width: name.length * 7.5 + 18, height: 24, rx: 12 }, tip);
+      svgEl('text', { x: 9, y: 16 }, tip).textContent = name;
+    }
+    if (a.id === host.dataset.pull) {
+      // Pulled against its direction: the finger sits behind the arrow.
+      const fx = px - Math.cos(a.angle) * 56 * k, fy = py - Math.sin(a.angle) * 56 * k;
+      svgEl('path', { class: 'trail', d: `M${px} ${py}L${fx} ${fy}`, 'stroke-width': 1.5 * k, 'stroke-dasharray': `${4 * k} ${4 * k}` }, over);
+      svgEl('circle', { class: 'finger', cx: fx, cy: fy, r: 13 * k, 'stroke-width': 1.5 * k }, over);
+      const name = `Soltá para ir a ${ROOMS[a.id].name}`;
+      const w = name.length * 6.6 + 18;
+      const tip = svgEl('g', { class: 'tip', transform: `translate(${fx - (w / 2) * k} ${fy - 46 * k}) scale(${k})` }, over);
+      svgEl('rect', { x: 0, y: 0, width: w, height: 24, rx: 12 }, tip);
+      svgEl('text', { x: 9, y: 16 }, tip).textContent = name;
+    }
+  }
+}
+for (const host of document.querySelectorAll('[data-roomedit]')) {
+  const id = host.dataset.roomedit;
+  // Room for the frame, which reaches past the plan's edge.
+  const over = planInto(host, '-10 -40 620 470');
+  const [x1, y1, x2, y2] = ROOMS[id].r;
+  const pad = 46;
+  svgEl('rect', { class: 'frame', x: x1 - pad, y: y1 - pad, width: x2 - x1 + 2 * pad, height: y2 - y1 + 2 * pad, rx: 6 }, over);
+  svgEl('rect', { class: 'shape', x: x1, y: y1, width: x2 - x1, height: y2 - y1 }, over);
+  for (const [hx, hy] of [[x1, y1], [(x1 + x2) / 2, y1], [x2, y1], [x2, (y1 + y2) / 2], [x2, y2], [(x1 + x2) / 2, y2], [x1, y2], [x1, (y1 + y2) / 2]])
+    svgEl('rect', { class: 'handle', x: hx - 5, y: hy - 5, width: 10, height: 10, rx: 2 }, over);
+  for (const a of arrowsFrom(id)) {
+    const [px, py] = exitPoint(id, a.angle, 13);
+    const g = svgEl('g', { class: 'nav-arrow', transform: `translate(${px} ${py}) rotate(${(a.angle * 180) / Math.PI}) scale(${a.scale * 0.8})`, opacity: a.opacity }, over);
+    svgEl('path', { class: 'halo', d: 'M-5 -8 L4 0 L-5 8', 'stroke-width': 7 }, g);
+    svgEl('path', { d: 'M-5 -8 L4 0 L-5 8', 'stroke-width': 3 }, g);
+  }
+}
+for (const host of document.querySelectorAll('[data-draw]')) {
+  const over = planInto(host, '0 0 600 400');
+  svgEl('rect', { class: 'frame', x: 300, y: 30, width: 128, height: 110 }, over);
+  for (const [hx, hy] of [[300, 30], [428, 140]]) svgEl('rect', { class: 'handle', x: hx - 6, y: hy - 6, width: 12, height: 12, rx: 2 }, over);
+  svgEl('circle', { class: 'finger', cx: 428, cy: 140, r: 14 }, over);
+}
 </script>
 </body>
 </html>

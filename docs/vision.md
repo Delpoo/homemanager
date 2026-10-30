@@ -116,6 +116,8 @@ El **tipo** de dispositivo (`kind`, ya existe) dice qué es. El **arquetipo** di
 
 El punto de estado de hoy (un LED en cada símbolo) desaparece cuando todo está bien. Así el plano queda limpio, y una marca significa siempre que algo merece atención. En un actuador, el anillo reemplaza al LED como indicador de actividad.
 
+**Categorías.** La persona no elige un arquetipo: elige una **categoría** (interruptor, equipo, control remoto, medidor, planta, alerta, presencia, infraestructura), que decide el arquetipo y las secciones de la ficha. Ver [§12](#12-categorías).
+
 **Qué muestra el cuerpo** (`display.show`, opcional): `icon`, `value` o `both`. Por defecto, `value` en los medidores e `icon` en los demás.
 
 **Tamaños:** `s`, `m` y `l` (ya existen). La píldora de un medidor crece con su texto, hasta 9 caracteres.
@@ -350,3 +352,92 @@ Los tres validadores (`validation.mjs`, `validation.py` y el JSON Schema) cambia
 - Notificaciones al móvil.
 - Historial de gráficos en la pantalla del dispositivo (se abre el de HA).
 - Escenas y automatizaciones creadas desde HomeManager.
+
+## 12. Categorías
+
+Pedido del propietario: *no es lo mismo un botón de control remoto que un purificador, una planta, una alerta o un sensor de movimiento*. Los arquetipos de §4 resuelven la forma del símbolo, pero la app los elegía sola, y la ficha era igual para todos. La **categoría** es lo que la persona elige; el arquetipo se deduce de ella. Maqueta: [§12](vision-mockup.html#s12).
+
+| Categoría | Arquetipo | Ejemplos | Tocar | Mantener | La ficha pide |
+|---|---|---|---|---|---|
+| **Interruptor** | actuador | luces, enchufes, ventiladores, cortinas | su control (D18) | panel | al tocar, controles, fijados (hasta 3) |
+| **Equipo** | equipo | aire, purificador, robot, TV | su pantalla, o un control rápido | su pantalla | etiqueta (consigna, modo o nada), control rápido |
+| **Control remoto** | mando | RF o IR | el control, o un botón elegido | el control | control, al tocar, botones fijados (hasta 3) |
+| **Medidor** | medidor | temperatura, humedad, energía, aire | su pantalla | — | mostrar (valor, icono o los dos), valores, avisar si |
+| **Planta** | medidor | sensores de planta | su pantalla | — | valor en el plano, avisar si (humedad del suelo, luz, temperatura) |
+| **Alerta** | sensor | agua, humo, gas | su pantalla | — | nivel (alerta o aviso); siempre en *Ahora* y arriba |
+| **Presencia y aperturas** | sensor | movimiento, puertas, ventanas | su pantalla | — | resaltar al detectar; contar como alerta (no, por defecto) |
+| **Infraestructura** | infraestructura | router, hub, puente RF, cuadro | su pantalla | — | sólo salud; capa apagada por defecto |
+
+**Reglas**
+- Al vincular un dispositivo, la app **propone** la categoría según el dominio y la clase del dispositivo, y la deja escrita en la ficha, nunca escondida. Se cambia con un toque.
+- La ficha muestra arriba la categoría y después sólo sus secciones. Las comunes están siempre: nombre, icono, espacio, dispositivo de HA y tamaño. Un medidor, una planta o una alerta **no tienen editor de botones**.
+- *Más opciones → Tipo de dispositivo* (`kind`, con palabras como `light`) deja de verse: lo reemplaza la categoría.
+- La **marca de salud no es un botón**: mide 14 px y sólo aparece si hay un problema. Toda acción está en el cuerpo, en los controles fijados o en la pantalla del dispositivo.
+- Al cambiar de categoría, los datos de la anterior (controles, umbrales) se conservan hasta guardar, por si se vuelve atrás.
+
+**Contrato** (opcional; los tres validadores cambian juntos):
+
+| Campo | Valores |
+|---|---|
+| `display.category` | `switch`, `equipment`, `remote`, `meter`, `plant`, `alert`, `presence`, `infrastructure` |
+| `display.alerts` | hasta 4 reglas `{ reading, below?, above?, forMinutes?, level: alert \| warning }` |
+| `display.highlight` | `true` para resaltar una presencia al detectar |
+
+`display.archetype` sigue siendo válido: si un plano lo trae sin `category`, la categoría es la de ese arquetipo. Un plano de 0.8 carga igual.
+
+## 13. Vista por espacio
+
+Maqueta: [§13](vision-mockup.html#s13).
+
+**Entrar y salir**
+- Un botón junto al zoom lleva al espacio que está **más al centro** de la vista y lo encuadra al 100 %, que es el encuadre guardado de ese espacio (§14).
+- Los vecinos se ven atenuados: no hay un corte tajante en la pared.
+- El mismo botón, o *Casa* en la barra de espacios, vuelve al plano completo.
+
+**Flechas**
+- Una flecha por espacio alcanzable, sin fondo, apenas **fuera del borde** del espacio actual.
+- Cada una apunta al **centro** del destino con su ángulo real, no a 4 u 8 direcciones. Puede haber varias en un mismo lado, y en diagonal hacia un espacio que sólo comparte una esquina.
+- Tamaño y opacidad bajan con la distancia: el destino más cercano al 100 %, el más lejano hasta el 70 % del tamaño y el 50 % de la opacidad.
+- Si dos destinos quedan a menos de 20° entre sí, se ve sólo el más cercano; con la misma distancia, gana el que comparte pared. Hasta 8 flechas.
+- Se recalculan con cada cuadro de la cámara: al mover o hacer zoom, el espacio actual es el que contiene el centro de la vista, y las flechas se reacomodan.
+
+**Gestos**
+- **Tocar** una flecha no hace nada, para que un toque accidental no mueva el plano. La primera vez aparece la pista *Tirá para ir*.
+- **Mantener** 350 ms muestra el nombre y el icono del destino.
+- **Tirar**: arrastrar la flecha en sentido **contrario** a donde apunta. Pasados 40 px aparece el nombre y el plano empieza a moverse; al soltar, viaja. Si se suelta antes, la flecha vuelve a su lugar.
+- **Deslizar** el plano lo empuja: hacia arriba muestra lo que está abajo. Se elige el destino cuya flecha está más cerca de esa dirección, dentro de 35°; si no hay ninguno, el plano rebota.
+- La cámara viaja en 320 ms, sin recargar nada. Con movimiento reducido, el cambio es inmediato.
+
+**Interruptores:** *Flechas* y *Deslizar* se prenden y apagan por separado, con dos botones debajo del plano. Quedan en ese navegador, como la apariencia.
+
+**Accesibilidad:** cada flecha es un botón *Ir a Cocina*, y Enter viaja. Las flechas del teclado eligen el destino más cercano a esa dirección.
+
+**Implementación:** `navTargets(rooms, current, camera)` y `swipeTarget(targets, direction)` son funciones puras en `src/model/`, con pruebas, igual que `symbolSpec`.
+
+## 14. Espacios propios de la app
+
+Maqueta: [§14](vision-mockup.html#s14).
+
+**Los espacios son de la app, no del SVG.**
+- Cada espacio tiene su **forma** (`rooms[].shape`), en coordenadas normalizadas del plano, como las posiciones de los dispositivos. Por ahora es un rectángulo; después, un polígono.
+- Si el SVG trae zonas `room-…`, al importarlo se **copian** como formas. Desde ahí, el SVG es sólo el dibujo.
+- Un SVG nuevo nunca pisa una forma: *Revisar cambios* ofrece actualizar, una por una, las formas que vinieron del SVG. Las que se editaron a mano se conservan.
+- Un SVG **sin zonas** también sirve: cada espacio se dibuja arrastrando un rectángulo sobre el plano.
+- Todo lo que hoy usa zonas del SVG pasa a usar la forma: el encuadre, el resaltado, *¿en qué espacio cayó este dispositivo?*, la barra de espacios, la revisión del plano y el aviso de espacios sin zona.
+
+**Editor** (*Ajustes del plano → Espacios → un espacio*):
+- **Forma:** mover y redimensionar el rectángulo sobre el plano; *Volver a la zona del SVG*, si existe.
+- **Encuadre al 100 %:** *Ajustado*, *Normal* o *Amplio*, o arrastrar el marco punteado.
+- **Flechas desde este espacio:** cada destino con su dirección y un interruptor, para ocultar una flecha que sobra.
+- **Saltear al navegar:** un espacio de paso, como un pasillo, no recibe flechas ni deslizamientos: se pasa de largo.
+
+**Contrato** (opcional; los tres validadores cambian juntos):
+
+| Campo | Valores |
+|---|---|
+| `rooms[].shape` | `{ kind: 'rect', x, y, width, height }`, normalizado de 0 a 1 |
+| `rooms[].shapeSource` | `svg` (copiada de una zona) o `app` (editada o dibujada) |
+| `rooms[].frame` | `tight`, `normal` o `wide` (por defecto, `normal`), o un rectángulo normalizado |
+| `rooms[].nav` | `{ skip?: boolean, hidden?: string[] }` |
+
+**Migración:** un plano sin `shape` la toma de su zona al cargarse, sin escribir nada hasta guardar. Un espacio sin zona ni forma sigue funcionando como hoy, sin encuadre, y el aviso de *espacios sin zona* ofrece dibujarlo.
