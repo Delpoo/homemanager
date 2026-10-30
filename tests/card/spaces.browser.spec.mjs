@@ -67,19 +67,19 @@ test('a plan without zones offers to draw, and ends with three spaces drawn in t
   await button(page, 'Nueva zona').click();
   await draw(page, 'Cocina', [0.4, 0.05]);
   await button(page, 'Nueva zona').click();
-  await draw(page, 'Baño Eze', [0.05, 0.5]);
+  await draw(page, 'Baño Norte', [0.05, 0.5]);
   await button(page, 'Aplicar').click();
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
   const rooms = (await draft(page)).rooms;
   expect(rooms.map(room => [room.id, room.label, room.shapeSource])).toEqual([
     ['living', 'Living', 'app'],
     ['cocina', 'Cocina', 'app'],
-    ['bano-eze', 'Baño Eze', 'app'],
+    ['bano-norte', 'Baño Norte', 'app'],
   ]);
   expect(rooms.every(room => room.shape.width > 0 && room.shape.x + room.shape.width <= 1)).toBe(true);
   expect(rooms.map(room => room.icon)).toEqual(['mdi:sofa', 'mdi:pot-steam', 'mdi:shower']);
   await expect(
-    card(page).locator('.rooms').getByRole('button', { name: 'Encuadrar Baño Eze', exact: true }),
+    card(page).locator('.rooms').getByRole('button', { name: 'Encuadrar Baño Norte', exact: true }),
   ).toBeVisible();
 });
 

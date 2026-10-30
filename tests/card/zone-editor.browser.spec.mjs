@@ -85,15 +85,15 @@ test('two rectangles merged into an L stay one zone, with no seam, and answer by
   await button(page, 'Nueva zona').click();
   await dragOnPlan(page, [0.1, 0.1], [0.3, 0.2]);
   await expect(nameField(page)).toBeFocused();
-  await page.keyboard.type('Baño Linda');
+  await page.keyboard.type('Baño Sur');
   await button(page, 'Agregar rectángulo').click();
   await expect(button(page, 'Agregar rectángulo')).toHaveAttribute('aria-pressed', 'true');
   await dragOnPlan(page, [0.1, 0.2], [0.18, 0.35]);
   await expect(card(page).locator('.zone-rect')).toHaveCount(2);
   await button(page, 'Aplicar').click();
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  const zone = await room(page, 'bano-linda');
-  expect(zone.label).toBe('Baño Linda');
+  const zone = await room(page, 'bano-sur');
+  expect(zone.label).toBe('Baño Sur');
   expect(zone.shapeSource).toBe('app');
   expect(zone.rects).toHaveLength(2);
   expect(zone.shape.width).toBeCloseTo(0.2, 2);
@@ -102,7 +102,7 @@ test('two rectangles merged into an L stay one zone, with no seam, and answer by
   expect(zone.rects[1].y).toBeCloseTo(zone.rects[0].y + zone.rects[0].height, 6);
   // Reopened, it is still one zone of two rectangles, and Save keeps it valid.
   await openEditor(page);
-  await pick(page).selectOption('bano-linda');
+  await pick(page).selectOption('bano-sur');
   await expect(card(page).locator('.zone-rect')).toHaveCount(2);
   await button(page, 'Cancelar').click();
   await button(page, 'Guardar cambios').click();
