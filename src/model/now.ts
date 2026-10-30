@@ -12,6 +12,7 @@ export interface NowRow {
   value?: string;
   icon: string;
   off?: Command;
+  tone?: 'alert' | 'warning';
 }
 export interface NowSection {
   id: 'alerts' | 'climate' | 'active' | 'energy';
@@ -40,7 +41,12 @@ export function nowSections(
     const screen = deviceScreen(device, hass, rooms, now);
     const base = { id: device.id, name: screen.name, icon: screen.icon };
     for (const alert of alertsOf(device, hass, now))
-      sections[0].rows.push({ ...base, name: alert.message, detail: [screen.name, room].filter(Boolean).join(' · ') });
+      sections[0].rows.push({
+        ...base,
+        name: alert.message,
+        tone: alert.level === 'critical' ? 'alert' : 'warning',
+        detail: [screen.name, room].filter(Boolean).join(' · '),
+      });
     const temp = screen.values.concat(screen.readings).find(item => item.deviceClass === 'temperature');
     const humidity = screen.values.concat(screen.readings).find(item => item.deviceClass === 'humidity');
     const roomKey = device.roomId ?? device.id;
@@ -68,7 +74,9 @@ export function nowSections(
       });
     }
     const meterKey = screen.registryId ?? device.bindings.entityId ?? device.id;
-    const power = screen.values.concat(screen.readings).find(item => item.deviceClass === 'power');
+    const power =
+      screen.values.concat(screen.readings).find(item => item.deviceClass === 'power') ??
+      screen.values.concat(screen.readings).find(item => item.deviceClass === 'energy');
     if (power && !energy.has(meterKey)) {
       energy.add(meterKey);
       sections[3].rows.push({ ...base, detail: room, value: power.value });

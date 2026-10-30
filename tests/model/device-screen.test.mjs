@@ -161,3 +161,15 @@ test('0.7 configured panel actions keep their explicit IDs, labels and ordering'
   });
   assert.deepEqual(screen.actions, [{ id: 'existing-action', label: 'Control anterior' }]);
 });
+
+test('other useful domains remain readable without exposing commands for an unbound secondary entity', () => {
+  const hass = syntheticRegistry();
+  hass.entities['select.synthetic_mode'] = { device_id: 'meter-six', has_entity_name: true };
+  hass.states['select.synthetic_mode'] = {
+    state: 'auto',
+    attributes: { friendly_name: 'Medidor de energía Modo de lectura' },
+  };
+  const screen = deviceScreen(meter(), hass, rooms, now);
+  assert.ok(screen.readings.some(reading => reading.name === 'Modo de lectura' && reading.value === 'Automático'));
+  assert.equal(screen.controls.length, 0);
+});

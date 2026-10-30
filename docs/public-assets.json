@@ -100,6 +100,202 @@
       "sha256": "6c34461233510a43e59296e9f8b655425efb314024aa43613f970bca14b01b3b"
     },
     {
+      "path": "docs/evidence/0.8-device-screen/desktop-alert.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c0d5fc26f4fcb23086572a0ce632a8944a2183762dd5a8fbb5a78ba08596547b"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-appearance.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "0defb8fc8c4e6de51d6200fb74c8ca7e7d5b6f8a14f3f718751b93a9e9819962"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-climate.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5392284a0ef0dea604e99833a45f478cbae44632c383cf6eea7e4a4728d03596"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-empty.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f96e223f334f1c1fba87f42d28ef7a2cb6c887c4a2f86ef2b62b6b524c1fee07"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-infrastructure.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "69547d5c9cf97db14b4960fbe6cf4602f4bac4ca95981e2409fa1c3d70a660bb"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-meter-dark.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e98cd5a2c218e3c1d0bc2e888aa814db82654279475ece4ee656a48f5bdfc13c"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-meter.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "130fe1da589de797939cd09216b1b95bdb46ac72160264efb6ea9d64cdb5ce9b"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-now-dark.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "706dbca39b050dcde91c4a305ee268e77c101b2ec76221bdb2e7fd9fa9e68b62"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-now.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4b2a92f310c67a15331ada47405a9da87a5052e6559732b2d074d49b0d661ac0"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-plan.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4b2a92f310c67a15331ada47405a9da87a5052e6559732b2d074d49b0d661ac0"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "33b829873aa330577425ef68d1822ac093bd54c021e2b794cc15afa25627a80f"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e8f76d518d8560eb91b5aff1f8e1197caea75cbe089fbb0a5c0e72835159ce78"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/desktop-sensor.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b317d5f9dd88cf6c1cd2598510692d5661c5d6b4471271b35028a8abd079e64f"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-alert.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "160fbf4b40ed38a029916651103cb8b486322aace3e75a9e0fad7cc2a12abc0a"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-appearance.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e2f62b13637730da28f77afa642a19ea16932af43a0e1592ac38fc144c14f0dd"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-climate.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "62a25f6b15f1474969c27d965c8552354792da43814c985edfc0e6b25acb929b"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-empty.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "80dbd78946c59bbe857e29794c350d91a87cb11244bf01691c7fdb1542db2c72"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-infrastructure.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "36d1fb38997fdae31237659e802de1932cf35df53d4ab9c5276d784e0de5d5ff"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-meter-dark.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "266bd0e99f5b388c24fadc47cb7ef2d0fa214c894533ff0fb328a9721a95346c"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-meter.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f421bc634ad72c682834e659e45ea99da0de121e0966af4028a8b13b254c8792"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-now-dark.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "6aafb6a8e7ebacd1aad18b4587d9b10832f113e9fba9553dd4e20c95798455b1"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-now.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "112590fd9884e2b3fc46eb34be675f6708f90150b79ef0c7503ce0fca907e846"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-plan.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5d90c8b79af20c9344d29fc2ccd2ecead6d38d918403cd3124822a2446b886dd"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4c77aef0aea9fe22dca995efdf6a21fb78e926a6275bf01224648c6be312915c"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d195c69c4032bdbd4806e584c9dd1ad4b297d2eb4716c9d5dc7d256345e1dfe1"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c0162462eb799249f58abaf0c1b4257a3c3efcf90adbe1dfa049022dcb7dc661"
+    },
+    {
+      "path": "docs/evidence/0.8-device-screen/mobile-sensor.png",
+      "source": "tests/browser/fixtures/device-screen.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "56d009be36ac76ae61d6170a5cbf96799742c4592f960478d19529b8ec6e237c"
+    },
+    {
       "path": "docs/evidence/0.8-picker/desktop-advanced.png",
       "source": "tests/browser/fixtures/picker.html",
       "review": "fictional-only",

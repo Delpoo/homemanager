@@ -107,16 +107,24 @@ export function deviceScreen(
     if (item.deviceClass === 'power' || /\b(?:hoy|today|daily|tagesenergie)\b/i.test(item.name))
       channelIds.add(item.entityId);
   }
+  const capabilities = entityControls(
+    primary ?? '',
+    entity,
+    primary?.startsWith('script.') ? hass?.services?.script?.[primary.slice(7)]?.fields : undefined,
+  );
   const summary = all.filter(
-    item => !channelIds.has(item.entityId) && ['sensor', 'binary_sensor'].includes(item.entityId.split('.')[0]),
+    item =>
+      !channelIds.has(item.entityId) &&
+      !(item.entityId === primary && capabilities.some(control => control.kind !== 'reading')),
+  );
+  const bigValues = summary.filter(
+    item => item.entityId === primary || ['sensor', 'binary_sensor'].includes(item.entityId.split('.')[0]),
   );
   const selected = [primary, ...(device.bindings.readings ?? [])].filter((id): id is string => !!id);
   const preferred = selected
-    .map(id =>
-      all.find(item => item.entityId === id && ['sensor', 'binary_sensor'].includes(item.entityId.split('.')[0])),
-    )
+    .map(id => all.find(item => item.entityId === id && (summary.includes(item) || channelIds.has(item.entityId))))
     .filter((item): item is CatalogReading => !!item);
-  const values = [...preferred, ...summary.filter(item => !preferred.includes(item))].slice(0, 3);
+  const values = [...preferred, ...bigValues.filter(item => !preferred.includes(item))].slice(0, 3);
   const remaining = summary.filter(item => !values.includes(item));
   const readingGroups = new Map<string, CatalogReading[]>();
   for (const item of remaining)
@@ -125,11 +133,7 @@ export function deviceScreen(
     .map(value => Date.parse(value ?? ''))
     .filter(Number.isFinite);
   const stamp = stamps[0];
-  const controls = entityControls(
-    primary ?? '',
-    entity,
-    primary?.startsWith('script.') ? hass?.services?.script?.[primary.slice(7)]?.fields : undefined,
-  )
+  const controls = capabilities
     .filter(control => control.kind !== 'reading')
     .map(control => ({
       ...control,

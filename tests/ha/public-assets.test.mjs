@@ -28,4 +28,12 @@ test('only exact reviewed fictional PNG bytes are admitted; changes and other me
   pickerManifest.assets[0].source = 'docs/vision-mockup.html';
   assert.equal(reviewedScreenshot(pickerPath, bytes, pickerManifest), false);
   assert.equal(reviewedScreenshot('docs/evidence/0.8-picker/private.png', bytes, pickerManifest), false);
+  const screenPath = 'docs/evidence/0.8-device-screen/mobile-meter.png';
+  pickerManifest.assets[0].path = screenPath;
+  pickerManifest.assets[0].source = 'tests/browser/fixtures/device-screen.html';
+  assert.equal(reviewedScreenshot(screenPath, bytes, pickerManifest), true);
+  assert.equal(reviewedScreenshot(screenPath, Buffer.concat([bytes, Buffer.of(1)]), pickerManifest), false);
+  assert.equal(reviewedScreenshot('docs/evidence/0.8-device-screen/private.png', bytes, pickerManifest), false);
+  pickerManifest.assets[0].source = 'tests/browser/fixtures/picker.html';
+  assert.equal(reviewedScreenshot(screenPath, bytes, pickerManifest), false);
 });

@@ -90,3 +90,12 @@ Antes de publicar o instalar, ejecutar los controles de contrato, pruebas y buil
 ## Evolución 0.7 en revisión
 
 La pista A incorpora shell, arquetipos, alertas, actividad e importación con revisión de conflictos. Ver [roadmap](roadmap.md) y [verificación con capturas](verification-0.7.md). El PR sigue en borrador; la versión publicada no cambia.
+
+
+### Pantalla del dispositivo, Ahora y apariencia (0.8, en revisión)
+
+Los sensores, medidores, equipos e infraestructura abren una pantalla en el lugar de Ahora. Los actuadores conservan su toque D18 y los mandos su panel anterior. La pantalla reúne lecturas útiles, hasta tres valores destacados, canales de energía, controles disponibles, alertas y actividad/diagnóstico plegados. Los enlaces a la página del dispositivo en HA sólo aparecen para administradores.
+
+Ahora se filtra por el espacio elegido y omite secciones vacías. El apagado rápido pasa por el mismo adaptador; se muestra **Enviado**, y la última lectura permanece hasta que HA aporte otra. Un total acumulado no se presenta como consumo de hoy si su nombre no declara ese período.
+
+En **⋮ → Apariencia**, **Automático** sigue el tema de Home Assistant; **Claro** y **Oscuro** lo reemplazan para HomeManager. La elección se conserva en este navegador, también al abrir el selector y otros paneles, sin guardar nada en el plano ni cambiar el tema general de HA. Si el navegador deniega el almacenamiento, la elección dura esta página.
