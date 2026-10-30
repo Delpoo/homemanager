@@ -2,6 +2,17 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.9.0-beta.5 — beta
+
+Quinta parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **avisos por categoría** (D21).
+
+- **Avisar si**, en la ficha de un Medidor o una Planta: hasta 4 condiciones (menos de, más de, durante cuánto tiempo) con su nivel, *alerta* o *aviso*. En una Planta se sugieren, apagadas, las habituales (humedad del suelo, luz, temperatura).
+- **Alerta:** elegí si cuenta como alerta o como aviso. Un sensor de agua, humo o gas alerta siempre, sea cual sea su categoría.
+- **Presencia y aperturas:** *Resaltar al detectar*, sin contar como alerta.
+- El plano, la barra de espacios, el aviso de arriba y *Ahora* muestran rojo o ámbar según el nivel. Si Home Assistant se desconecta, los avisos se ocultan sin darse por resueltos.
+- En Controles RF, cancelar una confirmación devuelve el foco donde estaba, y los grupos de opciones usan todo el ancho.
+- Campos opcionales `display.alerts` y `display.highlight`. Un plano anterior sigue igual.
+
 ## 0.9.0-beta.4 — beta
 
 Cuarta parte de la etapa 0.9 de [docs/roadmap.md](docs/roadmap.md): **el mismo diseño en RF y Ajustes, y espacios creados en la app**.
