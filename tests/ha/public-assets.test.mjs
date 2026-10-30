@@ -36,4 +36,14 @@ test('only exact reviewed fictional PNG bytes are admitted; changes and other me
   assert.equal(reviewedScreenshot('docs/evidence/0.8-device-screen/private.png', bytes, pickerManifest), false);
   pickerManifest.assets[0].source = 'tests/browser/fixtures/picker.html';
   assert.equal(reviewedScreenshot(screenPath, bytes, pickerManifest), false);
+  const cp6Path = 'docs/evidence/0.9-cp6/mobile-dark-widget.png';
+  pickerManifest.assets[0].path = cp6Path;
+  pickerManifest.assets[0].source = 'tests/rf/cp6.browser.spec.mjs';
+  assert.equal(reviewedScreenshot(cp6Path, bytes, pickerManifest), true);
+  assert.equal(reviewedScreenshot(cp6Path, Buffer.concat([bytes, Buffer.of(1)]), pickerManifest), false);
+  assert.equal(reviewedScreenshot('docs/evidence/0.9-cp6/private.png', bytes, pickerManifest), false);
+  pickerManifest.assets[0].source = 'docs/vision-mockup.html';
+  assert.equal(reviewedScreenshot(cp6Path, bytes, pickerManifest), false);
+  pickerManifest.assets[0].path = 'docs/evidence/0.9-cp6/mobile-dark-reference-dialogs.png';
+  assert.equal(reviewedScreenshot(pickerManifest.assets[0].path, bytes, pickerManifest), true);
 });
