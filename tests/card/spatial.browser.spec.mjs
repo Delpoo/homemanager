@@ -105,11 +105,11 @@ test('panels show controls for the real capabilities and only report commands as
   await expect(dialog.getByRole('button', { name: 'Alternar luz de prueba', exact: true })).toBeVisible();
 });
 
-test('a device without a primary action opens its panel on tap', async ({ page }) => {
+test('a sensor without a primary action opens its device screen on tap', async ({ page }) => {
   await action(page, 'Temperatura de prueba').click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  await expect(dialog.locator('.reading')).toHaveText('23 °C');
+  const screen = page.locator('homemanager-insights');
+  await expect(screen.getByRole('heading', { name: 'Temperatura de prueba', exact: true })).toBeVisible();
+  await expect(screen.locator('.device-value strong')).toHaveText('23 °C');
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 

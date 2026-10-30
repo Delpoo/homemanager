@@ -295,6 +295,7 @@ export function updateControls(this: HomeManagerCard) {
   if (discard) discard.disabled = this.saving || !this.dirty;
   this.updateSelection();
   this.positionEditor();
+  this.insights?.update(this);
 }
 
 export function status(this: HomeManagerCard, message: string) {

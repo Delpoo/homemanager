@@ -8,7 +8,7 @@ export const uiEscape = (value: unknown): string =>
   );
 export const uiIcon = (icon: string): string => `<ha-icon icon="${uiEscape(icon)}" aria-hidden="true"></ha-icon>`;
 export const uiButton = (text: string, action: string, variant = 'secondary', icon?: string): string =>
-  `<button type="button" class="k-btn ${variant}" data-action="${uiEscape(action)}">${icon ? uiIcon(icon) : ''}${uiEscape(text)}</button>`;
+  `<button type="button" class="k-btn ${variant}"${variant === 'icon' ? ` aria-label="${uiEscape(text)}"` : ''} data-action="${uiEscape(action)}">${icon ? uiIcon(icon) : ''}${variant === 'icon' ? '' : uiEscape(text)}</button>`;
 export const uiStatus = (text: string, tone = 'brand'): string =>
   `<span class="k-status ${tone}">${uiEscape(text)}</span>`;
 export const uiNotice = (text: string, tone = 'info'): string =>

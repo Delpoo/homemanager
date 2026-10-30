@@ -1,3 +1,5 @@
+import { commandLabel } from '../model/control-capabilities.js';
+import { archetypeOf } from '../model/archetype.js';
 import { t } from '../i18n/index.js';
 import { airStamp, onAir, rf } from '../integration/rf.js';
 import { openPanel, reasonText } from '../panels/native-panel.js';
@@ -33,7 +35,7 @@ export async function sendEntityCommand(
     `entity-${command.service}`,
     this._hass,
     Date.now(),
-    undefined,
+    t(commandLabel(command)),
     entityId ?? this.draft?.catalog.devices.find(device => device.id === id)?.bindings.entityId ?? undefined,
   );
   const result = (await this.adapter.executeEntityCommand(id, command, entityId)) as { ok: boolean; reason?: string };
@@ -196,6 +198,10 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
   if (!d || !this.draft) return;
   this.selected = id;
   this.panel?.close();
+  if (['sensor', 'meter', 'equipment', 'infrastructure'].includes(archetypeOf(d, this._hass)) && this.insights) {
+    this.insights.openDevice(id, returnFocus);
+    return;
+  }
   const panel = d.bindings.advancedPopupId ? this.draft.panels[d.bindings.advancedPopupId] : undefined;
   const entityId = d.bindings.entityId;
   const remoteId = this.remoteOf(d);

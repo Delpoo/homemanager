@@ -18,3 +18,9 @@ test('the 0.8 picker owns no styles or literal colors; all its visual pieces com
   assert.doesNotMatch(source, /<style\b|style\s*=|#[0-9a-f]{3,8}\b|\b(?:rgb|hsl)a?\s*\(/i);
   assert.match(source, /from ['"]\.\.\/ui\/components\.js['"]/);
 });
+
+test('device screen and Ahora own no styles or colors; their components are shared UI pieces', () => {
+  const source = readFileSync(new URL('../../src/panels/device-screen.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /<style\b|style\s*=|#[0-9a-f]{3,8}\b|\b(?:rgb|hsl)a?\s*\(/i);
+  assert.match(source, /from ['"]\.\.\/ui\/device-components\.js['"]/);
+});
