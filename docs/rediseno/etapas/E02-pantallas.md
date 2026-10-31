@@ -50,13 +50,22 @@ Borrador sin guardar, deshacer de un paso al importar, foco y lector de pantalla
 ## Aceptación
 
 - [ ] Un recorrido por todos los flujos del inventario nunca muestra dos ventanas a la vez.
-- [ ] Sólo las preguntas de sí o no usan ventana.
-- [ ] Ajustes es una página, con el historial del navegador o un botón para volver.
+- [x] Sólo las preguntas de sí o no usan ventana.
+- [x] Ajustes es una página, con el historial del navegador o un botón para volver.
 - [ ] En 390×844 todo se puede usar sin desplazamiento horizontal.
 - [ ] Salir con cambios sin guardar pregunta primero.
 - [ ] Todas las funciones siguen disponibles.
 
 ## Registro
+
+### 2026-10-31 — ChatGPT — implementación entregada, validación parcial
+
+- **Autorización:** el propietario aprobó continuar y publicar. La parada del paso 2 quedó resuelta; no volver a pedirla.
+- **Hecho:** componente común de pantalla; Ajustes, Vincular, espacios, revisiones, ayuda/listas, Almacenamiento, controles nativos, elemento y aprendizaje RF convertidos. Retorno del foco y borradores conservados; confirmaciones únicas. Main b9cce00 integrado.
+- **Verificación:** 250 pruebas de código y 105 casos únicos de navegador aprobados, uno omitido; formato aprobado antes de publicar. Suite general incompleta (64 aprobados/8 fallos antes de interrumpir). Repetir checks sobre el SHA final.
+- **Evidencia:** 60/72 capturas transferidas; 12 pendientes por desconexión local. No hay capturas de Almacenamiento ni del editor/revisión de zonas. [Índice](../../evidence/rediseno-e02/README.md).
+- **Falta:** todos los recorridos del inventario, suite general, auditoría, teléfono real, lector de pantalla y E2E HA. Las otras cuatro casillas siguen pendientes. [Reporte](../entregas/E02-2026-10-31-continuacion.md) y [68 funciones](../entregas/E02-conservacion.md).
+
 
 ### 2026-10-31 — ChatGPT — a medias
 - **Hecho:** etapa reclamada en commit 057982b054015be4060995362414724d4be58b29; clasificación de los 12 showModal de E01, usos del helper general y window.confirm de Almacenamiento. Propuesta revisable de pantallas en ../propuestas/E02-pantallas.md y E02-propuesta.html. No se convirtió el producto.

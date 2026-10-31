@@ -436,6 +436,496 @@
       "sha256": "d915b5ee0fee3dc7dc9952827c0b1456024228d761fd8ed70dabc611920e328b"
     },
     {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5382fb84ef73a1d458df7fd37cee1773082108ae5bdec40408ca41243d507dd4"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fa733b5dfe6a27e11c92c573a8103e5a33a5499552bfa99912b94b89e9aa854f"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e793f70c15338f720bbf7c7eaec28cc35d88d4514c7c8430e4d2458381937f0e"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "98192e9bc2b63d57db83d9e7e2632e3dba5393ffd9e42038bb1056f9512cf435"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-dark-sidebar.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "891571f2ab2b6fd70410e57f271a666f73e751fcdb73e925b07981673fa369ad"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8be323c05f656fc21b45f49582bc6a3b8ad3937577e93d995b454db2ba0ecd8b"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "71afc0f13c05815c0f4438c6f23ae0a44c8d0c71909a4174bc3b2dcdad870252"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "453397b760d1529633ecb94463b2e2abd097f8a308beff360d664f015b6242ce"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "82fbdb69efa9675936ff135fcb6e375589b017f6314f091548665ccf10312f21"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-edit.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "add3673461a5630a897a4005c17abdf464d25b95e61a3bf049eeb2c8cd27dc6c"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-plan.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5f6f733b5378143610646095c4ee68bcb31dee90e6d70f96f6f5312b71d4e672"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/desktop-light-sidebar.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d86d048b07417d5d94d24d71d3715eabe747b9d10745b9901a4c7add29fc16cf"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "90bae65a5b44afcbef98c759a193a8c33757224b9e41f673a2f5694ea4788d90"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "6ba9bf90ff94fabc7962efcf943cedbc88d9db263bd60f5cf3605632d165ba8a"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "38e933b3fc88ec347b29178e73cbf37df3fc1ef0ea2bca6df54b1d63614ece42"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-dark-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8b0dbd28fed8d8fd6a3e9a8327c3c663fea36c946d6613a5fde77084cddc7e97"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-activity.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "14500f9b1f311fec9290e21024366f148966e826665072fddede5d1ac9923dcd"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-edit.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a24ecf2db546017e2adb7bd13e7f10ad758c3408e2c168164425911791d863b6"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-inspector.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "ec3485fad1f8db171c620ccc41ae84364c93caf8cd6479a18de2b3d5adde1578"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-plan.png",
+      "source": "tests/browser/fixtures/shell.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8b331c8bfe5643b2d3e68d8ea39413591644a95e644a8a88f53deff09686494f"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-edit.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "25fe424a697496883e8191e70766fcd25a6b5de906268d9e06c5e07aa536343e"
+    },
+    {
+      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-plan.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "bfb8a75f2bd21ea6d1abf64500161d7c1b800389f5db9b846b5c1c934855db59"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "d8b5b631266ca555b90271dce17ec142ab86a559055315ada04c5f0b0ceb33b1"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1abfbd14b6d4e5446e6e910e9d3ba7204a633c02fa79c73ccf3a32488d6993bf"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a5c5915cb1854d30bb9950b0bf87a28c7af38f9e5d44307c2691fea42a2c4e51"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5da85f36771cbf00a4ebe769f066a49b95d8700c27a39014d5b168e010ef41d6"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b137f3b1173eab496c038f38f8b0397fab75ada25ca45069ef231a3081033e39"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "11329f6ae90703bd6328a445da0200875f0f1fbb7cc75e138d517f2f213a5a26"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "4fb6bb1aec0b71459f4ba994923d548791f5c3f399fadbfdba4ddb0c500f25da"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "68011c4cfcfbb52cc4fcfbc6222df4ab4063733d3624c8d1b84cccfe5f88418f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "212b11a708e9c8eee287725c82a4f2caf7bfa4fcfdb3eb2fffbad7627ab985a1"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "00f065ec4dea41c14c299ce7f6847f585a435f21537c59de7f13c6bd9651f596"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fa287bd239cac5f005a32b41f5f7036c24e9809b165ebb7f236b0326963f5e3a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "9273c846162e5cd06fa413a533f84fc3faca912bf2e900e2317a153eb7c3b73f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "33dae3f2a6c6e4785083fb8c553b36ac5899f2ddbb1c1036097ce657e4404314"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "04adbace865c2a2a8d5730deaffd22c52b7fe6515b8b015660f63c246b6cbbed"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "909c75368d776355ff71f6fb3e22ece21b99067b0bb22c5496a8bf3f364b978d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "5f6fb629e2a63e13db1a0126781880273e5799ae57781eb3cd3251f41e90cc2d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "881cd086fa9595d065a2221ba02cd88a1d61ac57edbec1dd2f283dc7e68986d9"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e7d3b513532cfadf2f96ed191b7ebb533e77329accb45bb330df26861c75b012"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "36f7342356f9bff1c228217facf7c20ca689d2ae5c84d995107578d58cb835e8"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "c40e99d7c1897c7b75e65d3878f4bb27358a9bf8b93f9091aae6e587801ea885"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f2b5708a2f26d76843e36e89d5891b2140b89923a93bd291c2fc0884989bd66f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "33b829873aa330577425ef68d1822ac093bd54c021e2b794cc15afa25627a80f"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/desktop-light-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "e8f76d518d8560eb91b5aff1f8e1197caea75cbe089fbb0a5c0e72835159ce78"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f3884a97faa3e081c5a7128ed776f0bfd9ef57b94effe1939ba9b25115a52421"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "476d5e31cec8ea684d96b645675c1bebff349e4589ca4443ae541fc320c4ab2a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "81e08ad257827e2d1a73d8b98a72b7857229a2d8ce0cd4e146e5b685093f27d5"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "88524bd9cbfe7ec72c6ee0af4864f5ec60299bf69b0713292054e6f989273f8b"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "844388209214c0f5ffcac4844a28128d04438f3ef79044b36f01e46a30d4a8dd"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "61ea933a288d5de109e6dfa50abb79dc460eb04f2d56c1c8d07d9e516263a8a0"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fef0833480fef5e701e32d5b512adffcbbbba983da2b90712588345c4c801c89"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "004101bc1fd37f173cd28c186306a5ab70e147e5b3dd1a691a1b83e01024a82a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "016705c9ec69b6e588d42a7aedcefdcdd9b927e09a301525b9fc1f050744501a"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "52285f31f84d1fd3ab4973ee021c9f1918034f6a15fbfaefdd4f4ba8cfd117c3"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "780ab2bcff0bed6cb642d4cf5883a53a45fedf89ae160e2c50fd2df7438e8742"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8f8f3d132d9c0eeb0a5ddb475929d1939c20d8c1e1b5c0daf45910b4fadd0bde"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-alerts.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "f7c159dc14e823bb6b6282d3ee6ea5d5463209320ec8baa9422e7c8c71fd62b0"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-device.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "34e228d092f563b14cd7a8aabf4ec3a4feb14cb49f41a6b8bcae8c6f84530bf3"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-alarm.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "01f964b64d41b097803e5c1e80789e3727350e8568712cad588cc0151b7f7b18"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-meter.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "fbdcb235dae7b306c422c64fe34b9d1a087e97f9a1946beb2db595ae3f3dca6d"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-plant.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "3739668c598b0fa35aa62651cc6c62a6f50573b07272ad07cbcc94559a697227"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-presence.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b3614bd82bb93bdcc1728b33fbb450f8d17523a99aef0fc9914a3bbcfe381947"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-rule.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "b78e2b684d5d91e5cbf9c977221ffc419e961c662ab829036bacf9b7b390df93"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-now.png",
+      "source": "tests/editor/alerts.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "bfa0da031e2c6dd8f8330d2e4ceef0e3b1d7cb10bf29659fa6c8d81396b91665"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-categories.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a809b68670baf9312b895fde5d30f6868eaaa9229d0b51d1152217c092979362"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-components.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "251d5868ae4fd199e2a84bd310ab6bf6d37d91b32ffc73c1633f2af93002475e"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-device.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "8543ccb3c3f81b014df55a5b0ba458092f20106c17dfdaa61ec6e6a29faae4a4"
+    },
+    {
+      "path": "docs/evidence/0.9-cp4/mobile-light-reference-now.png",
+      "source": "docs/vision-mockup.html",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-30",
+      "sha256": "a859f2b6b96daa065ce58feee55b503de8264b836ca67ee869ef3e4a9b4712a9"
+    },
+    {
       "path": "docs/evidence/0.9-cp6/desktop-dark-candidate.png",
       "source": "tests/rf/cp6.browser.spec.mjs",
       "review": "fictional-only",
@@ -1120,494 +1610,586 @@
       "height": 844
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-alerts.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/desktop-dark-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "d8b5b631266ca555b90271dce17ec142ab86a559055315ada04c5f0b0ceb33b1"
+      "reviewDate": "2026-10-31",
+      "sha256": "1af89c576ac89c05cef665171a54d0777ea520807c081930b19f38f2c9c82544"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-device.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/desktop-dark-sidebar.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "1abfbd14b6d4e5446e6e910e9d3ba7204a633c02fa79c73ccf3a32488d6993bf"
+      "reviewDate": "2026-10-31",
+      "sha256": "bc85db35665c1c1f58df5b8d203e2d260b1d308208c555511f07c29ca759fd85"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-alarm.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/desktop-light-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "a5c5915cb1854d30bb9950b0bf87a28c7af38f9e5d44307c2691fea42a2c4e51"
+      "reviewDate": "2026-10-31",
+      "sha256": "ad769372011019601e1067c16c778852bfc06fb63a5d2710d003421672180255"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-meter.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/mobile-dark-ampliada.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "5da85f36771cbf00a4ebe769f066a49b95d8700c27a39014d5b168e010ef41d6"
+      "reviewDate": "2026-10-31",
+      "sha256": "a8eea42e82cf9d6613c8a041189fda64765737021481a4495ffa15ba1cb0ca30"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-plant.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/mobile-dark-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "b137f3b1173eab496c038f38f8b0397fab75ada25ca45069ef231a3081033e39"
+      "reviewDate": "2026-10-31",
+      "sha256": "3f43f96dda10b7ff16b718ac02719fa58d39cc26903d4b99f8aafa6a4a6388fa"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-presence.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e01/mobile-light-ficha.png",
+      "source": "tests/card/editor-dock.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "11329f6ae90703bd6328a445da0200875f0f1fbb7cc75e138d517f2f213a5a26"
+      "reviewDate": "2026-10-31",
+      "sha256": "60f9aee169037afd6a6168639ca8b0f16d52679b23f7dd4988d6289927eee051"
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-inspector-rule.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-activity.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "4fb6bb1aec0b71459f4ba994923d548791f5c3f399fadbfdba4ddb0c500f25da"
+      "reviewDate": "2026-10-31",
+      "sha256": "08fba0ba89f5ae734b1a82df520e63219c0fe969d71242689f1ccde0eb81f29f",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-now.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-add.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "68011c4cfcfbb52cc4fcfbc6222df4ab4063733d3624c8d1b84cccfe5f88418f"
+      "reviewDate": "2026-10-31",
+      "sha256": "7af2d9bfa994a2190b9a2d487748ab749d598bedcccf13013dd2a5b3d811733d",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-categories.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-help.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "212b11a708e9c8eee287725c82a4f2caf7bfa4fcfdb3eb2fffbad7627ab985a1"
+      "reviewDate": "2026-10-31",
+      "sha256": "5f6f3f617359a440c17cb578df4686afe1a1daa06fa98c405a1af836c2d98d4b",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-components.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-link-advanced.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "00f065ec4dea41c14c299ce7f6847f585a435f21537c59de7f13c6bd9651f596"
+      "reviewDate": "2026-10-31",
+      "sha256": "4669e2110ca9812d405bd4714dfdcde0b74fc7bdab239c4e8877e3f33a7e0979",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-device.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-link-devices.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "fa287bd239cac5f005a32b41f5f7036c24e9809b165ebb7f236b0326963f5e3a"
+      "reviewDate": "2026-10-31",
+      "sha256": "cc924e5c438842daa4c8acfd90d70a7435271e367ab26221bf2d6c04e65e9025",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-dark-reference-now.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-link-readings.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "9273c846162e5cd06fa413a533f84fc3faca912bf2e900e2317a153eb7c3b73f"
+      "reviewDate": "2026-10-31",
+      "sha256": "2720e073e4328e11766f996c84889a9d0f1ea1d71c1524ab011efbbd261a80ea",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-alerts.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-native.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "33dae3f2a6c6e4785083fb8c553b36ac5899f2ddbb1c1036097ce657e4404314"
+      "reviewDate": "2026-10-31",
+      "sha256": "3add5092c27ac315d3700011f6f9caec19b0ad55189478109d5602d7e4c489ce",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-device.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-review.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "04adbace865c2a2a8d5730deaffd22c52b7fe6515b8b015660f63c246b6cbbed"
+      "reviewDate": "2026-10-31",
+      "sha256": "421973b1e8b44a767070eb47e2f98a4c4d95a26a801e22e8c306f2c616e4bd40",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-alarm.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-rf-learn.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "909c75368d776355ff71f6fb3e22ece21b99067b0bb22c5496a8bf3f364b978d"
+      "reviewDate": "2026-10-31",
+      "sha256": "4b31e4e5166e30dce0a925661838cda4f439706bf14362ff712ed7535ca7d208",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-meter.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-rf-widget.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "5f6fb629e2a63e13db1a0126781880273e5799ae57781eb3cd3251f41e90cc2d"
+      "reviewDate": "2026-10-31",
+      "sha256": "34eb1b6b45735bc17f1077634d1599b14eb5ff71039840c90857c01804d5ce0b",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-plant.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-room.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "881cd086fa9595d065a2221ba02cd88a1d61ac57edbec1dd2f283dc7e68986d9"
+      "reviewDate": "2026-10-31",
+      "sha256": "07d658877a358f9debb343797f79cdae4465b8b0a87300d944c74149c67b6e58",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-presence.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-actions.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "e7d3b513532cfadf2f96ed191b7ebb533e77329accb45bb330df26861c75b012"
+      "reviewDate": "2026-10-31",
+      "sha256": "141d6321429a2291ac877346d4e44a35f276c295e58c05632a39665f589072a4",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-inspector-rule.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-connect.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "36f7342356f9bff1c228217facf7c20ca689d2ae5c84d995107578d58cb835e8"
+      "reviewDate": "2026-10-31",
+      "sha256": "17257b4cf02acf08cdd3e90fa543851b203ef924012d22bbda50766473659e15",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-now.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-health.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "c40e99d7c1897c7b75e65d3878f4bb27358a9bf8b93f9091aae6e587801ea885"
+      "reviewDate": "2026-10-31",
+      "sha256": "a7755e14ef5ac68b2fa47d58eb909ef8c628c9e19cb644e5cb1f638c652feaae",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-reference-categories.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-import.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "f2b5708a2f26d76843e36e89d5891b2140b89923a93bd291c2fc0884989bd66f"
+      "reviewDate": "2026-10-31",
+      "sha256": "660c65f6e006addce4a2aa986188b5c13908ed5a51603d0057fc2f2cfecbec1f",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-reference-components.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-panels.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "1340ca8fd890b008cc2d4a74dfa3ab99f7a0806dd1c67d74ce51bda476a5de70"
+      "reviewDate": "2026-10-31",
+      "sha256": "c307eb0b2ce17284a2acaf514a8bd1d2de1136ceab936d75ff4d614f6a1aef9d",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-reference-device.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-pending.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "33b829873aa330577425ef68d1822ac093bd54c021e2b794cc15afa25627a80f"
+      "reviewDate": "2026-10-31",
+      "sha256": "65fdf130b2b04766dc8d7d7c7c4d6f3f55be464733e7637a29c01459a2a337b5",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/desktop-light-reference-now.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-dark-settings-rooms.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "e8f76d518d8560eb91b5aff1f8e1197caea75cbe089fbb0a5c0e72835159ce78"
+      "reviewDate": "2026-10-31",
+      "sha256": "6058241cca49c01fb4d5292831880e8c90b5d76be57b95dd40dc4b158d922a5d",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-alerts.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-activity.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "f3884a97faa3e081c5a7128ed776f0bfd9ef57b94effe1939ba9b25115a52421"
+      "reviewDate": "2026-10-31",
+      "sha256": "01f74f3e179ebc0e34dbbceb68db5b05aeae14f7d926ed56a5c446a1c3e722a9",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-device.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-add.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "476d5e31cec8ea684d96b645675c1bebff349e4589ca4443ae541fc320c4ab2a"
+      "reviewDate": "2026-10-31",
+      "sha256": "de9238276774877f73c9dd6453534c5243872d6ef1769e6701b1c52563d63e91",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-alarm.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-help.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "81e08ad257827e2d1a73d8b98a72b7857229a2d8ce0cd4e146e5b685093f27d5"
+      "reviewDate": "2026-10-31",
+      "sha256": "65aa872d9fd8c1c61213f04cf2e34c6c56e64f528844f0816ad90c9f3fe1be6a",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-meter.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-link-advanced.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "88524bd9cbfe7ec72c6ee0af4864f5ec60299bf69b0713292054e6f989273f8b"
+      "reviewDate": "2026-10-31",
+      "sha256": "de16f23c80b13394faad0a5f34a715c728127526ff967bd515be83bcf03a9542",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-plant.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-link-devices.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "844388209214c0f5ffcac4844a28128d04438f3ef79044b36f01e46a30d4a8dd"
+      "reviewDate": "2026-10-31",
+      "sha256": "5e1d22d0363bbaba0c1d2e715fc90a2be20dd6c1b83031c3da1ee1b772cc9ff3",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-presence.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-link-readings.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "61ea933a288d5de109e6dfa50abb79dc460eb04f2d56c1c8d07d9e516263a8a0"
+      "reviewDate": "2026-10-31",
+      "sha256": "7271a356058d87aeedbebe20c145a5b50259e66cca445603a4760679de083369",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-inspector-rule.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-native.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "fef0833480fef5e701e32d5b512adffcbbbba983da2b90712588345c4c801c89"
+      "reviewDate": "2026-10-31",
+      "sha256": "9e3f5b088ac063c64a2224db6b9209e8249b50283b5deca709001cf7406c629a",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-now.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-review.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "004101bc1fd37f173cd28c186306a5ab70e147e5b3dd1a691a1b83e01024a82a"
+      "reviewDate": "2026-10-31",
+      "sha256": "33bccc6b2b527a0e08de5fe66bc2e5de8aa8338342507024677f785f428b9a38",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-categories.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-light-rf-learn.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "016705c9ec69b6e588d42a7aedcefdcdd9b927e09a301525b9fc1f050744501a"
+      "reviewDate": "2026-10-31",
+      "sha256": "f289f37e28d54eb1375220147fb6493e32cc152bd16b5b414ac0e32ed7f711b8",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-components.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-light-rf-widget.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "52285f31f84d1fd3ab4973ee021c9f1918034f6a15fbfaefdd4f4ba8cfd117c3"
+      "reviewDate": "2026-10-31",
+      "sha256": "f7fd020b4b0f04d20068cea9e27e8d3a9aed3d3766186e0707b56eb749a0d650",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-device.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-light-room.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "780ab2bcff0bed6cb642d4cf5883a53a45fedf89ae160e2c50fd2df7438e8742"
+      "reviewDate": "2026-10-31",
+      "sha256": "bb2c61b7c218a642899adc0de9cf94facbd856e4ddad86455a14bd4dced6e3e0",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-dark-reference-now.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-actions.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "8f8f3d132d9c0eeb0a5ddb475929d1939c20d8c1e1b5c0daf45910b4fadd0bde"
+      "reviewDate": "2026-10-31",
+      "sha256": "98f4c7fc492d143b021f17ff5dba04ae3347d92ee56ddd787d836d6cc2a06650",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-alerts.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-connect.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "f7c159dc14e823bb6b6282d3ee6ea5d5463209320ec8baa9422e7c8c71fd62b0"
+      "reviewDate": "2026-10-31",
+      "sha256": "a5405210ee7163679e21c3974e9546e99ea84feb5a391fab51a5aea6d77b5c8a",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-device.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-health.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "34e228d092f563b14cd7a8aabf4ec3a4feb14cb49f41a6b8bcae8c6f84530bf3"
+      "reviewDate": "2026-10-31",
+      "sha256": "72becd9030a3bd9fb2d88ab607f991ef7b263823d8d05e30421523ba3cb8a85f",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-alarm.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-import.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "01f964b64d41b097803e5c1e80789e3727350e8568712cad588cc0151b7f7b18"
+      "reviewDate": "2026-10-31",
+      "sha256": "1405f8b34632ff81c3ccce1d80a8ce7d26080ee009436e3e66d364d41cbc4b3b",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-meter.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-panels.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "fbdcb235dae7b306c422c64fe34b9d1a087e97f9a1946beb2db595ae3f3dca6d"
+      "reviewDate": "2026-10-31",
+      "sha256": "2c7ef94f5958b986a6c3879a5972601139df17ca2dcba48844d9777a13b3cb5b",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-plant.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-pending.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "3739668c598b0fa35aa62651cc6c62a6f50573b07272ad07cbcc94559a697227"
+      "reviewDate": "2026-10-31",
+      "sha256": "67ef61275149c4fc6cb8af47510d1fd65b99556c98990c1fb312b2a7c9e374e1",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-presence.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/desktop-light-settings-rooms.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "b3614bd82bb93bdcc1728b33fbb450f8d17523a99aef0fc9914a3bbcfe381947"
+      "reviewDate": "2026-10-31",
+      "sha256": "b4efb664b0f10b39b8247c852d249fdb6a4ec10ce6da546e2f702d9cf5766b2d",
+      "width": 1440,
+      "height": 900
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-inspector-rule.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-activity.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "b78e2b684d5d91e5cbf9c977221ffc419e961c662ab829036bacf9b7b390df93"
+      "reviewDate": "2026-10-31",
+      "sha256": "61f6039d2ceb76971cab3f9b5c306752f930f024cd445659c6fe6b0415199973",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-now.png",
-      "source": "tests/editor/alerts.browser.spec.mjs",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-add.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "bfa0da031e2c6dd8f8330d2e4ceef0e3b1d7cb10bf29659fa6c8d81396b91665"
+      "reviewDate": "2026-10-31",
+      "sha256": "31a2fca70532528aaa134862283f11d04a72f0647605ab36d9c83375652ef8ef",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-reference-categories.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-help.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "a809b68670baf9312b895fde5d30f6868eaaa9229d0b51d1152217c092979362"
+      "reviewDate": "2026-10-31",
+      "sha256": "1d3e11a40eb37e1cafb077abf5d5f36b6fb0f4c09900cc5356063cce661ab25c",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-reference-components.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-link-advanced.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "251d5868ae4fd199e2a84bd310ab6bf6d37d91b32ffc73c1633f2af93002475e"
+      "reviewDate": "2026-10-31",
+      "sha256": "be16b506c1e210317e5c62e544fd43b1a88dde30bb7a3890a456afeb7ffc75ac",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-reference-device.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-link-devices.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "8543ccb3c3f81b014df55a5b0ba458092f20106c17dfdaa61ec6e6a29faae4a4"
+      "reviewDate": "2026-10-31",
+      "sha256": "c403a124a17f64b3b3feb4d12082b7eac49efa2e243b3c560473856dfaa864ab",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-cp4/mobile-light-reference-now.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-link-readings.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "a859f2b6b96daa065ce58feee55b503de8264b836ca67ee869ef3e4a9b4712a9"
+      "reviewDate": "2026-10-31",
+      "sha256": "6f5f3cbcd8ef24f6c0cedc7a18cc070cabafa2d2cea5a2c9c093791ea80e91fe",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-dark-activity.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-native.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "5382fb84ef73a1d458df7fd37cee1773082108ae5bdec40408ca41243d507dd4"
+      "reviewDate": "2026-10-31",
+      "sha256": "9305711ca9938839adabcc9bb54b8739dd67542f407abf4a43aba21f454e4133",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-dark-edit.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-review.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "fa733b5dfe6a27e11c92c573a8103e5a33a5499552bfa99912b94b89e9aa854f"
+      "reviewDate": "2026-10-31",
+      "sha256": "4910a2e4900b29baf74dc9a696def6ae16256513402d2b8e5b35fa4b6ae68e13",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-dark-inspector.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-rf-learn.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "e793f70c15338f720bbf7c7eaec28cc35d88d4514c7c8430e4d2458381937f0e"
+      "reviewDate": "2026-10-31",
+      "sha256": "99ded0028b21595ff08b06ed961a4ca4597599e08bbeda35a22e961b356a4355",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-dark-plan.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-rf-widget.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "98192e9bc2b63d57db83d9e7e2632e3dba5393ffd9e42038bb1056f9512cf435"
+      "reviewDate": "2026-10-31",
+      "sha256": "4c2695682244a72e1143408a7e948c3b5b77d950d1375b08c1f54a2039874f9d",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-dark-sidebar.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-room.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "891571f2ab2b6fd70410e57f271a666f73e751fcdb73e925b07981673fa369ad"
+      "reviewDate": "2026-10-31",
+      "sha256": "d1fcadf0db1c770d3f1e63559980d87da08dfa62c99407bf305d46a1cd2b767f",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-activity.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-actions.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "8be323c05f656fc21b45f49582bc6a3b8ad3937577e93d995b454db2ba0ecd8b"
+      "reviewDate": "2026-10-31",
+      "sha256": "af67969718dfbd4d78c63851764792e1138e6eb59bd81fbab3a7815e60c00f2a",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-edit.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-connect.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "71afc0f13c05815c0f4438c6f23ae0a44c8d0c71909a4174bc3b2dcdad870252"
+      "reviewDate": "2026-10-31",
+      "sha256": "db14870b72e27e678b1a30bc9ee91757ad9de542e33b9975d9d33873adcf583f",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-inspector.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-health.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "453397b760d1529633ecb94463b2e2abd097f8a308beff360d664f015b6242ce"
+      "reviewDate": "2026-10-31",
+      "sha256": "9bcfab792838ab16f58eb1899154d0136d1c79b9b4b2009fbb94043f04d6eb89",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-plan.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-import.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "82fbdb69efa9675936ff135fcb6e375589b017f6314f091548665ccf10312f21"
+      "reviewDate": "2026-10-31",
+      "sha256": "b42b3a318200e98a4b74da7bb7f4fd25428b1feef678104d1bdceea39654543f",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-edit.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-panels.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "add3673461a5630a897a4005c17abdf464d25b95e61a3bf049eeb2c8cd27dc6c"
+      "reviewDate": "2026-10-31",
+      "sha256": "0896fa25f2ebaa55068bc520abd9937baa2080d474b1ad4b6443c774328e8062",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-reference-plan.png",
-      "source": "docs/vision-mockup.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-pending.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "5f6f733b5378143610646095c4ee68bcb31dee90e6d70f96f6f5312b71d4e672"
+      "reviewDate": "2026-10-31",
+      "sha256": "b96334af61bffd7a999889bd5c8c3cc9a46f078e10ae4457798b3576137724c8",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/desktop-light-sidebar.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-dark-settings-rooms.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "d86d048b07417d5d94d24d71d3715eabe747b9d10745b9901a4c7add29fc16cf"
+      "reviewDate": "2026-10-31",
+      "sha256": "deccc9a22b7dfbeca170168e355ca20ddf034cca12b7b3f0142343d3d4a09967",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-dark-activity.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-activity.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "90bae65a5b44afcbef98c759a193a8c33757224b9e41f673a2f5694ea4788d90"
+      "reviewDate": "2026-10-31",
+      "sha256": "cbb747964a175581a1d10deca31b6c59d1c5d06f87e14d8407ccceac41553be2",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-dark-edit.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-add.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "6ba9bf90ff94fabc7962efcf943cedbc88d9db263bd60f5cf3605632d165ba8a"
+      "reviewDate": "2026-10-31",
+      "sha256": "d20675aebb0607fac38c92c856f39eb3acf7a113f8baac6ab52cc1fdf3c0f419",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-dark-inspector.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-help.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "38e933b3fc88ec347b29178e73cbf37df3fc1ef0ea2bca6df54b1d63614ece42"
+      "reviewDate": "2026-10-31",
+      "sha256": "d83469c5e9727a90eacb402449d12c9a3e981e68ec81f35ec155856411fd1f6e",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-dark-plan.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-link-advanced.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "8b0dbd28fed8d8fd6a3e9a8327c3c663fea36c946d6613a5fde77084cddc7e97"
+      "reviewDate": "2026-10-31",
+      "sha256": "d01d11db0179cc052fb5a8e2bdf09758cd447526ca7b2bd9c8762a15516ee0f4",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-activity.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-link-devices.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "14500f9b1f311fec9290e21024366f148966e826665072fddede5d1ac9923dcd"
+      "reviewDate": "2026-10-31",
+      "sha256": "eacdd4ef1ab8de5db2ded554c2c67538d82b04a0048a2d51111f205e6ccd750c",
+      "width": 1024,
+      "height": 2216
     },
     {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-edit.png",
-      "source": "tests/browser/fixtures/shell.html",
+      "path": "docs/evidence/rediseno-e02/mobile-light-link-readings.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "a24ecf2db546017e2adb7bd13e7f10ad758c3408e2c168164425911791d863b6"
-    },
-    {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-inspector.png",
-      "source": "tests/browser/fixtures/shell.html",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "ec3485fad1f8db171c620ccc41ae84364c93caf8cd6479a18de2b3d5adde1578"
-    },
-    {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-plan.png",
-      "source": "tests/browser/fixtures/shell.html",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "8b331c8bfe5643b2d3e68d8ea39413591644a95e644a8a88f53deff09686494f"
-    },
-    {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-edit.png",
-      "source": "docs/vision-mockup.html",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "25fe424a697496883e8191e70766fcd25a6b5de906268d9e06c5e07aa536343e"
-    },
-    {
-      "path": "docs/evidence/0.9-activity-heights/mobile-light-reference-plan.png",
-      "source": "docs/vision-mockup.html",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-30",
-      "sha256": "bfb8a75f2bd21ea6d1abf64500161d7c1b800389f5db9b846b5c1c934855db59"
+      "reviewDate": "2026-10-31",
+      "sha256": "59c05a622d4348545c9c5fefb969c916dcfadd1936b527920402fef40e60f004",
+      "width": 1024,
+      "height": 2216
     },
     {
       "path": "docs/rediseno/maqueta/1-ficha-ventilador.png",
@@ -1650,48 +2232,6 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-31",
       "sha256": "39b5356f926294dcb462784e80ee7f2b435d7fec3d09f76086d57cd2249cce54"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/desktop-dark-ficha.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "1af89c576ac89c05cef665171a54d0777ea520807c081930b19f38f2c9c82544"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/desktop-dark-sidebar.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "bc85db35665c1c1f58df5b8d203e2d260b1d308208c555511f07c29ca759fd85"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/desktop-light-ficha.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "ad769372011019601e1067c16c778852bfc06fb63a5d2710d003421672180255"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/mobile-dark-ampliada.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "a8eea42e82cf9d6613c8a041189fda64765737021481a4495ffa15ba1cb0ca30"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/mobile-dark-ficha.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "3f43f96dda10b7ff16b718ac02719fa58d39cc26903d4b99f8aafa6a4a6388fa"
-    },
-    {
-      "path": "docs/evidence/rediseno-e01/mobile-light-ficha.png",
-      "source": "tests/card/editor-dock.browser.spec.mjs",
-      "review": "fictional-only",
-      "reviewDate": "2026-10-31",
-      "sha256": "60f9aee169037afd6a6168639ca8b0f16d52679b23f7dd4988d6289927eee051"
     }
   ]
 }
