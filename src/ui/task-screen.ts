@@ -49,6 +49,7 @@ export class TaskScreen extends HTMLElement {
     }
   }
   show(root: ShadowRoot, title?: string): void {
+    this.restore();
     this.owner = root;
     if (!installed.has(root)) {
       installed.add(root);
