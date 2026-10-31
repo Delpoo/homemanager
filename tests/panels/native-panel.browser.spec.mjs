@@ -212,6 +212,11 @@ test('native dialog traps keyboard focus, closes locally with Escape and restore
   page,
 }) => {
   await openSynthetic(page);
+  await page.locator('homemanager-panel').evaluate(panel => {
+    const nested = document.createElement('div');
+    nested.attachShadow({ mode: 'open' }).innerHTML = '<button>Control anidado ficticio</button>';
+    panel.shadowRoot.querySelector('.body').append(nested);
+  });
   const close = page.getByRole('button', { name: 'Cerrar panel', exact: true }),
     control = page.getByRole('button', { name: 'Ejecutar control sintético', exact: true });
   await expect(close).toBeFocused();
@@ -219,7 +224,12 @@ test('native dialog traps keyboard focus, closes locally with Escape and restore
   const back = page.getByRole('button', { name: 'Volver', exact: true });
   await expect(back).toBeFocused();
   await page.keyboard.press('Shift+Tab');
+  const nested = page.getByRole('button', { name: 'Control anidado ficticio', exact: true });
+  await expect(nested).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(control).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(nested).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(back).toBeFocused();
   await page.keyboard.press('Tab');

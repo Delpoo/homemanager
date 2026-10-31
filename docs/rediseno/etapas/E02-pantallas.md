@@ -183,3 +183,7 @@ Se corrigieron además tres pérdidas de navegación: búsqueda normal y avanzad
 - Aceptación: siguen cumplidos los seis puntos anteriores; la conservación de la búsqueda avanzada y el foco tienen ahora regresión específica. Ninguna función se quita y no cambia contrato/integración.
 - Capturas: las 88 imágenes siguen representando el diseño final; esta corrección cambia navegación y comprobaciones, sin alterar su representación inicial.
 - Historial: cierre E02 y corrección E02 posterior al primer resultado de CI; ambos en la misma rama y PR, sin reescribir la historia publicada. Resultado vigente de CI en el PR #52.
+
+#### Verificación completa y controles anidados
+
+La segunda ejecución de GitHub (41208500423, commit c9d4ef3) aprobó Foundation CI completo: 414 casos de navegador, 4 omisiones explícitas, cero vulnerabilidades y paquete verificado. La integración pasó en HA 2026.2.3 y 2026.10.4. Al reforzar el recorrido circular de teclado se incluyeron también botones dentro de componentes con shadow root, como los controles RF: no se saltean al avanzar ni retroceder. Ese caso de regresión pasó en escritorio; check (250) y formato pasaron después del cambio. La última revisión de CI de este refuerzo figura en el PR; no se atribuye el resultado de c9d4ef3 a otro SHA.

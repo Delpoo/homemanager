@@ -550,19 +550,32 @@ export class HomeManagerPanel extends HTMLElement {
   }
   private trapFocus(event: KeyboardEvent): void {
     if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
-    const focusable = [
-      ...this.dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled)'),
-    ].filter(element => element.getClientRects().length > 0);
+    const focusable: HTMLElement[] = [];
+    const visit = (root: ParentNode): void => {
+      for (const element of root.children) {
+        if (!(element instanceof HTMLElement) || element.inert || getComputedStyle(element).visibility === 'hidden')
+          continue;
+        if (
+          element.matches(
+            'button:not(:disabled),input:not(:disabled):not([type=hidden]),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])',
+          ) &&
+          element.getClientRects().length
+        )
+          focusable.push(element);
+        if (element.shadowRoot) visit(element.shadowRoot);
+        visit(element);
+      }
+    };
+    visit(this.dialog);
     const first = focusable[0],
       last = focusable.at(-1),
-      active = this.root.activeElement;
+      active = activeElement();
     if (!first || !last) return;
-    // Native dialogs provide modal containment, but reverse tab traversal from
-    // a shadow-root boundary can still reach the document in Chromium.
-    if (event.shiftKey && (active === first || !active || !this.dialog.contains(active))) {
+    // Include nested RF controls, whose buttons live in their own shadow roots.
+    if (event.shiftKey && (active === first || !active || !focusable.includes(active))) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && (active === last || !active || !this.dialog.contains(active))) {
+    } else if (!event.shiftKey && (active === last || !active || !focusable.includes(active))) {
       event.preventDefault();
       first.focus();
     }
