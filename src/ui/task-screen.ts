@@ -77,12 +77,19 @@ export class TaskScreen extends HTMLElement {
     this.covered = [];
     const hostTask = ['homemanager-device-picker', 'homemanager-panel'].includes(root.host.localName);
     const coverRoot = hostTask && root.host.getRootNode() instanceof ShadowRoot ? root.host.getRootNode() as ShadowRoot : root;
-    for (const child of coverRoot.children) {
-      if (!(child instanceof HTMLElement) || child === this || child === root.host || child.localName === 'style' || child.localName === 'dialog') continue;
-      this.covered.push({ element: child, inert: child.inert, visibility: child.style.visibility, aria: child.getAttribute('aria-hidden') });
-      child.inert = true;
-      child.style.visibility = 'hidden';
-      child.setAttribute('aria-hidden', 'true');
+    let branch: Element = hostTask ? root.host : this;
+    while (branch.parentNode) {
+      const parent = branch.parentNode;
+      if (parent instanceof ShadowRoot && parent !== coverRoot) break;
+      for (const child of parent.children) {
+        if (!(child instanceof HTMLElement) || child === branch || child.localName === 'style' || child.localName === 'dialog') continue;
+        this.covered.push({ element: child, inert: child.inert, visibility: child.style.visibility, aria: child.getAttribute('aria-hidden') });
+        child.inert = true;
+        child.style.visibility = 'hidden';
+        child.setAttribute('aria-hidden', 'true');
+      }
+      if (parent === coverRoot || !(parent instanceof Element)) break;
+      branch = parent;
     }
     this.setAttribute('open', '');
     this.inert = false;

@@ -135,6 +135,8 @@ export function mountEditor(this: HomeManagerCard) {
     this.updateControls();
   });
   this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
+  this.editor.addEventListener('homemanager-save', () => void this.save());
+  this.editor.addEventListener('homemanager-task-change', () => this.positionEditor());
   this.editor.addEventListener('config-changed', (event: Event) => {
     event.stopPropagation();
     if (!this.editing || this.saving) return;
@@ -179,6 +181,7 @@ export function positionEditor(this: HomeManagerCard) {
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
+  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)') ? 'page' : '';
   this.editor?.setNarrow(this.getBoundingClientRect().width <= 650);
   host.style.removeProperty('left');
   host.style.removeProperty('top');

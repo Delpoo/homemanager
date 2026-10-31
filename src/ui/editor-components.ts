@@ -2,12 +2,12 @@
 export const editorDockStyles = `
 .workspace>.editor{position:relative;inset:auto;z-index:6;flex:0 0 380px;width:380px;max-width:400px;height:100%;max-height:none;min-height:0;overflow:hidden;border-radius:0;border-left:1px solid var(--hm-line);background:var(--hm-surface)}
 .workspace>.editor[hidden]{display:none}
-.workspace>.editor[data-surface=settings]{position:absolute;inset:0 auto auto 0;width:0;max-width:none;height:0;border:0;overflow:visible}
+ .workspace>.editor[data-surface=settings],.workspace>.editor[data-task=page]{position:absolute;inset:0!important;width:100%;max-width:none;height:100%;max-height:100%;border:0;overflow:hidden;border-radius:0}
 .workspace>.editor>homemanager-editor{height:100%;width:100%;min-height:0}
 @container homemanager (max-width:650px){
  .workspace>.editor{position:absolute;inset:auto 0 0!important;width:100%;max-width:100%;height:55%;max-height:calc(100% - 80px);border-left:0;border-top:1px solid var(--hm-line);border-radius:18px 18px 0 0}
  .workspace>.editor[data-expanded=true]{height:84%}
- .workspace>.editor[data-surface=settings]{height:0;border:0;overflow:visible}
+ .workspace>.editor[data-surface=settings],.workspace>.editor[data-task=page]{inset:0!important;height:100%;max-height:100%;border:0;overflow:hidden;border-radius:0}
 }
 `;
 
