@@ -4,6 +4,10 @@ const configuration=card.getConfiguration();
 const stamp=new Date(Date.now()-5000).toISOString();
 for(const state of Object.values(hass.states)){state.last_updated=stamp;state.last_changed=stamp;}
 const meter=configuration.catalog.devices.find(item=>item.id==='power');
+for(let index=1;index<=6;index++){
+  hass.states[`sensor.energy_meter_6ch_channel_${index}_power`].attributes.friendly_name=`Power ${index}`;
+  hass.states[`sensor.energy_meter_6ch_channel_${index}_energy`].attributes.friendly_name=`Energy ${index} Today`;
+}
 meter.roomId='kitchen';meter.position={x:.65,y:.82};meter.display.label='Medidor de energía';
 meter.bindings={...meter.bindings,deviceId:'meter-six',entityId:'sensor.energy_meter_6ch_total_power',readings:['sensor.energy_meter_6ch_today','sensor.energy_meter_voltage','sensor.energy_meter_current']};
 const sensor=configuration.catalog.devices.find(item=>item.id==='temperature');

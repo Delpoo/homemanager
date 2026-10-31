@@ -3,6 +3,7 @@ import { bindingIssues, deviceCatalog, usefulEntity, type CatalogReading } from 
 import { entityControls, type Control } from './control-capabilities.js';
 import { deviceName, nameWord, personName, readingName, stateName } from './names.js';
 import { formattedValue } from './symbol-spec.js';
+import { readingChannel, isDailyReading } from './reading-channel.js';
 import type { ActivityEntry } from './activity.js';
 import type { ModelDevice, ModelEntity, ModelHass } from './types.js';
 
@@ -11,6 +12,10 @@ export interface ChannelReading {
   now: string;
   today: string;
   watts: number | null;
+  entityIds: string[];
+}
+export interface SummaryReading extends CatalogReading {
+  summaryLabel?: 'Ahora' | 'Hoy';
 }
 export interface DeviceScreen {
   id: string;
@@ -21,7 +26,7 @@ export interface DeviceScreen {
   age: number | null;
   /** `estimated`: HA assumes the state (IR/RF); what was sent is not shown as confirmed. */
   health: 'online' | 'estimated' | 'unavailable' | 'unknown';
-  values: CatalogReading[];
+  values: SummaryReading[];
   readings: CatalogReading[];
   readingGroups: { name: string; readings: CatalogReading[] }[];
   channels: ChannelReading[];
@@ -30,13 +35,13 @@ export interface DeviceScreen {
   alerts: DeviceAlert[];
   diagnosis: { name: string; value: string }[];
   issues: string[];
-  activity: { message: string; at: number; tone: string }[];
+  activity: { message: string; detail: string; reason?: string; at: number; tone: string }[];
 }
 export function friendlyState(entity: ModelEntity | undefined, hass?: ModelHass): string {
   if (!entity) return nameWord('unknown', hass);
+  if (['unknown', 'unavailable'].includes(entity.state)) return stateName(entity.state, hass);
   return personName(formattedValue(entity, hass), nameWord('unknown', hass));
 }
-const channelOf = (name: string) => name.match(/^(?:canal|channel|kanal)\s+(\d+)(?:\s*[·:–-]\s*|\s+)?/i);
 
 /** Registry membership is evidence. An old plan can consult its primary entity's device without rewriting it. */
 export function deviceScreen(
@@ -71,27 +76,33 @@ export function deviceScreen(
   const channels = new Map<number, ChannelReading>();
   const channelIds = new Set<string>();
   for (const item of all) {
-    const match = channelOf(item.name);
-    if (!match || !['power', 'energy'].includes(item.deviceClass)) continue;
-    const index = Number(match[1]);
+    const match = readingChannel(item.name, item.deviceClass);
+    if (!match || (item.deviceClass === 'energy' && !isDailyReading(item.name))) continue;
+    const index = match.index;
     const row = channels.get(index) ?? {
       name: `${nameWord('channel', hass)} ${index}`,
       now: '—',
       today: '—',
       watts: null,
+      entityIds: [],
     };
     if (item.deviceClass === 'power') {
+      if (row.entityIds.some(id => all.find(reading => reading.entityId === id)?.deviceClass === 'power')) continue;
       row.now = item.value;
       const state = hass?.states[item.entityId];
       const number = Number(state?.state);
+      const factor = { W: 1, kW: 1000, mW: 0.001, MW: 1000000 }[String(state?.attributes?.unit_of_measurement)] as
+        | number
+        | undefined;
       row.watts =
-        state && state.state.trim() && Number.isFinite(number)
-          ? number * (state.attributes?.unit_of_measurement === 'kW' ? 1000 : 1)
-          : null;
-    } else if (/\b(?:hoy|today|daily|tagesenergie)\b/i.test(item.name)) row.today = item.value;
+        state && state.state.trim() && Number.isFinite(number) && factor !== undefined ? number * factor : null;
+    } else {
+      if (row.entityIds.some(id => all.find(reading => reading.entityId === id)?.deviceClass === 'energy')) continue;
+      row.today = item.value;
+    }
+    row.entityIds.push(item.entityId);
     channels.set(index, row);
-    if (item.deviceClass === 'power' || /\b(?:hoy|today|daily|tagesenergie)\b/i.test(item.name))
-      channelIds.add(item.entityId);
+    channelIds.add(item.entityId);
   }
   const capabilities = entityControls(
     primary ?? '',
@@ -110,8 +121,27 @@ export function deviceScreen(
   const preferred = selected
     .map(id => all.find(item => item.entityId === id && (summary.includes(item) || channelIds.has(item.entityId))))
     .filter((item): item is CatalogReading => !!item);
-  const values = [...preferred, ...bigValues.filter(item => !preferred.includes(item))].slice(0, 3);
-  const remaining = summary.filter(item => !values.includes(item));
+  const meter = ['power', 'energy'].includes(String(entity?.attributes?.device_class));
+  const headline = meter
+    ? [
+        summary.find(item => item.deviceClass === 'power' && !readingChannel(item.name, item.deviceClass)),
+        summary.find(
+          item =>
+            item.deviceClass === 'energy' && isDailyReading(item.name) && !readingChannel(item.name, item.deviceClass),
+        ),
+        summary.find(item => item.deviceClass === 'voltage'),
+      ].filter((item): item is CatalogReading => !!item && !readingChannel(item.name, item.deviceClass))
+    : [];
+  const ordered = [...headline, ...preferred.filter(item => !channelIds.has(item.entityId)), ...bigValues];
+  const values: SummaryReading[] = [...new Set(ordered)].slice(0, 3).map(item => ({
+    ...item,
+    ...(meter && item.deviceClass === 'power' && !readingChannel(item.name, item.deviceClass)
+      ? { summaryLabel: 'Ahora' as const }
+      : meter && item.deviceClass === 'energy' && isDailyReading(item.name)
+        ? { summaryLabel: 'Hoy' as const }
+        : {}),
+  }));
+  const remaining = summary.filter(item => !values.some(value => value.entityId === item.entityId));
   const readingGroups = new Map<string, CatalogReading[]>();
   for (const item of remaining)
     readingGroups.set(item.deviceClass, [...(readingGroups.get(item.deviceClass) ?? []), item]);
@@ -191,7 +221,9 @@ export function deviceScreen(
       .slice(-50)
       .reverse()
       .map(entry => ({
-        message: [entry.message, entry.actionLabel, entry.value, entry.detail]
+        message: entry.message,
+        ...(entry.status === 'error' && entry.detail ? { reason: entry.detail } : {}),
+        detail: [entry.actionLabel, entry.value, entry.status === 'error' ? undefined : entry.detail]
           .filter(Boolean)
           .map(value => personName(value))
           .join(' · '),

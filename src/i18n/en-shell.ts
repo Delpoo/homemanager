@@ -1,5 +1,6 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'Consumo relativo': 'Relative consumption',
   'Mostrar capas': 'Show layers',
   'Minimizar capas': 'Minimize layers',
   'Sólo en este navegador': 'Only in this browser',

@@ -4,7 +4,7 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** lote 1 autorizado expresamente: E03 terminada para revisión, completar E04 y cerrar el lote en PR #52. CI de lote 0 aprobada en `7b3dd79`; no esperar auditoría de E00–E02.
+**Siguiente paso:** subir los dos commits locales del lote 1 y su reporte al PR #52, y verificar GitHub. La revisión automática rechazó la subida porque interpretó «no publiques nada» como prohibición de modificar GitHub; se requiere aclarar esa autorización antes de reintentarlo. E03 y E04 están implementadas y comprobadas localmente, con cierre pausado por ese bloqueo. No iniciar lote 2. La CI de lote 0 aprobada en `7b3dd79` no valida los cambios nuevos.
 
 ## Etapas
 
@@ -13,8 +13,8 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 137 funciones entregado con evidencia por fila |
 | [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e01-ficha-lateral` · [PR #51](https://github.com/Delpoo/homemanager/pull/51) | 2026-10-31 | Auditoría y validación; 250 pruebas de código y 11 de navegador pasan; teléfono real, suite completa y E2E HA pendientes |
 | [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52), base main | 2026-10-31 | Implementación completa para revisión: 6/6 criterios y 68 filas registrados; 65 casos específicos de escritorio aprobados, 88 capturas. CI completa al subir; auditoría independiente y teléfono/lector físicos pendientes |
-| [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-10-31 | 6/6 criterios y 13/13 funciones registrados; check 251 y 10 casos específicos de escritorio aprobados. Capturas y CI al cerrar el lote 1; auditoría y equipo físico pendientes |
-| [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | pendiente | — | — | — | Todo |
+| [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | pausada | ChatGPT | `chatgpt/rediseno-e02-pantallas` · destino [PR #52](https://github.com/Delpoo/homemanager/pull/52), cambios nuevos sólo locales | 2026-10-31 | Implementada: 6/6 criterios y 13/13 funciones; diez recorridos de escritorio aprobados. Subida bloqueada por revisión automática; faltan reporte en PR y CI nueva, auditoría y equipo físico |
+| [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | pausada | ChatGPT | `chatgpt/rediseno-e02-pantallas` · destino [PR #52](https://github.com/Delpoo/homemanager/pull/52), cambios nuevos sólo locales | 2026-10-31 | Implementada: 6/6 criterios y 8/8 funciones; check 254, once casos de dispositivo aprobados y uno móvil omitido. 40 capturas. Subida/reporte/CI bloqueados; auditoría, teléfono/lector y E2E HA pendientes |
 | [E05](etapas/E05-modulos.md) | Símbolos por módulos, sin categorías que limiten | E01 | pendiente | — | — | — | Todo |
 | [E06](etapas/E06-gestos.md) | Gestos configurables | E05 | pendiente | — | — | — | Todo |
 | [E07](etapas/E07-reglas.md) | Pantalla de Reglas | E05 | pendiente | — | — | — | Todo |
@@ -51,6 +51,8 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
 
 ## Bitácora
+
+- 2026-10-31 · ChatGPT · Lote 1 / E03 y E04 · Implementación local completa: capas por iconos, minimizar/ocultar, alertas permanentes, salud y textos ES/EN; ficha con seis canales Power 1…6, resumen, lecturas plegadas y Editar. 12/12 criterios, 21/21 funciones conservadas, 254 pruebas de código, 28 casos únicos de escritorio aprobados y uno móvil omitido, formato aprobado y 40 capturas ficticias. Dos commits locales, uno por etapa. La revisión automática rechazó crear el árbol en GitHub por interpretar «no publiques nada» como prohibición de subida: PR #52 permanece en `7b3dd79`, sin reporte nuevo ni CI del lote 1. Cierre pausado hasta autorización de subida; no avanzar de lote. Contrato e integración intactos, sin fusión, release, instalación ni contacto con la casa.
 
 - 2026-10-31 · ChatGPT · Lote 0 / E02 · Cierre en PR #52 contra main, sin borrador: una sola vuelta de movimientos, herramientas de zonas sin desplazamiento horizontal en teléfono, 65 casos específicos de escritorio aprobados, 88 capturas ficticias y 6/6 criterios/68 filas registrados. Modo continuo guardado íntegro. Primera CI cancelada por tiempo con pruebas antiguas; 23 casos corregidos/repetidos. HA: 244 pruebas por versión aprobadas. Resultado final de CI en PR; no se corrió la suite general local. Próximo lote 1 después de «continuá».
 

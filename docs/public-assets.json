@@ -2484,6 +2484,286 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-31",
       "sha256": "39b5356f926294dcb462784e80ee7f2b435d7fec3d09f76086d57cd2249cce54"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-plan.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "a063a9926b5244ae91cbcf1053b196ecd931dede9f4b5b50b580ecc6ed970595"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-alerts.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "89315ffe846cd7dbe833729eb721f335ce5cf3e726d675fca2572ec60740705e"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-layers.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "14baf3e3126d8ffa4054e0c9b8fadd1d73a399b85d5e72f4d87afebeda1a0771"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-settings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "50ca3985374bbca3ce065cbaa3c3ae509b6c8101c761b17ed6ff66410a7f8053"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-meter.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c75f17209c1a977e8089bd31b6df4044200217e642ae5d7830fcb0486c9bd66e"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-readings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "d53ba71529872e1e48bfab159c9f425189a8e54f0cd2191977a8ad7c9de29867"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-sensor.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "58197daab3b99ad48e02c8dba7bfcafc5f43f785ca3bf6c3e5046bbf1415464e"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-climate.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "d06b38934fbbe14327186b19d9ffbbf8816a03005c4113d7933efcccfc3f4621"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-reference-shell.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "9c672157851ab2fbd7e2b1052285c5a509fc84cecdd968a55fcc33f6850036ee"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-light-reference-device.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "23dcdfcd5eb552ef4edcac5aecc828c88fe7b221ed70c9cac0a6856a8b7ab41d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-plan.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "bddc84364570c4ab26dccd71486c46c0d51e11cf26c64efbcfb7c158ae5318f1"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-alerts.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "74ba4219119d509bbf8942cc281155e8f113e007789f816132a49e890a4c5962"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-layers.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "4abcce17aee8b07f71366fdd96b879c23ca8aef13c6d163e706018a80a498699"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-settings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "76d020e5a4285ca09341412af655ef8accc53f5f90e5a626fe7159f2224f0eea"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-meter.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "13b2b372e512e38a7c37ca3dc1dccf2b11c1ac590dcc474654eafaa2c5f71360"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-readings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "525c96d218fe7c6973e2eb2bfc04dc0c1d23898624d807e581f21fd00c91faa4"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-sensor.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "b6a7f28faeab353816b1ef266bed1e7cf0d83dcb358bae811eccffa3cb7f6468"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-climate.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "8d1447f8184e29776cc847b1d0e4ea2288b38691e502b89da25d0ba3e6db0ea2"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-reference-shell.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c9ba548063716ecb1871a2f1a83349aa13df1fdace543c464577f7d9e5963051"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/desktop-dark-reference-device.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "4923a14dff379fa937794d0a38f95088ef1b00a7d03a4562f992e40e4799880d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-plan.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "6cfda32b37ecc78db81602aac75db84c5cce45c06dc30bd0f0900ad35719cfed"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-alerts.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c8aa8d0058b91c47a616a912de3c8e77de654a54442309c356fee886d25bf450"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-layers.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c83d3903331598da69a7b48d273c544c3b31e11c7b90b939a2a042424bed2163"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-settings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "a20d3dbb906afee05d564bc7ceca56be02c411f102dd6bc0ec6cc8b0aa1f2472"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-meter.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "32b44545338f0f40761b1b2f29dabf7a2dc51b08c85c4c7876b6b14bd44b9123"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-readings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "41a12633db858790c7473d7fe9a87c39a30100daf48443052ba908e6761cd3d6"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-sensor.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "de85edef1a1916b3696146b694a9dfa66609d9bcc7736b1e7c783d50b1f4a248"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-climate.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "b1eac185cde8eb407630857e74b1610e01617c43c0750d4c6a3ff8daa8bf460c"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-reference-shell.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "ca1dc09854d48d6658b7ee09a5c9549802e77da349660aa95e03e0f3901e30d6"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-light-reference-device.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c51a20783bbe017be25b040fa49fe833910302c3ab51ff9cf2ee29917c8d6d52"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-plan.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "74241061cfa58dd4071e347080d5298bb896d8f428f0f571de55edc714e4c288"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-alerts.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "52a6b9921e1d4b2ffb263f0a3adc4ad5a3f6fa0b9a24cd1406325b66f4402c33"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-layers.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "be172ffa0a9e5dadf43a3c621c760f17e342b8c9a68c47eec8df30fe5c07750a"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-settings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "43b6d345d370ccec850c4bc4b01e26594a216daca48ad98107d5610891c3859d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-meter.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "80c2203578625e059850bd79d302d86acd78fc8f81974c5d833f9389ada0a873"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-readings.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "6c3313b18d269738bd838366d0588edf8e52417736dcf17a5f56421698a6f820"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-sensor.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "adf40b049311fd840422278925c2c3a97501da059fedcf73635f6e8c0fd4e019"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-climate.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "fc78009b07c01cdebfa892be3bc724dd4802c5ce632d9776c1381ba6e743ea08"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-reference-shell.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "475c5028e03dc0191be878509e111b1def85878a1b21d5fd94c4afd0fd16d07b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote1/mobile-dark-reference-device.png",
+      "source": "scripts/capture-redesign-lote1.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "6ed7f9eb17fc4a07806f57969a69b6964033daee5f1ef367501da8a4c7061c19"
     }
   ]
 }

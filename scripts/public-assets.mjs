@@ -39,6 +39,10 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/rediseno-e02\/(?:desktop|mobile)-(?:light|dark)-(?:first-space|storage|zone-moves|zones)\.png$/.test(
       relative,
     );
+  const redesignBatchOne =
+    /^docs\/evidence\/rediseno-lote1\/(?:desktop|mobile)-(?:light|dark)-(?:plan|alerts|layers|settings|meter|readings|sensor|climate|reference-shell|reference-device)\.png$/.test(
+      relative,
+    );
   if (
     !legacy &&
     !picker &&
@@ -49,34 +53,37 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     !redesignMockup &&
     !editorDock &&
     !taskScreens &&
-    !taskClosure
+    !taskClosure &&
+    !redesignBatchOne
   )
     return false;
   if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.assets)) return false;
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (taskClosure
-        ? 'scripts/capture-redesign-e02.mjs'
-        : taskScreens
-          ? 'tests/card/task-screens.browser.spec.mjs'
-          : editorDock
-            ? 'tests/card/editor-dock.browser.spec.mjs'
-            : redesignMockup
-              ? 'docs/rediseno/maqueta-modulos.html'
-              : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
-                    relative,
-                  )
-                ? 'docs/vision-mockup.html'
-                : picker
-                  ? 'tests/browser/fixtures/picker.html'
-                  : alertRules
-                    ? 'tests/editor/alerts.browser.spec.mjs'
-                    : rfDialogs
-                      ? 'tests/rf/cp6.browser.spec.mjs'
-                      : deviceScreen
-                        ? 'tests/browser/fixtures/device-screen.html'
-                        : 'tests/browser/fixtures/shell.html') &&
+      (redesignBatchOne
+        ? 'scripts/capture-redesign-lote1.mjs'
+        : taskClosure
+          ? 'scripts/capture-redesign-e02.mjs'
+          : taskScreens
+            ? 'tests/card/task-screens.browser.spec.mjs'
+            : editorDock
+              ? 'tests/card/editor-dock.browser.spec.mjs'
+              : redesignMockup
+                ? 'docs/rediseno/maqueta-modulos.html'
+                : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
+                      relative,
+                    )
+                  ? 'docs/vision-mockup.html'
+                  : picker
+                    ? 'tests/browser/fixtures/picker.html'
+                    : alertRules
+                      ? 'tests/editor/alerts.browser.spec.mjs'
+                      : rfDialogs
+                        ? 'tests/rf/cp6.browser.spec.mjs'
+                        : deviceScreen
+                          ? 'tests/browser/fixtures/device-screen.html'
+                          : 'tests/browser/fixtures/shell.html') &&
     entry?.review === 'fictional-only' &&
     entry?.sha256 === createHash('sha256').update(bytes).digest('hex') &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { deviceScreen } from '../../.work/model/device-screen.js';
 import { nowSections } from '../../.work/model/now.js';
+import { deviceCatalog } from '../../.work/model/device-catalog.js';
 import { syntheticRegistry } from '../browser/fixtures/registry.js';
 const now = Date.parse('2026-10-30T00:00:05Z');
 const rooms = [
@@ -25,7 +26,13 @@ test('six-channel/20-entity screen groups every channel, caps big values, preser
     before = structuredClone({ device, hass });
   const screen = deviceScreen(device, hass, rooms, now);
   assert.equal(screen.channels.length, 6);
-  assert.deepEqual(screen.channels[0], { name: 'Canal 1', now: '640 W', today: '0,4 kWh', watts: 640 });
+  assert.deepEqual(screen.channels[0], {
+    name: 'Canal 1',
+    now: '640 W',
+    today: '0,4 kWh',
+    watts: 640,
+    entityIds: ['sensor.energy_meter_6ch_channel_1_power', 'sensor.energy_meter_6ch_channel_1_energy'],
+  });
   assert.deepEqual(
     screen.values.map(value => value.name),
     ['Potencia total', 'Energía de hoy', 'Tensión'],
@@ -198,4 +205,80 @@ test('other useful domains remain readable without exposing commands for an unbo
   const screen = deviceScreen(meter(), hass, rooms, now);
   assert.ok(screen.readings.some(reading => reading.name === 'Modo de lectura' && reading.value === 'Automático'));
   assert.equal(screen.controls.length, 0);
+});
+
+test('six channels recognize Power 1, Channel 1 Power and Canal 1 · Potencia independently of the manufacturer', () => {
+  for (const label of [
+    index => `Power ${index}`,
+    index => `Channel ${index} Power`,
+    index => `Canal ${index} · Potencia`,
+  ]) {
+    const hass = syntheticRegistry();
+    for (let index = 1; index <= 6; index++) {
+      hass.states[`sensor.energy_meter_6ch_channel_${index}_power`].attributes.friendly_name = label(index);
+      hass.states[`sensor.energy_meter_6ch_channel_${index}_energy`].attributes.friendly_name = `Energy ${index} Today`;
+    }
+    const original = structuredClone(hass);
+    const screen = deviceScreen(meter(), hass, rooms, now);
+    assert.equal(screen.channels.length, 6);
+    assert.deepEqual(
+      screen.channels.map(row => row.name),
+      Array.from({ length: 6 }, (_, index) => `Canal ${index + 1}`),
+    );
+    assert.equal(screen.channels[0].now, '640 W');
+    assert.equal(screen.channels[0].today, '0,4 kWh');
+    assert.deepEqual(
+      screen.values.map(value => value.summaryLabel ?? value.name),
+      ['Ahora', 'Hoy', 'Tensión'],
+    );
+    const exposed = [...screen.values, ...screen.readings]
+      .map(reading => reading.entityId)
+      .concat(screen.channels.flatMap(row => row.entityIds))
+      .sort();
+    assert.deepEqual(
+      exposed,
+      deviceCatalog(hass)
+        .find(device => device.deviceId === 'meter-six')
+        .readings.map(reading => reading.entityId)
+        .sort(),
+    );
+    assert.deepEqual(hass, original);
+    hass.locale.language = 'en-US';
+    const english = deviceScreen(meter(), hass, rooms, now);
+    assert.equal(english.channels[5].name, 'Channel 6');
+    assert.equal(english.values[2].name, 'Voltage');
+  }
+});
+
+test('a sensor without channels has no empty table and energy without daily evidence stays in other readings', () => {
+  const hass = syntheticRegistry();
+  const sensor = { ...meter(), bindings: { deviceId: 'device-2', entityId: 'sensor.synthetic_2_temperature' } };
+  assert.deepEqual(deviceScreen(sensor, hass, rooms, now).channels, []);
+  for (let index = 1; index <= 6; index++) {
+    const power = `sensor.energy_meter_6ch_channel_${index}_power`;
+    delete hass.states[power];
+    delete hass.entities[power];
+    hass.states[`sensor.energy_meter_6ch_channel_${index}_energy`].attributes.friendly_name = `Energy ${index}`;
+  }
+  const screen = deviceScreen(meter(), hass, rooms, now);
+  assert.equal(screen.channels.length, 0);
+  assert.equal(screen.readings.filter(reading => /^Canal \d+ · Energía$/.test(reading.name)).length, 6);
+});
+
+test('duplicate channel measurements remain readable and bars compare watts across units without inventing unavailable values', () => {
+  const hass = syntheticRegistry();
+  const first = hass.states['sensor.energy_meter_6ch_channel_1_power'];
+  first.state = '0.64';
+  first.attributes.unit_of_measurement = 'kW';
+  hass.entities['sensor.another_reading'] = { device_id: 'meter-six' };
+  hass.states['sensor.another_reading'] = {
+    state: '123',
+    attributes: { friendly_name: 'Power 1', device_class: 'power', unit_of_measurement: 'W' },
+  };
+  hass.states['sensor.energy_meter_6ch_channel_2_power'].state = 'unavailable';
+  const screen = deviceScreen(meter(), hass, rooms, now);
+  assert.equal(screen.channels[0].watts, 640);
+  assert.equal(screen.channels[1].watts, null);
+  assert.equal(screen.channels[1].now, 'No disponible');
+  assert.ok(screen.readings.some(reading => reading.entityId === 'sensor.another_reading'));
 });

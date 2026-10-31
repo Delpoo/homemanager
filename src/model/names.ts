@@ -1,4 +1,5 @@
 import type { ModelHass, RegistryDevice } from './types.js';
+import { readingChannel } from './reading-channel.js';
 
 const WORDS: Record<string, Record<string, string>> = {
   es: {
@@ -196,12 +197,12 @@ export function readingName(entityId: string, hass?: ModelHass): string {
       break;
     }
   }
-  const channel = label.match(/^(?:channel|canal|kanal)\s*(\d+)\s*(?:[·:–—-]\s*)?(.*)$/i);
+  const channel = readingChannel(label, deviceClass);
   if (channel) {
-    const suffix = channel[2];
+    const suffix = channel.suffix;
     const isClass =
       !suffix || Object.values(WORDS).some(words => foldName(words[deviceClass] ?? '') === foldName(suffix));
-    return `${nameWord('channel', hass)} ${channel[1]} · ${isClass ? fallback : readingLabel(suffix, deviceClass, hass)}`;
+    return `${nameWord('channel', hass)} ${channel.index} · ${isClass ? fallback : readingLabel(suffix, deviceClass, hass)}`;
   }
   return readingLabel(label, deviceClass, hass) || fallback;
 }
