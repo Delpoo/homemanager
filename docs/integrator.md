@@ -1,6 +1,6 @@
 # Continuación para el integrador 4
 
-**El plan vigente y su contexto están en [handoff-agent4.md](handoff-agent4.md).** Este documento describe el rol de quien integra.
+**El plan vigente y su contexto están en [handoff-agent4.md](handoff-agent4.md).** Esta lista conserva los criterios de aceptación originales. Revisar primero `contract.md`, `decisions.md` y `security.md`, y el estado real de GitHub que informe Agente 0.
 
 ## Orden de integración
 
