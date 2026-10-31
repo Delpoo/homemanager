@@ -62,7 +62,6 @@ export const enShell: Record<string, string> = {
   'Importar sólo el plano': 'Import plan only',
   'Agregá el espacio de destino o desmarcá su cambio.': 'Add the destination room or uncheck its move.',
   'Agregá el espacio de destino o elegí Conservar sin zona.': 'Add the destination room or choose Keep without a zone.',
-  Renombrar: 'Rename',
   '{count} dispositivos': '{count} devices',
   'Fusionar en…': 'Merge into…',
   'Conservar espacio': 'Keep room',
@@ -83,8 +82,6 @@ export const enShell: Record<string, string> = {
   Alertas: 'Alerts',
   '{count} alertas': '{count} alerts',
   'Icono del espacio': 'Room icon',
-  'Sugerido: {icon}': 'Suggested: {icon}',
-  'Aplicar espacios': 'Apply rooms',
   Enviado: 'Sent',
   'en el aire': 'on air',
   confirmado: 'confirmed',
@@ -180,11 +177,7 @@ export const enShell: Record<string, string> = {
   'Reemplazar plano': 'Replace plan',
   'Nuevo espacio': 'New space',
   'Escribí el nombre del espacio.': 'Type the name of the space.',
-  'Espacio «{room}» creado en el borrador. Guardá el plano para conservarlo.':
-    'Space “{room}” created in the draft. Save the plan to keep it.',
   'Este plano no tiene zonas': 'This plan has no zones',
-  'Dibujá cada espacio: ajustá un rectángulo sobre el plano y ponele nombre. La forma se cambia cuando quieras.':
-    'Draw each space: fit a rectangle on the plan and name it. You can change the shape at any time.',
   'Más tarde': 'Later',
   'Dibujar el primero': 'Draw the first one',
   'Espacios dibujados a mano': 'Spaces drawn by hand',
@@ -192,11 +185,6 @@ export const enShell: Record<string, string> = {
     'The new plan has another zone for these spaces. They stay as you drew them unless you choose the zone.',
   'Usar la zona del plano: {room}': 'Use the plan zone: {room}',
   'Como un pasillo: se pasa de largo': 'Like a hallway: you pass through it',
-  'Forma de {room}: flechas para moverla, Mayúsculas y flechas para cambiar su tamaño':
-    'Shape of {room}: arrow keys move it, Shift and arrow keys resize it',
-  'Forma de {room}': 'Shape of {room}',
-  'Forma guardada en el borrador. Guardá el plano para conservarla.':
-    'Shape saved in the draft. Save the plan to keep it.',
   'Flechas desde este espacio': 'Arrows from this space',
   'Encuadre al 100 %': 'Framing at 100 %',
   Ajustado: 'Tight',
@@ -301,3 +289,4 @@ export const enShell: Record<string, string> = {
     '{count} devices added to the draft. Move them into place and save the plan.',
   'Crear un área y vincular': 'Create one area and link',
 };
+

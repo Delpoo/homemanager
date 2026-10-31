@@ -16,7 +16,7 @@ Frontend Lovelace para visualizar espacios, vincular iconos a entidades de Home 
 
 ## Repositorios
 
-`homemanager` contiene software genérico público. `homemanager-instance` contiene fuentes y exportaciones privadas de una instalación. No existe sincronización automática entre ambos; el código público no consulta GitHub privado ni recibe sus credenciales.
+`homemanager` contiene software genérico público. `homemanager-instance` contiene el dibujo privado de una instalación; sus datos viven en su Home Assistant. No existe sincronización automática entre ambos; el código público no consulta GitHub privado ni recibe sus credenciales.
 
 No copiar proyectos previos completos: cada archivo debe pasar revisión de privacidad y licencia. `architecture/` aquí describe arquitectura del software, no un plano de vivienda.
 
@@ -47,3 +47,4 @@ Versionado SemVer mediante tags y releases; los nombres del producto, archivos y
 ## Nombre y licencia
 
 HomeManager es el nombre de trabajo elegido por el propietario. Existen otros productos con ese nombre; no se afirma exclusividad, afiliación ni disponibilidad de marca. Ver [registro de nombre](docs/name-review.md). Licencia de software MIT, autorizada por el propietario para esta publicación inicial. Planos y datos privados tienen derechos separados.
+
