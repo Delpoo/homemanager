@@ -175,7 +175,7 @@ export function chooseDevice(this: HomeManagerCard, ids: string[]) {
     `<div class="choices">${devices.map(d => `<button type="button" data-choose="${e(d.id)}">${e(d.display.label)} · ${e(stateText(this.runtime.states[d.id]?.value ?? 'unknown'))}</button>`).join('')}</div>`,
     [{ label: t('Cerrar'), action: () => {} }],
   );
-  const dialog = this.root.querySelector('dialog:last-of-type')!;
+  const dialog = this.root.querySelector('homemanager-task-screen:last-of-type')!;
   dialog.querySelectorAll<HTMLButtonElement>('[data-choose]').forEach(button =>
     button.addEventListener('click', () => {
       (dialog as HTMLDialogElement).close();

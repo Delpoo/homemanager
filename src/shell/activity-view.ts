@@ -1,5 +1,6 @@
 import { alertText } from '../ui/alert-components.js';
 import { t } from '../i18n/index.js';
+import type { TaskScreen } from '../ui/task-screen.js';
 import { activityIsRecent, type ActivityEntry } from '../model/activity.js';
 import { escapeHTML as e } from '../card/types.js';
 import type { HomeManagerCard } from '../card/home-manager-card.js';
@@ -35,7 +36,7 @@ export function showAlerts(this: HomeManagerCard): void {
     `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}">${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`,
     [{ label: t('Cerrar'), action: () => {} }],
   );
-  const dialog = this.root.querySelector('dialog:last-of-type') as HTMLDialogElement;
+  const dialog = this.root.querySelector('homemanager-task-screen:last-of-type') as TaskScreen;
   dialog.querySelectorAll<HTMLButtonElement>('[data-alert-device]').forEach(button =>
     button.addEventListener('click', () => {
       dialog.close();

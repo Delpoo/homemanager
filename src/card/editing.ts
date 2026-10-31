@@ -5,6 +5,8 @@ import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
 import { clone, escapeHTML as e, type CardConfig, type Configuration } from './types.js';
 import { cameraForEditedDevice } from '../model/editor-session.js';
+import { TaskScreen } from '../ui/task-screen.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 function commitPreview(card: HomeManagerCard): void {
@@ -269,19 +271,11 @@ export async function save(this: HomeManagerCard, reviewed = false) {
     this.saved!.catalog.devices.some(old => old.id === d.id && old.roomId !== d.roomId),
   );
   if (changes.length && !reviewed) {
-    this.dialog(
-      t('Revisar cambios de habitación'),
-      `<p>${changes.map(d => e(d.display.label)).join(', ')}</p><p>Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.</p>`,
-      [
-        { label: t('Volver a editar'), action: () => {} },
-        {
-          label: t('Guardar ubicación visual'),
-          action: () => {
-            void this.save(true);
-          },
-        },
-      ],
-    );
+    if (await confirmDialog(this.root, {
+      title: t('Revisar cambios de habitación'),
+      message: changes.map(d => d.display.label).join(', ') + '\n' + t('Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.'),
+      confirm: t('Guardar ubicación visual'),
+    })) await this.save(true);
     return;
   }
   try {
@@ -400,7 +394,7 @@ export function dialog(
   actions: { label: string; action: () => void }[],
 ) {
   const previous = this.root.activeElement as HTMLElement | null;
-  const dialog = document.createElement('dialog');
+  const dialog = new TaskScreen();
   dialog.innerHTML = `<h2>${e(title)}</h2>${body}<div class="actions"></div>`;
   const heading = dialog.querySelector('h2')!;
   heading.id = 'hm-dialog-title';
@@ -425,5 +419,5 @@ export function dialog(
     { once: true },
   );
   this.root.append(dialog);
-  dialog.showModal();
+  dialog.show(this.root, title);
 }
