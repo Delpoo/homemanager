@@ -1,5 +1,9 @@
 import { alertText } from '../ui/alert-components.js';
 import { t } from '../i18n/index.js';
+import { personName } from '../model/names.js';
+import { reasonText } from '../panels/native-panel.js';
+import { layer } from '../card/card-helpers.js';
+import { syncLayers } from './layers.js';
 import type { TaskScreen } from '../ui/task-screen.js';
 import { activityIsRecent, type ActivityEntry } from '../model/activity.js';
 import { escapeHTML as e } from '../card/types.js';
@@ -7,7 +11,16 @@ import type { HomeManagerCard } from '../card/home-manager-card.js';
 
 export function activityText(entry: ActivityEntry | null, now = Date.now()): string {
   if (!entry) return t('Sin actividad reciente');
-  const parts = [t(entry.message), entry.deviceLabel, entry.actionLabel, entry.value, entry.detail].filter(Boolean);
+  const parts = [
+    t(entry.message),
+    entry.deviceLabel,
+    entry.actionLabel,
+    entry.value,
+    entry.status === 'error' && entry.detail ? reasonText(entry.detail) : entry.detail,
+  ]
+    .filter(Boolean)
+    .map(part => personName(t(part!)))
+    .filter(Boolean);
   const text = parts.filter((part, index) => !index || part !== parts[index - 1]).join(' · ');
   return activityIsRecent(entry, now) ? text : `${t('último:')} ${text}`;
 }
@@ -33,7 +46,9 @@ export function showAlerts(this: HomeManagerCard): void {
   }
   this.dialog(
     t('Alertas'),
-    `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}">${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`,
+    alerts.length
+      ? `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}">${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`
+      : `<p>${e(t('Sin alertas'))}</p>`,
     [{ label: t('Cerrar'), action: () => {} }],
   );
   const dialog = this.root.querySelector('homemanager-task-screen:last-of-type') as TaskScreen;
@@ -49,9 +64,13 @@ function focusAlert(this: HomeManagerCard, id: string): void {
   if (!device) return;
   this.selected = id;
   this.currentRoom = device.roomId;
-  this.enabledLayers.add('sensors');
-  this.enabledLayers.add('energy');
-  this.enabledLayers.add('infrastructure');
+  this.enabledLayers.add(layer(device, this._hass));
+  this.root
+    .querySelectorAll<HTMLElement>('.layers [aria-pressed]')
+    .forEach(button =>
+      button.setAttribute('aria-pressed', String(this.enabledLayers.has(button.dataset.command!.slice(6)))),
+    );
+  syncLayers(this.root);
   this.renderMarkers();
   const scale = this.baseScale * 4;
   this.moveCamera({

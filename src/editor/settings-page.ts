@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import '../shell/layer-choice.js';
 import { escapeHTML as esc, type Configuration } from '../card/types.js';
 import { uiButton, uiIcon, uiStatus } from '../ui/components.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
@@ -72,7 +73,7 @@ export function spacesList(configuration: Configuration, zoneIds: ReadonlySet<st
 }
 
 export function planCard(content: string, zones: number, rooms: number): string {
-  return `<div class="plan-card"><div class="plan-thumb" aria-hidden="true">${content}</div><div class="plan-info"><b>${esc(t('Plano de la casa'))}</b><span class="k-sub">${esc(t('{zones} zonas · {rooms} espacios', { zones, rooms }))}</span><div class="plan-actions">${uiButton(t('Reemplazar plano'), 'settings-import', 'secondary', 'mdi:upload')}</div></div></div>`;
+  return `<div class="plan-card"><div class="plan-thumb" aria-hidden="true">${content}</div><div class="plan-info"><b>${esc(t('Plano de la casa'))}</b><span class="k-sub">${esc(t('{zones} zonas · {rooms} espacios', { zones, rooms }))}</span><div class="plan-actions">${uiButton(t('Reemplazar plano'), 'settings-import', 'secondary', 'mdi:upload')}</div></div></div><homemanager-layer-choice></homemanager-layer-choice>`;
 }
 
 /** What a row says about a problem, and what its button does. */

@@ -1,6 +1,7 @@
 import { activeStateOf, presentationOf } from './archetype.js';
 import { alertsOf, presenceHighlightOf, summarizeAlerts, type AlertContext } from './alerts.js';
 import { entityOf, finiteNumber } from './types.js';
+import { stateName } from './names.js';
 import type { AlertLevel } from './alerts.js';
 import type {
   Archetype,
@@ -77,7 +78,15 @@ export function symbolSpec(
   const confidence = runtime?.confidence;
   // A sent/unknown command never manufactures activity from the requested action.
   const active = available && !unknown && activeStateOf(device, live) && confidence !== 'error';
-  const health = entity?.state === 'unavailable' ? 'unavailable' : estimated ? 'estimated' : unknown ? 'unknown' : null;
+  // An intentionally unlinked symbol or a stateless remote is not a failed device.
+  const health =
+    entity?.state === 'unavailable'
+      ? 'unavailable'
+      : estimated
+        ? 'estimated'
+        : unknown && !!device.bindings.entityId
+          ? 'unknown'
+          : null;
   const configuredControl =
     device.bindings.tap !== undefined ? device.bindings.tap !== null : !!device.bindings.primaryAction;
   return {
@@ -102,13 +111,13 @@ export function formattedValue(entity: ModelEntity | undefined, hass?: ModelHass
   if (hass?.formatEntityState) {
     try {
       const value = hass.formatEntityState(entity);
-      if (typeof value === 'string' && value.trim()) return value;
+      if (typeof value === 'string' && value.trim()) return value === entity.state ? stateName(value, hass) : value;
     } catch {
       /* Fall through to the numeric value with its declared unit. */
     }
   }
   const number = finiteNumber(entity.state);
-  if (number === null) return entity.state;
+  if (number === null) return stateName(entity.state, hass);
   let formatted: string;
   try {
     formatted = new Intl.NumberFormat(hass?.locale?.language ?? hass?.language ?? 'es', {
@@ -126,6 +135,6 @@ function equipmentTag(entity: ModelEntity | undefined, hass?: ModelHass): string
   const setpoint = finiteNumber(entity.attributes?.temperature);
   if (setpoint !== null) return `${setpoint}°`;
   const mode = entity.attributes?.preset_mode ?? entity.attributes?.hvac_action;
-  if (typeof mode === 'string' && mode) return mode.slice(0, 16);
+  if (typeof mode === 'string' && mode) return stateName(mode, hass).slice(0, 16);
   return formattedValue(entity, hass).slice(0, 16);
 }

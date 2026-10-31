@@ -178,7 +178,8 @@ test('critical alerts propagate to the symbol, room and pill, and the pill frame
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'off', { device_class: 'moisture' }),
   );
-  await expect(card(page).locator('.alert-pill')).toBeHidden();
+  await expect(card(page).locator('.alert-pill')).toBeVisible();
+  await expect(card(page).locator('.alert-pill')).toHaveAttribute('data-active', 'false');
 });
 
 test('activity shows exact send/air/error vocabulary and retains one row per command', async ({ page }) => {

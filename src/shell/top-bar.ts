@@ -1,4 +1,5 @@
 import '../ui/theme-choice.js';
+import './layer-choice.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { logo } from '../ui/logo.js';
@@ -30,14 +31,14 @@ function menu(options: TopBarOptions): string {
     ${admin ? item('plan-settings', t('Ajustes del plano'), 'cog-outline') : ''}
     ${app && app.homes.length > 1 ? `<label class="hm-home-label">${e(t('Hogares'))}<select class="home-select" aria-label="${e(t('Hogar'))}">${app.homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === app.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}</select></label>` : ''}
     ${admin && app ? item('new', t('Nuevo hogar'), 'home-plus-outline', true) + item('storage', t('Almacenamiento'), 'database-outline', true) : ''}
-    <homemanager-theme-choice></homemanager-theme-choice>
+    <homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>
     ${item('fullscreen', t('Pantalla completa'), 'fullscreen')}${item('info', t('Ayuda'), 'help-circle-outline')}
   </div></details>`;
 }
 const menuKey = (options: TopBarOptions) => JSON.stringify({ admin: options.admin, app: options.app });
 export function renderTopBar(options: TopBarOptions): string {
   const count = options.alertCount ?? 0;
-  return `<header class="header" data-menu-key="${e(menuKey(options))}"><span class="logo">${logo}</span><h1>${e(options.title)}</h1><button type="button" class="activity" data-command="activity" data-tone="${e(options.activityTone ?? 'neutral')}" aria-label="${e(t('Historial de actividad'))}"><span>${e(options.activityText ?? t('Sin actividad reciente'))}</span></button><button type="button" class="alert-pill" data-command="alerts" aria-label="${e(t('Alertas'))}"${count ? '' : ' hidden'}>${glyph('alert-outline')}<span>${count}</span></button><time class="clock">${clockText()}</time>${menu(options)}</header>`;
+  return `<header class="header" data-menu-key="${e(menuKey(options))}"><span class="logo">${logo}</span><h1>${e(options.title)}</h1><button type="button" class="activity" data-command="activity" data-tone="${e(options.activityTone ?? 'neutral')}" aria-label="${e(t('Historial de actividad'))}"><span>${e(options.activityText ?? t('Sin actividad reciente'))}</span></button><button type="button" class="alert-pill" data-command="alerts" data-active="${count > 0}" aria-label="${e(t('Alertas'))}" title="${e(t('Alertas'))}">${glyph('alert-outline')}<span>${count}</span></button><time class="clock">${clockText()}</time>${menu(options)}</header>`;
 }
 function clockText(): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date());
@@ -56,7 +57,8 @@ export function updateTopBar(root: ParentNode, options: TopBarOptions): void {
   const pill = header.querySelector<HTMLElement>('.alert-pill');
   if (pill) {
     pill.dataset.level = options.alertLevel ?? 'critical';
-    pill.hidden = !(options.alertCount ?? 0);
+    pill.hidden = false;
+    pill.dataset.active = String((options.alertCount ?? 0) > 0);
     pill.querySelector('span')!.textContent = String(options.alertCount ?? 0);
   }
   const clock = header.querySelector('.clock');
@@ -105,7 +107,9 @@ export function bindTopBar(root: ShadowRoot | HTMLElement): () => void {
     const details = root.querySelector<HTMLDetailsElement>('.hm-menu');
     if (!details?.open || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(keyboard.key)) return;
     if ((keyboard.composedPath()[0] as HTMLElement).tagName === 'SELECT') return;
-    const items = [...details.querySelectorAll<HTMLElement>('button,select,homemanager-theme-choice')];
+    const items = [
+      ...details.querySelectorAll<HTMLElement>('button,select,homemanager-theme-choice,homemanager-layer-choice'),
+    ];
     const current = items.indexOf(
       root instanceof ShadowRoot ? (root.activeElement as HTMLElement) : (document.activeElement as HTMLElement),
     );
@@ -145,9 +149,9 @@ export const topBarStyles = `
 .header .logo{display:flex;align-items:center;flex:none;color:var(--hm-brand)}.header .hm-logo{width:24px;height:24px}
 .header .activity{height:34px;min-height:34px;border:0;border-radius:17px;padding:0 12px;flex:1;min-width:0;display:flex;align-items:center;text-align:left;color:var(--hm-muted);background:color-mix(in srgb,var(--hm-ink) 4%,transparent);font-size:12px;overflow:hidden}
 .activity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.activity[data-tone=ok]{color:var(--hm-ok)}.activity[data-tone=alert]{color:var(--hm-alert)}.activity[data-tone=warning]{color:var(--hm-warn)}
-.header .alert-pill{display:flex;align-items:center;gap:6px;height:30px;min-height:30px;border:0;border-radius:15px;padding:0 10px;background:var(--hm-alert);color:var(--hm-on-accent);font-size:12px;font-weight:600}.alert-pill ha-icon{--mdc-icon-size:18px}.clock{font-size:12px;color:var(--hm-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.header .alert-pill{display:flex;align-items:center;gap:6px;height:30px;min-height:30px;border:0;border-radius:15px;padding:0 10px;background:var(--hm-surface-2);color:var(--hm-muted);font-size:12px;font-weight:600}.header .alert-pill[data-active=true]{background:var(--hm-alert);color:var(--hm-on-accent)}.alert-pill ha-icon{--mdc-icon-size:18px}.clock{font-size:12px;color:var(--hm-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .hm-menu{flex:none;position:relative}.hm-menu summary{list-style:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;cursor:pointer;color:var(--hm-muted)}.hm-menu summary::-webkit-details-marker{display:none}.hm-menu summary ha-icon{--mdc-icon-size:22px}
 .hm-menu-panel{position:absolute;top:44px;right:0;width:260px;max-width:calc(100vw - 28px);max-height:calc(100dvh - 74px);overflow:auto;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px;box-shadow:var(--hm-shadow);padding:6px;z-index:20;display:grid;gap:2px}
 .hm-menu-panel button{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:0 10px;text-align:left;border-radius:8px;min-height:44px;font-size:14px}.hm-menu-panel button:hover{background:var(--hm-surface-2)}.hm-menu-panel ha-icon{--mdc-icon-size:20px;color:var(--hm-muted)}.hm-home-label{font-size:12px;color:var(--hm-muted);padding:6px 10px;display:grid;gap:4px}.hm-home-label select{width:100%;min-width:0;color:var(--hm-ink);background:var(--hm-bg)}
-@media(max-width:650px){.header{height:48px;gap:8px;padding:0 10px}.header h1,.header .clock{display:none}.header .hm-logo{width:22px;height:22px}.header .activity{height:30px;min-height:30px;padding:0 10px}.header .alert-pill{padding:0 8px}.header .alert-pill ha-icon{display:none}.hm-menu-panel{top:40px}.hm-menu summary{width:32px;height:32px}}
+@media(max-width:650px){.header{height:48px;gap:8px;padding:0 10px}.header h1,.header .clock{display:none}.header .hm-logo{width:22px;height:22px}.header .activity{height:30px;min-height:30px;padding:0 10px}.header .alert-pill{padding:0 8px}.hm-menu-panel{top:40px}.hm-menu summary{width:32px;height:32px}}
 `;

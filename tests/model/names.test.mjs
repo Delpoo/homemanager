@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deviceName, readingName, entityAreaId, areaName, personName } from '../../.work/model/names.js';
+import { deviceName, readingName, entityAreaId, areaName, personName, stateName } from '../../.work/model/names.js';
 import { syntheticRegistry } from '../browser/fixtures/registry.js';
 test('device user names win; factory names and unnamed devices never expose identifiers', () => {
   assert.equal(deviceName({ name_by_user: 'Luz_del_estudio', name: 'Factory name' }), 'Luz del estudio');
@@ -42,4 +42,20 @@ test('an entity area overrides its device area; unknown areas stay explicit and 
   delete hass.entities[id].area_id;
   readingName(id, hass);
   assert.deepEqual(hass, original);
+});
+
+test('manufacturer reading types and states follow HA language without rewriting custom names', () => {
+  const hass = syntheticRegistry();
+  const id = 'sensor.energy_meter_6ch_total_power';
+  hass.states[id].attributes.friendly_name = 'Energy_meter_6ch Total Power';
+  assert.equal(readingName(id, hass), 'Potencia total');
+  assert.equal(stateName('fan_only', hass), 'Ventilar');
+  assert.equal(stateName('sensor.internal_name', hass), '');
+  hass.locale.language = 'en-US';
+  assert.equal(readingName(id, hass), 'Total power');
+  assert.equal(readingName('sensor.energy_meter_6ch_today', hass), 'Energy today');
+  assert.equal(readingName('sensor.energy_meter_6ch_channel_1_power', hass), 'Channel 1 · Power');
+  assert.equal(stateName('heat', hass), 'Heat');
+  hass.entities[id].name = 'My workshop load';
+  assert.equal(readingName(id, hass), 'My workshop load');
 });

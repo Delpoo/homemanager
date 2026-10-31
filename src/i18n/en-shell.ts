@@ -1,5 +1,9 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'Mostrar capas': 'Show layers',
+  'Minimizar capas': 'Minimize layers',
+  'Sólo en este navegador': 'Only in this browser',
+  'Sin alertas': 'No alerts',
   'Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.':
     'The visual position is saved. Home Assistant entities, areas, scripts and control paths keep their associations.',
   'Los cambios de esta pantalla todavía no se aplicaron.': 'The changes on this screen have not been applied yet.',

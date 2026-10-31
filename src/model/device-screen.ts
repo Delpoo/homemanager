@@ -1,7 +1,7 @@
 import { alertsOf, type AlertContext, type DeviceAlert } from './alerts.js';
 import { bindingIssues, deviceCatalog, usefulEntity, type CatalogReading } from './device-catalog.js';
 import { entityControls, type Control } from './control-capabilities.js';
-import { deviceName, nameWord, personName, readingName } from './names.js';
+import { deviceName, nameWord, personName, readingName, stateName } from './names.js';
 import { formattedValue } from './symbol-spec.js';
 import type { ActivityEntry } from './activity.js';
 import type { ModelDevice, ModelEntity, ModelHass } from './types.js';
@@ -32,25 +32,9 @@ export interface DeviceScreen {
   issues: string[];
   activity: { message: string; at: number; tone: string }[];
 }
-const modes: Record<string, string> = {
-  cool: 'Frío',
-  heat: 'Calor',
-  heat_cool: 'Frío y calor',
-  dry: 'Seco',
-  fan_only: 'Ventilar',
-  auto: 'Automático',
-  off: 'Apagado',
-  on: 'Encendido',
-  idle: 'En espera',
-  cooling: 'Enfriando',
-  heating: 'Calentando',
-  online: 'En línea',
-  unavailable: 'No disponible',
-  unknown: 'Sin dato',
-};
 export function friendlyState(entity: ModelEntity | undefined, hass?: ModelHass): string {
   if (!entity) return nameWord('unknown', hass);
-  return personName(modes[entity.state] ?? formattedValue(entity, hass), nameWord('unknown', hass));
+  return personName(formattedValue(entity, hass), nameWord('unknown', hass));
 }
 const channelOf = (name: string) => name.match(/^(?:canal|channel|kanal)\s+(\d+)(?:\s*[·:–-]\s*|\s+)?/i);
 
@@ -147,7 +131,7 @@ export function deviceScreen(
         ? {
             options: control.options.map(option => ({
               ...option,
-              label: personName(modes[option.value] ?? option.label),
+              label: stateName(option.value, hass),
             })),
           }
         : {}),
