@@ -284,6 +284,32 @@ test('learning Back keeps the candidate and button name; storage uses one explic
   await noOverflow(page);
 });
 
+test('concurrent discard attempts show one confirmation and cancelling keeps the accessible form', async ({ page }) => {
+  await begin(page);
+  await settings(page);
+  const label = await page.evaluate(
+    () => window.testHarness.card.getDraftConfiguration().rooms.find(room => room.id === 'living').label,
+  );
+  await editor(page).locator('[data-command=room-open][data-room=living]').click();
+  const room = screen(page, label);
+  await expect(room.locator('.task-head h2')).toBeFocused();
+  await expect(screen(page, 'Ajustes del plano')).toBeHidden();
+  await room.getByLabel('Nombre del espacio', { exact: true }).fill('Edición que sigue disponible');
+  await room.evaluate(node => {
+    void node.cancel();
+    void node.cancel();
+  });
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(room.getByLabel('Nombre del espacio', { exact: true })).toHaveValue('Edición que sigue disponible');
+  await room.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Descartar cambios', exact: true }).click();
+  await expect(screen(page, 'Ajustes del plano')).toBeVisible();
+  await editor(page).locator('[data-command=room-open][data-room=living]').click();
+  await expect(screen(page, label).getByLabel('Nombre del espacio', { exact: true })).toHaveValue(label);
+});
+
 for (const dark of [false, true])
   test(`visual evidence ${dark ? 'dark' : 'light'}: converted screens at the requested sizes`, async ({
     page,

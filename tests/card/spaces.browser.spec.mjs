@@ -12,7 +12,14 @@ const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfig
 const begin = async page => {
   await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
-  await expect(button(page, 'Guardar cambios')).toBeVisible();
+  // The first-space page deliberately covers the editing toolbar until dismissed.
+  await expect
+    .poll(
+      async () =>
+        (await button(page, 'Guardar cambios').isVisible()) ||
+        (await page.getByRole('region', { name: 'Este plano no tiene zonas', exact: true }).isVisible()),
+    )
+    .toBe(true);
 };
 /** Replaces the synthetic card with a V2 plan built from its own draft. */
 const replace = async (page, change) => {

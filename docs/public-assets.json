@@ -1670,6 +1670,15 @@
       "height": 900
     },
     {
+      "path": "docs/evidence/rediseno-e02/desktop-dark-first-space.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "4c11d8eb4a5b451c90c0a5e21d4b640c1868309619e11616a412bee1290ce624",
+      "width": 1440,
+      "height": 900
+    },
+    {
       "path": "docs/evidence/rediseno-e02/desktop-dark-help.png",
       "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
@@ -1814,6 +1823,33 @@
       "height": 900
     },
     {
+      "path": "docs/evidence/rediseno-e02/desktop-dark-storage.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "6e2ac15e290a905929c28c8562f4451e093376b7ede8ca4f55fe4d520c83ca7c",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/desktop-dark-zone-moves.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "a86d720a2acf2ac54f838908c83d28bc35598f3d93a7b101fd6b4b33ec12fa7f",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/desktop-dark-zones.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "1da5e74bddfc37011554686375a309a89cce3cb091343a2f42b6d3469358def4",
+      "width": 1440,
+      "height": 900
+    },
+    {
       "path": "docs/evidence/rediseno-e02/desktop-light-activity.png",
       "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
@@ -1828,6 +1864,15 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-31",
       "sha256": "de9238276774877f73c9dd6453534c5243872d6ef1769e6701b1c52563d63e91",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/desktop-light-first-space.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "76e5a9fb3c6260fe63b91feab94f5157bb5ef9d264f31630ff9a4ebb17119c76",
       "width": 1440,
       "height": 900
     },
@@ -1976,6 +2021,33 @@
       "height": 900
     },
     {
+      "path": "docs/evidence/rediseno-e02/desktop-light-storage.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "7af4edfa55ed54a245af92913531da56ed698780fe105eb0bf22131a297121d7",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/desktop-light-zone-moves.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "0ca664ead72e0d5f71a34b0c7af5ef62b9a50f035f72a8341788ae5b8abc35d5",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/desktop-light-zones.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "7d55d2a2ca47fa09a2a4970263523b1bf0fd00e76f6edd0c6ff191db6ff1f3c9",
+      "width": 1440,
+      "height": 900
+    },
+    {
       "path": "docs/evidence/rediseno-e02/mobile-dark-activity.png",
       "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
@@ -1992,6 +2064,15 @@
       "sha256": "31a2fca70532528aaa134862283f11d04a72f0647605ab36d9c83375652ef8ef",
       "width": 1024,
       "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-dark-first-space.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "1efb902946bf00b873c69afb2afa0dd90f38f9e20028b340de251e6cb66efebf",
+      "width": 390,
+      "height": 844
     },
     {
       "path": "docs/evidence/rediseno-e02/mobile-dark-help.png",
@@ -2138,6 +2219,33 @@
       "height": 2216
     },
     {
+      "path": "docs/evidence/rediseno-e02/mobile-dark-storage.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "8c0df97e6d416574ea372490822b29f4e4fd132995cef1b4b80c6f9e34b98997",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-dark-zone-moves.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c5471184242aee18e5b8fb184e808fb1e10f4672911d4d56164b9f221b6b8e14",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-dark-zones.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "2c5d6a98d46f05f02db4391f8ce93e487aa7ca93fdd7b5a983d8d681836acac6",
+      "width": 390,
+      "height": 844
+    },
+    {
       "path": "docs/evidence/rediseno-e02/mobile-light-activity.png",
       "source": "tests/card/task-screens.browser.spec.mjs",
       "review": "fictional-only",
@@ -2154,6 +2262,15 @@
       "sha256": "d20675aebb0607fac38c92c856f39eb3acf7a113f8baac6ab52cc1fdf3c0f419",
       "width": 1024,
       "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-first-space.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "5b2a278d7fa8a1f6a56b4b8f5914def94bb3e550fdc5c4ab21e239249ac28172",
+      "width": 390,
+      "height": 844
     },
     {
       "path": "docs/evidence/rediseno-e02/mobile-light-help.png",
@@ -2190,6 +2307,141 @@
       "sha256": "59c05a622d4348545c9c5fefb969c916dcfadd1936b527920402fef40e60f004",
       "width": 1024,
       "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-native.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "664693385830f6e1813ecb0306d9eda0bab9b159bed46cc990beb2e58be85632",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-review.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "a4e348e5c72894d63ed75354d458e42d2aa1e9cb7ba40cf3ee6ee2c3d4f4570f",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-rf-learn.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "cbbcd70f96b36939b25d7bb2e840b08406f236fd3403acaf11a0ab608591d331",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-rf-widget.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "67a489804b00af204c55629edf25e1cfaaa0fd419f5a4f4592252283f55f285f",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-room.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "97be41e7446b81137489c9af24ef827f79444c2e7c3063bfda345f3980068915",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-actions.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "c9148799bc7e51ec0790cc89a412e464c790f18083683f637c6d7faaeb02bd43",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-connect.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "db82ec3590dcf797fae227b7d742c483ab2f0a132aa32d114fa637e5a9888805",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-health.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "53b8b783def3bafd0a8890c1f49e954bb032f7074eb52372f567cb2430073fbd",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-import.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "0bad7c99c410a13cb284031e157f9cf94ec160be37c93c412a54715e90e32fcc",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-panels.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "61f08d0cd676c4bd05b5a64266a34d0e7fc78f4685a4f8b1976938368ab8da74",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-pending.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "91eec1558635fc30c1b3e576a733e597309225b5fe2fe72aa9b45e8a637ddf61",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-settings-rooms.png",
+      "source": "tests/card/task-screens.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "eebb66fd7e4d3838369432466dbe50279bec62274664164fbc2861cc2d3c0856",
+      "width": 1024,
+      "height": 2216
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-storage.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "08206f41d9656e37282a97773cf9a8da161c947331431b3cfcbcd2b220b64abd",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-zone-moves.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "775663ecc1f74bcd14a2703d6f260c4479736f640cb9e73ec74629dbd66657a1",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/evidence/rediseno-e02/mobile-light-zones.png",
+      "source": "scripts/capture-redesign-e02.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-10-31",
+      "sha256": "6b228423039f4c64287460d69b3eaa0d579ee3d03f6c4a12f8cf183988d773a4",
+      "width": 390,
+      "height": 844
     },
     {
       "path": "docs/rediseno/maqueta/1-ficha-ventilador.png",

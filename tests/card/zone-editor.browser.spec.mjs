@@ -251,6 +251,9 @@ test('a zone that grows over a device offers to move it; unticked, it stays wher
   const light = moves(page).getByRole('checkbox');
   await expect(light).toBeChecked();
   await light.uncheck();
+  await moves(page).getByRole('button', { name: 'Volver', exact: true }).click();
+  await button(page, 'Aplicar').click();
+  await expect(moves(page).getByRole('checkbox')).not.toBeChecked();
   await confirmMoves(page);
   expect((await room(page, 'office')).rects).toHaveLength(2);
   expect(await roomOf(page, 'synthetic-light')).toBe('living');

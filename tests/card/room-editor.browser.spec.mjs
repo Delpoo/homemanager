@@ -47,6 +47,8 @@ test('a space sets its framing, skipping and which arrows it shows, and the room
   await kitchen.getByRole('checkbox', { name: 'Saltear al navegar' }).check();
   await kitchen.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await room(page, 'kitchen')).nav).toEqual({ skip: true });
+  await button(page, 'Guardar cambios').click();
+  await expect(button(page, 'Guardar cambios')).toHaveAttribute('data-dirty', 'false');
   await button(page, 'Salir de edición').click();
   await button(page, 'Encuadrar todo').click();
   // The view opens on the space at the centre once the whole plan is framed.

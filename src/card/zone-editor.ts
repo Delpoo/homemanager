@@ -539,7 +539,7 @@ function chooseMoves(
         return `<label class="k-row"><input class="k-checkbox" type="checkbox" name="zone-move" value="${e(move.deviceId)}" checked${gone ? ' disabled' : ''}><span class="txt"><b>${e(move.label)}</b><span>${e(label(move.from))} → ${e(label(move.to))}</span></span></label>`;
       })
       .join('')}</div>`,
-    uiButton(t('Volver'), 'back') + uiButton(t('Aplicar'), 'apply', 'primary'),
+    uiButton(t('Aplicar'), 'apply', 'primary'),
   );
   customElements.upgrade(template.content);
   const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
@@ -636,4 +636,5 @@ export const zoneEditStyles = `
 [data-docked] .zones-row:nth-child(2)>*{flex:1 1 100%}
 [data-docked] .zones-row select,[data-docked] .zones-row input{flex:1 1 100%}
 .zone-moves{display:grid;gap:6px;max-height:50vh;overflow:auto}
+@media(max-width:650px){.zones-row:nth-child(2){flex-wrap:wrap;overflow:visible}.zones-row:nth-child(2)>*{flex:1 1 130px}.zones-row select,.zones-row input,.zones-row button{min-height:44px}}
 `;
