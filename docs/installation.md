@@ -25,12 +25,12 @@ Por defecto el bundle se carga al abrir el panel HomeManager. Para tarjetas en d
 
 ## Primer uso
 
-1. Abrir **HomeManager** en la barra lateral, escribir el ID del hogar (por ejemplo `verdale`) y pulsar **Crear hogar**.
+1. Abrir **HomeManager** en la barra lateral, escribir el ID del hogar (por ejemplo `casa`) y pulsar **Crear hogar**.
 2. **Editar plano → Importar y exportar** → importar el JSON de la instalación (o un SVG del plano). Revisar el resumen y aplicar al borrador.
 3. **Espacios:** comprobar nombres y orden. Si coinciden con los nombres de las **áreas** de Home Assistant, el alta de dispositivos asigna el espacio sola.
 4. **Agregar dispositivo desde Home Assistant:** buscar la entidad por nombre o área, elegirla y tocar el plano donde está. HomeManager crea el nombre, el icono y la acción principal. Para los dispositivos ya importados, elegir su *Entidad del dispositivo* en el formulario.
 5. **Guardar cambios.** El hogar queda en `/config/.storage/homemanager.homes`, incluido en las copias de seguridad de Home Assistant.
-6. Opcional: en cualquier dashboard, añadir la tarjeta **HomeManager** con `home_id: verdale`.
+6. Opcional: en cualquier dashboard, añadir la tarjeta **HomeManager** con `home_id: casa`.
 
 ## Comprobaciones recomendadas en la vivienda
 

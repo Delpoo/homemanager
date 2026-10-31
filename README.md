@@ -40,7 +40,7 @@ Requiere Node.js 24. Usar `npm ci --ignore-scripts`, `npm run check` y `npm run 
 
 Para registrar la tarjeta, importar la arquitectura y configurar el guardado administrador en Lovelace `storage`, ver [la guía del frontend](docs/frontend.md). El editor permite modificar iconos, entidades, acciones/scripts, fuentes de estado y paneles sin recompilar el recurso. Las lecturas y confirmaciones de comandos permanecen en memoria.
 
-Estado y próximos pasos: [auditoría del 29 de octubre de 2026](docs/audit-2026-10-29.md) y [handoff del integrador](docs/handoff-agent4.md). Comenzar por [contrato V2](docs/contract.md), [colaboración](docs/contributing.md) y [decisiones](docs/decisions.md). La distribución prevista está en [HACS](docs/hacs.md); los controles obligatorios están en [seguridad](docs/security.md).
+Estado y próximos pasos: [estado y continuación](docs/handoff-agent4.md). Comenzar por [contrato V2](docs/contract.md), [colaboración](docs/contributing.md) y [decisiones](docs/decisions.md). La distribución prevista está en [HACS](docs/hacs.md); los controles obligatorios están en [seguridad](docs/security.md).
 
 Versionado SemVer mediante tags y releases; los nombres del producto, archivos y ramas de trabajo no incluyen versiones. Ningún commit instala ni despliega automáticamente en Home Assistant.
 
