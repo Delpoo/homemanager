@@ -144,6 +144,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   expect(await ids()).toEqual(['kitchen', 'living', 'office']);
   // Dragging the last grip to the top.
   const grips = settings.locator('[data-room-grip]');
+  await grips.nth(2).scrollIntoViewIfNeeded();
   const last = await grips.nth(2).boundingBox();
   const top = await grips.nth(0).boundingBox();
   await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);

@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
+import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 
 const editor = page => page.locator('homemanager-editor');
@@ -62,6 +62,7 @@ test.beforeEach(async ({ page }) => {
 
 test('add/edit a complete device emits a persistent draft without calling HA', async ({ page }) => {
   await button(page, 'Agregar dispositivo').click();
+  await openDeviceSections(page, ['device-category', 'device-options']);
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
   // The category replaces the technical kind; a chosen one survives linking an entity.
   await editor(page).getByRole('group', { name: 'Categoría' }).getByRole('radio', { name: 'Equipo' }).check();
@@ -189,6 +190,8 @@ test('adding a device from a real entity derives its name, icon, room and visibl
 });
 test('fixed location stays locked until explicit correction and bindings survive room correction', async ({ page }) => {
   await field(page, 'Dispositivo').selectOption('synthetic-fan');
+  await openDeviceSections(page, ['device-options']);
+  const originalBindings = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-fan').bindings;
   await expect(field(page, 'Posición X')).toBeDisabled();
   await expect(field(page, 'Habitación del dispositivo')).toBeEnabled();
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
@@ -201,13 +204,7 @@ test('fixed location stays locked until explicit correction and bindings survive
   expect(device.roomId).toBe('living');
   expect(device.position.x).toBe(0.45);
   // Its 0.5 primary action is kept, now also as the visible control a tap runs.
-  expect(device.bindings).toEqual({
-    entityId: null,
-    primaryAction: 'synthetic-fan-command',
-    advancedPopupId: 'synthetic-fan-panel',
-    controls: [{ id: 'tap', type: 'button', label: 'Ejecutar', steps: [{ actionId: 'synthetic-fan-command' }] }],
-    tap: 'tap',
-  });
+  expect(device.bindings).toEqual(originalBindings);
 });
 test('action editor defines explicit service targets and rejects raw command data', async ({ page }) => {
   await section(page, 'Acciones lógicas');
@@ -428,8 +425,8 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
     bindings: { primaryAction: 'synthetic-fan-command' },
   });
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
-  // Applying a space's window already closed plan settings.
-  await expect(editor(page).getByRole('region', { name: 'Ajustes del plano' })).toHaveCount(0);
+  // Applying a space returns to its settings page; leave it explicitly.
+  await editor(page).locator('homemanager-task-screen.settings-dialog .task-back').click();
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',

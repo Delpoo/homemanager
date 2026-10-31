@@ -1,5 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
-import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
+import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -173,6 +173,7 @@ test('plan settings and field help open without cluttering the map, and Move use
   await expect(settings.getByRole('listitem')).toHaveCount(3);
   await page.keyboard.press('Escape');
   await select(page);
+  await openDeviceSections(page, ['device-binding']);
   await editor(page).getByRole('button', { name: 'Ayuda: Dispositivo de Home Assistant', exact: true }).click();
   await expect(
     editor(page).getByText(
@@ -221,7 +222,7 @@ test('the device sheet fits the viewport with advanced fields collapsed and uses
     window.testHarness.hass.themes = { darkMode: true };
     el.hass = { ...window.testHarness.hass };
   });
-  expect(await editor(page).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(18, 23, 20)');
+  expect(await editor(page).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(27, 34, 30)');
   await expect(editor(page).getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })).toHaveCSS(
     'background-color',
     'rgb(18, 23, 20)',

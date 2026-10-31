@@ -34,6 +34,8 @@ export class DevicePicker extends HTMLElement {
   private plan: ModelDevice[] = [];
   private selected?: CatalogDevice;
   private query = '';
+  private deviceQuery = '';
+  private advancedQuery = '';
   private unplaced = false;
   private primary = '';
   private additional: string[] = [];
@@ -134,8 +136,11 @@ export class DevicePicker extends HTMLElement {
         readings: [...this.additional],
       });
       this.selected = undefined;
-    } else if (this.advanced) this.advanced = false;
-    else {
+    } else if (this.advanced) {
+      this.advancedQuery = this.query;
+      this.query = this.deviceQuery;
+      this.advanced = false;
+    } else {
       this.close(null);
       return;
     }
@@ -323,8 +328,9 @@ export class DevicePicker extends HTMLElement {
       const device = deviceCatalog(this._hass, this.plan).find(device => device.deviceId === button.dataset.key);
       if (device) this.choose(device);
     } else if (action === 'advanced') {
+      this.deviceQuery = this.query;
       this.advanced = true;
-      this.query = '';
+      this.query = this.advancedQuery;
       this.render();
     } else if (action === 'back') {
       this.goBack();

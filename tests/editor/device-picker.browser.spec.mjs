@@ -1,6 +1,6 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { picker } from '../browser/device-picker-helpers.mjs';
+import { picker, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
 async function start(page) {
@@ -78,6 +78,7 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
     .click();
   await card(page).getByRole('button', { name: 'Temperatura Living', exact: true }).click();
   await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Nombre sin guardar');
+  await openDeviceSections(page, ['device-binding']);
   await editor(page).getByRole('button', { name: 'Vincular dispositivo', exact: true }).click();
   await expect(picker(page).getByRole('region', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
   await cleanText(page);
@@ -137,6 +138,10 @@ test('advanced entity search is the only place showing identifiers and cancellat
   await expect(picker(page).getByText('sensor.energy_meter_6ch_channel_1_power', { exact: true })).toBeVisible();
   await picker(page).getByRole('button', { name: 'Volver', exact: true }).first().click();
   await cleanText(page);
+  await picker(page).getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
+  await expect(picker(page).getByRole('searchbox')).toHaveValue('energy_meter_6ch_channel_1_power');
+  await picker(page).locator('.task-back').click();
+  await cleanText(page);
   await picker(page).getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect(await page.evaluate(() => window.testHarness.card.getDraftConfiguration())).toEqual(before);
 });
@@ -178,6 +183,7 @@ test('selector visual evidence at exact desktop/mobile sizes, including dark mod
       .click();
   await shot('plan');
   await card(page).getByRole('button', { name: 'Medidor de energía', exact: true }).click();
+  await openDeviceSections(page, ['device-binding']);
   await editor(page).getByRole('button', { name: 'Cambiar dispositivo', exact: true }).scrollIntoViewIfNeeded();
   if (mobile)
     await card(page)

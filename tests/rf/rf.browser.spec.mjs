@@ -10,9 +10,10 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
   await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
   await rf.getByRole('button', { name: 'Ventilador de techo', exact: true }).click();
+  expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();
-  await expect(rf.getByText('Todavía no está guardado')).toBeVisible();
+  await expect(rf.getByText('Todavía no está guardado')).toBeHidden();
 
   // One frame is not trusted yet; the reason is on screen.
   await page.evaluate(() => window.rfServer.heard({ frames: 1 }));
@@ -283,7 +284,7 @@ test('speed stops send on tap, including the current stop, and once per drag', a
       onAssume: async isOn => window.assumed.push(isOn),
     });
   });
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('homemanager-task-screen[open]');
   const stops = dialog.locator('.steps');
   await expect(stops.getByRole('button')).toHaveCount(7);
   await expect(stops.getByRole('button', { name: 'Velocidad 2' })).toHaveAttribute('aria-pressed', 'true');

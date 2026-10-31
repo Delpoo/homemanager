@@ -1,5 +1,6 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
+import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const view = page => page.locator('homemanager-insights');
 async function start(page) {
@@ -182,6 +183,7 @@ test('Light, Dark and Auto persist across reloads and override/follow HA across 
   await theme.selectOption('dark');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
+  await openDeviceSections(page, ['device-binding']);
   await page.getByRole('button', { name: 'Cambiar dispositivo', exact: true }).click();
   await expect
     .poll(() =>

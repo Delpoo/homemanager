@@ -353,13 +353,13 @@ test('storage maintenance requires explicit confirmation before purging retained
   const app = page.locator('homemanager-app');
   await openCardMenu(page);
   await app.getByRole('button', { name: 'Almacenamiento', exact: true }).click();
-  const dialog = app.getByRole('dialog');
+  const dialog = app.getByRole('region', { name: 'Almacenamiento', exact: true });
   await expect(dialog.getByText('deleted-home', { exact: false })).toBeVisible();
-  page.once('dialog', confirmation => confirmation.dismiss());
   await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
+  await app.getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect(await page.evaluate(() => window.homeServer.retained.has('deleted-home'))).toBe(true);
-  page.once('dialog', confirmation => confirmation.accept());
   await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
+  await app.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Eliminar historial', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => window.homeServer.retained.has('deleted-home'))).toBe(false);
 });

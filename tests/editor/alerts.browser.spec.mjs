@@ -1,6 +1,7 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { mkdir } from 'node:fs/promises';
+import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
 const alerts = page => editor(page).locator('homemanager-alert-editor');
@@ -19,6 +20,7 @@ async function begin(page, label) {
       exact: true,
     })
     .click();
+  await openDeviceSections(page);
 }
 async function readable(host) {
   const text = await host.evaluate(host => {
@@ -46,6 +48,7 @@ test('plant rules are explicit, editable, preserved across categories and undone
   page,
 }) => {
   await begin(page, 'Planta de prueba');
+  const before = await draft(page);
   const rules = alerts(page);
   await expect(rules.getByRole('switch', { name: 'Humedad del suelo', exact: true })).toBeChecked();
   await expect(rules.getByRole('switch', { name: 'Luz', exact: true })).not.toBeChecked();
@@ -59,7 +62,6 @@ test('plant rules are explicit, editable, preserved across categories and undone
   await editor(page).getByRole('radio', { name: 'Planta', exact: true }).check();
   await expect(rules.locator('[data-rule="0"]').getByLabel('Menos de', { exact: true })).toHaveValue('0');
   await readable(rules);
-  const before = await draft(page);
   await card(page)
     .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
     .click();
@@ -158,12 +160,9 @@ for (const dark of [false, true])
     await shot('device');
     await insights.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
     await card(page).getByRole('button', { name: 'Alertas', exact: true }).click();
-    await expect(card(page).getByRole('dialog')).toBeVisible();
+    await expect(card(page).locator('homemanager-task-screen[open]')).toBeVisible();
     await shot('alerts');
-    await card(page)
-      .getByRole('dialog')
-      .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
-      .click();
+    await card(page).locator('homemanager-task-screen[open] .task-back').click();
     await begin(page, 'Planta de prueba');
     for (const [category, slug] of [
       ['Planta', 'plant'],

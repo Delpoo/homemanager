@@ -172,3 +172,14 @@ Borrador sin guardar, deshacer de un paso al importar, foco y lector de pantalla
 | F-134 | Proponer dispositivos por área | Disponible: Ajustes → Conectar mi casa; propuestas y escrituras explícitas originales | src/editor/connect-home.ts; pruebas connect-home y código conservado |
 | F-135 | Agregar seleccionados dentro del espacio | Disponible: Ajustes → Conectar mi casa; propuestas y escrituras explícitas originales | src/editor/connect-home.ts; pruebas connect-home y código conservado |
 | F-136 | Resolver falta de áreas, duplicados y fallos parciales | Disponible: Ajustes → Conectar mi casa; propuestas y escrituras explícitas originales | src/editor/connect-home.ts; pruebas connect-home y código conservado |
+
+#### Corrección del primer resultado de GitHub — mismo lote 0
+
+El primer intento de Foundation CI se canceló al superar diez minutos después de encontrar pruebas que todavía esperaban diálogos, secciones desplegadas y confirmación del navegador. Las dos versiones de Home Assistant pasaron 244 pruebas cada una y la auditoría informó cero vulnerabilidades. Se conservaron las aserciones de permisos, datos, descarte y persistencia, adaptando la interacción a las páginas y secciones actuales.
+
+Se corrigieron además tres pérdidas de navegación: búsqueda normal y avanzada ahora conservan textos separados; Escape vuelve aunque una actualización haya quitado el foco; el panel nativo conserva el recorrido circular de Tab/Mayús+Tab, incluyendo la nueva vuelta. Un cuadro de confirmación abierto conserva Escape para cancelar, sin cerrar la página de atrás.
+
+- Repetición local: sólo los 23 casos señalados por CI, en escritorio; 21 pasaron tras la primera corrección y los otros dos pasaron al ajustar la comprobación del borrador RF y restaurar el recorrido de foco. Las dos pruebas de Escape sin foco/confirmación concurrente también pasan. Total del lote: 65 casos únicos de escritorio aprobados, sin suite completa local.
+- Aceptación: siguen cumplidos los seis puntos anteriores; la conservación de la búsqueda avanzada y el foco tienen ahora regresión específica. Ninguna función se quita y no cambia contrato/integración.
+- Capturas: las 88 imágenes siguen representando el diseño final; esta corrección cambia navegación y comprobaciones, sin alterar su representación inicial.
+- Historial: cierre E02 y corrección E02 posterior al primer resultado de CI; ambos en la misma rama y PR, sin reescribir la historia publicada. Resultado vigente de CI en el PR #52.

@@ -216,7 +216,12 @@ test('native dialog traps keyboard focus, closes locally with Escape and restore
     control = page.getByRole('button', { name: 'Ejecutar control sintético', exact: true });
   await expect(close).toBeFocused();
   await page.keyboard.press('Shift+Tab');
+  const back = page.getByRole('button', { name: 'Volver', exact: true });
+  await expect(back).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(control).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(back).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(close).toBeFocused();
   await page.keyboard.press('Escape');

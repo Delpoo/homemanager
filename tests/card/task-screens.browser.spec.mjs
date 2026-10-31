@@ -202,7 +202,9 @@ test('native controls replace the plan and Back restores the trigger', async ({ 
   await expect(native.locator('homemanager-task-screen')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await noOverflow(page);
-  await native.locator('.task-back').click();
+  // A live update may have removed the focused control; Escape still goes back.
+  await native.locator('.task-back').evaluate(button => button.blur());
+  await page.keyboard.press('Escape');
   await expect(native).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });

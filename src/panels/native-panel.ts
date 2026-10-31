@@ -261,6 +261,7 @@ export class HomeManagerPanel extends HTMLElement {
       }
     });
     this.dialog.addEventListener('close', () => this.finish(), { once: true });
+    this.dialog.addEventListener('keydown', event => this.trapFocus(event));
     this.renderState();
     this.refresh();
     this.dialog.show(this.root, title);

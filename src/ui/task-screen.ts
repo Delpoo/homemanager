@@ -4,6 +4,25 @@ import { confirmDialog } from './confirm-dialog.js';
 
 const stacks = new WeakMap<ShadowRoot, TaskScreen[]>();
 const installed = new WeakSet<ShadowRoot>();
+const visibleScreens = new Set<TaskScreen>();
+// Controls can release focus while a command updates. Escape must still return
+// from the current page, without navigating behind a native confirmation.
+window.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || event.defaultPrevented) return;
+  if (
+    event
+      .composedPath()
+      .some(node => node instanceof HTMLDialogElement || (node as Element).localName === 'homemanager-icon-picker')
+  )
+    return;
+  const screen = [...visibleScreens]
+    .reverse()
+    .find(screen => screen.open && screen.isConnected && getComputedStyle(screen).visibility !== 'hidden');
+  if (!screen) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void screen.back();
+});
 type Field = { key: string; value: string; checked?: boolean };
 type Snapshot = { fields: Field[]; scroll: number; details: boolean[]; changed: boolean };
 type ValueField = HTMLElement & { value: string; checked?: boolean };
@@ -187,6 +206,7 @@ export class TaskScreen extends HTMLElement {
       branch = parent;
     }
     this.setAttribute('open', '');
+    visibleScreens.add(this);
     this.inert = false;
     this.style.visibility = 'visible';
     this.removeAttribute('aria-hidden');
@@ -211,6 +231,7 @@ export class TaskScreen extends HTMLElement {
     this.restore();
   }
   private restore(): void {
+    visibleScreens.delete(this);
     for (const { element, inert, visibility, aria } of this.covered) {
       element.inert = inert;
       element.style.visibility = visibility;
