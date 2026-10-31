@@ -1,5 +1,6 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'Los cambios de esta pantalla todavía no se aplicaron.': 'The changes on this screen have not been applied yet.',
   Avisos: 'Alerts',
   'Ampliar ficha': 'Expand editor',
   'Reducir ficha': 'Collapse editor',
