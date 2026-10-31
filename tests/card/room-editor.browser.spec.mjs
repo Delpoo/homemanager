@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: Espacio A (living) on the left; B (kitchen) top right; C (office) bottom right.
 const card = page => page.locator('homemanager-card');
@@ -17,7 +17,7 @@ const openSpace = async (page, id) => {
     .locator('.rooms')
     .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
     .click();
-  const dialog = page.getByRole('dialog', { name: label, exact: true });
+  const dialog = page.getByRole('region', { name: label, exact: true });
   await expect(dialog).toBeVisible();
   return dialog;
 };

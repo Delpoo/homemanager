@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: Espacio A (living) on the left; B (kitchen) top right; C (office) bottom right.
 const card = page => page.locator('homemanager-card');

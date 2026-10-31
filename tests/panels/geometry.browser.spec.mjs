@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Deliberately synthetic geometry. These tests contain no instance plan/data.
 const fixture = '/tests/browser/fixtures/card.html';

@@ -1,6 +1,6 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { readFile } from 'node:fs/promises';
 
 const fixture = '/tests/browser/fixtures/card.html';
@@ -23,6 +23,11 @@ async function begin(page) {
 }
 async function select(page, label = lightLabel) {
   await action(page, label).click();
+  for (const id of ['device-binding', 'device-controls-section']) {
+    const disclosure = page.locator(`homemanager-editor #${id}`);
+    if ((await disclosure.isVisible()) && !(await disclosure.evaluate(node => node.open)))
+      await disclosure.locator(':scope > summary').click();
+  }
 }
 async function setX(page, x) {
   if (
@@ -33,9 +38,9 @@ async function setX(page, x) {
   )
     await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Posición X', { exact: true }).fill(String(x));
-  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closes the sheet.
-  await expect(page.getByRole('button', { name: 'Guardar dispositivo', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })).toHaveCount(0);
 }
 async function drag(page, locator, dx = 35, dy = 25) {
   await locator.hover();
@@ -63,14 +68,14 @@ test('primary action and native detail are separate and accepted commands do not
   await action(page, lightLabel).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
   await openPanel(page, lightLabel);
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Control sintético' })).toBeVisible();
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(1);
   await page.getByRole('button', { name: 'Alternar luz de prueba', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(2);
   expect((await backend(page)).catalog.devices[0].state).toEqual({ value: 'unknown', confidence: 'unknown' });
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
 });
 
 test('RF fan opens a native local panel and invokes only an explicit HA script', async ({ page }) => {
@@ -115,13 +120,19 @@ test('fixed devices require the explicit correction action before dragging', asy
   await begin(page);
   await select(page, fanLabel);
   const before = (await draft(page)).catalog.devices[1];
-  await page.locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page
+    .locator('homemanager-editor')
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await drag(page, action(page, fanLabel), 25, 15);
   expect((await draft(page)).catalog.devices[1].position).toEqual(before.position);
   await select(page, fanLabel);
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByRole('button', { name: 'Corregir ubicación fija', exact: true }).click();
-  await page.locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page
+    .locator('homemanager-editor')
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await drag(page, action(page, fanLabel), 25, 15);
   const after = (await draft(page)).catalog.devices[1];
   expect(after.position).not.toEqual(before.position);
@@ -170,8 +181,8 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await page.getByLabel('Acción de control 1', { exact: true }).selectOption('synthetic-spare-toggle');
   await page.getByRole('button', { name: 'Aplicar panel', exact: true }).click();
   await page
-    .getByRole('dialog', { name: 'Ajustes del plano' })
-    .getByRole('button', { name: 'Cerrar', exact: true })
+    .getByRole('region', { name: 'Ajustes del plano' })
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await select(page);
   await page.getByText('Más opciones', { exact: true }).click();
@@ -181,7 +192,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
   await sheet.getByLabel('Al tocar el símbolo', { exact: true }).selectOption({ label: 'Pulsador' });
   await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
-  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closed the sheet; "Más opciones" stays open when it is opened again.
   await select(page);
   await page.getByText('Fuente de estado', { exact: true }).click();
@@ -208,7 +219,7 @@ test('new unbound icons can be added and removed entirely through the editor', a
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
   await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
-  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   await expect
     .poll(async () => Boolean((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added')))
     .toBe(true);
@@ -306,9 +317,9 @@ test('native panels support keyboard opening, Escape and return focus', async ({
   const button = action(page, lightLabel);
   await button.focus();
   await page.keyboard.press('Shift+Enter');
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
   await expect(button).toBeFocused();
 });
 
@@ -398,7 +409,7 @@ test('normal and editing layouts fit the viewport without horizontal page overfl
   expect(bounds.height).toBeGreaterThanOrEqual(44);
   await begin(page);
   await select(page);
-  await page.getByRole('button', { name: 'Guardar dispositivo', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).scrollIntoViewIfNeeded();
   expect(await fits()).toBe(true);
   const field = await page.getByRole('button', { name: 'Vincular dispositivo', exact: true }).boundingBox();
   expect(field.width).toBeGreaterThan(100);

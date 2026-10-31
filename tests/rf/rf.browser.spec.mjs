@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for the RF websocket API of custom_components/homemanager
 // (rf_websocket.py, exercised against real HA in tests/integration/test_rf.py).
@@ -142,7 +142,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await expect(remote.getByRole('button')).toHaveCount(6);
   await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   await rf.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const editor = rf.getByRole('dialog', { name: 'Agregar elemento' });
+  const editor = rf.getByRole('region', { name: 'Agregar elemento' });
   await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
   await editor.getByLabel('Paso 1', { exact: true }).selectOption('v1');
   await editor.getByRole('button', { name: 'Guardar', exact: true }).click();

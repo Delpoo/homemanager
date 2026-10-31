@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 
@@ -19,7 +19,7 @@ async function section(page, title) {
       await editor(page).locator('#device-options > summary').click();
     await editor(page).locator('summary').filter({ hasText: title }).click();
     return;
-  } else if (!(await editor(page).getByRole('dialog', { name: 'Ajustes del plano' }).isVisible())) {
+  } else if (!(await editor(page).getByRole('region', { name: 'Ajustes del plano' }).isVisible())) {
     await button(page, 'Ajustes del plano').click();
   }
   await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
@@ -323,7 +323,7 @@ test('SVG import sanitizes dangerous content and changed viewBox requires a back
   await expect(button(page, 'Aplicar importación al borrador')).toBeEnabled();
   await button(page, 'Aplicar importación al borrador').click();
   await page
-    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('region', { name: 'Revisar cambios', exact: true })
     .getByRole('button', { name: 'Importar sólo el plano', exact: true })
     .click();
   const content = (await current(page)).architecture.content;
@@ -392,7 +392,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   ]);
   // Each space is a row; tapping it opens its window.
   await button(page, 'Editar Espacio A').click();
-  let space = editor(page).getByRole('dialog', { name: 'Espacio A', exact: true });
+  let space = editor(page).getByRole('region', { name: 'Espacio A', exact: true });
   await space.getByLabel('Nombre del espacio', { exact: true }).fill('Estar');
   await space.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await current(page)).rooms[0]).toMatchObject({ id: 'living', label: 'Estar' });
@@ -407,7 +407,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   ).toBeVisible();
   // Removing a space with devices asks where they go; they are never deleted.
   await button(page, 'Editar Espacio B').click();
-  space = editor(page).getByRole('dialog', { name: 'Espacio B', exact: true });
+  space = editor(page).getByRole('region', { name: 'Espacio B', exact: true });
   await space.getByLabel('Al quitar este espacio', { exact: true }).selectOption('unassign');
   await space.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect
@@ -420,7 +420,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   });
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
   // Applying a space's window already closed plan settings.
-  await expect(editor(page).getByRole('dialog', { name: 'Ajustes del plano' })).toHaveCount(0);
+  await expect(editor(page).getByRole('region', { name: 'Ajustes del plano' })).toHaveCount(0);
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',
@@ -448,7 +448,7 @@ test('replacing the plan detects zones and keeps devices on the same drawing poi
   await downloading;
   await button(page, 'Aplicar importación al borrador').click();
   await page
-    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('region', { name: 'Revisar cambios', exact: true })
     .getByRole('button', { name: 'Importar sólo el plano', exact: true })
     .click();
   const light = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-light');

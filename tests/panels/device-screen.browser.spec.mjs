@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
 const card = page => page.locator('homemanager-card');
 const view = page => page.locator('homemanager-insights');
@@ -78,16 +78,22 @@ test('symbols open sensor, equipment and infrastructure screens; actuator tap pr
   await start(page);
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Dormitorio', exact: true }).click();
   await card(page).getByRole('button', { name: 'Aire Dormitorio', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Aire Dormitorio', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Infraestructura', exact: true }).click();
   await card(page).getByRole('button', { name: 'Encuadrar Balcón', exact: true }).click();
   await card(page).getByRole('button', { name: 'Puente de prueba', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Puente de prueba', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Living', exact: true }).click();
   await card(page).getByRole('button', { name: 'Luz Living', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
@@ -295,20 +301,28 @@ test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup'
   await shot('now');
   await openMeter(page);
   await shot('meter');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Dormitorio', exact: true }).click();
   await card(page).getByRole('button', { name: 'Aire Dormitorio', exact: true }).click();
   await shot('climate');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Living', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await shot('sensor');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Infraestructura', exact: true }).click();
   await card(page).getByRole('button', { name: 'Encuadrar Balcón', exact: true }).click();
   await card(page).getByRole('button', { name: 'Puente de prueba', exact: true }).click();
   await shot('infrastructure');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
   await card(page).locator('.hm-menu > summary').click();
   await page.locator('homemanager-theme-choice').getByRole('combobox', { name: 'Apariencia' }).selectOption('dark');
@@ -316,12 +330,16 @@ test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup'
   await card(page).locator('.hm-menu > summary').click();
   await openMeter(page);
   await shot('meter-dark');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await now(page);
   await shot('now-dark');
   await view(page).locator('[data-action=device][data-key=leak]').click();
   await shot('alert');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Entrada', exact: true }).click();
   await now(page);
   await shot('empty');

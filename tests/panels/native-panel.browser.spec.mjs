@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const fixture = '/tests/browser/fixtures/card.html';
 async function openSynthetic(page, options = {}) {
@@ -193,7 +193,7 @@ test('pending actions block repeated execution and display an execution error wi
   await page.evaluate(() => window.syntheticPanelResolve());
   await expect(button).toBeEnabled();
   await page.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
   await openSynthetic(page, { reject: true });
   await page.getByRole('button', { name: 'Ejecutar control sintético', exact: true }).click();
   await expect(page.locator('homemanager-panel').getByRole('status')).toHaveText('Fallo sintético de ejecución.');
@@ -212,7 +212,7 @@ test('native dialog traps keyboard focus, closes locally with Escape and restore
   await page.keyboard.press('Tab');
   await expect(close).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Abrir panel sintético', exact: true })).toBeFocused();
   expect(await page.evaluate(() => window.syntheticPanelCalls)).toEqual([]);
   await expect(page.locator('homemanager-panel')).toHaveCount(0);
@@ -221,11 +221,11 @@ test('native dialog traps keyboard focus, closes locally with Escape and restore
 test('button close and programmatic close affect only the local dialog', async ({ page }) => {
   await openSynthetic(page);
   await page.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Abrir panel sintético', exact: true })).toBeFocused();
   await openSynthetic(page);
   await page.evaluate(() => window.syntheticPanel.close());
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).not.toBeVisible();
   expect(await page.evaluate(() => window.syntheticPanelCalls)).toEqual([]);
   expect(await page.evaluate(() => window.testHarness?.calls ?? [])).toEqual([]);
 });
@@ -242,7 +242,7 @@ test('panel labels are text only and controls fit mobile with accessible touch t
   const button = page.getByRole('button', { name: '<script>synthetic</script>', exact: true });
   await expect(button).toBeVisible();
   expect(await page.locator('homemanager-panel').locator('img,script').count()).toBe(0);
-  const bounds = await page.getByRole('dialog').boundingBox(),
+  const bounds = await page.locator('homemanager-task-screen[open]').boundingBox(),
     touch = await button.boundingBox(),
     viewport = page.viewportSize();
   expect(bounds.x).toBeGreaterThanOrEqual(0);

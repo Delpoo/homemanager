@@ -1,5 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for custom_components/homemanager. It mirrors the websocket
 // contract exercised against real Home Assistant in tests/integration/test_init.py:
@@ -121,7 +121,7 @@ test('New home can be cancelled or left through Plan without losing the previous
   await homeCard.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await homeCard.getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await homeCard.getByLabel('Nombre del dispositivo', { exact: true }).fill('Borrador conservado');
-  await homeCard.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await homeCard.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   await page.evaluate(() => {
     window.previousHomeCard = document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card');
   });
@@ -179,7 +179,9 @@ test('saving goes through the revision check and a conflict keeps the draft', as
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz guardada');
-  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
   const saved = await page.evaluate(() => ({
@@ -194,7 +196,9 @@ test('saving goes through the revision check and a conflict keeps the draft', as
   // Another editor saves while this draft is open (saving the sheet closed it).
   await card(page).getByRole('button', { name: 'Luz guardada', exact: true }).click();
   await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Mi versión');
-  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   await page.evaluate(() => {
     const other = structuredClone(window.homeServer.homes.get('casa').configuration);
     other.catalog.devices[0].display.label = 'Versión remota';
@@ -237,8 +241,8 @@ test('a missing home is created by the first administrator save', async ({ page 
   await download;
   await card(page).getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
   await card(page)
-    .getByRole('dialog', { name: 'Ajustes del plano' })
-    .getByRole('button', { name: 'Cerrar', exact: true })
+    .getByRole('region', { name: 'Ajustes del plano' })
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado en Home Assistant');
@@ -458,13 +462,16 @@ test('Revisar takes a conflicting drawing through the import review, and saving 
   await putFile(page, SHA_A, NO_ZONE);
   await look(page);
   await note(page).getByRole('button', { name: 'Revisar', exact: true }).click();
-  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  const review = page.getByRole('region', { name: 'Revisar cambios', exact: true });
   await expect(review).toBeVisible();
   await expect(note(page)).toBeHidden();
   await review.getByRole('button', { name: 'Importar sólo el plano', exact: true }).click();
   // Reviewed but not saved: the version is still open.
   expect(await seen(page)).toBe(null);
-  await card(page).locator('homemanager-editor').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await card(page)
+    .locator('homemanager-editor')
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado');
   expect((await stored(page)).configuration.architecture.content).toContain('part-office');
@@ -478,7 +485,9 @@ test('a file that is not a drawing changes nothing, says so, and stays closed', 
   await look(page);
   await expect(note(page)).toContainText('no se pudo usar');
   expect(await stored(page)).toEqual(before);
-  await note(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await note(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await look(page);
   await expect(note(page)).toBeHidden();
 });
@@ -516,10 +525,10 @@ test('plan settings say where the file goes and offer a version that is still op
   await expect(box).toContainText('/config/homemanager/casa.svg');
   await expect(box).toContainText('Todavía no hay ningún archivo');
   await putFile(page, SHA_A, NO_ZONE);
-  await editor.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await editor.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
   await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await editor.locator('[data-settings="import-section"]').click();
   await expect(box).toContainText('sin aplicar');
   await box.getByRole('button', { name: 'Revisar', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Revisar cambios', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Revisar cambios', exact: true })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { picker } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Device controls (contract V2, optional): what a tap runs, the controls of the
 // panel and the ones pinned next to the symbol. RF data is a synthetic stand-in
@@ -135,7 +135,7 @@ test('holding opens the panel with the device controls, and the next tap is not 
   await configure(page, cycle);
   await hold(page, 'Luz de prueba');
 
-  const panel = page.getByRole('dialog');
+  const panel = page.locator('homemanager-task-screen[open]');
   await expect(panel.getByText('Controles', { exact: true })).toBeVisible();
   // In the panel every step of the cycle can be chosen directly.
   await panel.getByRole('button', { name: 'Apagar' }).click();
@@ -159,7 +159,7 @@ test('a 0.5 plan keeps working: its primary action is the tap and its quick acti
   await button(page, 'Luz de prueba').click();
   await expect.poll(() => calls(page)).toEqual(['light.toggle']);
   await button(page, 'Luz de prueba').click({ button: 'right' });
-  const panel = page.getByRole('dialog');
+  const panel = page.locator('homemanager-task-screen[open]');
   await panel.getByRole('button', { name: 'Alternar luz', exact: true }).click();
   await expect.poll(() => calls(page)).toEqual(['light.toggle', 'light.toggle']);
 });
@@ -270,8 +270,8 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await editor.getByLabel('Acción de Pulsador', { exact: true }).selectOption({ label: '1H' });
   await editor.getByRole('button', { name: 'Mostrar en el plano' }).last().click();
   await editor.getByRole('button', { name: 'Grande', exact: true }).click();
-  await editor.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
-  await expect(editor.getByRole('button', { name: 'Guardar dispositivo', exact: true })).toHaveCount(0);
+  await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
+  await expect(editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })).toHaveCount(0);
   const device = (await draft(page)).catalog.devices[0];
   expect(device.display).toMatchObject({ size: 'l', pinned: ['pulsador'] });
   expect(device.bindings.tap).toBe('ciclo');
@@ -298,7 +298,7 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   // Opening and saving again creates no duplicate actions.
   const actions = Object.keys((await draft(page)).actions).length;
   await button(page, 'Luz de prueba').click();
-  await editor.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   expect(Object.keys((await draft(page)).actions).length).toBe(actions);
   // Editing only executes nothing.
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
@@ -310,7 +310,7 @@ test('a control left without its actions is reported instead of being saved half
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
   await editor.getByRole('button', { name: 'Selector', exact: true }).click();
-  await editor.getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   await expect(editor.locator('.status')).toContainText('Completá las acciones de: Selector');
   expect((await draft(page)).catalog.devices[0].bindings.controls).toBeUndefined();
 });
@@ -340,5 +340,5 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   // Esc on a chooser does not close the whole sheet.
   await editor.getByRole('button', { name: 'Icono del dispositivo', exact: true }).click();
   await page.keyboard.press('Escape');
-  await expect(editor.getByRole('button', { name: 'Guardar dispositivo', exact: true })).toBeVisible();
+  await expect(editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })).toBeVisible();
 });

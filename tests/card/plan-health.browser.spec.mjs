@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
@@ -12,7 +12,7 @@ const begin = async page => {
 const openDiagnosis = async page => {
   await button(page, 'Ajustes del plano').click();
   await editor(page).locator('[data-settings="health-section"]').click();
-  return editor(page).getByRole('dialog', { name: 'Ajustes del plano' });
+  return editor(page).getByRole('region', { name: 'Ajustes del plano' });
 };
 
 test.beforeEach(async ({ page }) => {
@@ -66,7 +66,7 @@ test('the diagnosis says which plan is saved, lists each problem, and fixes the 
   expect(fixed.rooms.some(room => room.id === 'kitchen')).toBe(false);
   expect(fixed.catalog.devices.length).toBe(before.catalog.devices.length);
   await expect(settings.locator('.health-row').filter({ hasText: 'Pasillo viejo' })).toHaveCount(0);
-  await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await settings.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
   await button(page, 'Deshacer').click();
   expect(await draft(page)).toEqual(before);
 });

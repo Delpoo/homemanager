@@ -1,6 +1,6 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Spatial interaction and capability-aware panels, on the synthetic harness.
 const fixture = '/tests/browser/fixtures/card.html';
@@ -70,7 +70,7 @@ test('a long press opens the device panel without running its primary action', a
   await page.mouse.down();
   await page.waitForTimeout(650);
   await page.mouse.up();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('homemanager-task-screen[open]')).toBeVisible();
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
@@ -85,7 +85,7 @@ test('panels show controls for the real capabilities and only report commands as
     window.testHarness.card.hass = { ...hass };
   });
   await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click({ button: 'right' });
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('homemanager-task-screen[open]');
   await expect(dialog.getByRole('switch', { name: 'Encendido' })).toHaveAttribute('aria-checked', 'true');
   const brightness = dialog.getByRole('slider', { name: 'Brillo' });
   await expect(brightness).toHaveValue('50');
@@ -152,8 +152,8 @@ test('devices at the same spot are offered as a list instead of an endless zoom'
     window.testHarness.card.hass = window.testHarness.hass;
   });
   await card(page).locator('.cluster').click();
-  const list = page.getByRole('dialog', { name: 'Dispositivos en este lugar' });
+  const list = page.getByRole('region', { name: 'Dispositivos en este lugar' });
   await expect(list.getByRole('button', { name: /Gemelo/ })).toBeVisible();
   await list.getByRole('button', { name: /Luz de prueba/ }).click();
-  await expect(page.getByRole('dialog')).toContainText('Luz de prueba');
+  await expect(page.locator('homemanager-task-screen[open]')).toContainText('Luz de prueba');
 });

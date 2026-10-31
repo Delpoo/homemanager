@@ -1,5 +1,5 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
   await page.waitForFunction(() => window.testHarnessReady);
