@@ -541,6 +541,7 @@ function chooseMoves(
       .join('')}</div>`,
     uiButton(t('Volver'), 'back') + uiButton(t('Aplicar'), 'apply', 'primary'),
   );
+  customElements.upgrade(template.content);
   const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   return new Promise(resolve => {
     let result: DeviceMove[] | null = null;
@@ -561,9 +562,10 @@ function chooseMoves(
         );
         result = moves.filter(move => kept.has(move.deviceId));
       }
-      dialog.close();
+      dialog.close(action === 'apply' ? 'applied' : '');
     });
     card.root.append(dialog);
+    dialog.resumeKey = 'zone-moves:' + JSON.stringify(edit.draft);
     dialog.show(card.root);
   });
 }
@@ -581,6 +583,7 @@ export function offerFirstSpace(this: HomeManagerCard): void {
     `<p>${e(t('Dibujá cada espacio con rectángulos sobre el plano y ponele nombre. Las zonas se cambian cuando quieras.'))}</p>`,
     uiButton(t('Más tarde'), 'later') + uiButton(t('Dibujar el primero'), 'draw', 'primary'),
   );
+  customElements.upgrade(template.content);
   const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
   dialog.addEventListener('click', event => {

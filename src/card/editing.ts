@@ -16,12 +16,20 @@ function commitPreview(card: HomeManagerCard): void {
   card.history.push(before);
   if (card.history.length > 40) card.history.shift();
   card.future = [];
+  card.updateControls();
 }
 export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
   if (this.editing) {
     if (this.dirty) {
-      if (!(await confirmDialog(this.root, { title: t('¿Descartar los cambios?'), message: t('Guardá o descartá los cambios antes de salir del editor.'), confirm: t('Descartar cambios') }))) return;
+      if (
+        !(await confirmDialog(this.root, {
+          title: t('¿Descartar los cambios?'),
+          message: t('Guardá o descartá los cambios antes de salir del editor.'),
+          confirm: t('Descartar cambios'),
+        }))
+      )
+        return;
       this.discard();
     }
     this.editing = false;
@@ -183,7 +191,11 @@ export function positionEditor(this: HomeManagerCard) {
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
-  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker') ? 'link' : this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)') ? 'page' : '';
+  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker')
+    ? 'link'
+    : this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)')
+      ? 'page'
+      : '';
   this.editor?.setNarrow(this.getBoundingClientRect().width <= 650);
   host.style.removeProperty('left');
   host.style.removeProperty('top');
@@ -271,11 +283,19 @@ export async function save(this: HomeManagerCard, reviewed = false) {
     this.saved!.catalog.devices.some(old => old.id === d.id && old.roomId !== d.roomId),
   );
   if (changes.length && !reviewed) {
-    if (await confirmDialog(this.root, {
-      title: t('Revisar cambios de habitación'),
-      message: changes.map(d => d.display.label).join(', ') + '\n' + t('Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.'),
-      confirm: t('Guardar ubicación visual'),
-    })) await this.save(true);
+    if (
+      await confirmDialog(this.root, {
+        title: t('Revisar cambios de habitación'),
+        message:
+          changes.map(d => d.display.label).join(', ') +
+          '\n' +
+          t(
+            'Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.',
+          ),
+        confirm: t('Guardar ubicación visual'),
+      })
+    )
+      await this.save(true);
     return;
   }
   try {

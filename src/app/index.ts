@@ -239,7 +239,14 @@ export class HomeManagerApp extends HTMLElement {
           button.textContent = t('Eliminar historial');
           button.type = 'button';
           button.addEventListener('click', async () => {
-            if (!(await confirmDialog(this.root, { title: t('Eliminar historial'), message: t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }), trigger: button }))) return;
+            if (
+              !(await confirmDialog(this.root, {
+                title: t('Eliminar historial'),
+                message: t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }),
+                trigger: button,
+              }))
+            )
+              return;
             button.disabled = true;
             try {
               await hass.callWS!({ type: 'homemanager/history/purge', home_id: homeId, confirm: true });

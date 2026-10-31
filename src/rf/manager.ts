@@ -61,7 +61,9 @@ export class HomeManagerRf extends HTMLElement {
   private learning = false;
   private widgetDraft: WidgetDraft | null = null;
   private widgetSuspended = false;
+  private widgetBaseline = '';
   private learnSuspended = false;
+  private learnOwner: string | null = null;
   private message = '';
   private failed = false;
   private loaded = false;
@@ -180,7 +182,10 @@ export class HomeManagerRf extends HTMLElement {
     }
     const editor = this.root.querySelector<TaskScreen>('homemanager-task-screen.editor');
     if (editor) {
-      editor.onBack = () => { this.widgetSuspended = true; this.render(); };
+      editor.onBack = () => {
+        this.widgetSuspended = true;
+        this.render();
+      };
       editor.show(this.root);
     }
     restoreFocus();
@@ -538,6 +543,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private open(remoteId: string): void {
+    if (this.selected !== remoteId) this.closeLearn(false);
     this.selected = remoteId;
     this.draft = null;
     this.show('remote');
@@ -605,12 +611,22 @@ export class HomeManagerRf extends HTMLElement {
             isNew: true,
             error: '',
           };
+          this.widgetBaseline = JSON.stringify(this.widgetDraft.widget);
           break;
         case 'add-slot':
           this.widgetDraft?.widget.buttons.push('');
           break;
         case 'widget-cancel':
-          if (this.widgetDraft && !(await confirmDialog(this.root, { title: t('¿Descartar los cambios?'), message: t('Los cambios de esta pantalla todavía no se aplicaron.'), confirm: t('Descartar cambios') }))) break;
+          if (
+            this.widgetDraft &&
+            JSON.stringify(this.widgetDraft.widget) !== this.widgetBaseline &&
+            !(await confirmDialog(this.root, {
+              title: t('¿Descartar los cambios?'),
+              message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
+              confirm: t('Descartar cambios'),
+            }))
+          )
+            break;
           this.widgetDraft = null;
           break;
         case 'widget-save':
@@ -648,13 +664,14 @@ export class HomeManagerRf extends HTMLElement {
 
   private startLearn(): void {
     const learn = this.learn;
-    if (this.learnSuspended) {
+    if (this.learnSuspended && this.learnOwner === this.selected) {
       this.learnSuspended = false;
       this.learning = true;
       learn.resume();
       return;
     }
     learn.hass = this._hass;
+    this.learnOwner = this.selected;
     learn.transmitters = this.transmitters;
     learn.remote = this.remote() ?? null;
     learn.draft = learn.remote ? null : this.draft;
@@ -664,7 +681,8 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private closeLearn(render = true): void {
-    if (!this.learning) return;
+    if (!this.learning && !this.learnSuspended) return;
+    this.learnSuspended = false;
     this.learn.stop();
     this.learning = false;
     if (this.draft && !this.remote()) {
@@ -741,7 +759,10 @@ export class HomeManagerRf extends HTMLElement {
     const remote = this.remote();
     const widget = remote && layoutOf(remote).find(item => item.id === id);
     if (!widget) return;
-    if (this.widgetDraft?.widget.id !== id) this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
+    if (this.widgetDraft?.widget.id !== id) {
+      this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
+      this.widgetBaseline = JSON.stringify(widget);
+    }
     this.widgetSuspended = false;
     this.render();
   }

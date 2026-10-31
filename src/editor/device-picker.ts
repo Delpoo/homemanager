@@ -46,7 +46,9 @@ export class DevicePicker extends HTMLElement {
     super();
     useComponents(this.root);
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(':host{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:15}.task-body{padding:0;display:flex;min-height:0}.k-pane{display:flex;width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;flex-direction:column}.pane-head{flex-wrap:wrap;flex-shrink:0}.pane-head h2{display:none}.pane-body{flex:1;min-height:0}.pane-foot{flex-shrink:0;flex-wrap:wrap}.k-row{min-width:0}.k-row .txt{min-width:0;overflow-wrap:anywhere}.k-row .val{max-width:35%;overflow-wrap:anywhere}.k-btn{max-width:100%;white-space:normal}');
+    sheet.replaceSync(
+      ':host{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:15}.task-body{padding:0;display:flex;min-height:0}.k-pane{display:flex;width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;flex-direction:column}.pane-head{flex-wrap:wrap;flex-shrink:0}.pane-head h2{display:none}.pane-body{flex:1;min-height:0}.pane-foot{flex-shrink:0;flex-wrap:wrap}.k-row{min-width:0}.k-row .txt{min-width:0;overflow-wrap:anywhere}.k-row .val{max-width:35%;overflow-wrap:anywhere}.k-btn{max-width:100%;white-space:normal}',
+    );
     this.root.adoptedStyleSheets = [...this.root.adoptedStyleSheets, sheet];
     this.page.onBack = () => this.goBack();
     this.root.addEventListener('click', this.onClick);
@@ -126,10 +128,17 @@ export class DevicePicker extends HTMLElement {
   }
   private goBack(): void {
     if (this.selected) {
-      this.selections.set(this.selected.deviceId, { deviceId: this.selected.deviceId, entityId: this.primary, readings: [...this.additional] });
+      this.selections.set(this.selected.deviceId, {
+        deviceId: this.selected.deviceId,
+        entityId: this.primary,
+        readings: [...this.additional],
+      });
       this.selected = undefined;
     } else if (this.advanced) this.advanced = false;
-    else { this.close(null); return; }
+    else {
+      this.close(null);
+      return;
+    }
     this.render();
   }
   private render(): void {

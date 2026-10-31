@@ -4,8 +4,10 @@ import { confirmDialog } from './confirm-dialog.js';
 
 const stacks = new WeakMap<ShadowRoot, TaskScreen[]>();
 const installed = new WeakSet<ShadowRoot>();
-type Field = { value: string; checked?: boolean };
-const drafts = new WeakMap<ShadowRoot, Map<string, Field[]>>();
+type Field = { key: string; value: string; checked?: boolean };
+type Snapshot = { fields: Field[]; scroll: number; details: boolean[]; changed: boolean };
+type ValueField = HTMLElement & { value: string; checked?: boolean };
+const drafts = new WeakMap<ShadowRoot, Map<string, Snapshot>>();
 type Covered = { element: HTMLElement; inert: boolean; visibility: string; aria: string | null };
 
 /** A task replaces the current page. Its predecessor stays mounted, including
@@ -48,26 +50,55 @@ export class TaskScreen extends HTMLElement {
     }
   }
   async cancel(): Promise<void> {
-      if (this.guardChanges && this.changed && this.owner && !(await confirmDialog(this.owner, {
+    if (
+      this.guardChanges &&
+      this.changed &&
+      this.owner &&
+      !(await confirmDialog(this.owner, {
         title: t('¿Descartar los cambios?'),
         message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
         confirm: t('Descartar cambios'),
-      }))) return;
-      this.forget();
-      if (this.onBack) this.onBack();
-      else this.close('discarded');
+      }))
+    )
+      return;
+    this.forget();
+    if (this.onBack) this.onBack();
+    else this.close('discarded');
   }
   forget(): void {
     this.applied = true;
     if (this.owner && this.resumeKey) drafts.get(this.owner)?.delete(this.resumeKey);
   }
-  private fields(): (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[] {
-    return [...this.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:not([type=file]),select,textarea')];
+  private fields(): [string, ValueField][] {
+    const counts = new Map<string, number>();
+    return [...this.querySelectorAll<ValueField>('input:not([type=file]),select,textarea,homemanager-icon-picker')].map(
+      field => {
+        const key =
+          field.localName +
+          ':' +
+          (field.getAttribute('name') ?? field.id) +
+          ':' +
+          JSON.stringify(field.dataset) +
+          (field instanceof HTMLInputElement && ['radio', 'checkbox'].includes(field.type) ? ':' + field.value : '');
+        const count = counts.get(key) ?? 0;
+        counts.set(key, count + 1);
+        return [key + ':' + count, field];
+      },
+    );
   }
   private remember(): void {
     if (!this.owner || !this.resumeKey || this.applied) return;
-    const saved = drafts.get(this.owner) ?? new Map<string, Field[]>();
-    saved.set(this.resumeKey, this.fields().map(field => ({ value: field.value, ...(field instanceof HTMLInputElement ? { checked: field.checked } : {}) })));
+    const saved = drafts.get(this.owner) ?? new Map<string, Snapshot>();
+    saved.set(this.resumeKey, {
+      fields: this.fields().map(([key, field]) => ({
+        key,
+        value: field.value,
+        ...(field instanceof HTMLInputElement ? { checked: field.checked } : {}),
+      })),
+      scroll: this.querySelector('.task-body')?.scrollTop ?? 0,
+      details: [...this.querySelectorAll('details')].map(detail => detail.open),
+      changed: this.changed,
+    });
     drafts.set(this.owner, saved);
   }
   show(root: ShadowRoot, title?: string): void {
@@ -75,12 +106,18 @@ export class TaskScreen extends HTMLElement {
     this.owner = root;
     if (this.resumeKey) {
       const saved = drafts.get(root)?.get(this.resumeKey);
-      if (saved) this.fields().forEach((field, index) => {
-        const value = saved[index];
-        if (!value) return;
-        field.value = value.value;
-        if (field instanceof HTMLInputElement && value.checked !== undefined) field.checked = value.checked;
-      });
+      if (saved) {
+        this.changed = saved.changed;
+        this.fields().forEach(([key, field]) => {
+          const value = saved.fields.find(item => item.key === key);
+          if (!value) return;
+          field.value = value.value;
+          if (field instanceof HTMLInputElement && value.checked !== undefined) field.checked = value.checked;
+        });
+        this.querySelectorAll('details').forEach(
+          (detail, index) => (detail.open = saved.details[index] ?? detail.open),
+        );
+      }
     }
     if (!installed.has(root)) {
       installed.add(root);
@@ -98,6 +135,17 @@ export class TaskScreen extends HTMLElement {
       const header = document.createElement('header');
       header.className = 'task-head';
       header.innerHTML = `<button type="button" class="task-back" aria-label="${e(t('Volver'))}">${uiIcon('mdi:arrow-left')}</button><h2 tabindex="-1">${e(name)}</h2>`;
+      const heading = content.querySelector('h2');
+      if (heading?.textContent === name) {
+        heading.tabIndex = -1;
+        header.querySelector('h2')!.replaceWith(heading);
+      }
+      const save = content.querySelector<HTMLElement>('[data-command=settings-save]');
+      if (save) {
+        const footer = save.parentElement!;
+        header.append(save);
+        footer.remove();
+      }
       header.querySelector('button')!.onclick = () => void this.back();
       this.append(header, content);
     }
@@ -108,14 +156,26 @@ export class TaskScreen extends HTMLElement {
     if (!this.isConnected) root.append(this);
     this.covered = [];
     const hostTask = ['homemanager-device-picker', 'homemanager-panel'].includes(root.host.localName);
-    const coverRoot = hostTask && root.host.getRootNode() instanceof ShadowRoot ? root.host.getRootNode() as ShadowRoot : root;
+    const coverRoot =
+      hostTask && root.host.getRootNode() instanceof ShadowRoot ? (root.host.getRootNode() as ShadowRoot) : root;
     let branch: Element = hostTask ? root.host : this;
     while (branch.parentNode) {
       const parent = branch.parentNode;
       if (parent instanceof ShadowRoot && parent !== coverRoot) break;
       for (const child of parent.children) {
-        if (!(child instanceof HTMLElement) || child === branch || child.localName === 'style' || child.localName === 'dialog') continue;
-        this.covered.push({ element: child, inert: child.inert, visibility: child.style.visibility, aria: child.getAttribute('aria-hidden') });
+        if (
+          !(child instanceof HTMLElement) ||
+          child === branch ||
+          child.localName === 'style' ||
+          child.localName === 'dialog'
+        )
+          continue;
+        this.covered.push({
+          element: child,
+          inert: child.inert,
+          visibility: child.style.visibility,
+          aria: child.getAttribute('aria-hidden'),
+        });
         child.inert = true;
         child.style.visibility = 'hidden';
         child.setAttribute('aria-hidden', 'true');
@@ -129,6 +189,8 @@ export class TaskScreen extends HTMLElement {
     this.removeAttribute('aria-hidden');
     this.dispatchEvent(new CustomEvent('homemanager-task-change', { bubbles: true, composed: true }));
     this.querySelector<HTMLElement>('.task-head h2')?.focus({ preventScroll: true });
+    const scroll = this.resumeKey ? drafts.get(root)?.get(this.resumeKey)?.scroll : undefined;
+    if (scroll !== undefined) this.querySelector('.task-body')!.scrollTop = scroll;
   }
   close(value = ''): void {
     if (!this.open) return;
@@ -153,7 +215,11 @@ export class TaskScreen extends HTMLElement {
       else element.setAttribute('aria-hidden', aria);
     }
     this.covered = [];
-    if (this.owner) stacks.set(this.owner, (stacks.get(this.owner) ?? []).filter(screen => screen !== this));
+    if (this.owner)
+      stacks.set(
+        this.owner,
+        (stacks.get(this.owner) ?? []).filter(screen => screen !== this),
+      );
     this.owner?.host.dispatchEvent(new CustomEvent('homemanager-task-change', { bubbles: true, composed: true }));
   }
 }

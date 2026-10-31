@@ -39,6 +39,7 @@ export function openRoomActions(
   const footer = `${uiButton(t('Quitar'), 'remove', 'danger')}<span class="room-spacer"></span>${uiButton(t('Cancelar'), 'cancel')}${uiButton(t('Aplicar'), 'apply', 'primary')}`;
   const template = document.createElement('template');
   template.innerHTML = taskScreen(room.label, body, footer, 'room-actions');
+  customElements.upgrade(template.content);
   const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   dialog.guardChanges = true;
   dialog.resumeKey = 'room:' + id + ':' + JSON.stringify(room);
@@ -104,6 +105,8 @@ export function openRoomActions(
     }
   });
   root.append(dialog);
+  dialog.guardChanges = true;
+  dialog.resumeKey = 'room:' + id + ':' + JSON.stringify(room);
   dialog.show(root);
 }
 

@@ -12,6 +12,7 @@ export const editorDockStyles = `
 `;
 
 export const editorSheetStyles = `
+:host([page]){display:block;height:min(850px,100dvh)}:host([page])>.editor{position:relative;height:100%;max-height:none;min-height:0}
 :host([embedded]){height:100%;min-height:0;max-height:none;background:var(--hm-surface);border-radius:0;box-shadow:none;border:0;display:block}
 :host([embedded][hidden]){display:none}
 :host([embedded])>.editor{height:100%;min-height:0;max-height:none;padding:0;display:flex;flex-direction:column;margin:0;max-width:none;overflow:hidden}
