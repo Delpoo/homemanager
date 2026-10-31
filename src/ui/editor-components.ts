@@ -7,7 +7,7 @@ export const editorDockStyles = `
 @container homemanager (max-width:650px){
  .workspace>.editor{position:absolute;inset:auto 0 0!important;width:100%;max-width:100%;height:55%;max-height:calc(100% - 80px);border-left:0;border-top:1px solid var(--hm-line);border-radius:18px 18px 0 0}
  .workspace>.editor[data-expanded=true]{height:84%}
- .workspace>.editor[data-surface=settings],.workspace>.editor[data-task=page]{inset:0!important;height:100%;max-height:100%;border:0;overflow:hidden;border-radius:0}
+ .workspace>.editor[data-surface=settings],.workspace>.editor[data-surface=add],.workspace>.editor[data-task=page],.workspace>.editor[data-task=link]{inset:0!important;height:100%;max-height:100%;border:0;overflow:hidden;border-radius:0}
 }
 `;
 

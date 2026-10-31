@@ -795,6 +795,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.wirePickers();
     const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
+      dialog.resumeKey = 'settings:' + this.settingsSection;
       dialog.onBack = () => this.closeSurface();
       dialog.show(this.root);
     }
@@ -1702,6 +1703,7 @@ export class HomeManagerEditor extends HTMLElement {
   private onSubmit = (event: Event): void => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
+    this.root.querySelector<TaskScreen>('.settings-dialog')?.forget();
     if (!this.config && !this.homeConfig) return;
     try {
       const data = new FormData(form);

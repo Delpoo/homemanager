@@ -110,6 +110,7 @@ export function openPlanReview(
 ): void {
   const dialog = new TaskScreen();
   dialog.className = 'plan-review';
+  dialog.resumeKey = 'review:' + JSON.stringify(candidate);
   const name = (id: string | null) =>
     candidate.rooms.find(room => room.id === id)?.label ??
     report.newZones.find(zone => zone.id === id)?.label ??
@@ -175,7 +176,7 @@ export function openPlanReview(
   );
   dialog.querySelector('[data-review=cancel]')!.addEventListener('click', () => void dialog.back());
   dialog.querySelector('[data-review=plan]')!.addEventListener('click', () => {
-    dialog.close();
+    dialog.close('applied');
     apply(structuredClone(candidate), true);
   });
   // Unchecking an individual move visibly cancels its room-wide default merge.
@@ -236,7 +237,7 @@ export function openPlanReview(
           next = mergeRoom(next, orphan.roomId, target);
         }
       }
-      dialog.close();
+      dialog.close('applied');
       apply(next, false);
     } catch (error) {
       dialog.querySelector('.review-error')!.textContent = error instanceof Error ? error.message : String(error);

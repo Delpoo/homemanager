@@ -4,6 +4,8 @@ import { confirmDialog } from './confirm-dialog.js';
 
 const stacks = new WeakMap<ShadowRoot, TaskScreen[]>();
 const installed = new WeakSet<ShadowRoot>();
+type Field = { value: string; checked?: boolean };
+const drafts = new WeakMap<ShadowRoot, Map<string, Field[]>>();
 type Covered = { element: HTMLElement; inert: boolean; visibility: string; aria: string | null };
 
 /** A task replaces the current page. Its predecessor stays mounted, including
@@ -12,6 +14,8 @@ export class TaskScreen extends HTMLElement {
   returnValue = '';
   onBack?: () => void;
   guardChanges = false;
+  resumeKey?: string;
+  private applied = false;
   private changed = false;
   private closing = false;
   private covered: Covered[] = [];
@@ -37,20 +41,47 @@ export class TaskScreen extends HTMLElement {
     if (this.closing) return;
     this.closing = true;
     try {
-      if (this.guardChanges && this.changed && this.owner && !(await confirmDialog(this.owner, {
-        title: t('¿Descartar los cambios?'),
-        message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
-        confirm: t('Descartar cambios'),
-      }))) return;
       if (this.onBack) this.onBack();
       else this.close();
     } finally {
       this.closing = false;
     }
   }
+  async cancel(): Promise<void> {
+      if (this.guardChanges && this.changed && this.owner && !(await confirmDialog(this.owner, {
+        title: t('¿Descartar los cambios?'),
+        message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
+        confirm: t('Descartar cambios'),
+      }))) return;
+      this.forget();
+      if (this.onBack) this.onBack();
+      else this.close('discarded');
+  }
+  forget(): void {
+    this.applied = true;
+    if (this.owner && this.resumeKey) drafts.get(this.owner)?.delete(this.resumeKey);
+  }
+  private fields(): (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[] {
+    return [...this.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:not([type=file]),select,textarea')];
+  }
+  private remember(): void {
+    if (!this.owner || !this.resumeKey || this.applied) return;
+    const saved = drafts.get(this.owner) ?? new Map<string, Field[]>();
+    saved.set(this.resumeKey, this.fields().map(field => ({ value: field.value, ...(field instanceof HTMLInputElement ? { checked: field.checked } : {}) })));
+    drafts.set(this.owner, saved);
+  }
   show(root: ShadowRoot, title?: string): void {
     this.restore();
     this.owner = root;
+    if (this.resumeKey) {
+      const saved = drafts.get(root)?.get(this.resumeKey);
+      if (saved) this.fields().forEach((field, index) => {
+        const value = saved[index];
+        if (!value) return;
+        field.value = value.value;
+        if (field instanceof HTMLInputElement && value.checked !== undefined) field.checked = value.checked;
+      });
+    }
     if (!installed.has(root)) {
       installed.add(root);
       const sheet = new CSSStyleSheet();
@@ -102,6 +133,8 @@ export class TaskScreen extends HTMLElement {
   close(value = ''): void {
     if (!this.open) return;
     this.returnValue = value;
+    if (value === 'applied' || value === 'discarded') this.forget();
+    else this.remember();
     this.removeAttribute('open');
     this.restore();
     this.dispatchEvent(new Event('close'));
@@ -109,6 +142,7 @@ export class TaskScreen extends HTMLElement {
     if (this.trigger?.isConnected && !this.trigger.closest('[inert]')) this.trigger.focus({ preventScroll: true });
   }
   disconnectedCallback(): void {
+    this.remember();
     this.restore();
   }
   private restore(): void {

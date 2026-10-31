@@ -21,8 +21,8 @@ export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
   if (this.editing) {
     if (this.dirty) {
-      this.status(t('Guardá o descartá los cambios antes de salir del editor.'));
-      return;
+      if (!(await confirmDialog(this.root, { title: t('¿Descartar los cambios?'), message: t('Guardá o descartá los cambios antes de salir del editor.'), confirm: t('Descartar cambios') }))) return;
+      this.discard();
     }
     this.editing = false;
     this.stopPlacing();
@@ -183,7 +183,7 @@ export function positionEditor(this: HomeManagerCard) {
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
-  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)') ? 'page' : '';
+  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker') ? 'link' : this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)') ? 'page' : '';
   this.editor?.setNarrow(this.getBoundingClientRect().width <= 650);
   host.style.removeProperty('left');
   host.style.removeProperty('top');

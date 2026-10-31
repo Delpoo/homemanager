@@ -41,6 +41,7 @@ export function openRoomActions(
   template.innerHTML = taskScreen(room.label, body, footer, 'room-actions');
   const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   dialog.guardChanges = true;
+  dialog.resumeKey = 'room:' + id + ':' + JSON.stringify(room);
   dialog.removeAttribute('aria-labelledby');
   dialog.setAttribute('aria-label', room.label);
   // Each arrow's direction, as it points on the plan.
@@ -60,7 +61,7 @@ export function openRoomActions(
     if (!action) return;
     try {
       if (action === 'cancel') {
-        void dialog.back();
+        void dialog.cancel();
         return;
       }
       if (action === 'shape') {
@@ -96,7 +97,7 @@ export function openRoomActions(
         if (target === 'keep') throw new Error(t('Elegí fusionar los dispositivos o dejarlos sin espacio.'));
         next = mergeRoom(configuration, id, target === 'unassign' ? null : target);
       } else return;
-      dialog.close();
+      dialog.close('applied');
       apply(next);
     } catch (error) {
       dialog.querySelector('.room-error')!.textContent = error instanceof Error ? error.message : String(error);
