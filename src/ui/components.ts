@@ -45,7 +45,7 @@ export const uiPane = (
   footer: string,
   options: { step?: number; back?: boolean; advanced?: boolean } = {},
 ): string =>
-  `<dialog class="k-pane" aria-label="${uiEscape(title)}"${options.advanced ? ' data-advanced="true"' : ''}><header class="pane-head">${options.back ? uiButton('', 'back', 'icon', 'mdi:arrow-left') : ''}<h2>${uiEscape(title)}</h2>${options.step ? uiSteps(options.step) : ''}</header><div class="pane-body">${body}</div><footer class="pane-foot">${footer}</footer></dialog>`;
+  `<div class="k-pane"${options.advanced ? ' data-advanced="true"' : ''}><header class="pane-head"><h2>${uiEscape(title)}</h2>${options.step ? uiSteps(options.step) : ''}</header><div class="pane-body">${body}</div><footer class="pane-foot">${footer}</footer></div>`;
 export const uiBinding = (name: string, detail: string, buttonText: string): string =>
   `<div class="k-binding">${uiRow({ name, detail })}${uiButton(buttonText, 'binding', 'secondary', 'mdi:link-variant')}</div>`;
 

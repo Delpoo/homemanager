@@ -2,7 +2,7 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** el propietario valida estas guías; después, E00.
+**Siguiente paso de E02:** completar validación y auditoría del PR #52; implementación y 60 capturas publicadas, 12 capturas pendientes.
 
 ## Etapas
 
@@ -10,7 +10,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 |---|---|---|---|---|---|---|---|
 | [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | en revisión | ChatGPT | `chatgpt/rediseno-e00-inventario` · [PR #49](https://github.com/Delpoo/homemanager/pull/49) | 2026-10-31 | Auditoría en vivo y validación del propietario de seis destinos «a decidir»; inventario de 137 funciones entregado con evidencia por fila |
 | [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | en revisión | ChatGPT | `chatgpt/rediseno-e01-ficha-lateral` · [PR #51](https://github.com/Delpoo/homemanager/pull/51) | 2026-10-31 | Auditoría y validación; 250 pruebas de código y 11 de navegador pasan; teléfono real, suite completa y E2E HA pendientes |
-| [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | pendiente | — | — | — | Todo |
+| [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | pausada | ChatGPT | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-10-31 | Código y pruebas publicados; 250 pruebas de código y 105 casos únicos de navegador aprobados, 1 omitido. Suite general, auditoría, teléfono y E2E pendientes; 60/72 capturas transferidas |
 | [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | pendiente | — | — | — | Todo |
 | [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | pendiente | — | — | — | Todo |
 | [E05](etapas/E05-modulos.md) | Símbolos por módulos, sin categorías que limiten | E01 | pendiente | — | — | — | Todo |
@@ -49,6 +49,12 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
 
 ## Bitácora
+
+- 2026-10-31 · ChatGPT · E02 · Autorizada por el propietario e implementada en PR #52: pantallas con vuelta y borradores, confirmaciones únicas, 250 pruebas de código y 105 casos únicos de navegador aprobados, 1 omitido. Main b9cce00 integrado. 60 de 72 capturas transferidas; desconexión local impidió las otras 12. Suite general y auditoría pendientes. Reporte: entregas/E02-2026-10-31-continuacion.md. No iniciar E03.
+
+- 2026-10-31 · ChatGPT · E02 · Pausada en la parada de validación de diseño, PR #52: clasificación de 12 aperturas, usos del helper y propuesta HTML. Recomienda Vincular en ficha de escritorio y pantalla completa móvil. Sin convertir src/. Capturas locales anteriores y comprobación del HTML publicado pendientes de incorporar/repetir; no se dan por aprobadas. Reporte en entregas/E02-2026-10-31.md.
+
+- 2026-10-31 · ChatGPT · E02 · Reclamada por «continua con eo1 y eo2». Rama creada desde main 764a9e0 e integrada con E01, PR apilado para evitar mezclar etapas. Alcance inicial: clasificación y maquetas; parada de validación obligatoria antes del código de conversión.
 
 - 2026-10-31 · ChatGPT · E01 · Implementada para revisión en #51: dock de 380 px, hoja móvil ampliable, vista previa sin guardar y deshacer local. 25 funciones cotejadas con método por fila; 250 pruebas de código y 11 de navegador pasan, 1 omitida. Seis capturas nuevas. Suite completa sin iniciar por timeout del servidor; teléfono y E2E HA pendientes. E02 autorizada aparte por el propietario, sin saltar su parada de diseño.
 

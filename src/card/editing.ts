@@ -5,6 +5,8 @@ import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
 import { clone, escapeHTML as e, type CardConfig, type Configuration } from './types.js';
 import { cameraForEditedDevice } from '../model/editor-session.js';
+import { TaskScreen } from '../ui/task-screen.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 function commitPreview(card: HomeManagerCard): void {
@@ -14,13 +16,21 @@ function commitPreview(card: HomeManagerCard): void {
   card.history.push(before);
   if (card.history.length > 40) card.history.shift();
   card.future = [];
+  card.updateControls();
 }
 export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
   if (this.editing) {
     if (this.dirty) {
-      this.status(t('Guardá o descartá los cambios antes de salir del editor.'));
-      return;
+      if (
+        !(await confirmDialog(this.root, {
+          title: t('¿Descartar los cambios?'),
+          message: t('Guardá o descartá los cambios antes de salir del editor.'),
+          confirm: t('Descartar cambios'),
+        }))
+      )
+        return;
+      this.discard();
     }
     this.editing = false;
     this.stopPlacing();
@@ -135,6 +145,8 @@ export function mountEditor(this: HomeManagerCard) {
     this.updateControls();
   });
   this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
+  this.editor.addEventListener('homemanager-save', () => void this.save());
+  this.editor.addEventListener('homemanager-task-change', () => this.positionEditor());
   this.editor.addEventListener('config-changed', (event: Event) => {
     event.stopPropagation();
     if (!this.editing || this.saving) return;
@@ -179,6 +191,11 @@ export function positionEditor(this: HomeManagerCard) {
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
+  host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker')
+    ? 'link'
+    : this.editor?.shadowRoot?.querySelector('homemanager-task-screen[open]:not(.settings-dialog)')
+      ? 'page'
+      : '';
   this.editor?.setNarrow(this.getBoundingClientRect().width <= 650);
   host.style.removeProperty('left');
   host.style.removeProperty('top');
@@ -266,19 +283,19 @@ export async function save(this: HomeManagerCard, reviewed = false) {
     this.saved!.catalog.devices.some(old => old.id === d.id && old.roomId !== d.roomId),
   );
   if (changes.length && !reviewed) {
-    this.dialog(
-      t('Revisar cambios de habitación'),
-      `<p>${changes.map(d => e(d.display.label)).join(', ')}</p><p>Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.</p>`,
-      [
-        { label: t('Volver a editar'), action: () => {} },
-        {
-          label: t('Guardar ubicación visual'),
-          action: () => {
-            void this.save(true);
-          },
-        },
-      ],
-    );
+    if (
+      await confirmDialog(this.root, {
+        title: t('Revisar cambios de habitación'),
+        message:
+          changes.map(d => d.display.label).join(', ') +
+          '\n' +
+          t(
+            'Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.',
+          ),
+        confirm: t('Guardar ubicación visual'),
+      })
+    )
+      await this.save(true);
     return;
   }
   try {
@@ -397,7 +414,7 @@ export function dialog(
   actions: { label: string; action: () => void }[],
 ) {
   const previous = this.root.activeElement as HTMLElement | null;
-  const dialog = document.createElement('dialog');
+  const dialog = new TaskScreen();
   dialog.innerHTML = `<h2>${e(title)}</h2>${body}<div class="actions"></div>`;
   const heading = dialog.querySelector('h2')!;
   heading.id = 'hm-dialog-title';
@@ -422,5 +439,5 @@ export function dialog(
     { once: true },
   );
   this.root.append(dialog);
-  dialog.showModal();
+  dialog.show(this.root, title);
 }

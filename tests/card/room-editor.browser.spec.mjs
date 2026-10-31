@@ -1,8 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: Espacio A (living) on the left; B (kitchen) top right; C (office) bottom right.
 const card = page => page.locator('homemanager-card');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const room = async (page, id) => (await draft(page)).rooms.find(item => item.id === id);
 const begin = async page => {
@@ -17,7 +22,7 @@ const openSpace = async (page, id) => {
     .locator('.rooms')
     .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
     .click();
-  const dialog = page.getByRole('dialog', { name: label, exact: true });
+  const dialog = page.getByRole('region', { name: label, exact: true });
   await expect(dialog).toBeVisible();
   return dialog;
 };

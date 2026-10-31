@@ -50,10 +50,27 @@ Borrador sin guardar, deshacer de un paso al importar, foco y lector de pantalla
 ## Aceptación
 
 - [ ] Un recorrido por todos los flujos del inventario nunca muestra dos ventanas a la vez.
-- [ ] Sólo las preguntas de sí o no usan ventana.
-- [ ] Ajustes es una página, con el historial del navegador o un botón para volver.
+- [x] Sólo las preguntas de sí o no usan ventana.
+- [x] Ajustes es una página, con el historial del navegador o un botón para volver.
 - [ ] En 390×844 todo se puede usar sin desplazamiento horizontal.
 - [ ] Salir con cambios sin guardar pregunta primero.
 - [ ] Todas las funciones siguen disponibles.
 
 ## Registro
+
+### 2026-10-31 — ChatGPT — implementación entregada, validación parcial
+
+- **Autorización:** el propietario aprobó continuar y publicar. La parada del paso 2 quedó resuelta; no volver a pedirla.
+- **Hecho:** componente común de pantalla; Ajustes, Vincular, espacios, revisiones, ayuda/listas, Almacenamiento, controles nativos, elemento y aprendizaje RF convertidos. Retorno del foco y borradores conservados; confirmaciones únicas. Main b9cce00 integrado.
+- **Verificación:** 250 pruebas de código y 105 casos únicos de navegador aprobados, uno omitido; formato aprobado antes de publicar. Suite general incompleta (64 aprobados/8 fallos antes de interrumpir). Repetir checks sobre el SHA final.
+- **Evidencia:** 60/72 capturas transferidas; 12 pendientes por desconexión local. No hay capturas de Almacenamiento ni del editor/revisión de zonas. [Índice](../../evidence/rediseno-e02/README.md).
+- **Falta:** todos los recorridos del inventario, suite general, auditoría, teléfono real, lector de pantalla y E2E HA. Las otras cuatro casillas siguen pendientes. [Reporte](../entregas/E02-2026-10-31-continuacion.md) y [68 funciones](../entregas/E02-conservacion.md).
+
+
+### 2026-10-31 — ChatGPT — a medias
+- **Hecho:** etapa reclamada en commit 057982b054015be4060995362414724d4be58b29; clasificación de los 12 showModal de E01, usos del helper general y window.confirm de Almacenamiento. Propuesta revisable de pantallas en ../propuestas/E02-pantallas.md y E02-propuesta.html. No se convirtió el producto.
+- **Falta:** validación del propietario de la lista y Vincular; incorporar capturas y ejecutar el HTML publicado; después componente común, conversiones separadas y pruebas completas. Las seis casillas de aceptación permanecen sin marcar.
+- **Dónde quedó:** chatgpt/rediseno-e02-pantallas, PR #52, commit de entrega «docs(rediseno): presentar E02 y registrar parada de validación». Base E01 68366ab7e21d7eb1df6494afe9cb5a96e62bff6e, árbol de reclamación 2457dad0592520b9a6be66bfd0738e24776a67c3. Reporte en ../entregas/E02-2026-10-31.md; el SHA final está en la cabecera del PR.
+- **Para quien siga:** respetar la parada del paso 2. Vincular recomendado en ficha de 380 px escritorio / pantalla completa móvil; guardar y volver conservan el borrador. No reinterpretar la maqueta como permiso para quitar campos, diseñador, avisos o historial. Prototipo local inicial: 23 vistas × dos temas × dos tamaños = 92 distribuciones comprobadas, ocho capturas y cuatro de Vincular inspeccionadas; la ampliación posterior no se confirmó. El HTML publicado es una reconstrucción revisada por código, no la versión que pasó esas pruebas. El entorno de archivos pasó a rechazar rutas Windows por «invalid sandbox permission path URI: file:///workspace»; terminal y vía Node no permitieron recuperar los archivos. Cierre hecho con GitHub, sin pedir al propietario resolver herramientas. El árbol remoto es la fuente para retomar; preservar los archivos locales de propuestas/capturas si reaparecen y no sobrescribir el remoto con la copia local desactualizada.
+
+- **Base al cerrar:** main avanzó a dc7a910e3a901a38a5f23554a30dfd752d5f5940 (#53, limpieza de 0.10) después de crear las ramas. Se revisó su diferencia contra 764a9e0: README, instalación, hoja de ruta, traducciones sin uso y componente/CSS sin uso. E01 no usa panelEmpty y sus cinco traducciones nuevas no están entre las quitadas; no se detectó un cruce funcional por lectura. Esa limpieza no se incorporó a estas ramas ni se ejecutó la combinación: al integrar las bases, conservarla y repetir checks. Entrega de propuesta: 38751fb519ccecc4973c3a36f0237c6afb63d45a.

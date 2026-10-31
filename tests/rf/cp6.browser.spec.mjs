@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { setup, ceiling } from '../browser/rf-helpers.mjs';
 const rf = page => page.locator('homemanager-rf');
@@ -128,7 +128,7 @@ for (const dark of [false, true])
     await readable(rf(page));
     await shot('designer');
     await rf(page).getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-    const widget = rf(page).getByRole('dialog', { name: 'Agregar elemento', exact: true });
+    const widget = rf(page).getByRole('region', { name: 'Agregar elemento', exact: true });
     await expect(widget).toBeVisible();
     const dialogBox = await widget.boundingBox();
     const choicesBox = await widget.locator('.types').boundingBox();

@@ -7,7 +7,7 @@ Guía para instalar HomeManager 0.3.1 en una instalación real, por ejemplo Home
 1. **Copia de seguridad completa** de Home Assistant (Ajustes → Sistema → Copias de seguridad). HomeManager no modifica entidades, scripts, automatizaciones ni dashboards existentes, pero la copia es la forma de volver atrás.
 2. Versión de Home Assistant **2026.2 o posterior**.
 3. Una cuenta **administradora** para crear y editar el plano. Las demás cuentas requieren acceso de lectura explícito en las opciones de la integración.
-4. El plano SVG de la vivienda (para la primera instalación: `build/homemanager-configuration.json` del repositorio privado, ver su handoff).
+4. El plano SVG de la vivienda. Es lo único que se trae de afuera: espacios, dispositivos y vínculos se arman en HomeManager y quedan en Home Assistant.
 
 ## Opción A · HACS (cuando exista la release)
 
@@ -25,12 +25,12 @@ Por defecto el bundle se carga al abrir el panel HomeManager. Para tarjetas en d
 
 ## Primer uso
 
-1. Abrir **HomeManager** en la barra lateral, escribir el ID del hogar (por ejemplo `verdale`) y pulsar **Crear hogar**.
+1. Abrir **HomeManager** en la barra lateral, escribir el ID del hogar (por ejemplo `casa`) y pulsar **Crear hogar**.
 2. **Editar plano → Importar y exportar** → importar el JSON de la instalación (o un SVG del plano). Revisar el resumen y aplicar al borrador.
 3. **Espacios:** comprobar nombres y orden. Si coinciden con los nombres de las **áreas** de Home Assistant, el alta de dispositivos asigna el espacio sola.
 4. **Agregar dispositivo desde Home Assistant:** buscar la entidad por nombre o área, elegirla y tocar el plano donde está. HomeManager crea el nombre, el icono y la acción principal. Para los dispositivos ya importados, elegir su *Entidad del dispositivo* en el formulario.
 5. **Guardar cambios.** El hogar queda en `/config/.storage/homemanager.homes`, incluido en las copias de seguridad de Home Assistant.
-6. Opcional: en cualquier dashboard, añadir la tarjeta **HomeManager** con `home_id: verdale`.
+6. Opcional: en cualquier dashboard, añadir la tarjeta **HomeManager** con `home_id: casa`.
 
 ## Comprobaciones recomendadas en la vivienda
 
@@ -53,3 +53,4 @@ En **Ajustes → Dispositivos y servicios → HomeManager → Configurar**, eleg
 Límites: 20 hogares activos, 10 planos por historial, 40 historiales en total y 64 MiB para los datos de HomeManager. Eliminar un hogar conserva su historial dentro de esa cuota. Desde el panel, **Almacenamiento → Eliminar historial** permite purgar definitivamente el historial de un hogar eliminado, con confirmación. Las copias de seguridad anteriores pueden seguir conteniendo esos datos.
 
 Los documentos antiguos que no cumplen la nueva validación quedan en cuarentena, fuera de las listas de lectura, sin borrarse al guardar otro hogar. Recuperar desde una copia de seguridad revisada. No escribir ni editar archivos de `.storage` con HA en ejecución.
+

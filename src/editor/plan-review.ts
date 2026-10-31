@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen } from '../ui/task-screen.js';
 import { detectZones, roomsAt, sanitizeArchitecture, spaceAt, zoneShapes } from '../card/geometry.js';
 import { planHealth, type PlanHealth } from '../model/plan-health.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
@@ -107,8 +108,9 @@ export function openPlanReview(
   apply: (next: Configuration, planOnly: boolean) => void,
   before?: Configuration,
 ): void {
-  const dialog = document.createElement('dialog');
+  const dialog = new TaskScreen();
   dialog.className = 'plan-review';
+  dialog.resumeKey = 'review:' + JSON.stringify(candidate);
   const name = (id: string | null) =>
     candidate.rooms.find(room => room.id === id)?.label ??
     report.newZones.find(zone => zone.id === id)?.label ??
@@ -172,9 +174,9 @@ export function openPlanReview(
     },
     { once: true },
   );
-  dialog.querySelector('[data-review=cancel]')!.addEventListener('click', () => dialog.close());
+  dialog.querySelector('[data-review=cancel]')!.addEventListener('click', () => void dialog.back());
   dialog.querySelector('[data-review=plan]')!.addEventListener('click', () => {
-    dialog.close();
+    dialog.close('applied');
     apply(structuredClone(candidate), true);
   });
   // Unchecking an individual move visibly cancels its room-wide default merge.
@@ -235,12 +237,12 @@ export function openPlanReview(
           next = mergeRoom(next, orphan.roomId, target);
         }
       }
-      dialog.close();
+      dialog.close('applied');
       apply(next, false);
     } catch (error) {
       dialog.querySelector('.review-error')!.textContent = error instanceof Error ? error.message : String(error);
     }
   });
   root.append(dialog);
-  dialog.showModal();
+  dialog.show(root);
 }

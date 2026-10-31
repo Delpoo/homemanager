@@ -1,14 +1,19 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: living on the left; kitchen top right; office bottom right. Zones in the SVG.
 const card = page => page.locator('homemanager-card');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const room = async (page, id) => (await draft(page)).rooms.find(item => item.id === id);
 const roomOf = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id).roomId;
 const pick = page => card(page).getByRole('combobox', { name: 'Zona', exact: true });
 const nameField = page => card(page).getByRole('textbox', { name: 'Nombre de la zona', exact: true });
-const moves = page => page.getByRole('dialog', { name: 'Dispositivos que cambian de espacio', exact: true });
+const moves = page => page.getByRole('region', { name: 'Dispositivos que cambian de espacio', exact: true });
 const confirmMoves = async page => {
   await moves(page).getByRole('button', { name: 'Aplicar', exact: true }).click();
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
@@ -132,7 +137,7 @@ test('a resize stops following the SVG, in one undo step; going back to the zone
     .locator('.rooms')
     .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
     .click();
-  const dialog = page.getByRole('dialog', { name: label, exact: true });
+  const dialog = page.getByRole('region', { name: label, exact: true });
   await dialog.getByRole('button', { name: 'Volver a la zona del SVG', exact: true }).click();
   expect((await room(page, 'office')).shape).toBeUndefined();
 });
@@ -310,7 +315,7 @@ test('the space window opens the editor on that zone; a space with no shape star
     .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
     .click();
   await page
-    .getByRole('dialog', { name: label, exact: true })
+    .getByRole('region', { name: label, exact: true })
     .getByRole('button', { name: 'Editar forma en el plano', exact: true })
     .click();
   await expect(pick(page)).toHaveValue('office');

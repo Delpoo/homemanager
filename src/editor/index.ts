@@ -73,6 +73,7 @@ import { editorSheetStyles } from '../ui/editor-components.js';
 import { restoreEditedDevice } from '../model/editor-session.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
@@ -511,6 +512,7 @@ export class HomeManagerEditor extends HTMLElement {
   }
   private emit(configuration: Configuration): void {
     const clean = validateConfiguration(persistentConfiguration(configuration), { allowPending: true });
+    this.root.querySelector<TaskScreen>('.settings-dialog')?.forget();
     this.config = { ...this.config!, configuration: clean };
     this.dispatchEvent(
       new CustomEvent('config-changed', { bubbles: true, composed: true, detail: { config: clone(this.config) } }),
@@ -599,14 +601,14 @@ export class HomeManagerEditor extends HTMLElement {
     this.render();
   }
   openRoom(id: string, view?: RoomViewChoices): void {
-    this.openSettings();
+    if (this.surface !== 'settings') this.openSettings();
     openRoomActions(
       this.root,
       this.configuration,
       id,
       next => {
         this.emit(next);
-        this.closeSurface();
+        this.root.querySelector<HTMLElement>(`[data-command=room-open][data-room="${CSS.escape(id)}"]`)?.focus();
       },
       view,
     );
@@ -749,7 +751,9 @@ export class HomeManagerEditor extends HTMLElement {
     });
   }
   private render(): void {
-    const review = this.root.querySelector<HTMLDialogElement>('dialog.plan-review');
+    this.toggleAttribute('page', this.surface === 'settings');
+    const tasks = [...this.root.querySelectorAll<TaskScreen>('homemanager-task-screen:not(.settings-dialog)')];
+    for (const task of tasks) task.remove();
     // Native toggle events can arrive after a change event has already repainted
     // the editor. Read the current DOM before replacing it so disclosures keep
     // their actual state even when a device is changed immediately after opening.
@@ -785,25 +789,27 @@ export class HomeManagerEditor extends HTMLElement {
     const add = `${handle}${header(t('Agregar dispositivo'))}<div class="sheet-body"><div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}</div>`;
     const settings =
       this.surface === 'settings'
-        ? `<dialog class="settings-dialog" aria-label="${esc(t('Ajustes del plano'))}">${header(t('Ajustes del plano'))}${this.settingsForm()}<div class="status" role="status" aria-live="polite"></div></dialog>`
+        ? taskScreen(
+            t('Ajustes del plano'),
+            this.settingsForm() + '<div class="status" role="status" aria-live="polite"></div>',
+            `<button type="button" data-command="settings-save" class="primary">${esc(t('Guardar'))}</button>`,
+            'settings-dialog',
+          )
         : '';
     this.root.innerHTML = `<style>${css}</style><div class="editor">${toolbar}${this.surface === 'settings' ? '' : this.surface === 'add' ? add : (!this._embedded || this.surface === 'device') && (selected || this.adding || !configuration.catalog.devices.length) ? device : ''}${!this._embedded && this.surface !== 'add' && this.surface !== 'settings' ? quick : ''}${settings}${this.surface === 'settings' ? '' : '<div class="status" role="status" aria-live="polite"></div>'}</div>`;
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
     this.wirePickers();
-    const dialog = this.root.querySelector<HTMLDialogElement>('.settings-dialog');
+    const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
-      dialog.addEventListener('cancel', event => {
-        event.preventDefault();
-        this.closeSurface();
-      });
-      dialog.showModal();
+      dialog.resumeKey = 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId;
+      dialog.onBack = () => this.closeSurface();
+      dialog.show(this.root);
     }
     // A repaint, such as the list of homes arriving, must not lose a review in progress.
-    if (review) {
-      review.removeAttribute('open');
-      this.root.append(review);
-      review.showModal();
+    for (const task of tasks) {
+      this.root.append(task);
+      task.show(this.root);
     }
     this.setAttribute('role', 'region');
     this.setAttribute('aria-label', t('Ficha de edición'));
@@ -1340,6 +1346,9 @@ export class HomeManagerEditor extends HTMLElement {
     }
     try {
       switch (button.dataset.command) {
+        case 'settings-save':
+          this.dispatchEvent(new CustomEvent('homemanager-save', { bubbles: true, composed: true }));
+          break;
         case 'health-action': {
           const issue = this.planHealth()?.issues[Number(button.dataset.issue)];
           if (issue) this.healthAction(issue);
@@ -1637,6 +1646,11 @@ export class HomeManagerEditor extends HTMLElement {
       ? (value(data, 'category') as Category)
       : this.sheetCategory(previous);
     const entityId = value(data, 'entityId');
+    const keepControls =
+      previous &&
+      entityId === (previous.bindings.entityId ?? '') &&
+      JSON.stringify(this.sheet?.controls) ===
+        JSON.stringify(sheetFromDevice(previous, previous.id, this.configuration).controls);
     const suggested = entityId ? suggestPresentation(entityId, this._hass?.states[entityId]).kind : '';
     // The technical kind is no longer chosen: kept, else suggested by the entity or the category.
     const kind = (value(data, 'kind') ||
@@ -1674,8 +1688,12 @@ export class HomeManagerEditor extends HTMLElement {
         primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
         advancedPopupId: value(data, 'panelId') || null,
         ...(remoteId ? { remoteId } : {}),
-        ...(held.controls.length ? { controls: held.controls } : {}),
-        tap: held.tap,
+        ...(keepControls
+          ? {
+              ...(previous.bindings.controls ? { controls: clone(previous.bindings.controls) } : {}),
+              ...(previous.bindings.tap !== undefined ? { tap: previous.bindings.tap } : {}),
+            }
+          : { ...(held.controls.length ? { controls: held.controls } : {}), tap: held.tap }),
       },
       state: { value: 'unknown', confidence: 'unknown' },
     };

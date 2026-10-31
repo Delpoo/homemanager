@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { picker } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
@@ -73,11 +73,13 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
 }) => {
   await start(page);
   await picker(page).getByRole('button', { name: 'Cancelar', exact: true }).click();
-  await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await editor(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Temperatura Living', exact: true }).click();
   await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Nombre sin guardar');
   await editor(page).getByRole('button', { name: 'Vincular dispositivo', exact: true }).click();
-  await expect(picker(page).getByRole('dialog', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
+  await expect(picker(page).getByRole('region', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
   await cleanText(page);
   await picker(page)
     .getByRole('checkbox', { name: /Humedad/ })
@@ -93,7 +95,9 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
           .map(field => ({ name: field.name, value: field.value, message: field.validationMessage })),
       ),
   ).toEqual([]);
-  await editor(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await editor(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   const device = await page.evaluate(() =>
     window.testHarness.card
       .getDraftConfiguration()
@@ -164,8 +168,14 @@ test('selector visual evidence at exact desktop/mobile sizes, including dark mod
   const zone = await card(page).locator('#room-living').boundingBox();
   await page.mouse.click(zone.x + zone.width * 0.35, zone.y + zone.height * 0.55);
   await expect(card(page).locator('.placing-hint')).toBeHidden();
-  if (await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).isVisible())
-    await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  if (
+    await editor(page)
+      .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+      .isVisible()
+  )
+    await editor(page)
+      .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+      .click();
   await shot('plan');
   await card(page).getByRole('button', { name: 'Medidor de energía', exact: true }).click();
   await editor(page).getByRole('button', { name: 'Cambiar dispositivo', exact: true }).scrollIntoViewIfNeeded();

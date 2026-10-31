@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -155,7 +155,7 @@ test('settings and fullscreen remain reachable while the dock is open', async ({
   await expect(card.locator('homemanager-editor [name=label]')).toBeVisible();
   await page.evaluate(() => document.exitFullscreen());
   await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await expect(card.getByRole('dialog', { name: 'Ajustes del plano', exact: true })).toBeVisible();
+  await expect(card.getByRole('region', { name: 'Ajustes del plano', exact: true })).toBeVisible();
 });
 
 test('selected marker stays centred through sidebar, resize and mobile expansion; visual evidence', async ({

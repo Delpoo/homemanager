@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir } from 'node:fs/promises';
 const card = page => page.locator('homemanager-card');
 test.beforeEach(async ({ page }) => {
@@ -195,7 +195,7 @@ test('activity shows exact send/air/error vocabulary and retains one row per com
     await card(page).evaluate(node => node.activity.entries.filter(entry => entry.type === 'command').length),
   ).toBe(1);
   await card(page).getByRole('button', { name: 'Historial de actividad', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Historial de actividad', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Historial de actividad', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.evaluate(
     () =>
@@ -247,6 +247,6 @@ test('capture the five requested visual scenarios and the import review', async 
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"><rect id="room-joined" width="600" height="400"><title>Casa reunida</title></rect></svg>',
     ),
   });
-  await expect(page.getByRole('dialog', { name: 'Revisar cambios', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Revisar cambios', exact: true })).toBeVisible();
   await shot('review');
 });

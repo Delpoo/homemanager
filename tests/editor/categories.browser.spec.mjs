@@ -1,10 +1,15 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const device = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id);
 const categories = page => editor(page).getByRole('group', { name: 'Categoría' });

@@ -1,10 +1,15 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = async page => {
   await openCardMenu(page);
@@ -153,7 +158,7 @@ test('deletion has a modal focus trap, Escape and Cancel restore the trigger, an
 test('plan settings and field help open without cluttering the map, and Move uses map placement', async ({ page }) => {
   await begin(page);
   await button(page, 'Ajustes del plano').click();
-  const settings = editor(page).getByRole('dialog', { name: 'Ajustes del plano' });
+  const settings = editor(page).getByRole('region', { name: 'Ajustes del plano' });
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.
   const sections = settings.getByRole('navigation', { name: 'Secciones de ajustes' });
@@ -217,7 +222,7 @@ test('the device sheet fits the viewport with advanced fields collapsed and uses
     el.hass = { ...window.testHarness.hass };
   });
   expect(await editor(page).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(18, 23, 20)');
-  await expect(editor(page).getByRole('button', { name: 'Cerrar', exact: true })).toHaveCSS(
+  await expect(editor(page).getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })).toHaveCSS(
     'background-color',
     'rgb(18, 23, 20)',
   );
