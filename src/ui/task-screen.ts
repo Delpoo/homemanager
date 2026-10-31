@@ -104,6 +104,9 @@ export class TaskScreen extends HTMLElement {
   show(root: ShadowRoot, title?: string): void {
     this.restore();
     this.owner = root;
+    // Keep an already positioned host (especially the picker filling its dock).
+    // Overriding it to relative would put the task below the clipped form.
+    if (getComputedStyle(root.host).position === 'static') (root.host as HTMLElement).style.position = 'relative';
     if (this.resumeKey) {
       const saved = drafts.get(root)?.get(this.resumeKey);
       if (saved) {
@@ -230,7 +233,6 @@ export function taskScreen(title: string, body: string, footer = '', className =
 }
 
 export const taskScreenStyles = `
-:host{position:relative}
 homemanager-task-screen[open]{position:absolute;inset:0;z-index:20;display:flex!important;flex-direction:column;width:100%;height:100%;min-width:0;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:hidden;background:var(--hm-bg,var(--hm-surface));color:var(--hm-ink,var(--hm-text));box-sizing:border-box;visibility:visible}
 homemanager-task-screen:not([open]){display:none}
 .task-head{display:flex;align-items:center;gap:12px;flex:none;padding:12px 20px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface)}
