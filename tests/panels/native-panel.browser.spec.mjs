@@ -129,7 +129,15 @@ test('RF controls execute only explicit script.turn_on targets and require runti
     'Destinos mezclados',
     'Sin destinos',
   ]) {
-    const button = page.getByRole('button', { name, exact: true });
+    const button = page.getByRole('button', {
+      name:
+        name === 'Guardar dispositivo'
+          ? /^(Guardar dispositivo|Listo)$/
+          : name === 'Cerrar'
+            ? /^(Cerrar|Volver)$/
+            : name,
+      exact: true,
+    });
     await expect(button).toBeDisabled();
     await button.dispatchEvent('click');
   }

@@ -4,7 +4,16 @@ import { readFile } from 'node:fs/promises';
 
 const editor = page => page.locator('homemanager-editor');
 const field = (page, label) => editor(page).getByLabel(label, { exact: true });
-const button = (page, label) => editor(page).getByRole('button', { name: label, exact: true });
+const button = (page, label) =>
+  editor(page).getByRole('button', {
+    name:
+      label === 'Guardar dispositivo'
+        ? /^(Guardar dispositivo|Listo)$/
+        : label === 'Cerrar'
+          ? /^(Cerrar|Volver)$/
+          : label,
+    exact: true,
+  });
 async function current(page) {
   return page.evaluate(() => window.editorTest.editor.getConfiguration());
 }

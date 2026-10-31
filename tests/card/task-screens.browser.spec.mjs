@@ -56,6 +56,11 @@ async function noOverflow(page) {
           const box = element.getBoundingClientRect();
           if (box.left < -1 || box.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1)
             failures.push(element.getAttribute('aria-label'));
+          const host = element.getRootNode().host;
+          if (host?.localName === 'homemanager-device-picker') {
+            const dock = host.getRootNode().host.getBoundingClientRect();
+            if (box.top < dock.top - 1 || box.bottom > dock.bottom + 1) failures.push('clipped-picker');
+          }
           const body = element.querySelector('.task-body');
           if (body && body.scrollWidth > body.clientWidth + 1)
             failures.push('body:' + element.getAttribute('aria-label'));
@@ -275,7 +280,7 @@ test('learning Back keeps the candidate and button name; storage uses one explic
   expect(await page.evaluate(() => window.purged)).toBe(0);
   await storage.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
-  expect(await page.evaluate(() => window.purged)).toBe(1);
+  await expect.poll(() => page.evaluate(() => window.purged)).toBe(1);
   await noOverflow(page);
 });
 
@@ -297,11 +302,14 @@ for (const dark of [false, true])
         const picker = page.locator('homemanager-device-picker');
         await expect(picker.locator('.task-head')).toBeVisible();
         await expect(picker.locator('.pane-body')).toBeVisible();
+        if (name === 'link-devices')
+          await expect(picker.getByRole('button', { name: /Medidor de energía/ })).toBeVisible();
       }
       if (name === 'review') await expect(editor(page).locator('homemanager-task-screen.plan-review')).toBeVisible();
       if (name === 'native') await expect(page.locator('homemanager-panel homemanager-task-screen')).toBeVisible();
       if (name === 'rf-learn') await expect(page.locator('homemanager-rf-learn')).toBeVisible();
       await noOverflow(page);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       await page.screenshot({ path: `${directory}/${info.project.name}-${dark ? 'dark' : 'light'}-${name}.png` });
     };
     await begin(page, 'picker');

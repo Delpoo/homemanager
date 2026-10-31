@@ -3,7 +3,12 @@ import { test, expect } from '../browser/local-test.mjs';
 // Invented home: no household data. The registry is what Home Assistant's frontend exposes.
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const area = (page, label) => editor(page).getByRole('combobox', { name: `Área de ${label}`, exact: true });
 

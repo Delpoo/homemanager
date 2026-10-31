@@ -6,7 +6,12 @@ import { test, expect } from '../browser/local-test.mjs';
 // panel and the ones pinned next to the symbol. RF data is a synthetic stand-in
 // for rf_websocket.py; no real remote or household data.
 const card = page => page.locator('homemanager-card');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const calls = page => page.evaluate(() => window.testHarness.calls.map(call => `${call.domain}.${call.service}`));
 const remote = {
@@ -250,6 +255,11 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+    const section = editor.locator('#' + id);
+    if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
+      await section.locator(':scope > summary').click();
+  }
   // The 0.5 primary action shows up as a visible control that the tap runs.
   await expect(editor.getByLabel('Al tocar el símbolo', { exact: true })).toHaveValue('tap');
   await editor.getByRole('button', { name: 'Ciclo', exact: true }).click();
@@ -309,6 +319,11 @@ test('a control left without its actions is reported instead of being saved half
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+    const section = editor.locator('#' + id);
+    if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
+      await section.locator(':scope > summary').click();
+  }
   await editor.getByRole('button', { name: 'Selector', exact: true }).click();
   await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   await expect(editor.locator('.status')).toContainText('Completá las acciones de: Selector');
@@ -322,6 +337,11 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+    const section = editor.locator('#' + id);
+    if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
+      await section.locator(':scope > summary').click();
+  }
   // Entity: focusing shows every entity, the current one first.
   await editor.getByRole('button', { name: 'Vincular dispositivo', exact: true }).click();
   await picker(page).getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
@@ -330,6 +350,8 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   await expect(picker(page).locator('[data-action=entity]')).toHaveCount(1);
   await page.keyboard.press('Escape');
   // Icon: the grid opens with suggestions and filters by Spanish words.
+  // E02: Escape goes back from advanced search; the next Escape leaves linking.
+  await page.keyboard.press('Escape');
   await editor.getByRole('button', { name: 'Icono del dispositivo', exact: true }).click();
   const grid = editor.getByRole('listbox', { name: 'Iconos' });
   expect(await grid.getByRole('option').count()).toBeGreaterThan(50);

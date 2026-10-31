@@ -8,7 +8,17 @@ const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfig
 async function begin(page, label) {
   await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: label, exact: true }).click();
+  await card(page)
+    .getByRole('button', {
+      name:
+        label === 'Guardar dispositivo'
+          ? /^(Guardar dispositivo|Listo)$/
+          : label === 'Cerrar'
+            ? /^(Cerrar|Volver)$/
+            : label,
+      exact: true,
+    })
+    .click();
 }
 async function readable(host) {
   const text = await host.evaluate(host => {

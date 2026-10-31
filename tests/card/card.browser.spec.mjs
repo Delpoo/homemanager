@@ -6,7 +6,16 @@ import { readFile } from 'node:fs/promises';
 const fixture = '/tests/browser/fixtures/card.html';
 const lightLabel = 'Luz de prueba';
 const fanLabel = 'Ventilador de prueba';
-const action = (page, label) => page.getByRole('button', { name: label, exact: true });
+const action = (page, label) =>
+  page.getByRole('button', {
+    name:
+      label === 'Guardar dispositivo'
+        ? /^(Guardar dispositivo|Listo)$/
+        : label === 'Cerrar'
+          ? /^(Cerrar|Volver)$/
+          : label,
+    exact: true,
+  });
 // The panel opens with a long press, a secondary click or Shift+Enter on the symbol.
 const openPanel = (page, label) => action(page, label).click({ button: 'right' });
 const save = page => page.getByRole('button', { name: 'Guardar cambios', exact: true });
@@ -372,10 +381,19 @@ test('editor export contains durable configuration only and import waits for a r
   await begin(page);
   await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await page.getByText('Importar y exportar', { exact: true }).click();
+  await page.evaluate(() => {
+    const create = URL.createObjectURL;
+    URL.createObjectURL = blob => {
+      window.exportedJson = blob.text();
+      return create.call(URL, blob);
+    };
+  });
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar JSON', exact: true }).click();
   const download = await downloading;
-  const content = JSON.parse(await readFile(await download.path(), 'utf8'));
+  // Verify the actual Blob given to the browser, including hosts that cancel
+  // writing downloads to disk. The download event still has to occur.
+  const content = JSON.parse(await page.evaluate(() => window.exportedJson));
   expect(content.catalog.devices.every(d => d.state.value === 'unknown' && d.state.confidence === 'unknown')).toBe(
     true,
   );

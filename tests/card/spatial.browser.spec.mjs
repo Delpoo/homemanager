@@ -5,7 +5,16 @@ import { test, expect } from '../browser/local-test.mjs';
 // Spatial interaction and capability-aware panels, on the synthetic harness.
 const fixture = '/tests/browser/fixtures/card.html';
 const card = page => page.locator('homemanager-card');
-const action = (page, label) => card(page).getByRole('button', { name: label, exact: true });
+const action = (page, label) =>
+  card(page).getByRole('button', {
+    name:
+      label === 'Guardar dispositivo'
+        ? /^(Guardar dispositivo|Listo)$/
+        : label === 'Cerrar'
+          ? /^(Cerrar|Volver)$/
+          : label,
+    exact: true,
+  });
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem('homemanager-synthetic-dashboard'));
   await page.goto(fixture);

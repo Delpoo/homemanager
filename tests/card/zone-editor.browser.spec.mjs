@@ -2,7 +2,12 @@ import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: living on the left; kitchen top right; office bottom right. Zones in the SVG.
 const card = page => page.locator('homemanager-card');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const room = async (page, id) => (await draft(page)).rooms.find(item => item.id === id);
 const roomOf = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id).roomId;
