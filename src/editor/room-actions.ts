@@ -1,11 +1,12 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom } from '../model/plan-import.js';
 import { suggestedRoomIcon } from '../model/archetype.js';
 import { upsertRoom } from './model.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { uiButton, uiIcon, uiSegmented } from '../ui/components.js';
-import { installDialogComponents, panelDialog, panelField } from '../ui/panel-components.js';
+import { installDialogComponents, panelField } from '../ui/panel-components.js';
 
 /** What the card knows about a space's geometry, for the room view section (CP8). */
 export interface RoomViewChoices {
@@ -37,8 +38,9 @@ export function openRoomActions(
   const body = `<div class="room-basic">${panelField(t('Nombre del espacio'), `<input name="room-name" value="${e(room.label)}" maxlength="240">`)}<div class="k-field"><span class="k-field-title">${e(t('Icono'))}</span>${iconPicker(room.icon ?? suggestedRoomIcon(room.label), t('Icono del espacio'), 'wide data-room-icon')}</div></div>${view ? roomViewSection(room, view) : ''}<section class="room-section" aria-labelledby="room-devices-title"><h3 id="room-devices-title">${e(t('{count} dispositivos', { count }))}</h3>${panelField(t('Fusionar en…'), `<select name="merge-room">${options('', t('Conservar espacio'), others.map(item => `<option value="${e(item.id)}">${e(item.label)}</option>`).join(''))}</select>`)}${uiButton(t('Fusionar'), 'merge')}${count ? panelField(t('Al quitar este espacio'), `<select name="remove-room">${options('keep', t('Conservar espacio'), `<option value="unassign">${e(t('Dejarlos sin espacio'))}</option>${others.map(item => `<option value="${e(item.id)}">${e(t('Fusionar en {room}', { room: item.label }))}</option>`).join('')}`)}</select>`) : ''}</section><p class="room-error" role="alert"></p>`;
   const footer = `${uiButton(t('Quitar'), 'remove', 'danger')}<span class="room-spacer"></span>${uiButton(t('Cancelar'), 'cancel')}${uiButton(t('Aplicar'), 'apply', 'primary')}`;
   const template = document.createElement('template');
-  template.innerHTML = panelDialog(room.label, body, footer, { className: 'room-actions' });
-  const dialog = template.content.querySelector('dialog')!;
+  template.innerHTML = taskScreen(room.label, body, footer, 'room-actions');
+  const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
+  dialog.guardChanges = true;
   dialog.removeAttribute('aria-labelledby');
   dialog.setAttribute('aria-label', room.label);
   // Each arrow's direction, as it points on the plan.
@@ -58,7 +60,7 @@ export function openRoomActions(
     if (!action) return;
     try {
       if (action === 'cancel') {
-        dialog.close();
+        void dialog.back();
         return;
       }
       if (action === 'shape') {
@@ -101,7 +103,7 @@ export function openRoomActions(
     }
   });
   root.append(dialog);
-  dialog.showModal();
+  dialog.show(root);
 }
 
 function roomViewSection(room: Room, view: RoomViewChoices): string {
@@ -125,7 +127,7 @@ function roomViewSection(room: Room, view: RoomViewChoices): string {
     room.frame ?? 'normal',
   )}<label class="k-row room-arrow"><input class="k-checkbox" type="checkbox" name="room-skip"${room.nav?.skip ? ' checked' : ''}><span class="txt"><b>${e(t('Saltear al navegar'))}</b><span>${e(t('Como un pasillo: se pasa de largo'))}</span></span></label>${arrows}<div class="room-shape">${uiButton(t('Editar forma en el plano'), 'shape', 'secondary', 'mdi:vector-rectangle')}${room.shapeSource === 'app' && view.hasZone ? uiButton(t('Volver a la zona del SVG'), 'zone', 'ghost') : ''}</div></section>`;
 }
-function roomViewInput(dialog: HTMLDialogElement): Pick<Room, 'frame' | 'nav'> {
+function roomViewInput(dialog: HTMLElement): Pick<Room, 'frame' | 'nav'> {
   const frame = dialog.querySelector<HTMLInputElement>('[name=room-frame]:checked')?.value as
     | 'tight'
     | 'normal'
