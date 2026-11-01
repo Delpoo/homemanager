@@ -148,6 +148,9 @@ test('advanced entity search is the only place showing identifiers and cancellat
 test('selector visual evidence at exact desktop/mobile sizes, including dark mode and empty state', async ({
   page,
 }, testInfo) => {
+  // Visual captures use settled geometry; raw mouse coordinates can go stale
+  // while linking closes the dock and the camera recentres the plan.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const mobile = testInfo.project.name === 'mobile';
   await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
   await start(page);
@@ -170,6 +173,10 @@ test('selector visual evidence at exact desktop/mobile sizes, including dark mod
   await shot('readings');
   await cleanText(page);
   await picker(page).getByRole('button', { name: 'Vincular', exact: true }).click();
+  await expect(card(page).locator('.placing-hint')).toBeVisible();
+  // The SVG ignores pointer events intentionally; tap the actual screen point
+  // after the queued plan repaint, rather than clicking the non-interactive path.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const zone = await card(page).locator('#room-living').boundingBox();
   await page.mouse.click(zone.x + zone.width * 0.35, zone.y + zone.height * 0.55);
   await expect(card(page).locator('.placing-hint')).toBeHidden();
