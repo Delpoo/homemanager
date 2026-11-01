@@ -8,10 +8,110 @@ import {
   suggestPresentation,
 } from '../../.work/panels/controls.js';
 import { boundsOf, clusterPoints } from '../../.work/card/markers.js';
+import { deviceScreen } from '../../.work/model/device-screen.js';
 
 globalThis.__homemanagerLanguage = 'es';
 const entity = (state, attributes = {}) => ({ state, attributes, last_updated: '2026-01-01T00:00:00Z' });
 const ids = controls => controls.map(control => `${control.kind}:${control.id}`);
+
+test('P2: native panels and device screens translate common modes without changing command values', () => {
+  const previousLanguage = globalThis.__homemanagerLanguage;
+  const presets = [
+    ['auto', 'Automático', 'Auto'],
+    ['sleep', 'Noche', 'Sleep'],
+    ['eco', 'Económico', 'Eco'],
+    ['away', 'Ausente', 'Away'],
+    ['boost', 'Intensivo', 'Boost'],
+    ['comfort', 'Confort', 'Comfort'],
+    ['home', 'En casa', 'Home'],
+    ['activity', 'Actividad', 'Activity'],
+    ['none', 'Sin preajuste', 'None'],
+    ['manual', 'Manual', 'Manual'],
+    ['normal', 'Normal', 'Normal'],
+    ['smart', 'Inteligente', 'Smart'],
+    ['quiet', 'Silencioso', 'Quiet'],
+    ['silent', 'Silencioso', 'Silent'],
+    ['natural', 'Brisa natural', 'Natural'],
+    ['nature', 'Brisa natural', 'Nature'],
+    ['breeze', 'Brisa', 'Breeze'],
+    ['turbo', 'Turbo', 'Turbo'],
+    ['Modo personalizado', 'Modo personalizado', 'Modo personalizado'],
+  ];
+  const speeds = [
+    ['auto', 'Automático', 'Auto'],
+    ['low', 'Baja', 'Low'],
+    ['medium', 'Media', 'Medium'],
+    ['high', 'Alta', 'High'],
+  ];
+  const directions = [
+    ['forward', 'Normal', 'Normal'],
+    ['reverse', 'Inversa', 'Reverse'],
+  ];
+  const swing = [
+    ['off', 'Apagado', 'Off'],
+    ['vertical', 'Vertical', 'Vertical'],
+    ['horizontal', 'Horizontal', 'Horizontal'],
+    ['both', 'Ambas', 'Both'],
+  ];
+  try {
+    for (const [language, column] of [
+      ['es', 1],
+      ['en', 2],
+    ]) {
+      globalThis.__homemanagerLanguage = language;
+      for (const [entityId, attributes, groups] of [
+        [
+          'fan.test',
+          { supported_features: 4 | 8, direction: 'reverse', preset_modes: presets.map(row => row[0]) },
+          [
+            ['direction', directions, 'set_direction', 'direction'],
+            ['preset', presets, 'set_preset_mode', 'preset_mode'],
+          ],
+        ],
+        [
+          'climate.test',
+          {
+            supported_features: 8 | 16 | 32,
+            fan_modes: speeds.map(row => row[0]),
+            preset_modes: presets.map(row => row[0]),
+            swing_modes: swing.map(row => row[0]),
+          },
+          [
+            ['fan_mode', speeds, 'set_fan_mode', 'fan_mode'],
+            ['preset_mode', presets, 'set_preset_mode', 'preset_mode'],
+            ['swing_mode', swing, 'set_swing_mode', 'swing_mode'],
+          ],
+        ],
+      ]) {
+        const state = entity('on', attributes);
+        const before = structuredClone(state);
+        const hass = { locale: { language }, states: { [entityId]: state } };
+        const device = {
+          id: 'test',
+          roomId: null,
+          kind: 'fan',
+          display: { label: 'Equipo de prueba', icon: 'mdi:fan' },
+          bindings: { entityId },
+        };
+        for (const controls of [entityControls(entityId, state), deviceScreen(device, hass, [], Date.now()).controls]) {
+          for (const [id, rows, service, field] of groups) {
+            const control = controls.find(item => item.id === id);
+            assert.ok(control, `${language}: ${entityId}/${id}`);
+            assert.deepEqual(
+              control.options,
+              rows.map(row => ({ value: row[0], label: row[column] })),
+            );
+            for (const [value] of rows)
+              assert.deepEqual(commandFor(control, value), { service, data: { [field]: value } });
+          }
+        }
+        assert.deepEqual(state, before);
+      }
+    }
+  } finally {
+    globalThis.__homemanagerLanguage = previousLanguage;
+  }
+});
 
 test('controls follow the real capabilities of each entity', () => {
   assert.deepEqual(ids(entityControls('light.a', entity('on', { supported_color_modes: ['onoff'] }))), [
