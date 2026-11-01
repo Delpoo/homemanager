@@ -12,8 +12,9 @@ Cuando te escriba «continuá», hacé el lote siguiente.
 La primera vez, copiá este mensaje completo en docs/rediseno/modo-continuo.md y enlazalo al principio de ESTADO.md. Si te llega un chat nuevo, seguí ese archivo.
 
 RAMA Y PR
-- Una sola rama para todo: chatgpt/rediseno-e02-pantallas. Ya contiene las guías, E00 y E01. Integrale main.
-- Un solo PR: cambiá el PR #52 para que apunte a main y sacalo de borrador. Así GitHub corre las pruebas completas. No toques los PR #48, #49 y #51: sus cambios ya están en esta rama.
+- Los lotes 0 y 1 usan chatgpt/rediseno-e02-pantallas y el PR #52 hacia main, con las guías y E00 a E04.
+- Desde el lote 2, creá una rama nueva desde main para cada lote: chatgpt/rediseno-lote-N, donde N es el número del lote. Cada rama tiene su propio PR hacia main; no sigas acumulando cambios en la rama ni en el PR #52.
+- Sólo para v0.11.0-beta.1, el propietario autorizó fusionar #52 mediante squash, conservar su rama y publicar una versión de prueba. Esta excepción no autoriza el lote 2 ni otras fusiones o publicaciones. Al publicar, los PR #48, #49 y #51 se cierran con «Incluido en #52», sin borrar sus ramas.
 - Un commit por etapa, con el número de etapa en el mensaje, para poder revertir una sola.
 - Subí los cambios solo al cerrar cada lote.
 - Trabajá un solo agente por vez. No hace falta el commit de reclamo.

@@ -2,6 +2,22 @@
 
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
+## 0.11.0-beta.1 — beta
+
+Versión de prueba del rediseño E01 a E04. Incluye también las mejoras que se incorporaron desde 0.10.0-beta.1 y todavía no se habían publicado. Falta la validación del propietario y el recorrido independiente en vivo.
+
+- **Más plano a la vista:** en la computadora, las fichas se abren al costado; en el teléfono, en una hoja ampliable. Se puede probar una edición antes de guardarla y deshacer el cambio (E01).
+- **Pantallas más claras:** Ajustes, Vincular, espacios, zonas, ayuda, actividad, Almacenamiento y RF tienen una vuelta clara y conservan lo escrito. Las confirmaciones quedan para preguntas de sí o no; las herramientas de zonas caben en el teléfono (E02).
+- **Capas y alertas:** los cuatro símbolos de capas se pueden minimizar u ocultar y recuerdan la elección. El contador de alertas sigue visible aunque esté en cero; los textos y nombres son más claros (E03).
+- **Dispositivos:** controles y lecturas ordenados, resumen de consumo cuando hay datos, seis canales de energía y detalles que se pueden desplegar. Dirección vuelve a decir **Normal/Inversa** y modos como **Noche** aparecen traducidos sin cambiar lo que se envía al equipo (E04).
+- **Actividad más útil:** las lecturas continuas de los medidores ya no llenan el historial. La barra y el plano se ajustan a la altura disponible, también al editar o abrir la barra lateral de Home Assistant (#41).
+- **Importar una copia antigua:** antes de reemplazar el hogar con un JSON, se avisa qué vínculos, avisos u opciones se perderían y se pide exportar una copia actual (#46).
+- **Plano vinculado:** el dibujo puede actualizarse desde un archivo en Home Assistant. Los cambios sencillos ofrecen Deshacer; los que requieren decisiones se revisan antes de aplicarlos (#47).
+- **Conectar mi casa:** permite vincular espacios con áreas de Home Assistant y elegir qué dispositivos agregar al plano. Crear áreas requiere una acción explícita; no se cambian de área los dispositivos existentes (#50).
+- **Limpieza:** se quitaron textos y partes que ya no se usaban y se aclaró que lo único que se importa de afuera es el dibujo (#53).
+
+Esta beta no instala cambios por sí sola ni acredita pruebas con equipos reales. Antes de actualizar, guardá una copia de seguridad completa de Home Assistant para poder volver a la versión anterior.
+
 ## 0.10.0-beta.1 — beta
 
 Primera parte de la etapa 0.10 de [docs/roadmap.md](docs/roadmap.md), *Una sola casa*: **el SVG es sólo una imagen de fondo y las zonas son de la app**.
