@@ -213,8 +213,17 @@ export function runGesture(this: HomeManagerCard, id: string, gesture: 'tap' | '
     } else choice = { action: 'panel' };
   }
   if (choice.action === 'legacy') {
-    void this.executeAction(choice.actionId, id).catch(() => this.showDetails(id, anchor));
-    return;
+    const actionId = choice.actionId;
+    if (!this.draft?.actions[actionId]) choice = { action: 'screen', missing: true };
+    else {
+      void this.runStep(
+        device,
+        { id: 'tap', type: 'button', label: device.display.label, steps: [{ actionId }] },
+        0,
+        anchor,
+      );
+      return;
+    }
   }
   const message =
     'missing' in choice && choice.missing

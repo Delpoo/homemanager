@@ -65,3 +65,7 @@ Atajos junto al símbolo y sus gestos propios (un deslizador arrastra, no mueve 
 ### 2026-11-02 — Codex — cierre del lote 2
 - Siete criterios cotejados; teclado y menú contextual en navegador, supresión de clic y atajos conservados. Referencias nativas ausentes también vuelven a pantalla con aviso. La descripción accesible dice las acciones reales de tocar/mantener. Campos opcionales cubiertos por los 34 casos compartidos de los tres validadores.
 - E06 queda en revisión; cinco filas del inventario, sin afirmar prueba con lector o teléfono físicos. CI del lote en el PR.
+
+### 2026-11-02 — Codex — compatibilidad final en PR #55
+- La prueba de un primaryAction anterior reprodujo la pérdida del aviso junto al símbolo, aun enviándose la acción. Se corrigió reutilizando runStep, con regresión rojo/verde. También se conserva la salida a pantalla si la acción heredada fue borrada. No se modifica el vocabulario ni se infiere confirmación física.
+- Corrección aislada posterior a los cuatro commits de etapa, sin reescribir la historia ya subida. Check y CI exacta en el reporte del PR #55.
