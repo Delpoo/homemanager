@@ -97,8 +97,11 @@ test('valid previews survive switching, undo together and discard without saving
 test('advanced fields stay available and invalid drafts cannot overwrite the plan', async ({ page }) => {
   const editor = await edit(page);
   await editor.locator('details.advanced > summary').click();
-  for (const name of ['id', 'mobility', 'x', 'y', 'panelId'])
-    await expect(editor.locator(`[name=${name}]`)).toBeVisible();
+  for (const name of ['id', 'mobility', 'x', 'y']) await expect(editor.locator(`[name=${name}]`)).toBeVisible();
+  await editor.locator('.module-menu > summary').click();
+  await editor.locator('[data-command=module-add][data-module-id=native]').click();
+  await editor.locator('#module-native > summary').click();
+  await expect(editor.locator('[name=panelId]')).toBeVisible();
   await editor.locator('[name=x]').fill('0.4');
   await expect
     .poll(() =>
@@ -123,7 +126,7 @@ test('live controls, icons, category and HA updates retain the unsaved device', 
   await expect(editor.locator('.ctl-host')).toBeVisible();
   await editor.getByRole('button', { name: 'Icono del dispositivo', exact: true }).click();
   await editor.getByRole('searchbox', { name: 'Buscar icono' }).fill('purificador');
-  await editor.getByRole('option', { name: 'mdi:air-purifier', exact: true }).click();
+  await editor.getByRole('option', { name: 'air-purifier', exact: true }).click();
   await expect
     .poll(() => card.evaluate(node => node.draft.catalog.devices.find(d => d.id === 'lamp').display.icon))
     .toBe('mdi:air-purifier');
@@ -133,8 +136,10 @@ test('live controls, icons, category and HA updates retain the unsaved device', 
     node.hass = { ...window.testHarness.hass };
   });
   await expect(editor.locator('[name=label]')).toHaveValue('Nombre conservado');
-  await editor.locator('#device-category > summary').click();
-  await editor.getByRole('radio', { name: 'Medidor', exact: true }).check();
+  if (!(await editor.locator('#device-controls-section').evaluate(d => d.open)))
+    await editor.locator('#device-controls-section > summary').click();
+  await editor.locator('#device-controls-section').getByRole('button', { name: 'Quitar módulo', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Quitar módulo', exact: true }).click();
   await expect(editor.locator('.ctl-host')).toBeHidden();
   await expect(editor.getByRole('button', { name: 'Grande', exact: true })).toBeVisible();
   await editor.getByRole('button', { name: 'Grande', exact: true }).click();

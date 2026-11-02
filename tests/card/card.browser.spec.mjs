@@ -199,7 +199,10 @@ test('entity, action, source and native panel bindings are edited as drafts with
   const sheet = page.locator('homemanager-editor');
   await sheet.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
-  await sheet.getByLabel('Al tocar el símbolo', { exact: true }).selectOption({ label: 'Pulsador' });
+  await sheet.getByLabel('Al tocar', { exact: true }).selectOption({ label: 'Pulsador' });
+  await sheet.locator('.module-menu > summary').click();
+  await sheet.locator('[data-command=module-add][data-module-id=native]').click();
+  await sheet.locator('#module-native > summary').click();
   await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
   await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closed the sheet; "Más opciones" stays open when it is opened again.

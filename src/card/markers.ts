@@ -17,7 +17,7 @@ export function renderSymbol(spec: SymbolSpec): string {
     ? `<span class="value" title="${escape(spec.body.fullValue ?? spec.body.value)}">${escape(spec.body.value)}</span>`
     : '';
   const badge = spec.badge
-    ? `<span class="symbol-badge" data-level="${spec.badge.level}">${spec.badge.count}</span>`
+    ? `<span class="symbol-badge" data-level="${spec.badge.level}"${spec.badge.color && /^#[0-9a-fA-F]{6}$/.test(spec.badge.color) ? ` style="background:${spec.badge.color}"` : ''}>${spec.badge.count}</span>`
     : '';
   const health = spec.health
     ? `<span class="symbol-health" data-health="${spec.health}" aria-hidden="true">${spec.health === 'unavailable' ? '<ha-icon icon="mdi:minus" aria-hidden="true"></ha-icon>' : ''}</span>`

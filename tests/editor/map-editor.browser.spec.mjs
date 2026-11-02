@@ -34,7 +34,7 @@ test('automatic binding preserves a colliding reusable action and does not inven
   await select(page, 'Temperatura de prueba');
   await chooseAnyEntity(page, 'light.synthetic_spare');
   // A device without controls gets the ones its new entity suggests, shown before saving.
-  await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toHaveValue('power');
+  await expect(editor(page).getByLabel('Al tocar', { exact: true })).toHaveValue('power');
   await button(page, 'Guardar dispositivo').click();
   const configuration = await draft(page);
   expect(configuration.actions['synthetic-sensor-synthetic-spare-turn-on'].target.entity_id).toBe(

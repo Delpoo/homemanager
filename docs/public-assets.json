@@ -2764,6 +2764,286 @@
       "review": "fictional-only",
       "reviewDate": "2026-10-31",
       "sha256": "6ed7f9eb17fc4a07806f57969a69b6964033daee5f1ef367501da8a4c7061c19"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "d8f86d5bc3f477f6e5b11a3a50eb0fd061adf33366916ff4c1cfa1edc76970d5"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-gestures.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "243eb7fc380a5c65863b0f80c580f529a8ab8d5156a6d351001ede10e043e904"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-add.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "141b30d0a60b90f62afc483414f978188b91e4a0c811584f8c2be845937d3812"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-color.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "5efa908c76b1cc1493e9da3c9e3b4a856bbde1f7ba40db1f5c7c5ce9a6ef0c71"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "eead65a949ac755bb237877649f5b8893fceddcaefa274e35e0b8aa88d9d307c"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "277248f0b1f4caae29fea7dd5dec9a3934af3f2977c50db3e639ea7d9daafb82"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-rule-new.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "39bb850b6ddba515f7d9d68f2e98c4b66219c114509182d20162f8e8a24ad849"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-rf-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "d0b6fe43eb2a08b06435e01912de72336385a867e391b132f602ed105c0fe207"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-reference-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "68b7f998acdf5a889a80c0c16318e510b6bc6906227b5b60785dd264c579e048"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-light-reference-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a1214512b1f161b655e627eefa66675bb60345b5f9716e66f8863a4392c2b485"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "b795954235209bfa9913281b1f3186b5cf2d94b6ef01c6c21272f0ab01d91c67"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-gestures.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "945a0b08eab01712e3bd86c6f95c6b2f59542716d888f13b84e19e3ea41a5705"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-add.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "072eb54686d400c45500a3f87c5d9f86053fd7a5c8dfab68895bb0455a0de3e6"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-color.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "b7c3a235b36e3d341b850a64672aef188f88bc50619a32cfa5bc312fa94ccf35"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "0368cdc589fba5b1ef7ecc3aceebed19ad635df20066a7d83c26dcb0d0cdfd2d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "7c2573a11aaae35a67fc00a240c86f57e8284692ed72f8f483af5584d0d5d268"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-rule-new.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "b667fb8059faa117ebc78f5a202a70436f0e838c2f3e3caddeac234d67026044"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-rf-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "539cbaaff619d89a4c552f12028825715c2868638490542e8ce0123aa165ac20"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-reference-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "68b7f998acdf5a889a80c0c16318e510b6bc6906227b5b60785dd264c579e048"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/desktop-dark-reference-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a1214512b1f161b655e627eefa66675bb60345b5f9716e66f8863a4392c2b485"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a4e070733638d1e892cfdff8d7976c650405fe1bfa66ad411abcd5b687816e38"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-gestures.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "4ce5c1e4bb81dc36e7f41af93473ca58be38ea3b9045b7eff6d93af2e657d9ca"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-add.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "e99912d88b0ee0e1c56c507bc357214b643eb6e61669c9493308e37f0e414e79"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-color.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "b83e57371b0f716f81dd16c699d6a6b732ed5720632fd290ad0b189f22d6222a"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "1532858b98ce4fefe516b8402559935dfc44e9d7ff203b7ffaf139dd1ceff0d6"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "f59db5abea6e052455cc46b5afef73011472970b6ec1643851e08032022b0971"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-rule-new.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "7d26f04b97d27493608962412da433b30494f0f3c7cc660344e0b25ca6d7b4d6"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-rf-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "3abef2b5c86070592816235bec44b286502657ab66617f33ff1e53db026c736c"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-reference-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "29e4e4d6e588ecbc534499f768afba1f969c5ef5f1584aa4b3220c2a94e97e49"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-light-reference-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a1732b05fd289ee223570c40a5a0c214f7ff08bc186edfa66e5a302129331fdc"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "1a9e1811803e404bcdf423686f881261cc441c6a9842a5075c71553f4d56e484"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-gestures.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "0af3c2a5deef3e714d2323f3835de03df0eda5e49391280d6e79e333ff0c3300"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-add.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "4deb77c69f7c7f425019298c071994e0e6fe612142e231d19fc13143dfa093fc"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-color.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "e6693d869550a30d700bc14c682262411f704881f5885dd77d25ac43c5d34a00"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a99df66935d7626ce82ba917b74d9dfb3a34fdea0dda6270398167baccb24c91"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "cd6d940a04ca85417a3244a3f876b6c4a8c828057592b5f3da48390f3520370d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-rule-new.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "6010db160090aa2da8f6e1dfc5e9d3729846abec240fdfc8ece351fd68b3b778"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-rf-icons.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "ff35e5a0c9e0184a4d106373e539ca4f3e35869e1d69531861dee7788cb6a5e0"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-reference-modules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "29e4e4d6e588ecbc534499f768afba1f969c5ef5f1584aa4b3220c2a94e97e49"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote2/mobile-dark-reference-rules.png",
+      "source": "scripts/capture-redesign-lote2.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-02",
+      "sha256": "a1732b05fd289ee223570c40a5a0c214f7ff08bc186edfa66e5a302129331fdc"
     }
   ]
 }

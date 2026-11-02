@@ -4,40 +4,6 @@ import type { PartKind, WidgetType } from '../integration/rf.js';
 /** Labels and suggestions shared by the RF pages. Suggestions only fill
  * fields: nothing about a button depends on its name or icon. */
 
-export const REMOTE_ICONS = [
-  'mdi:remote',
-  'mdi:ceiling-fan',
-  'mdi:ceiling-fan-light',
-  'mdi:fan',
-  'mdi:lightbulb',
-  'mdi:led-strip-variant',
-  'mdi:television',
-  'mdi:air-conditioner',
-  'mdi:blinds',
-  'mdi:garage',
-  'mdi:gate',
-  'mdi:power-socket-eu',
-];
-
-export const BUTTON_ICONS = [
-  'mdi:power',
-  'mdi:power-off',
-  'mdi:lightbulb',
-  'mdi:lightbulb-off',
-  'mdi:fan',
-  'mdi:fan-off',
-  'mdi:plus',
-  'mdi:minus',
-  'mdi:brightness-7',
-  'mdi:brightness-5',
-  'mdi:thermometer',
-  'mdi:rotate-3d-variant',
-  'mdi:timer-outline',
-  'mdi:weather-night',
-  'mdi:tune-variant',
-  'mdi:star-outline',
-];
-
 /** Names offered while learning; each fills the name and an icon. */
 export function buttonSuggestions(): [string, string][] {
   return [

@@ -104,7 +104,11 @@ export class RuntimeFeed {
   update(hass: Hass | undefined, runtime: RuntimeState, verified: ReadonlySet<string>, now: number): void {
     this.online = !!hass && hass.connection?.connected !== false;
     this.observations = observeAlertRules(this.configuration?.catalog.devices ?? [], hass, now, this.observations);
-    if (!this.configuration || !hass || !this.online) return;
+    if (!this.configuration || !hass || !this.online) {
+      this.visualObservations = {};
+      this.visualResults = [];
+      return;
+    }
     const previousVisual = this.visualResults;
     const visual = evaluateVisualRules(
       this.configuration.rules ?? [],

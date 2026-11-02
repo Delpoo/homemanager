@@ -1,3 +1,4 @@
+import { iconPicker } from '../ui/icon-picker.js';
 import { t } from '../i18n/index.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
@@ -20,7 +21,7 @@ import {
   type RfWidget,
   type WidgetType,
 } from '../integration/rf.js';
-import { BUTTON_ICONS, REMOTE_ICONS, icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
+import { icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
 import { uiEmpty, uiNotice } from '../ui/components.js';
 import { iconLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
@@ -218,13 +219,8 @@ export class HomeManagerRf extends HTMLElement {
     );
   }
 
-  private iconPicker(name: string, icons: string[], selected: string | null): string {
-    return `<div class="icons" role="group" aria-label="${e(t('Icono'))}">${icons
-      .map(
-        glyph =>
-          `<button type="button" data-pick="${e(name)}" data-value="${e(glyph)}" aria-pressed="${glyph === selected}" aria-label="${e(iconLabel(glyph))}" title="${e(iconLabel(glyph))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
-      )
-      .join('')}</div>`;
+  private iconPicker(name: string, selected: string | null): string {
+    return iconPicker(selected ?? '', t('Icono'), `wide clearable data-rf-icon="${name}"`);
   }
 
   private renderNew(status: string): string {
@@ -236,7 +232,7 @@ export class HomeManagerRf extends HTMLElement {
         `<input name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}">`,
         t('El nombre identifica el control. Podés cambiarlo después.'),
       ) +
-      panelChoices(t('Icono'), this.iconPicker('new', REMOTE_ICONS, draft.icon)) +
+      panelChoices(t('Icono'), this.iconPicker('new', draft.icon)) +
       panelField(
         t('Descripción (opcional)'),
         `<input name="new-description" maxlength="200" value="${e(draft.description ?? '')}">`,
@@ -274,18 +270,12 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private renderEditSections(remote: RfRemote): string {
-    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(rfText(remote.name))}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(rfText(remote.description))}"></label></div>${this.iconPicker('remote', REMOTE_ICONS, remote.icon)}</section>`;
-    const glyphs = (current: string | null) =>
-      `<option value="">${e(t('Sin icono'))}</option>${[...new Set([...(current ? [current] : []), ...BUTTON_ICONS])]
-        .map(
-          glyph => `<option value="${e(glyph)}"${glyph === current ? ' selected' : ''}>${e(iconLabel(glyph))}</option>`,
-        )
-        .join('')}`;
+    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(rfText(remote.name))}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(rfText(remote.description))}"></label></div>${this.iconPicker('remote', remote.icon)}</section>`;
     const buttons = remote.buttons.length
       ? remote.buttons
           .map(
             button =>
-              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}"><select name="button-icon" aria-label="${e(t('Icono de {name}', { name: button.name }))}">${glyphs(button.icon)}</select><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
+              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: button.name }), 'name="button-icon" clearable')}<button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
           )
           .join('')
       : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
@@ -376,7 +366,7 @@ export class HomeManagerRf extends HTMLElement {
     }
     const glyph =
       widget.type === 'button' || widget.type === 'toggle'
-        ? `<label>${e(t('Icono (opcional)'))}<select name="widget-icon"><option value="">${e(t('El del botón'))}</option>${BUTTON_ICONS.map(item => `<option value="${e(item)}"${item === widget.icon ? ' selected' : ''}>${e(iconLabel(item))}</option>`).join('')}</select></label>`
+        ? `<label>${e(t('Icono (opcional)'))}${iconPicker(widget.icon ?? '', t('Icono (opcional)'), 'wide clearable name="widget-icon"')}</label>`
         : '';
     const size = (name: string, label: string, value: number, max: number) =>
       `<label>${e(label)}<select name="${name}">${Array.from({ length: max }, (_, index) => `<option value="${index + 1}"${index + 1 === value ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>`;
@@ -402,12 +392,10 @@ export class HomeManagerRf extends HTMLElement {
     root
       .querySelectorAll<HTMLButtonElement>('[data-open]')
       .forEach(button => button.addEventListener('click', () => this.open(button.dataset.open!)));
-    root.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach(button =>
-      button.addEventListener('click', () => {
-        if (button.dataset.pick === 'new') {
-          this.newRemote.icon = button.dataset.value!;
-          this.render();
-        } else void this.saveAbout({ icon: button.dataset.value! });
+    root.querySelectorAll<HTMLInputElement>('[data-rf-icon]').forEach(picker =>
+      picker.addEventListener('change', () => {
+        if (picker.dataset.rfIcon === 'new') this.newRemote.icon = picker.value || null;
+        else void this.saveAbout({ icon: picker.value || null });
       }),
     );
     root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {

@@ -65,6 +65,7 @@ await build({
     'src/model/modules.ts',
     'src/model/gestures.ts',
     'src/model/visual-rules.ts',
+    'src/model/color.ts',
     'src/model/room-shapes.ts',
     'src/model/room-nav.ts',
     'src/model/plan-health.ts',

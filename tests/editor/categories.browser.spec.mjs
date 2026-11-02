@@ -1,69 +1,53 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
-
 const card = page => page.locator('homemanager-card');
-const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) =>
-  card(page).getByRole('button', {
-    name:
-      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
-    exact: true,
-  });
-const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
-const device = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id);
-const categories = page => editor(page).getByRole('group', { name: 'Categoría' });
-const begin = async (page, name) => {
+const editor = page => page.locator('homemanager-editor');
+const device = (page, id) =>
+  card(page).evaluate((c, id) => c.getDraftConfiguration().catalog.devices.find(d => d.id === id), id);
+async function begin(page, name) {
   await openCardMenu(page);
-  await button(page, 'Editar plano').click();
-  await button(page, name).click();
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name, exact: true }).click();
   await openDeviceSections(page);
-};
-
+}
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
 });
-
-test('the sheet starts with the suggested category and shows only its sections', async ({ page }) => {
+test('a legacy meter gets indicators and can add controls without categories', async ({ page }) => {
   await begin(page, 'Temperatura de prueba');
-  await expect(categories(page).getByRole('radio', { name: 'Medidor' })).toBeChecked();
-  // A meter: what to show, and no button editor.
+  await expect(editor(page).getByRole('group', { name: 'Categoría' })).toHaveCount(0);
   await expect(editor(page).getByRole('group', { name: 'Qué muestra el símbolo' })).toBeVisible();
-  await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toBeHidden();
-  // The technical kind is no longer offered.
-  await expect(editor(page).getByLabel('Tipo de dispositivo', { exact: true })).toHaveCount(0);
-  await categories(page).getByRole('radio', { name: 'Interruptor' }).check();
-  await openDeviceSections(page, ['device-controls-section']);
-  await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toBeVisible();
-  await expect(editor(page).getByRole('group', { name: 'Qué muestra el símbolo' })).toBeHidden();
+  await editor(page).locator('.module-menu > summary').click();
+  await editor(page).locator('[data-command=module-add][data-module-id=control]').click();
+  await editor(page).locator('#device-controls-section > summary').click();
+  await expect(editor(page).getByRole('button', { name: 'Ciclo', exact: true })).toBeVisible();
+  await expect(editor(page).getByLabel('Al tocar', { exact: true })).toBeVisible();
 });
-
-test('saving writes the chosen category and what to show, and keeps the kind and the hidden controls', async ({
-  page,
-}) => {
+test('adding indicators keeps legacy kind, category, archetype and all controls', async ({ page }) => {
   await begin(page, 'Luz de prueba');
-  await expect(categories(page).getByRole('radio', { name: 'Interruptor' })).toBeChecked();
   const before = await device(page, 'synthetic-light');
-  await categories(page).getByRole('radio', { name: 'Medidor' }).check();
+  await editor(page).locator('.module-menu > summary').click();
+  await editor(page).locator('[data-command=module-add][data-module-id=indicators]').click();
+  await editor(page).locator('#module-indicators > summary').click();
+  await editor(page).getByRole('radio', { name: 'Los dos', exact: true }).check();
   await editor(page)
-    .getByRole('group', { name: 'Qué muestra el símbolo' })
-    .getByRole('radio', { name: 'Los dos' })
-    .check();
-  await button(page, 'Guardar dispositivo').click();
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   const after = await device(page, 'synthetic-light');
-  expect(after.display.category).toBe('meter');
+  expect(after.display.category).toBe(before.display.category);
+  expect(after.display.archetype).toBe(before.display.archetype);
   expect(after.display.show).toBe('both');
   expect(after.kind).toBe(before.kind);
-  // Hiding the button editor never deletes what it had: the 0.5 primary action is still its tap control.
-  expect(before.bindings.primaryAction).toBe('synthetic-light-toggle');
   expect(after.bindings).toEqual(before.bindings);
 });
-
-test('linking another entity proposes its category, unless the person already chose one', async ({ page }) => {
+test('relinking cannot replace a chosen module set or its controls', async ({ page }) => {
   await begin(page, 'Temperatura de prueba');
+  await editor(page).locator('.module-menu > summary').click();
+  await editor(page).locator('[data-command=module-add][data-module-id=control]').click();
   await chooseAnyEntity(page, 'light.synthetic_spare');
-  await expect(categories(page).getByRole('radio', { name: 'Interruptor' })).toBeChecked();
-  await categories(page).getByRole('radio', { name: 'Equipo' }).check();
+  await expect(editor(page).locator('[data-module=control]')).toBeVisible();
+  await expect(editor(page).locator('[data-module=indicators]')).toBeVisible();
   await chooseAnyEntity(page, 'sensor.synthetic_temperature');
-  await expect(categories(page).getByRole('radio', { name: 'Equipo' })).toBeChecked();
+  await expect(editor(page).locator('[data-module=control]')).toBeVisible();
 });

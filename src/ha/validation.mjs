@@ -333,11 +333,17 @@ function shape(configuration) {
         'modules',
         'layer',
         'disabledBaseRules',
+        'color',
       ],
       `${path}.display`,
     );
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
+    if (
+      Object.hasOwn(device.display, 'color') &&
+      (typeof device.display.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(device.display.color))
+    )
+      invalid(path + '.display.color', 'hex color required');
     if (Object.hasOwn(device.display, 'size')) one(device.display.size, SYMBOL_SIZES, `${path}.display.size`);
     if (Object.hasOwn(device.display, 'archetype'))
       one(device.display.archetype, SYMBOL_ARCHETYPES, `${path}.display.archetype`);

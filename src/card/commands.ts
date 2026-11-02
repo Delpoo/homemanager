@@ -200,6 +200,8 @@ export function runGesture(this: HomeManagerCard, id: string, gesture: 'tap' | '
   const device = this.draft?.catalog.devices.find(d => d.id === id);
   if (!device) return;
   let choice = resolveGesture(device, gesture, this._hass);
+  if (choice.action === 'native' && !this.draft?.panels[device.bindings.advancedPopupId ?? ''])
+    choice = { action: 'screen', missing: true };
   if (choice.action === 'control') {
     const controlId = choice.controlId;
     const control = controlsOf(device).find(c => c.id === controlId);

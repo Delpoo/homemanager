@@ -327,7 +327,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color"})
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
@@ -339,6 +339,8 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         if "category" in display and display["category"] not in DEVICE_CATEGORIES:
             _fail()
         if "highlight" in display and not isinstance(display["highlight"], bool):
+            _fail()
+        if "color" in display and (not isinstance(display["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", display["color"])):
             _fail()
         if "modules" in display:
             modules = display["modules"]

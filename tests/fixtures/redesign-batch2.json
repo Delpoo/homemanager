@@ -1,0 +1,359 @@
+{
+  "valid": [
+    {},
+    {
+      "display": {
+        "modules": []
+      }
+    },
+    {
+      "display": {
+        "modules": [
+          "device",
+          "indicators",
+          "gestures",
+          "control",
+          "pinned",
+          "native",
+          "rules"
+        ],
+        "layer": "energy",
+        "color": "#7655a6",
+        "disabledBaseRules": [
+          "safety",
+          "battery",
+          "unavailable"
+        ]
+      }
+    },
+    {
+      "bindings": {
+        "hold": null
+      }
+    },
+    {
+      "bindings": {
+        "hold": "missing-control"
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "screen"
+        },
+        "hold": {
+          "action": "none"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "control",
+          "controlId": "missing-control"
+        },
+        "hold": {
+          "action": "native"
+        }
+      }
+    },
+    {
+      "display": {
+        "alerts": [
+          {
+            "reading": "sensor.sample",
+            "level": "warning",
+            "below": 0,
+            "enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "indicator",
+          "below": 27,
+          "color": "#abcdef",
+          "badge": false,
+          "highlight": true,
+          "bar": true,
+          "now": true,
+          "forMinutes": 0.5
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "binary_sensor.sample"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "state": "off"
+        }
+      ]
+    },
+    {
+      "rules": []
+    }
+  ],
+  "invalid": [
+    {
+      "display": {
+        "modules": [
+          "device",
+          "device"
+        ]
+      }
+    },
+    {
+      "display": {
+        "modules": [
+          "unknown"
+        ]
+      }
+    },
+    {
+      "display": {
+        "modules": null
+      }
+    },
+    {
+      "display": {
+        "layer": "custom"
+      }
+    },
+    {
+      "display": {
+        "color": "red"
+      }
+    },
+    {
+      "display": {
+        "color": "#fff"
+      }
+    },
+    {
+      "display": {
+        "color": "#ffffff;display:none"
+      }
+    },
+    {
+      "display": {
+        "disabledBaseRules": [
+          "unknown"
+        ]
+      }
+    },
+    {
+      "display": {
+        "disabledBaseRules": [
+          "safety",
+          "safety"
+        ]
+      }
+    },
+    {
+      "bindings": {
+        "hold": false
+      }
+    },
+    {
+      "bindings": {
+        "hold": {
+          "action": "service"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "control"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "none",
+          "controlId": "x"
+        }
+      }
+    },
+    {
+      "display": {
+        "alerts": [
+          {
+            "reading": "sensor.sample",
+            "level": "warning",
+            "enabled": "false"
+          }
+        ]
+      }
+    },
+    {
+      "rules": null
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": "false",
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27,
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27,
+          "forMinutes": -1
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [],
+          "symbols": [],
+          "level": "warning",
+          "below": 27
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "light.sample"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [
+            "same",
+            "same"
+          ],
+          "level": "warning",
+          "below": 27
+        }
+      ]
+    },
+    {
+      "rules": [
+        {
+          "id": "sample-rule",
+          "name": "Sample condition",
+          "enabled": true,
+          "sources": [
+            {
+              "reading": "sensor.sample",
+              "deviceId": "sample-registry"
+            }
+          ],
+          "symbols": [],
+          "level": "warning",
+          "below": 27,
+          "service": "turn_on"
+        }
+      ]
+    }
+  ]
+}

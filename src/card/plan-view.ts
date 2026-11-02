@@ -1,8 +1,9 @@
+import { resolveGesture } from '../model/gestures.js';
 import { t } from '../i18n/index.js';
 import { isActiveValue } from '../panels/controls.js';
 import { stateText } from '../panels/native-panel.js';
 import { GROUP_DISTANCE, confidenceLabel, layer, reducedMotion } from './card-helpers.js';
-import { pinnedControls, stepLabel, tapControl } from './device-controls.js';
+import { controlsOf, pinnedControls, stepLabel, tapControl } from './device-controls.js';
 import {
   createSpaceHighlight,
   fitCamera,
@@ -296,6 +297,11 @@ export function refreshState(this: HomeManagerCard) {
     const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext, this.feed.ruleResults);
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
+    m.toggleAttribute('data-custom-color', !!spec.color);
+    for (const theme of ['light', 'dark'] as const) {
+      if (spec.color) m.style.setProperty('--hm-symbol-' + theme, spec.color[theme]);
+      else m.style.removeProperty('--hm-symbol-' + theme);
+    }
     m.dataset.active = String(!!spec.ring);
     m.dataset.archetype = spec.archetype;
     m.dataset.highlight = String(spec.highlight);
@@ -312,14 +318,31 @@ export function refreshState(this: HomeManagerCard) {
     const tap = spec.tap === 'control' ? tapControl(d) : null;
     const next = tap ? this.tapStep(d, tap) : -1;
     const availability = tap ? this.adapter?.getActionAvailability(tap.steps[next]?.actionId ?? '') : undefined;
-    const action = tap ? stepLabel(tap, next, this.draft) : t('Abrir panel');
+    const gestureLabel = (gesture: 'tap' | 'hold') => {
+      const choice = resolveGesture(d, gesture, this._hass);
+      if (choice.action === 'control')
+        return controlsOf(d).find(c => c.id === choice.controlId)?.label ?? t('Abrir su pantalla');
+      if (choice.action === 'legacy') return tap ? stepLabel(tap, next, this.draft) : d.display.label;
+      return t(
+        (
+          {
+            screen: 'Abrir su pantalla',
+            panel: 'Abrir el control completo',
+            native: 'Abrir panel nativo',
+            none: 'Nada',
+          } as const
+        )[choice.action],
+      );
+    };
+    const action = gestureLabel('tap'),
+      holdAction = gestureLabel('hold');
     main.setAttribute(
       'title',
       `${d.display.label} · ${stateText(state?.value ?? 'unknown')} · ${confidenceLabel(confidence)}${this.editing ? '' : tap && !availability?.available ? ` · ${t('Acción pendiente o no disponible')}` : ` · ${t('Tocar: {action}', { action })}`}`,
     );
     main.setAttribute(
       'aria-description',
-      `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}. ${t('Tocar: {action}. Mantener pulsado: panel.', { action })}`,
+      `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}. ${t('Tocar: {action}. Mantener: {hold}. Menú contextual: control completo.', { action, hold: holdAction })}`,
     );
     // A cycle shows the icon of the step it is in (for example on or off).
     const current = tap?.type === 'cycle' ? this.cycleCurrent(d, tap) : -1;

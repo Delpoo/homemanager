@@ -69,3 +69,8 @@ Los avisos configurados, la duración con su lógica de observación (`observeAl
 - **Comprobaciones:** check 267 pruebas; dos recorridos de Reglas de escritorio aprobados. Capturas, Python y CI se documentan en el cierre conjunto.
 - **Falta:** auditor independiente, validación y pruebas físicas; sin Home Assistant de la vivienda ni notificaciones/acciones automáticas.
 - **Dónde quedó:** `chatgpt/rediseno-lote-2`, commit E07; PR al cierre.
+
+### 2026-11-02 — Codex — cierre del lote 2
+- Ocho criterios cotejados; se conserva también el resaltado anterior como fila visible y desactivable. Las reglas sólo indicadoras tienen insignia sin sumarse a alertas y no fuerzan resaltado si se desactiva. Desconectar descarta evidencia temporal antes de reconectar, con regresión específica. Fuentes globales incluidas en la observación del adaptador.
+- Corregidos contraste del tema oscuro y desplazamiento propio de la lista durante revisión de capturas. Sin símbolos, el aviso sigue visible sin ofrecer un encuadre inexistente. Campos opcionales cubiertos por los tres validadores.
+- E07 en revisión: ocho filas conservadas. Matriz HA en CI, no ejecutada localmente por faltar pytest; sin E2E nuevo ni prueba física.

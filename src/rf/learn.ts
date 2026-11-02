@@ -1,9 +1,10 @@
+import { iconPicker } from '../ui/icon-picker.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents, panelIconAction } from '../ui/panel-components.js';
 import { rfLearnStyles, rfText } from '../ui/rf-components.js';
 import { ROLES, rf, type RfAbout, type RfCandidate, type RfRemote, type RfTransmitter } from '../integration/rf.js';
-import { BUTTON_ICONS, buttonSuggestions, icon, roleLabel, iconLabel } from './catalog.js';
+import { buttonSuggestions, icon, roleLabel } from './catalog.js';
 
 /** Learning buttons, in any order. The receiver listens while this panel is
  * open; each code heard is shown as it arrives, with why it is or is not
@@ -254,10 +255,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
           `<button type="button" data-suggest="${e(label)}" data-icon="${e(glyph)}" aria-pressed="${label === this.name}">${e(label)}</button>`,
       )
       .join('');
-    const icons = BUTTON_ICONS.map(
-      glyph =>
-        `<button type="button" data-glyph="${e(glyph)}" aria-pressed="${glyph === this.glyph}" aria-label="${e(iconLabel(glyph))}" title="${e(iconLabel(glyph))}">${icon(glyph) || e(glyph.slice(4, 6))}</button>`,
-    ).join('');
+    const icons = iconPicker(this.glyph, t('Icono'), 'wide clearable data-learning-icon');
     const form = `<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label>
 <div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>
 <div class="chips icons" role="group" aria-label="${e(t('Icono'))}">${icons}</div>${this.roleOptions()}`;
@@ -299,12 +297,9 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
         this.render();
       }),
     );
-    root.querySelectorAll<HTMLButtonElement>('[data-glyph]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.glyph = this.glyph === button.dataset.glyph ? '' : button.dataset.glyph!;
-        this.render();
-      }),
-    );
+    root.querySelector<HTMLInputElement>('[data-learning-icon]')?.addEventListener('change', event => {
+      this.glyph = (event.target as HTMLInputElement).value;
+    });
     root
       .querySelector<HTMLSelectElement>('select[name=role]')
       ?.addEventListener('change', event => (this.assign = (event.target as HTMLSelectElement).value));

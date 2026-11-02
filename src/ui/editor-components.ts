@@ -1,6 +1,6 @@
 /** E01: layout only. Categories, controls and warnings keep their existing models. */
 export const editorDockStyles = `
-.workspace>.editor{position:relative;inset:auto;z-index:6;flex:0 0 380px;width:380px;max-width:400px;height:100%;max-height:none;min-height:0;overflow:hidden;border-radius:0;border-left:1px solid var(--hm-line);background:var(--hm-surface)}
+.workspace>.editor{position:relative;inset:auto;z-index:6;flex:0 0 380px;width:380px;max-width:400px;height:var(--hm-viewport-height,clamp(420px,66vh,920px));max-height:none;min-height:0;overflow:hidden;border-radius:0;border-left:1px solid var(--hm-line);background:var(--hm-surface)}
 .workspace>.editor[hidden]{display:none}
  .workspace>.editor[data-surface=settings],.workspace>.editor[data-task=page]{position:absolute;inset:0!important;width:100%;max-width:none;height:100%;max-height:100%;border:0;overflow:hidden;border-radius:0}
 .workspace>.editor>homemanager-editor{height:100%;width:100%;min-height:0}
@@ -29,6 +29,7 @@ export const editorSheetStyles = `
 .sheet-category summary small{font-weight:400;color:var(--hm-muted)}
 .sheet-body .basic{display:grid;gap:12px}.sheet-body .basic>.field{margin:0}
 .sheet-body .base-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end}
+.sheet-body .basic>.base-row{order:1}.sheet-body .basic>.size-host{order:2}.sheet-body .basic>.symbol-color{order:3}.sheet-body .basic>label:has([name=layer]){order:4}
 .sheet-body .symbol-size{margin:0}.sheet-body .symbol-size .seg{display:flex}
 .sheet-body .symbol-size .seg button{flex:1;min-width:0;padding:8px 5px}
 .sheet-body .section{background:var(--hm-surface);margin-top:12px}

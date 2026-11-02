@@ -720,3 +720,20 @@ Object.assign(en, {
   'Se admiten hasta 2000 reglas por seguridad de tamaño.':
     'Up to 2000 rules are allowed to keep document size bounded.',
 });
+
+Object.assign(en, {
+  'Mostrar más iconos': 'Show more icons',
+  'Buscar: luz, ventilador, lock': 'Search: light, fan, lock',
+  'Sin coincidencias. Escribí otro nombre.': 'No matches. Try another name.',
+  '{shown} de {total} iconos': '{shown} of {total} icons',
+  'Color libre': 'Custom color',
+  'Paleta sugerida': 'Suggested palette',
+  'Color {n}': 'Color {n}',
+  'El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.':
+    'The displayed tone adjusts for readability. Red is reserved for alerts by default.',
+});
+
+Object.assign(en, {
+  'Tocar: {action}. Mantener: {hold}. Menú contextual: control completo.':
+    'Tap: {action}. Hold: {hold}. Context menu: full control.',
+});

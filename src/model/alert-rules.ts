@@ -167,7 +167,6 @@ export function hasBinaryAlertOverride(device: ModelDevice, hass?: ModelHass): b
 export function presenceHighlightOf(device: ModelDevice, hass?: ModelHass): boolean {
   const reading = device.bindings.entityId;
   return (
-    categoryOf(device, hass) === 'presence' &&
     device.display.highlight === true &&
     !!reading?.startsWith('binary_sensor.') &&
     alertReading(device, reading, hass)?.state === 'on'
