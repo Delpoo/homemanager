@@ -46,7 +46,7 @@ export const SYMBOL_ARCHETYPES = Object.freeze([
   'infrastructure',
 ]);
 export const SYMBOL_SHOW = Object.freeze(['icon', 'value', 'both']);
-export const MAX_ALERT_RULES = 4;
+export const MAX_ALERT_RULES = 2000;
 export const ALERT_RULE_LEVELS = Object.freeze(['alert', 'warning']);
 /** What the person chose (D21); it decides the archetype and the sheet's sections. */
 export const DEVICE_CATEGORIES = Object.freeze([
@@ -122,9 +122,11 @@ function alertRules(value, path) {
   if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, 'array of at most 4 alert rules required');
   value.forEach((rule, index) => {
     const at = `${path}[${index}]`;
-    fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes'], at);
+    fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes', 'enabled'], at);
     entity(rule.reading, `${at}.reading`);
     one(rule.level, ALERT_RULE_LEVELS, `${at}.level`);
+    if (Object.hasOwn(rule, 'enabled') && typeof rule.enabled !== 'boolean')
+      invalid(at + '.enabled', 'boolean required');
     for (const key of ['below', 'above', 'forMinutes'])
       if (Object.hasOwn(rule, key) && (typeof rule[key] !== 'number' || !Number.isFinite(rule[key])))
         invalid(`${at}.${key}`, 'finite number required');
@@ -254,7 +256,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds'],
+    ['commandTtlSeconds', 'rules'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -320,7 +322,18 @@ function shape(configuration) {
     fields(
       device.display,
       ['label', 'icon'],
-      ['size', 'pinned', 'archetype', 'show', 'category', 'alerts', 'highlight', 'modules', 'layer'],
+      [
+        'size',
+        'pinned',
+        'archetype',
+        'show',
+        'category',
+        'alerts',
+        'highlight',
+        'modules',
+        'layer',
+        'disabledBaseRules',
+      ],
       `${path}.display`,
     );
     text(device.display.label, `${path}.display.label`);
@@ -344,6 +357,12 @@ function shape(configuration) {
     }
     if (Object.hasOwn(device.display, 'layer'))
       one(device.display.layer, ['controls', 'sensors', 'energy', 'infrastructure'], `${path}.display.layer`);
+    if (Object.hasOwn(device.display, 'disabledBaseRules')) {
+      const list = device.display.disabledBaseRules;
+      if (!Array.isArray(list) || list.length > 3 || new Set(list).size !== list.length)
+        invalid(path, 'unique base rule list required');
+      for (const key of list) one(key, ['safety', 'battery', 'unavailable'], path);
+    }
     if (Object.hasOwn(device.display, 'alerts')) alertRules(device.display.alerts, `${path}.display.alerts`);
     if (Object.hasOwn(device.display, 'highlight') && typeof device.display.highlight !== 'boolean')
       invalid(`${path}.display.highlight`, 'boolean required');
@@ -439,6 +458,66 @@ function shape(configuration) {
         invalid(`stateSources.${key}.attribute`, 'unsafe attribute');
     }
     one(source.feedback, ['measured', 'optimistic', 'transmitter'], `stateSources.${key}.feedback`);
+  }
+  if (Object.hasOwn(configuration, 'rules')) {
+    if (!Array.isArray(configuration.rules) || configuration.rules.length > 2000)
+      invalid('rules', 'at most 2000 rules');
+    const ids = new Set();
+    for (const rule of configuration.rules) {
+      fields(
+        rule,
+        ['id', 'name', 'enabled', 'sources', 'symbols', 'level'],
+        ['below', 'above', 'state', 'forMinutes', 'badge', 'highlight', 'color', 'bar', 'now'],
+        'rules',
+      );
+      id(rule.id, 'rules.id');
+      if (ids.has(rule.id)) invalid('rules.id', 'duplicate rule');
+      ids.add(rule.id);
+      text(rule.name, 'rules.name');
+      for (const key of ['enabled', 'badge', 'highlight', 'bar', 'now'])
+        if (Object.hasOwn(rule, key) && typeof rule[key] !== 'boolean') invalid('rules.' + key, 'boolean required');
+      one(rule.level, ['alert', 'warning', 'indicator'], 'rules.level');
+      for (const key of ['below', 'above', 'forMinutes'])
+        if (
+          Object.hasOwn(rule, key) &&
+          (typeof rule[key] !== 'number' || !Number.isFinite(rule[key]) || (key === 'forMinutes' && rule[key] < 0))
+        )
+          invalid('rules.' + key, 'finite number required');
+      if (rule.color !== undefined && (typeof rule.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(rule.color)))
+        invalid('rules.color', 'hex color required');
+      if (!Array.isArray(rule.sources) || !rule.sources.length || rule.sources.length > 2000)
+        invalid('rules.sources', '1 to 2000 explicit readings');
+      const readings = new Set();
+      let binary;
+      for (const source of rule.sources) {
+        fields(source, ['reading'], ['deviceId'], 'rules.source');
+        entity(source.reading, 'rules.source.reading');
+        if (!/^(sensor|binary_sensor)\./.test(source.reading) || readings.has(source.reading))
+          invalid('rules.sources', 'distinct sensor readings required');
+        readings.add(source.reading);
+        const isBinary = source.reading.startsWith('binary_sensor.');
+        if (binary !== undefined && binary !== isBinary) invalid('rules.sources', 'group must share a condition type');
+        binary = isBinary;
+        if (source.deviceId !== undefined) {
+          text(source.deviceId, 'rules.source.deviceId');
+          if (!REGISTRY_DEVICE.test(source.deviceId) || UNSAFE.has(source.deviceId))
+            invalid('rules.source.deviceId', 'registry ID required');
+        }
+      }
+      if (binary) {
+        if (rule.below !== undefined || rule.above !== undefined)
+          invalid('rules', 'binary rules do not use thresholds');
+        if (rule.state !== undefined) one(rule.state, ['on', 'off'], 'rules.state');
+      } else if (rule.state !== undefined || (rule.below === undefined && rule.above === undefined))
+        invalid('rules', 'numeric condition required');
+      if (
+        !Array.isArray(rule.symbols) ||
+        rule.symbols.length > 2000 ||
+        new Set(rule.symbols).size !== rule.symbols.length
+      )
+        invalid('rules.symbols', 'unique symbol list required');
+      for (const symbol of rule.symbols) id(symbol, 'rules.symbols');
+    }
   }
   if (
     configuration.commandTtlSeconds !== undefined &&

@@ -293,12 +293,20 @@ export function refreshState(this: HomeManagerCard) {
     const d = this.draft?.catalog.devices.find(d => d.id === m.dataset.id);
     if (!d) return;
     const state = this.runtime.states[d.id];
-    const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext);
+    const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext, this.feed.ruleResults);
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
     m.dataset.active = String(!!spec.ring);
     m.dataset.archetype = spec.archetype;
     m.dataset.highlight = String(spec.highlight);
+    const visualColor = this.feed.ruleResults.find(
+      result =>
+        result.rule.symbols.includes(d.id) &&
+        result.rule.color &&
+        (result.rule.highlight || result.rule.level === 'indicator'),
+    )?.rule.color;
+    if (visualColor && /^#[0-9a-fA-F]{6}$/.test(visualColor)) m.style.setProperty('--hm-brand', visualColor);
+    else m.style.removeProperty('--hm-brand');
     m.dataset.alert = spec.badge?.level ?? '';
     const main = m.querySelector('button.primary')!;
     const tap = spec.tap === 'control' ? tapControl(d) : null;
@@ -320,7 +328,7 @@ export function refreshState(this: HomeManagerCard) {
     main.innerHTML = renderSymbol(spec);
     (main as HTMLElement).dataset.icon = spec.body.icon ?? '';
     // Keep selection reachable in edit mode; a tap that cannot run still opens the panel by holding.
-    (main as HTMLButtonElement).disabled = !this.editing && !!tap && !availability?.available;
+    (main as HTMLButtonElement).disabled = false;
     for (const view of this.pins.get(d.id) ?? []) view.refresh();
   });
   const d = this.draft?.catalog.devices.find(d => d.id === this.selected);

@@ -116,6 +116,7 @@ export function upsertDevice(
       ...(input.display.layer ? { layer: input.display.layer } : {}),
       ...(input.display.alerts !== undefined ? { alerts: structuredClone(input.display.alerts) } : {}),
       ...(input.display.highlight !== undefined ? { highlight: input.display.highlight } : {}),
+      ...(input.display.disabledBaseRules ? { disabledBaseRules: [...input.display.disabledBaseRules] } : {}),
     },
     bindings: {
       entityId: input.bindings.entityId,

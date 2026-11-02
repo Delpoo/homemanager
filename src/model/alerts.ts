@@ -87,7 +87,8 @@ export function alertsOf(
     entityId.startsWith('binary_sensor.') &&
     entity.state === 'on' &&
     (alarmCategory || legacyCritical) &&
-    !hasBinaryAlertOverride(device, hass)
+    !hasBinaryAlertOverride(device, hass) &&
+    !device.display.disabledBaseRules?.includes('safety')
   )
     add(
       entityId,
@@ -95,7 +96,7 @@ export function alertsOf(
       'critical',
       CRITICAL[deviceClass] ?? 'Alerta detectada',
     );
-  if (entity.state === 'unavailable') {
+  if (entity.state === 'unavailable' && !device.display.disabledBaseRules?.includes('unavailable')) {
     // last_updated can advance while still unavailable; only last_changed proves its duration.
     const since = Date.parse(entity.last_changed ?? '');
     if (Number.isFinite(now) && Number.isFinite(since) && now - since > unavailableAfter)
@@ -121,7 +122,8 @@ export function alertsOf(
     }
   // A battery attribute and its related entity describe one warning, not two alerts.
   const battery = [...batterySources.keys()].find(id => id !== entityId) ?? [...batterySources.keys()][0];
-  if (battery) add(battery, 'battery', 'warning', 'Batería baja');
+  if (battery && !device.display.disabledBaseRules?.includes('battery'))
+    add(battery, 'battery', 'warning', 'Batería baja');
   return alerts;
 }
 

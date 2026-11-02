@@ -7,6 +7,7 @@ import { isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-heal
 
 /** Plan settings as a page (mockup §9): sections on the left, problems on top, spaces as a list. */
 export type SettingsSection =
+  | 'rules-section'
   | 'health-section'
   | 'rooms-section'
   | 'connect-section'
@@ -26,6 +27,7 @@ export interface SettingsPage {
 }
 
 const SECTIONS: { id: SettingsSection; title: () => string; icon: string }[] = [
+  { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
   { id: 'rooms-section', title: () => t('Plano y espacios'), icon: 'mdi:floor-plan' },
   { id: 'connect-section', title: () => t('Conectar mi casa'), icon: 'mdi:home-automation' },
   { id: 'health-section', title: () => t('Diagnóstico'), icon: 'mdi:stethoscope' },

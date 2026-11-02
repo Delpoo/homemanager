@@ -54,21 +54,9 @@ export function alertReadingChoices(device: ModelDevice, hass?: ModelHass): Aler
     });
 }
 
-/** Suggested options start OFF. The selected limits are visible before they can be enabled. */
+/** No fixed plant thresholds: the user supplies every numeric condition. */
 export function plantAlertSuggestions(device: ModelDevice, hass?: ModelHass): AlertSetting[] {
-  return alertReadingChoices(device, hass)
-    .filter(reading => !reading.id.startsWith('binary_sensor.'))
-    .flatMap(reading => {
-      const suggestion =
-        reading.deviceClass === 'moisture' || reading.deviceClass === 'humidity'
-          ? { below: '20', minutes: '', level: 'warning' as const }
-          : reading.deviceClass === 'illuminance'
-            ? { below: '800', minutes: '4320', level: 'warning' as const }
-            : reading.deviceClass === 'temperature'
-              ? { below: '10', minutes: '', level: 'alert' as const }
-              : null;
-      return suggestion ? [{ reading: reading.id, enabled: false, above: '', ...suggestion }] : [];
-    });
+  return [];
 }
 export function settingApplies(setting: AlertSetting, category: Category): boolean {
   return true;
@@ -77,7 +65,7 @@ export function settingApplies(setting: AlertSetting, category: Category): boole
 /** Validate editable values without mutating the draft. Disabled suggestions never enter the contract. */
 export function alertSettingsDisplay(draft: AlertSettingsDraft): { alerts: AlertRuleConfig[]; highlight?: boolean } {
   const enabled = draft.rules.filter(rule => rule.enabled);
-  if (enabled.length > 4) throw new Error('Se admiten hasta cuatro avisos. Quitá uno antes de agregar otro.');
+  if (enabled.length > 2000) throw new Error('Se admiten hasta 2000 reglas por seguridad de tamaño.');
   const alerts = enabled.map(setting => {
     const rule: AlertRuleConfig = { reading: setting.reading, level: setting.level };
     for (const [field, raw] of [

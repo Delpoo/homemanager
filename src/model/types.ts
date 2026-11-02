@@ -5,6 +5,7 @@ export type Category = 'switch' | 'equipment' | 'remote' | 'meter' | 'plant' | '
 export type ModelConfidence = 'confirmed' | 'estimated' | 'sent' | 'unknown' | 'error';
 /** CP4: configured conditions; observations and timers never belong in the plan. */
 export interface AlertRuleConfig {
+  enabled?: boolean;
   reading: string;
   below?: number;
   above?: number;
@@ -64,6 +65,7 @@ export interface ModelDevice {
     pinned?: string[];
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
+    disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
   };
   bindings: {
     entityId: string | null;

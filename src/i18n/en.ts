@@ -673,3 +673,50 @@ Object.assign(en, {
 });
 
 Object.assign(en, { 'Pantalla del dispositivo': 'Device screen' });
+
+Object.assign(en, {
+  'Aviso conservado': 'Preserved alert',
+  'Abrir Reglas': 'Open Rules',
+  'Crear regla para este símbolo': 'Create rule for this symbol',
+  'Las reglas sólo avisan e indican mientras la app está abierta. No envían comandos ni notificaciones.':
+    'Rules only provide visual alerts while the app is open. They do not send commands or notifications.',
+  '+ Nueva regla': '+ New rule',
+  'Deshacer regla': 'Undo rule',
+  'Regla base visible y desactivable. Conserva el comportamiento de los planos anteriores.':
+    'This visible base rule can be disabled. It preserves the behavior of older plans.',
+  'Nombre de la regla': 'Rule name',
+  Cuando: 'When',
+  'Lecturas del grupo': 'Group readings',
+  'Se cumple si cualquiera de las lecturas elegidas cumple la condición.':
+    'Matches when any selected reading meets the condition.',
+  Detección: 'Detection',
+  'Detectado / abierto': 'Detected / open',
+  'Sin detectar / cerrado': 'Not detected / closed',
+  'Entonces se ve': 'Then show',
+  Color: 'Color',
+  'Se muestra en estos símbolos': 'Shown on these symbols',
+  'Sin símbolos también puede aparecer en la barra y en Ahora.':
+    'Without symbols it can still appear in the activity bar and Now.',
+  'Guardar regla': 'Save rule',
+  'Borrar regla': 'Delete rule',
+  'Elegí una regla o creá una nueva.': 'Choose a rule or create a new one.',
+  '¿Borrar regla?': 'Delete rule?',
+  'Se puede deshacer. No se modifican dispositivos de Home Assistant.':
+    'You can undo this. Home Assistant devices are unchanged.',
+  'Completá una condición para ver la vista previa.': 'Complete a condition to preview it.',
+  'Insignia en el símbolo': 'Symbol badge',
+  'Resaltar símbolo': 'Highlight symbol',
+  'Mensaje en la barra': 'Message in activity bar',
+  'Aparece en Ahora': 'Show in Now',
+  'Sólo indicador': 'Indicator only',
+  'Se cumple ahora': 'Matches now',
+  'No se cumple ahora': 'Does not match now',
+  'Regla base': 'Base rule',
+  'Detección de seguridad': 'Safety detection',
+  Activa: 'Enabled',
+  Apagada: 'Disabled',
+  'Elegí lecturas del mismo tipo.': 'Choose readings of the same type.',
+  'Escribí un nombre para la regla.': 'Enter a rule name.',
+  'Se admiten hasta 2000 reglas por seguridad de tamaño.':
+    'Up to 2000 rules are allowed to keep document size bounded.',
+});

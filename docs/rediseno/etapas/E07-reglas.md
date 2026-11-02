@@ -59,3 +59,13 @@ Los avisos configurados, la duración con su lógica de observación (`observeAl
 - [ ] Ninguna regla envía comandos.
 
 ## Registro
+
+### 2026-11-02 — Codex — implementación local
+- **Hecho:** una pantalla Reglas en Ajustes, entrada directa desde menú y atajo/creación desde símbolo; lista, interruptores, editor, vista previa y deshacer. Nombre, lecturas, límites sin rellenar, duración, nivel/indicador, insignia, color, resaltado, barra, Ahora y símbolos opcionales.
+- **Decisiones:** grupo explícito de lecturas, condición ANY (cualquiera); nunca se asocia por nombres. La fuente elegida registra su entidad y, cuando existe, ID del registro, comprobado al evaluar. Límite defensivo 2000 reglas (también para avisos anteriores), dentro de 3 MiB globales, reemplaza las cuatro de antes. Las reglas sólo evalúan en la app abierta.
+- **Migración:** reglas nuevas en `configuration.rules`, opcional. `display.alerts` sigue en su lugar y se lee sin copiarlo; apagar conserva la condición con enabled opcional. Editar y guardar explícitamente un aviso anterior lo convierte una sola vez a regla global y quita la entrada antigua. Alertas automáticas visibles/desactivables mediante disabledBaseRules opcional; sus comportamientos previos se conservan por defecto. Se retiraron sugerencias de humedad/luz/temperatura fijas.
+- **Aceptación:** 1 cumplido (crear/editar/apagar/borrar/deshacer en navegador); 2 cumplido (campos vacíos, sin sugerencias fijas nuevas); 3 cumplido (lectura conservada y nivel en pruebas); 4 cumplido (modelo/feed sin símbolos, regla en barra y Ahora); 5 cumplido (bloque lista reglas por símbolo); 6 cumplido (desconexión/unknown/no numérico/cambio de asociación); 7 cumplido (prueba con last_changed antiguo, duración inicia en sesión nueva); 8 cumplido (modelo y editor no tienen camino a enviar servicios; prueba con callService que falla si se usa).
+- **Inventario E07:** F-004 barra con contador; F-019/F-020 selección y encuadre conservados para símbolos existentes; F-046 editor único; F-047 resaltado, conteo y reglas base; F-048 avisos viejos visibles independientemente de categoría; F-068 pantalla conserva avisos/actividad/diagnóstico y agrega reglas asociadas; F-121 contrato opcional validado en los tres lugares. No se quita ninguna función.
+- **Comprobaciones:** check 267 pruebas; dos recorridos de Reglas de escritorio aprobados. Capturas, Python y CI se documentan en el cierre conjunto.
+- **Falta:** auditor independiente, validación y pruebas físicas; sin Home Assistant de la vivienda ni notificaciones/acciones automáticas.
+- **Dónde quedó:** `chatgpt/rediseno-lote-2`, commit E07; PR al cierre.
