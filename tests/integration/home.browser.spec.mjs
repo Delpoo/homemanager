@@ -273,7 +273,7 @@ test('the card editor moves an inline plan into the integration and keeps only t
   await editor.locator('summary').filter({ hasText: 'Mover a la integración HomeManager' }).click();
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
-  await expect(editor.getByRole('status')).toContainText('Pulsá Guardar');
+  await expect(editor.locator('.status')).toContainText('Pulsá Guardar');
   const result = await page.evaluate(() => ({
     events: window.migrationEvents,
     home: window.homeServer.homes.get('casa'),
@@ -297,7 +297,7 @@ test('the card editor moves an inline plan into the integration and keeps only t
   // The section stays open across re-renders.
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
-  await expect(editor.getByRole('status')).toContainText('Ya existe un hogar');
+  await expect(editor.locator('.status')).toContainText('Ya existe un hogar');
   expect(await page.evaluate(() => window.homeServer.homes.get('casa').revision)).toBe(1);
 });
 

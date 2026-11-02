@@ -89,6 +89,29 @@ await context.addInitScript(
   [credentials.tokens, base, credentials.clientId],
 );
 const page = await context.newPage();
+page.on('websocket', socket => {
+  const commands = new Map();
+  socket.on('framesent', ({ payload }) => {
+    try {
+      const message = JSON.parse(String(payload));
+      if (message.id && message.type) commands.set(message.id, message.type);
+    } catch {
+      /* Non-JSON transport frames. */
+    }
+  });
+  socket.on('framereceived', ({ payload }) => {
+    try {
+      const message = JSON.parse(String(payload));
+      if (message.type === 'result' && message.success === false)
+        console.log(
+          'Frontend websocket error:',
+          JSON.stringify({ command: commands.get(message.id), error: message.error }),
+        );
+    } catch {
+      /* Non-JSON transport frames. */
+    }
+  });
+});
 const errors = [];
 const frontendErrors = [];
 page.on('pageerror', error => {
@@ -175,6 +198,7 @@ try {
       appCount: await page.locator('homemanager-app').count(),
       cardCount: await page.locator('homemanager-card').count(),
       messages: await page.locator('.status, .error, .messages').allTextContents(),
+      body: (await page.locator('body').innerText()).slice(0, 1600),
       frontendErrors,
     }),
   );
