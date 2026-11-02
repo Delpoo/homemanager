@@ -69,3 +69,8 @@ Atajos junto al símbolo y sus gestos propios (un deslizador arrastra, no mueve 
 ### 2026-11-02 — Codex — compatibilidad final en PR #55
 - La prueba de un primaryAction anterior reprodujo la pérdida del aviso junto al símbolo, aun enviándose la acción. Se corrigió reutilizando runStep, con regresión rojo/verde. También se conserva la salida a pantalla si la acción heredada fue borrada. No se modifica el vocabulario ni se infiere confirmación física.
 - Corrección aislada posterior a los cuatro commits de etapa, sin reescribir la historia ya subida. Check y CI exacta en el reporte del PR #55.
+
+### 2026-11-02 — Codex — corrección tras CI del PR #55
+- La descripción accesible de un ciclo vuelve a decir la próxima acción (Encender/Apagar), además de las acciones configuradas para mantener. Regresión reproducida y caso repetido aprobado.
+- Se actualizaron los recorridos de ficha para abrir el bloque Gestos y el Panel nativo donde ahora están. El selector nativo recibe nombre accesible explícito. Una referencia borrada conserva el símbolo accesible y abre su pantalla sin enviar; la prueba comprueba además que los demás controles siguen enviando normalmente.
+- Sólo se repitieron localmente los tres casos señalados por CI: los tres aprobados. Sin modificar acciones, datos ni casa real.

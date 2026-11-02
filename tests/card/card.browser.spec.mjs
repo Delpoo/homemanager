@@ -32,7 +32,7 @@ async function begin(page) {
 }
 async function select(page, label = lightLabel) {
   await action(page, label).click();
-  for (const id of ['device-binding', 'device-controls-section']) {
+  for (const id of ['device-binding', 'device-controls-section', 'module-gestures']) {
     const disclosure = page.locator(`homemanager-editor #${id}`);
     if ((await disclosure.isVisible()) && !(await disclosure.evaluate(node => node.open)))
       await disclosure.locator(':scope > summary').click();
@@ -200,9 +200,12 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await sheet.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
   await sheet.getByLabel('Al tocar', { exact: true }).selectOption({ label: 'Pulsador' });
-  await sheet.locator('.module-menu > summary').click();
-  await sheet.locator('[data-command=module-add][data-module-id=native]').click();
-  await sheet.locator('#module-native > summary').click();
+  if (!(await sheet.locator('[data-module=native]').isVisible())) {
+    await sheet.locator('.module-menu > summary').click();
+    await sheet.locator('[data-command=module-add][data-module-id=native]').click();
+  }
+  if (!(await sheet.locator('#module-native').evaluate(d => d.open)))
+    await sheet.locator('#module-native > summary').click();
   await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
   await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closed the sheet; "Más opciones" stays open when it is opened again.
@@ -335,14 +338,17 @@ test('native panels support keyboard opening, Escape and return focus', async ({
   await expect(button).toBeFocused();
 });
 
-test('a pending reference is disabled without making unrelated configured controls unusable', async ({ page }) => {
+test('a missing action opens its screen without sending or making unrelated controls unusable', async ({ page }) => {
   await page.evaluate(() => {
     const config = window.testHarness.config;
     config.configuration.catalog.devices[1].bindings.primaryAction = 'pending-action';
     window.testHarness.card.setConfig(config);
     window.testHarness.card.hass = window.testHarness.hass;
   });
-  await expect(action(page, fanLabel)).toBeDisabled();
+  await expect(action(page, fanLabel)).toBeEnabled();
+  await action(page, fanLabel).click();
+  expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
+  await expect(page.locator('homemanager-insights')).toContainText(fanLabel);
   await expect(action(page, lightLabel)).toBeEnabled();
   await action(page, lightLabel).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
