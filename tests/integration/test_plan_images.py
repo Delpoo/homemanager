@@ -10,7 +10,7 @@ from custom_components.homemanager.images import image_data, put_image, get_imag
 from custom_components.homemanager.store import HomeManagerStore
 from custom_components.homemanager.errors import ModelError
 from custom_components.homemanager.validation import validate_configuration
-from custom_components.homemanager.const import MAX_TOTAL_STORAGE_BYTES, STORAGE_VERSION
+from custom_components.homemanager.const import MAX_TOTAL_STORAGE_BYTES, STORAGE_VERSION, CONF_VIEWER_USER_IDS
 
 SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80"><rect width="10" height="10"/></svg>'
 def raw(source=SVG):return {"format":"svg","content":base64.b64encode(source.encode()).decode()}
@@ -44,18 +44,24 @@ async def test_image_persistence_restore_and_quota(hass):
         await put_image(restored,'example',raw(SVG.replace('10','11')))
     assert (await get_image(restored,'example',image['sha256']))==image
 
-async def test_image_websocket_has_same_read_permissions_and_admin_writes(hass,setup_integration,hass_ws_client,hass_user):
+async def test_image_websocket_has_same_read_permissions_and_admin_writes(hass,setup_integration,hass_ws_client,hass_read_only_user,hass_read_only_access_token):
     client=await hass_ws_client(hass)
     await client.send_json_auto_id({"type":"homemanager/image/put","scope":"example","image":raw()})
     result=await client.receive_json();assert result['success']
     sha=result['result']['sha256']
     await client.send_json_auto_id({"type":"homemanager/image/get","scope":"example","sha256":sha})
     assert (await client.receive_json())['success']
-    hass_user.is_admin=False
-    await client.send_json_auto_id({"type":"homemanager/image/put","scope":"example","image":raw()})
-    assert (await client.receive_json())['success'] is False
-    await client.send_json_auto_id({"type":"homemanager/image/get","scope":"example","sha256":sha})
-    assert (await client.receive_json())['success'] is False
+    reader=await hass_ws_client(hass,hass_read_only_access_token)
+    await reader.send_json_auto_id({"type":"homemanager/image/put","scope":"example","image":raw()})
+    assert (await reader.receive_json())['error']['code']=='unauthorized'
+    await reader.send_json_auto_id({"type":"homemanager/image/get","scope":"example","sha256":sha})
+    assert (await reader.receive_json())['error']['code']=='unauthorized'
+    hass.config_entries.async_update_entry(setup_integration,options={CONF_VIEWER_USER_IDS:[hass_read_only_user.id]})
+    await hass.async_block_till_done()
+    await reader.send_json_auto_id({"type":"homemanager/image/get","scope":"example","sha256":sha})
+    assert (await reader.receive_json())['result']['sha256']==sha
+    await reader.send_json_auto_id({"type":"homemanager/image/put","scope":"example","image":raw()})
+    assert (await reader.receive_json())['error']['code']=='unauthorized'
 
 
 def test_shared_now_panel_contract():
