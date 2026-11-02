@@ -1,10 +1,15 @@
 import { openCardMenu } from '../browser/shell-helpers.mjs';
-import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
-import { test, expect } from '@playwright/test';
+import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const device = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id);
 const categories = page => editor(page).getByRole('group', { name: 'Categoría' });
@@ -12,6 +17,7 @@ const begin = async (page, name) => {
   await openCardMenu(page);
   await button(page, 'Editar plano').click();
   await button(page, name).click();
+  await openDeviceSections(page);
 };
 
 test.beforeEach(async ({ page }) => {
@@ -27,6 +33,7 @@ test('the sheet starts with the suggested category and shows only its sections',
   // The technical kind is no longer offered.
   await expect(editor(page).getByLabel('Tipo de dispositivo', { exact: true })).toHaveCount(0);
   await categories(page).getByRole('radio', { name: 'Interruptor' }).check();
+  await openDeviceSections(page, ['device-controls-section']);
   await expect(editor(page).getByLabel('Al tocar el símbolo', { exact: true })).toBeVisible();
   await expect(editor(page).getByRole('group', { name: 'Qué muestra el símbolo' })).toBeHidden();
 });
@@ -49,9 +56,7 @@ test('saving writes the chosen category and what to show, and keeps the kind and
   expect(after.kind).toBe(before.kind);
   // Hiding the button editor never deletes what it had: the 0.5 primary action is still its tap control.
   expect(before.bindings.primaryAction).toBe('synthetic-light-toggle');
-  expect(after.bindings.controls.find(control => control.id === after.bindings.tap).steps).toEqual([
-    { actionId: 'synthetic-light-toggle' },
-  ]);
+  expect(after.bindings).toEqual(before.bindings);
 });
 
 test('linking another entity proposes its category, unless the person already chose one', async ({ page }) => {

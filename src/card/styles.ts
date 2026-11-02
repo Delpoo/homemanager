@@ -7,6 +7,7 @@ import { fabStyles } from '../ui/fab.js';
 import { topBarStyles } from '../shell/top-bar.js';
 import { roomRailStyles } from '../shell/room-rail.js';
 import { layerStyles } from '../shell/layers.js';
+import { editorDockStyles } from '../ui/editor-components.js';
 
 export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}${alertComponentStyles}
 :host{display:block}
@@ -118,4 +119,5 @@ dt{font-weight:600}dd{margin:0}
 ${topBarStyles}${roomRailStyles}${layerStyles}
 @media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
 ${insightsLayoutStyles}
+${editorDockStyles}
 `;

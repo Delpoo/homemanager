@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import {
   installPanelComponents,
@@ -59,6 +60,10 @@ export class HomeManagerRf extends HTMLElement {
   private editing = false;
   private learning = false;
   private widgetDraft: WidgetDraft | null = null;
+  private widgetSuspended = false;
+  private widgetBaseline = '';
+  private learnSuspended = false;
+  private learnOwner: string | null = null;
   private message = '';
   private failed = false;
   private loaded = false;
@@ -155,7 +160,8 @@ export class HomeManagerRf extends HTMLElement {
     else body = this.renderList(status);
     const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button></div>`;
     this.root.innerHTML =
-      rfWorkspace(this.renderNavigation(tabs), body, this.learning ? '<div data-slot="learn"></div>' : '', this.view) +
+      rfWorkspace(this.renderNavigation(tabs), body, '', this.view) +
+      (this.learning ? taskScreen(t('Aprender botones'), '<div data-slot="learn"></div>', '', 'learning-page') : '') +
       this.renderWidgetEditor();
     for (const [slot, element] of [
       ['remote', this.remoteView],
@@ -164,8 +170,24 @@ export class HomeManagerRf extends HTMLElement {
     ] as const)
       this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
     this.bind();
-    const editor = this.root.querySelector<HTMLDialogElement>('dialog.editor');
-    if (editor && !editor.open) editor.showModal();
+    const learnPage = this.root.querySelector<TaskScreen>('.learning-page');
+    if (learnPage) {
+      learnPage.onBack = () => {
+        this.learn.stop();
+        this.learning = false;
+        this.learnSuspended = true;
+        this.render();
+      };
+      learnPage.show(this.root);
+    }
+    const editor = this.root.querySelector<TaskScreen>('homemanager-task-screen.editor');
+    if (editor) {
+      editor.onBack = () => {
+        this.widgetSuspended = true;
+        this.render();
+      };
+      editor.show(this.root);
+    }
     restoreFocus();
   }
 
@@ -324,7 +346,7 @@ export class HomeManagerRf extends HTMLElement {
   private renderWidgetEditor(): string {
     const draft = this.widgetDraft;
     const remote = this.remote();
-    if (!draft || !remote) return '';
+    if (!draft || !remote || this.widgetSuspended) return '';
     const widget = draft.widget;
     const types = (Object.keys(WIDGET_BUTTONS) as WidgetType[])
       .map(
@@ -462,7 +484,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private bindWidgetEditor(): void {
-    const dialog = this.root.querySelector<HTMLDialogElement>('dialog.editor');
+    const dialog = this.root.querySelector<TaskScreen>('homemanager-task-screen.editor');
     const draft = this.widgetDraft;
     if (!dialog || !draft) return;
     const widget = draft.widget;
@@ -521,6 +543,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private open(remoteId: string): void {
+    if (this.selected !== remoteId) this.closeLearn(false);
     this.selected = remoteId;
     this.draft = null;
     this.show('remote');
@@ -571,6 +594,8 @@ export class HomeManagerRf extends HTMLElement {
           this.say('');
           break;
         case 'add-widget':
+          this.widgetSuspended = false;
+          if (this.widgetDraft?.isNew) break;
           this.widgetDraft = {
             widget: {
               id: '',
@@ -586,11 +611,22 @@ export class HomeManagerRf extends HTMLElement {
             isNew: true,
             error: '',
           };
+          this.widgetBaseline = JSON.stringify(this.widgetDraft.widget);
           break;
         case 'add-slot':
           this.widgetDraft?.widget.buttons.push('');
           break;
         case 'widget-cancel':
+          if (
+            this.widgetDraft &&
+            JSON.stringify(this.widgetDraft.widget) !== this.widgetBaseline &&
+            !(await confirmDialog(this.root, {
+              title: t('¿Descartar los cambios?'),
+              message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
+              confirm: t('Descartar cambios'),
+            }))
+          )
+            break;
           this.widgetDraft = null;
           break;
         case 'widget-save':
@@ -628,7 +664,14 @@ export class HomeManagerRf extends HTMLElement {
 
   private startLearn(): void {
     const learn = this.learn;
+    if (this.learnSuspended && this.learnOwner === this.selected) {
+      this.learnSuspended = false;
+      this.learning = true;
+      learn.resume();
+      return;
+    }
     learn.hass = this._hass;
+    this.learnOwner = this.selected;
     learn.transmitters = this.transmitters;
     learn.remote = this.remote() ?? null;
     learn.draft = learn.remote ? null : this.draft;
@@ -638,7 +681,8 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private closeLearn(render = true): void {
-    if (!this.learning) return;
+    if (!this.learning && !this.learnSuspended) return;
+    this.learnSuspended = false;
     this.learn.stop();
     this.learning = false;
     if (this.draft && !this.remote()) {
@@ -715,7 +759,11 @@ export class HomeManagerRf extends HTMLElement {
     const remote = this.remote();
     const widget = remote && layoutOf(remote).find(item => item.id === id);
     if (!widget) return;
-    this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
+    if (this.widgetDraft?.widget.id !== id) {
+      this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
+      this.widgetBaseline = JSON.stringify(widget);
+    }
+    this.widgetSuspended = false;
     this.render();
   }
 

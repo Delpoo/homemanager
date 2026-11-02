@@ -28,10 +28,13 @@ export default defineConfig({
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 }, defaultBrowserType: 'chromium' },
     },
   ],
-  webServer: {
-    command: 'node scripts/test-server.mjs',
-    url: localOrigin + '/tests/browser/fixtures/card.html',
-    reuseExistingServer: !process.env.CI,
-    timeout: 15000,
-  },
+  webServer:
+    process.env.HM_TEST_IN_PROCESS === '1'
+      ? undefined
+      : {
+          command: 'node scripts/test-server.mjs',
+          url: localOrigin + '/tests/browser/fixtures/card.html',
+          reuseExistingServer: !process.env.CI,
+          timeout: 15000,
+        },
 });

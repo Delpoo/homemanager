@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
+import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const view = page => page.locator('homemanager-insights');
 async function start(page) {
@@ -78,16 +79,22 @@ test('symbols open sensor, equipment and infrastructure screens; actuator tap pr
   await start(page);
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Dormitorio', exact: true }).click();
   await card(page).getByRole('button', { name: 'Aire Dormitorio', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Aire Dormitorio', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Infraestructura', exact: true }).click();
   await card(page).getByRole('button', { name: 'Encuadrar Balcón', exact: true }).click();
   await card(page).getByRole('button', { name: 'Puente de prueba', exact: true }).click();
   await expect(view(page).getByRole('heading', { name: 'Puente de prueba', exact: true })).toBeVisible();
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Living', exact: true }).click();
   await card(page).getByRole('button', { name: 'Luz Living', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.testHarness.calls.length)).toBe(1);
@@ -176,6 +183,7 @@ test('Light, Dark and Auto persist across reloads and override/follow HA across 
   await theme.selectOption('dark');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
+  await openDeviceSections(page, ['device-binding']);
   await page.getByRole('button', { name: 'Cambiar dispositivo', exact: true }).click();
   await expect
     .poll(() =>
@@ -274,6 +282,84 @@ test('a narrow Lovelace card uses a sheet even inside a wide desktop window', as
   expect(panel.width).toBeLessThanOrEqual(bounds.width);
 });
 
+test('Power 1 channels use summary cards, preserve folded readings and let an admin edit the selected device', async ({
+  page,
+}) => {
+  await start(page);
+  await openMeter(page);
+  await expect(view(page).locator('.device-value > span')).toHaveText(['Ahora', 'Hoy', 'Tensión']);
+  await expect(view(page).getByRole('rowheader')).toHaveCount(6);
+  await expect(view(page).locator('.device-channels .channel-bar')).toHaveCount(6);
+  const other = view(page)
+    .locator('details')
+    .filter({ has: page.locator('summary', { hasText: 'Otras lecturas' }) });
+  await expect(other).not.toHaveAttribute('open');
+  await expect(view(page).locator('details').filter({ hasText: 'Diagnóstico' })).not.toHaveAttribute('open');
+  await other.locator('summary').click();
+  await expect(other).toContainText('Corriente');
+  await expect(other).toContainText('7,8 A');
+  await expect(card(page).locator('[data-id=power]')).toHaveClass(/selected/);
+  await view(page).getByRole('button', { name: 'Editar', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Nombre del dispositivo', exact: true })).toHaveValue(
+    'Medidor de energía',
+  );
+  await expect(card(page).locator('[data-id=power]')).toHaveClass(/selected/);
+});
+
+test('a plain sensor has no channel table, technical folds start closed and viewers have no admin actions', async ({
+  page,
+}) => {
+  await start(page);
+  await page.evaluate(() => {
+    const { card, hass } = window.testHarness;
+    hass.user = { id: 'synthetic-viewer', is_admin: false };
+    card.hass = { ...hass };
+  });
+  await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
+  await expect(view(page).locator('.device-channels')).toHaveCount(0);
+  await expect(view(page).getByRole('link', { name: 'Abrir en Home Assistant' })).toHaveCount(0);
+  await expect(view(page).getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
+  await expect(view(page).locator('details[open]')).toHaveCount(0);
+  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await expect(card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true })).toBeFocused();
+});
+
+test('device activity translates each result before joining its user label', async ({ page }) => {
+  await start(page);
+  await page.evaluate(() => {
+    const { card, hass } = window.testHarness;
+    hass.language = 'en';
+    hass.locale.language = 'en-US';
+    card.hass = { ...hass };
+    card.activity.record({
+      type: 'command',
+      deviceId: 'power',
+      commandId: 'example',
+      status: 'sent',
+      at: Date.now(),
+      actionLabel: 'Example action',
+    });
+  });
+  const handle = view(page).getByRole('button', { name: 'Show Now', exact: true });
+  if (await handle.isVisible()) await handle.click();
+  await view(page).locator('[data-action=device][data-key=power]').click();
+  await view(page).locator('summary').filter({ hasText: 'Activity' }).click();
+  await expect(view(page)).toContainText('Sent · Example action');
+  await expect(view(page)).not.toContainText('Enviado');
+  await page.evaluate(() =>
+    window.testHarness.card.activity.record({
+      type: 'command',
+      deviceId: 'power',
+      commandId: 'error-example',
+      status: 'error',
+      detail: 'entity_unavailable',
+      at: Date.now(),
+    }),
+  );
+  await expect(view(page)).toContainText('Could not send · The entity is unavailable.');
+  await expect(view(page)).not.toContainText('entity_unavailable');
+});
+
 test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize(
@@ -295,20 +381,28 @@ test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup'
   await shot('now');
   await openMeter(page);
   await shot('meter');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Dormitorio', exact: true }).click();
   await card(page).getByRole('button', { name: 'Aire Dormitorio', exact: true }).click();
   await shot('climate');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Living', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await shot('sensor');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Infraestructura', exact: true }).click();
   await card(page).getByRole('button', { name: 'Encuadrar Balcón', exact: true }).click();
   await card(page).getByRole('button', { name: 'Puente de prueba', exact: true }).click();
   await shot('infrastructure');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
   await card(page).locator('.hm-menu > summary').click();
   await page.locator('homemanager-theme-choice').getByRole('combobox', { name: 'Apariencia' }).selectOption('dark');
@@ -316,12 +410,16 @@ test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup'
   await card(page).locator('.hm-menu > summary').click();
   await openMeter(page);
   await shot('meter-dark');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await now(page);
   await shot('now-dark');
   await view(page).locator('[data-action=device][data-key=leak]').click();
   await shot('alert');
-  await view(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await view(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Encuadrar Entrada', exact: true }).click();
   await now(page);
   await shot('empty');

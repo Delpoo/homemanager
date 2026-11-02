@@ -1,7 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const light = async page => (await draft(page)).catalog.devices.find(device => device.id === 'synthetic-light');
 const decimals = value => (String(value).split('.')[1] ?? '').length;

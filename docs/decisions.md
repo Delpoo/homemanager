@@ -126,3 +126,24 @@ Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. La pantal
 - **Plano vinculado:** el dibujo puede vivir en un archivo de Home Assistant, en `homemanager/<hogar>.svg` dentro de la carpeta de configuración. Una versión nueva se aplica sola si no agrega problemas de espacios o dispositivos, y se puede deshacer; si los agrega, o si cambian las coordenadas del plano, pregunta y nada cambia hasta guardar. Sólo mira el panel abierto de una persona administradora, nunca durante la edición. Un archivo inválido no cambia nada.
 - Una zona del dibujo no se convierte en espacio por sí sola: al revisar un plano queda marcada sólo en un hogar sin espacios o si un dispositivo quedaría adentro.
 - **Áreas de Home Assistant:** un espacio puede vincularse con un área (`rooms[].areaId`). *Conectar mi casa* sugiere el área, ofrece crear las que faltan y propone los dispositivos de cada área que no están en el plano, sin marcarlos. Crear un área es lo único que escribe en Home Assistant, y sólo al tocar el botón que la nombra. HomeManager no cambia de área los dispositivos: eso sigue en Home Assistant.
+
+
+## D24 — Símbolos por módulos
+
+**Dirección del propietario del 30 y 31/10/2026; se aplica en la etapa E05 del [rediseño](rediseno/LEEME.md). Reemplaza a D21 donde choquen.** Cada símbolo tiene una base (nombre, icono, color, espacio, tamaño, posición) y se le agregan módulos configurables: dispositivo, indicadores, gestos, control, atajos, panel nativo. Cualquier símbolo puede agregar cualquier módulo. Lo que no puede funcionar aparece desactivado, con el motivo. Las categorías dejan de limitar lo que puede hacer un símbolo. `display.category` y `display.archetype` siguen siendo válidos, sirven para sugerir y nunca se borran solos.
+
+## D25 — Gestos configurables
+
+**Dirección del propietario del 30 y 31/10/2026; se aplica en E06. Reemplaza la parte de D18 que dice que mantener pulsado abre siempre el panel.** Tocar y mantener se configuran por separado. Siempre queda otro camino al control completo, para que nadie pierda el acceso. El doble toque no se incluye por ahora, porque haría más lentos todos los toques; el formato permite sumar otros gestos.
+
+## D26 — Reglas en una pantalla propia
+
+**Dirección del propietario del 30 y 31/10/2026; se aplica en E07.** Las reglas se crean en un solo lugar y por ahora sólo avisan e indican. El símbolo muestra el resultado, y su ficha lista las que lo afectan y da un atajo para crear una. No hay límites fijos ni sugeridos por tipo de dispositivo. Ninguna regla ejecuta acciones: ampliarlas, o sumar automatizaciones, se decide más adelante. `display.alerts` se sigue leyendo y no se pierde.
+
+## D27 — Alternativas del plano
+
+**Dirección del propietario del 31/10/2026; se aplica en E11.** Una casa puede tener varias alternativas de dibujo, cada una con una imagen para modo claro y otra para oscuro, y un fondo elegido por modo. Las imágenes las prepara el usuario: la app no las genera. Es una ampliación de D23: lo único que llega de afuera siguen siendo los dibujos de la casa, y una vez cargados viven en Home Assistant.
+
+## D28 — Quién programa y quién audita
+
+**Decisión del propietario del 31/10/2026.** En el [rediseño](rediseno/LEEME.md), un agente implementa una etapa por vez y otro la audita. Se valida paso a paso, y cada agente deja escrito qué hizo y qué falta en [rediseno/ESTADO.md](rediseno/ESTADO.md). Elegir una maqueta define cómo se usa, cómo se ve y cómo se organiza: nunca autoriza a quitar funciones construidas después.

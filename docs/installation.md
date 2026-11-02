@@ -53,3 +53,4 @@ En **Ajustes → Dispositivos y servicios → HomeManager → Configurar**, eleg
 Límites: 20 hogares activos, 10 planos por historial, 40 historiales en total y 64 MiB para los datos de HomeManager. Eliminar un hogar conserva su historial dentro de esa cuota. Desde el panel, **Almacenamiento → Eliminar historial** permite purgar definitivamente el historial de un hogar eliminado, con confirmación. Las copias de seguridad anteriores pueden seguir conteniendo esos datos.
 
 Los documentos antiguos que no cumplen la nueva validación quedan en cuarentena, fuera de las listas de lectura, sin borrarse al guardar otro hogar. Recuperar desde una copia de seguridad revisada. No escribir ni editar archivos de `.storage` con HA en ejecución.
+

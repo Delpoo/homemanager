@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 test('room mask clones a concave L with ancestor transforms and leaves the source unchanged', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');

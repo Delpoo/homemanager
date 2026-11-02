@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { picker } from '../browser/device-picker-helpers.mjs';
+import { picker, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
 async function start(page) {
@@ -73,11 +73,14 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
 }) => {
   await start(page);
   await picker(page).getByRole('button', { name: 'Cancelar', exact: true }).click();
-  await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await editor(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   await card(page).getByRole('button', { name: 'Temperatura Living', exact: true }).click();
   await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Nombre sin guardar');
+  await openDeviceSections(page, ['device-binding']);
   await editor(page).getByRole('button', { name: 'Vincular dispositivo', exact: true }).click();
-  await expect(picker(page).getByRole('dialog', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
+  await expect(picker(page).getByRole('region', { name: 'Sensor de ambiente', exact: true })).toBeVisible();
   await cleanText(page);
   await picker(page)
     .getByRole('checkbox', { name: /Humedad/ })
@@ -93,7 +96,9 @@ test('legacy entity-only binding offers its registry device, preserves unsaved f
           .map(field => ({ name: field.name, value: field.value, message: field.validationMessage })),
       ),
   ).toEqual([]);
-  await editor(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await editor(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   const device = await page.evaluate(() =>
     window.testHarness.card
       .getDraftConfiguration()
@@ -133,12 +138,19 @@ test('advanced entity search is the only place showing identifiers and cancellat
   await expect(picker(page).getByText('sensor.energy_meter_6ch_channel_1_power', { exact: true })).toBeVisible();
   await picker(page).getByRole('button', { name: 'Volver', exact: true }).first().click();
   await cleanText(page);
+  await picker(page).getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
+  await expect(picker(page).getByRole('searchbox')).toHaveValue('energy_meter_6ch_channel_1_power');
+  await picker(page).locator('.task-back').click();
+  await cleanText(page);
   await picker(page).getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect(await page.evaluate(() => window.testHarness.card.getDraftConfiguration())).toEqual(before);
 });
 test('selector visual evidence at exact desktop/mobile sizes, including dark mode and empty state', async ({
   page,
 }, testInfo) => {
+  // Visual captures use settled geometry; raw mouse coordinates can go stale
+  // while linking closes the dock and the camera recentres the plan.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const mobile = testInfo.project.name === 'mobile';
   await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
   await start(page);
@@ -161,13 +173,24 @@ test('selector visual evidence at exact desktop/mobile sizes, including dark mod
   await shot('readings');
   await cleanText(page);
   await picker(page).getByRole('button', { name: 'Vincular', exact: true }).click();
+  await expect(card(page).locator('.placing-hint')).toBeVisible();
+  // The SVG ignores pointer events intentionally; tap the actual screen point
+  // after the queued plan repaint, rather than clicking the non-interactive path.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const zone = await card(page).locator('#room-living').boundingBox();
   await page.mouse.click(zone.x + zone.width * 0.35, zone.y + zone.height * 0.55);
   await expect(card(page).locator('.placing-hint')).toBeHidden();
-  if (await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).isVisible())
-    await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  if (
+    await editor(page)
+      .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+      .isVisible()
+  )
+    await editor(page)
+      .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+      .click();
   await shot('plan');
   await card(page).getByRole('button', { name: 'Medidor de energía', exact: true }).click();
+  await openDeviceSections(page, ['device-binding']);
   await editor(page).getByRole('button', { name: 'Cambiar dispositivo', exact: true }).scrollIntoViewIfNeeded();
   if (mobile)
     await card(page)

@@ -18,6 +18,7 @@ http
       const name = decodeURIComponent(new URL(req.url, origin).pathname);
       if (
         name !== '/docs/vision-mockup.html' &&
+        name !== '/docs/rediseno/maqueta-modulos.html' &&
         !/^\/(?:dist\/|tests\/browser\/fixtures\/|\.work\/(?:card|editor|panels)\/)/.test(name)
       )
         throw new Error('Unknown fixture');

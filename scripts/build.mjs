@@ -66,6 +66,7 @@ await build({
     'src/model/room-nav.ts',
     'src/model/plan-health.ts',
     'src/model/connect-home.ts',
+    'src/model/editor-session.ts',
     'src/model/zone-edit.ts',
     'src/model/names.ts',
     'src/model/device-screen.ts',

@@ -123,6 +123,8 @@ test('a normal entity needs no health mark merely because a feedback source is u
   assert.equal(spec.ring.active, true);
   assert.equal(symbolSpec(device, hass, now, { value: 'on', confidence: 'estimated' }).health, null);
   device.bindings.entityId = null;
-  assert.equal(symbolSpec(device, hass, now).health, 'unknown');
+  assert.equal(symbolSpec(device, hass, now).health, null);
   assert.notEqual(symbolSpec(device, hass, now).health, 'unavailable');
+  device.bindings.entityId = 'light.missing';
+  assert.equal(symbolSpec(device, hass, now).health, 'unknown');
 });

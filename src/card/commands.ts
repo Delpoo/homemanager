@@ -15,7 +15,7 @@ export async function executeAction(this: HomeManagerCard, action: string, id: s
     action,
     this._hass,
     Date.now(),
-    label ?? this.draft?.actions[action]?.service ?? action,
+    label ?? t(commandLabel({ service: this.draft?.actions[action]?.service ?? '' })),
   );
   const result = (await this.adapter?.executeAction(action, id)) as { ok: boolean; reason?: string } | undefined;
   this.feed.noteCommandResult(token, result ?? { ok: false, reason: 'ha-unavailable' }, Date.now());

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for the RF websocket API of custom_components/homemanager
 // (rf_websocket.py, exercised against real HA in tests/integration/test_rf.py).
@@ -10,9 +10,10 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
   await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
   await rf.getByRole('button', { name: 'Ventilador de techo', exact: true }).click();
+  expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();
-  await expect(rf.getByText('Todavía no está guardado')).toBeVisible();
+  await expect(rf.getByText('Todavía no está guardado')).toBeHidden();
 
   // One frame is not trusted yet; the reason is on screen.
   await page.evaluate(() => window.rfServer.heard({ frames: 1 }));
@@ -142,7 +143,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await expect(remote.getByRole('button')).toHaveCount(6);
   await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   await rf.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const editor = rf.getByRole('dialog', { name: 'Agregar elemento' });
+  const editor = rf.getByRole('region', { name: 'Agregar elemento' });
   await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
   await editor.getByLabel('Paso 1', { exact: true }).selectOption('v1');
   await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -215,7 +216,7 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.10.0-beta.1',
+      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.11.0-beta.1',
     ].join('\n'),
   );
   await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(
@@ -283,7 +284,7 @@ test('speed stops send on tap, including the current stop, and once per drag', a
       onAssume: async isOn => window.assumed.push(isOn),
     });
   });
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('homemanager-task-screen[open]');
   const stops = dialog.locator('.steps');
   await expect(stops.getByRole('button')).toHaveCount(7);
   await expect(stops.getByRole('button', { name: 'Velocidad 2' })).toHaveAttribute('aria-pressed', 'true');

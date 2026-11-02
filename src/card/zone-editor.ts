@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { dragShape, unionOutline, type RoomShape, type ShapeHandle } from '../model/room-shapes.js';
 import {
   MAX_RECTS,
@@ -21,7 +22,7 @@ import {
 } from '../model/zone-edit.js';
 import { uiButton } from '../ui/components.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
-import { installDialogComponents, panelDialog } from '../ui/panel-components.js';
+import { installDialogComponents } from '../ui/panel-components.js';
 import { validateConfiguration } from './configuration.js';
 import { detectZones, zoneShapes } from './geometry.js';
 import { escapeHTML as e } from './types.js';
@@ -530,7 +531,7 @@ function chooseMoves(
         card.draft?.rooms.find(room => room.id === id)?.label ??
         id);
   const template = document.createElement('template');
-  template.innerHTML = panelDialog(
+  template.innerHTML = taskScreen(
     t('Dispositivos que cambian de espacio'),
     `<p>${e(t('Con las zonas nuevas, estos dispositivos quedan en otro espacio. Destildá los que deban seguir donde están.'))}</p><div class="zone-moves">${moves
       .map(move => {
@@ -538,9 +539,10 @@ function chooseMoves(
         return `<label class="k-row"><input class="k-checkbox" type="checkbox" name="zone-move" value="${e(move.deviceId)}" checked${gone ? ' disabled' : ''}><span class="txt"><b>${e(move.label)}</b><span>${e(label(move.from))} → ${e(label(move.to))}</span></span></label>`;
       })
       .join('')}</div>`,
-    uiButton(t('Volver'), 'back') + uiButton(t('Aplicar'), 'apply', 'primary'),
+    uiButton(t('Aplicar'), 'apply', 'primary'),
   );
-  const dialog = template.content.querySelector('dialog')!;
+  customElements.upgrade(template.content);
+  const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   return new Promise(resolve => {
     let result: DeviceMove[] | null = null;
     dialog.addEventListener(
@@ -560,10 +562,11 @@ function chooseMoves(
         );
         result = moves.filter(move => kept.has(move.deviceId));
       }
-      dialog.close();
+      dialog.close(action === 'apply' ? 'applied' : '');
     });
     card.root.append(dialog);
-    dialog.showModal();
+    dialog.resumeKey = 'zone-moves:' + JSON.stringify(edit.draft);
+    dialog.show(card.root);
   });
 }
 
@@ -575,12 +578,13 @@ export function offerFirstSpace(this: HomeManagerCard): void {
   this.zonelessOffered = true;
   installDialogComponents(this.root);
   const template = document.createElement('template');
-  template.innerHTML = panelDialog(
+  template.innerHTML = taskScreen(
     t('Este plano no tiene zonas'),
     `<p>${e(t('Dibujá cada espacio con rectángulos sobre el plano y ponele nombre. Las zonas se cambian cuando quieras.'))}</p>`,
     uiButton(t('Más tarde'), 'later') + uiButton(t('Dibujar el primero'), 'draw', 'primary'),
   );
-  const dialog = template.content.querySelector('dialog')!;
+  customElements.upgrade(template.content);
+  const dialog = template.content.querySelector<TaskScreen>('homemanager-task-screen')!;
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
   dialog.addEventListener('click', event => {
     const action = (event.target as Element).closest<HTMLElement>('button[data-action]')?.dataset.action;
@@ -589,7 +593,7 @@ export function offerFirstSpace(this: HomeManagerCard): void {
     if (action === 'draw') this.startZoneEdit(null, 'new');
   });
   this.root.append(dialog);
-  dialog.showModal();
+  dialog.show(this.root);
 }
 
 export const zoneEditStyles = `
@@ -632,4 +636,5 @@ export const zoneEditStyles = `
 [data-docked] .zones-row:nth-child(2)>*{flex:1 1 100%}
 [data-docked] .zones-row select,[data-docked] .zones-row input{flex:1 1 100%}
 .zone-moves{display:grid;gap:6px;max-height:50vh;overflow:auto}
+@media(max-width:650px){.zones-row:nth-child(2){flex-wrap:wrap;overflow:visible}.zones-row:nth-child(2)>*{flex:1 1 130px}.zones-row select,.zones-row input,.zones-row button{min-height:44px}}
 `;

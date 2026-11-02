@@ -80,6 +80,10 @@ export class HomeManagerRfLearn extends HTMLElement {
       /* the window may already be closed */
     }
   }
+  /** Returning from the parent page keeps the candidate, trial and typed name. */
+  resume(): void {
+    this.render();
+  }
 
   private reset(): void {
     this.candidate = null;

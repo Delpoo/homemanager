@@ -47,3 +47,4 @@ Versionado SemVer mediante tags y releases; los nombres del producto, archivos y
 ## Nombre y licencia
 
 HomeManager es el nombre de trabajo elegido por el propietario. Existen otros productos con ese nombre; no se afirma exclusividad, afiliación ni disponibilidad de marca. Ver [registro de nombre](docs/name-review.md). Licencia de software MIT, autorizada por el propietario para esta publicación inicial. Planos y datos privados tienen derechos separados.
+

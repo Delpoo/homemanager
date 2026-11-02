@@ -1,10 +1,19 @@
-import { test, expect } from '@playwright/test';
-import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
+import { test, expect } from '../browser/local-test.mjs';
+import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 
 const editor = page => page.locator('homemanager-editor');
 const field = (page, label) => editor(page).getByLabel(label, { exact: true });
-const button = (page, label) => editor(page).getByRole('button', { name: label, exact: true });
+const button = (page, label) =>
+  editor(page).getByRole('button', {
+    name:
+      label === 'Guardar dispositivo'
+        ? /^(Guardar dispositivo|Listo)$/
+        : label === 'Cerrar'
+          ? /^(Cerrar|Volver)$/
+          : label,
+    exact: true,
+  });
 async function current(page) {
   return page.evaluate(() => window.editorTest.editor.getConfiguration());
 }
@@ -19,7 +28,7 @@ async function section(page, title) {
       await editor(page).locator('#device-options > summary').click();
     await editor(page).locator('summary').filter({ hasText: title }).click();
     return;
-  } else if (!(await editor(page).getByRole('dialog', { name: 'Ajustes del plano' }).isVisible())) {
+  } else if (!(await editor(page).getByRole('region', { name: 'Ajustes del plano' }).isVisible())) {
     await button(page, 'Ajustes del plano').click();
   }
   await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
@@ -53,6 +62,7 @@ test.beforeEach(async ({ page }) => {
 
 test('add/edit a complete device emits a persistent draft without calling HA', async ({ page }) => {
   await button(page, 'Agregar dispositivo').click();
+  await openDeviceSections(page, ['device-category', 'device-options']);
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
   // The category replaces the technical kind; a chosen one survives linking an entity.
   await editor(page).getByRole('group', { name: 'Categoría' }).getByRole('radio', { name: 'Equipo' }).check();
@@ -180,6 +190,8 @@ test('adding a device from a real entity derives its name, icon, room and visibl
 });
 test('fixed location stays locked until explicit correction and bindings survive room correction', async ({ page }) => {
   await field(page, 'Dispositivo').selectOption('synthetic-fan');
+  await openDeviceSections(page, ['device-options']);
+  const originalBindings = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-fan').bindings;
   await expect(field(page, 'Posición X')).toBeDisabled();
   await expect(field(page, 'Habitación del dispositivo')).toBeEnabled();
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
@@ -192,13 +204,7 @@ test('fixed location stays locked until explicit correction and bindings survive
   expect(device.roomId).toBe('living');
   expect(device.position.x).toBe(0.45);
   // Its 0.5 primary action is kept, now also as the visible control a tap runs.
-  expect(device.bindings).toEqual({
-    entityId: null,
-    primaryAction: 'synthetic-fan-command',
-    advancedPopupId: 'synthetic-fan-panel',
-    controls: [{ id: 'tap', type: 'button', label: 'Ejecutar', steps: [{ actionId: 'synthetic-fan-command' }] }],
-    tap: 'tap',
-  });
+  expect(device.bindings).toEqual(originalBindings);
 });
 test('action editor defines explicit service targets and rejects raw command data', async ({ page }) => {
   await section(page, 'Acciones lógicas');
@@ -323,7 +329,7 @@ test('SVG import sanitizes dangerous content and changed viewBox requires a back
   await expect(button(page, 'Aplicar importación al borrador')).toBeEnabled();
   await button(page, 'Aplicar importación al borrador').click();
   await page
-    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('region', { name: 'Revisar cambios', exact: true })
     .getByRole('button', { name: 'Importar sólo el plano', exact: true })
     .click();
   const content = (await current(page)).architecture.content;
@@ -392,7 +398,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   ]);
   // Each space is a row; tapping it opens its window.
   await button(page, 'Editar Espacio A').click();
-  let space = editor(page).getByRole('dialog', { name: 'Espacio A', exact: true });
+  let space = editor(page).getByRole('region', { name: 'Espacio A', exact: true });
   await space.getByLabel('Nombre del espacio', { exact: true }).fill('Estar');
   await space.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await current(page)).rooms[0]).toMatchObject({ id: 'living', label: 'Estar' });
@@ -407,7 +413,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   ).toBeVisible();
   // Removing a space with devices asks where they go; they are never deleted.
   await button(page, 'Editar Espacio B').click();
-  space = editor(page).getByRole('dialog', { name: 'Espacio B', exact: true });
+  space = editor(page).getByRole('region', { name: 'Espacio B', exact: true });
   await space.getByLabel('Al quitar este espacio', { exact: true }).selectOption('unassign');
   await space.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect
@@ -419,8 +425,8 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
     bindings: { primaryAction: 'synthetic-fan-command' },
   });
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
-  // Applying a space's window already closed plan settings.
-  await expect(editor(page).getByRole('dialog', { name: 'Ajustes del plano' })).toHaveCount(0);
+  // Applying a space returns to its settings page; leave it explicitly.
+  await editor(page).locator('homemanager-task-screen.settings-dialog .task-back').click();
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',
@@ -448,7 +454,7 @@ test('replacing the plan detects zones and keeps devices on the same drawing poi
   await downloading;
   await button(page, 'Aplicar importación al borrador').click();
   await page
-    .getByRole('dialog', { name: 'Revisar cambios', exact: true })
+    .getByRole('region', { name: 'Revisar cambios', exact: true })
     .getByRole('button', { name: 'Importar sólo el plano', exact: true })
     .click();
   const light = (await current(page)).catalog.devices.find(device => device.id === 'synthetic-light');

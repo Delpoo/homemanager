@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen } from '../ui/task-screen.js';
 import {
   escapeHTML,
   type Configuration,
@@ -48,7 +49,7 @@ export interface PanelOptions {
 }
 export interface PanelHandle {
   element: HomeManagerPanel;
-  dialog: HTMLDialogElement;
+  dialog: TaskScreen;
   close(): void;
   update(state: RuntimeDeviceState): void;
 }
@@ -203,8 +204,8 @@ export class HomeManagerPanel extends HTMLElement {
   private closed = false;
   private controls: Control[] = [];
   private scriptValues: Record<string, unknown> = {};
-  get dialog(): HTMLDialogElement {
-    return this.root.querySelector('dialog')!;
+  get dialog(): TaskScreen {
+    return this.root.querySelector<TaskScreen>('homemanager-task-screen')!;
   }
   get runtime(): RuntimeDeviceState | undefined {
     return this.state;
@@ -237,7 +238,7 @@ export class HomeManagerPanel extends HTMLElement {
     const glyph = customElements.get('ha-icon')
       ? `<ha-icon icon="${escapeHTML(this.device.display.icon)}"></ha-icon>`
       : '◉';
-    this.root.innerHTML = `<style>${css}</style><dialog aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="own group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></dialog>`;
+    this.root.innerHTML = `<style>${css}</style><homemanager-task-screen aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="own group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></homemanager-task-screen>`;
     this.renderCustom();
     this.renderAuto(true);
     this.renderRemote();
@@ -259,11 +260,11 @@ export class HomeManagerPanel extends HTMLElement {
           this.close();
       }
     });
-    this.dialog.addEventListener('keydown', event => this.trapFocus(event));
     this.dialog.addEventListener('close', () => this.finish(), { once: true });
+    this.dialog.addEventListener('keydown', event => this.trapFocus(event));
     this.renderState();
     this.refresh();
-    this.dialog.showModal();
+    this.dialog.show(this.root, title);
     this.root.querySelector<HTMLButtonElement>('.close')!.focus();
   }
   /** Before the other controls: for an RF device, its remote is the main control.
@@ -549,19 +550,32 @@ export class HomeManagerPanel extends HTMLElement {
   }
   private trapFocus(event: KeyboardEvent): void {
     if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey) return;
-    const focusable = [
-      ...this.dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled)'),
-    ].filter(element => element.getClientRects().length > 0);
+    const focusable: HTMLElement[] = [];
+    const visit = (root: ParentNode): void => {
+      for (const element of root.children) {
+        if (!(element instanceof HTMLElement) || element.inert || getComputedStyle(element).visibility === 'hidden')
+          continue;
+        if (
+          element.matches(
+            'button:not(:disabled),input:not(:disabled):not([type=hidden]),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])',
+          ) &&
+          element.getClientRects().length
+        )
+          focusable.push(element);
+        if (element.shadowRoot) visit(element.shadowRoot);
+        visit(element);
+      }
+    };
+    visit(this.dialog);
     const first = focusable[0],
       last = focusable.at(-1),
-      active = this.root.activeElement;
+      active = activeElement();
     if (!first || !last) return;
-    // Native dialogs provide modal containment, but reverse tab traversal from
-    // a shadow-root boundary can still reach the document in Chromium.
-    if (event.shiftKey && (active === first || !active || !this.dialog.contains(active))) {
+    // Include nested RF controls, whose buttons live in their own shadow roots.
+    if (event.shiftKey && (active === first || !active || !focusable.includes(active))) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && (active === last || !active || !this.dialog.contains(active))) {
+    } else if (!event.shiftKey && (active === last || !active || !focusable.includes(active))) {
       event.preventDefault();
       first.focus();
     }
@@ -716,7 +730,9 @@ if (!customElements.get('homemanager-panel')) customElements.define('homemanager
 export function openPanel(options: PanelOptions): PanelHandle {
   const element = document.createElement('homemanager-panel') as HomeManagerPanel;
   element.configure(options);
-  document.body.append(element);
+  const container = options.returnFocus?.getRootNode();
+  element.style.cssText = `position:${container instanceof ShadowRoot ? 'absolute' : 'fixed'};inset:0;z-index:20;display:block`;
+  (container instanceof ShadowRoot ? container : document.body).append(element);
   try {
     element.open();
   } catch (error) {

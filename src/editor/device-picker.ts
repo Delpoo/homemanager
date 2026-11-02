@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js';
+import { TaskScreen } from '../ui/task-screen.js';
 import {
   deviceCatalog,
   searchDevices,
@@ -26,11 +27,15 @@ import {
 
 /** Two steps from mockup §7. All decisions and names come from pure models. */
 export class DevicePicker extends HTMLElement {
+  private readonly page = new TaskScreen();
+  private readonly selections = new Map<string, DeviceSelection>();
   private root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
   private plan: ModelDevice[] = [];
   private selected?: CatalogDevice;
   private query = '';
+  private deviceQuery = '';
+  private advancedQuery = '';
   private unplaced = false;
   private primary = '';
   private additional: string[] = [];
@@ -42,6 +47,12 @@ export class DevicePicker extends HTMLElement {
   constructor() {
     super();
     useComponents(this.root);
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(
+      ':host{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:15}.task-body{padding:0;display:flex;min-height:0}.k-pane{display:flex;width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;flex-direction:column}.pane-head{flex-wrap:wrap;flex-shrink:0}.pane-head h2{display:none}.pane-body{flex:1;min-height:0}.pane-foot{flex-shrink:0;flex-wrap:wrap}.k-row{min-width:0}.k-row .txt{min-width:0;overflow-wrap:anywhere}.k-row .val{max-width:35%;overflow-wrap:anywhere}.k-btn{max-width:100%;white-space:normal}',
+    );
+    this.root.adoptedStyleSheets = [...this.root.adoptedStyleSheets, sheet];
+    this.page.onBack = () => this.goBack();
     this.root.addEventListener('click', this.onClick);
     this.root.addEventListener('change', this.change);
     this.root.addEventListener('input', this.input);
@@ -49,14 +60,14 @@ export class DevicePicker extends HTMLElement {
       if ((event as KeyboardEvent).key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        this.close(null);
+        this.goBack();
       }
     });
   }
   set hass(hass: Hass | undefined) {
     this._hass = hass;
     if (typeof hass?.themes?.darkMode === 'boolean') this.dataset.theme = hass.themes.darkMode ? 'dark' : 'light';
-    if (this.root.querySelector('dialog[open]') && !this.advanced) {
+    if (this.page.open && !this.advanced) {
       const catalog = deviceCatalog(hass, this.plan);
       if (JSON.stringify(catalog) !== this.catalogFingerprint) {
         let changed = false;
@@ -100,6 +111,7 @@ export class DevicePicker extends HTMLElement {
     else this.render();
   }
   private choose(device: CatalogDevice): void {
+    this.pending = this.selections.get(device.deviceId) ?? this.pending;
     this.selected = device;
     this.advanced = false;
     this.primary = device.readings.some(reading => reading.entityId === this.pending?.entityId)
@@ -112,9 +124,27 @@ export class DevicePicker extends HTMLElement {
     this.render();
   }
   private close(selection: DeviceSelection | null): void {
-    this.root.querySelector<HTMLDialogElement>('dialog')?.close();
+    this.page.close();
     this.finish?.(selection);
     this.remove();
+  }
+  private goBack(): void {
+    if (this.selected) {
+      this.selections.set(this.selected.deviceId, {
+        deviceId: this.selected.deviceId,
+        entityId: this.primary,
+        readings: [...this.additional],
+      });
+      this.selected = undefined;
+    } else if (this.advanced) {
+      this.advancedQuery = this.query;
+      this.query = this.deviceQuery;
+      this.advanced = false;
+    } else {
+      this.close(null);
+      return;
+    }
+    this.render();
   }
   private render(): void {
     const active = this.root.activeElement as HTMLInputElement | null;
@@ -241,18 +271,12 @@ export class DevicePicker extends HTMLElement {
         );
       footer = uiButton(t('Cancelar'), 'cancel') + uiButton(t('Vincular'), 'confirm', 'primary');
     }
-    this.root.querySelector<HTMLDialogElement>('dialog')?.close();
-    this.root.innerHTML = uiPane(title, body, footer, {
+    this.page.innerHTML = uiPane(title, body, footer, {
       step: this.advanced ? undefined : this.selected ? 2 : 1,
       back: !!this.selected || this.advanced,
       advanced: this.advanced,
     });
-    const dialog = this.root.querySelector<HTMLDialogElement>('dialog')!;
-    dialog.addEventListener('cancel', event => {
-      event.preventDefault();
-      this.close(null);
-    });
-    dialog.showModal();
+    this.page.show(this.root, title);
     const back = this.root.querySelector<HTMLButtonElement>('[data-action=back]');
     if (back) back.setAttribute('aria-label', t('Volver'));
     if (focus === 'search') {
@@ -304,14 +328,12 @@ export class DevicePicker extends HTMLElement {
       const device = deviceCatalog(this._hass, this.plan).find(device => device.deviceId === button.dataset.key);
       if (device) this.choose(device);
     } else if (action === 'advanced') {
+      this.deviceQuery = this.query;
       this.advanced = true;
-      this.query = '';
+      this.query = this.advancedQuery;
       this.render();
     } else if (action === 'back') {
-      this.selected = undefined;
-      this.advanced = false;
-      this.query = '';
-      this.render();
+      this.goBack();
     } else if (action === 'cancel') this.close(null);
     else if (action === 'entity' && button.dataset.key) this.close({ entityId: button.dataset.key, readings: [] });
     else if (action === 'entity-query') this.close({ entityId: this.query, readings: [] });

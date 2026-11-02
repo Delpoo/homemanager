@@ -25,7 +25,7 @@ Implementa [vision.md](vision.md) en etapas que se pueden probar. Hay dos pistas
 - Los marcadores y paneles sólo dibujan lo que esas funciones devuelven.
 
 **Diseño**
-- [vision-mockup.html](vision-mockup.html) es el objetivo visual de **todas** las pantallas. Si una pantalla no está en la maqueta, se arma sólo con los componentes de su sección 6, y se avisa en el PR para agregarla.
+- [vision-mockup.html](vision-mockup.html) es el objetivo visual de **todas** las pantallas, salvo donde la reemplace [rediseno/maqueta-modulos.html](rediseno/maqueta-modulos.html). Si una pantalla no está en la maqueta, se arma sólo con los componentes de su sección 6, y se avisa en el PR para agregarla.
 - Ningún texto visible contiene un `entity_id`, un nombre con `_` ni una palabra técnica, salvo en las secciones avanzadas.
 
 **Antes de pedir revisión**
@@ -204,6 +204,10 @@ Problema: el plano y los espacios se corrigieron muchas veces en copias (el SVG,
 | 5 | **Áreas de Home Assistant:** el asistente *Conectar mi casa* asocia zonas y áreas, y propone los dispositivos por área. Ofrece crear las áreas que faltan | esta entrega |
 | 6 | **Limpieza** de copias y de lo que ya no se use | esta entrega |
 
+## Rediseño · Símbolos por módulos
+
+Revisión de todas las maquetas con el propietario, del 30 y 31/10/2026. Se hace en 14 etapas que se validan de a una. **Instrucciones y estado:** [rediseno/LEEME.md](rediseno/LEEME.md) y [rediseno/ESTADO.md](rediseno/ESTADO.md). Las etapas 4 a 6 de 0.10 tocan los mismos archivos que E05 y E11: no correr dos trabajos a la vez sobre ellos.
+
 ## Pista B · ESPHome sin copiar y pegar
 
 Requiere que el propietario **apruebe D19** ([decisions.md](decisions.md)). Puede avanzar en paralelo con 0.8. Su interfaz usa los componentes de 0.9 (maqueta [§5](vision-mockup.html#s5) y [§10](vision-mockup.html#s10)).
@@ -242,3 +246,4 @@ Requiere que el propietario **apruebe D19** ([decisions.md](decisions.md)). Pued
 - Revisión de accesibilidad: foco visible, contraste AA y lector de pantalla en cada vista.
 - `docs/` al día y guía de instalación con capturas.
 - Decidir sobre `activity/subscribe` en la integración y las notificaciones al móvil.
+

@@ -1,0 +1,89 @@
+# Estado del rediseño
+
+**Modo de trabajo vigente:** [modo-continuo.md](modo-continuo.md), instrucción del propietario; reemplaza LEEME sólo en sus puntos explícitos.
+
+Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
+
+**Siguiente paso:** preparar y publicar la beta `v0.11.0-beta.1` mediante squash del PR #52, con autorización expresa del propietario sólo para esta publicación. Comprobar la CI del commit candidato antes de fusionar y el flujo de release antes de publicar como Pre-release. No iniciar el lote 2; esperar «continuá». [Reporte vigente del lote 1](https://github.com/Delpoo/homemanager/pull/52#issuecomment-6552694595).
+
+**Versión de prueba:** E00, E01, E02, E03 y E04 van en `v0.11.0-beta.1`, todavía sin validación del propietario y sin recorrido independiente en vivo. La publicación no equivale a aprobación funcional. Se conservan por ahora los estados de las filas; su paso a «publicada» se registrará en el primer commit del lote 2, sin abrir un PR adicional sólo para eso. Desde ese lote se trabaja en una rama nueva desde main (`chatgpt/rediseno-lote-N`) y con un PR propio.
+
+## Etapas
+
+| Etapa | Qué deja lista | Depende de | Estado | Agente | Rama / PR | Actualizada | Falta |
+|---|---|---|---|---|---|---|---|
+| [E00](etapas/E00-inventario.md) | Lista de todas las funciones que no se pueden perder | — | auditada | Codex (auditor) | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-11-01 | Auditoría documental completada: 137 funciones y 51 comandos trazados; falta recorrido independiente en app. Sin aprobación funcional. Ver veredicto. |
+| [E01](etapas/E01-ficha-lateral.md) | Ficha lateral que no tapa el plano | E00 | auditada | Codex (auditor) | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-11-01 | Auditoría parcial de código/capturas/CI sin otro fallo identificado; falta comprobar en vivo edición, foco, cámara y teléfono/lector físicos. Sin aprobación funcional. |
+| [E02](etapas/E02-pantallas.md) | Pantallas en lugar de ventanas apiladas | E00 | auditada | Codex (auditor) | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-11-01 | Auditoría parcial de código/capturas/CI; 250 pruebas de código y CI de 414 casos de navegador aprobadas en 7b3dd79. Faltan recorrido independiente de 68 filas y carga/guardado/recarga de plano viejo. Sin aprobación funcional. |
+| [E03](etapas/E03-barra-capas-textos.md) | Barra de alertas, capas solo con símbolo y textos claros | E00 | en revisión | Codex | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-11-01 | Implementada y subida; P2 corregido en 2ae437c: Normal/Inversa y modos comunes traducidos sin cambiar comandos. CI 48627af: 255 pruebas de código, 430 de navegador aprobadas y 4 omitidas. Faltan reauditoría en vivo, validación del propietario y pruebas físicas declaradas. |
+| [E04](etapas/E04-pantalla-dispositivo.md) | Pantalla del dispositivo como en la maqueta | E00 | en revisión | Codex | `chatgpt/rediseno-e02-pantallas` · [PR #52](https://github.com/Delpoo/homemanager/pull/52) | 2026-11-01 | Implementada y subida con canales y lecturas conservadas; auditoría e50e712 y registro 1e8efdd integrados sin reescribir historia. CI 48627af aprobada, incluida integración HA (244 por versión). Faltan reauditoría en vivo, validación del propietario y teléfono/lector; E2E completo previsto para lote 4. |
+| [E05](etapas/E05-modulos.md) | Símbolos por módulos, sin categorías que limiten | E01 | pendiente | — | — | — | Todo |
+| [E06](etapas/E06-gestos.md) | Gestos configurables | E05 | pendiente | — | — | — | Todo |
+| [E07](etapas/E07-reglas.md) | Pantalla de Reglas | E05 | pendiente | — | — | — | Todo |
+| [E08](etapas/E08-iconos-color.md) | Un solo selector de iconos, lista amplia y color | E05 | pendiente | — | — | — | Todo |
+| [E09](etapas/E09-disenador-controles.md) | Un solo diseñador de controles, flexible | E06, E08 | pendiente | — | — | — | Todo |
+| [E10](etapas/E10-aprendizaje-rf.md) | Aprender botones con pasos guiados | E09 | pendiente | — | — | — | Todo |
+| [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | pendiente | — | — | — | Todo |
+| [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | pendiente | — | — | — | Todo |
+| [E13](etapas/E13-espacio-pared.md) | Vista por espacio en PC y modo pared | E11 | pendiente | — | — | — | Todo |
+
+E01 a E04 no dependen entre sí, pero E01, E02 y E03 tocan archivos en común. Conviene hacerlas de a una.
+
+## Otros trabajos del repositorio
+
+No son parte de este rediseño, pero pueden tocar los mismos archivos. Antes de empezar, mirar [../roadmap.md](../roadmap.md).
+
+| Trabajo | Riesgo de choque | Estado al 31/10/2026 |
+|---|---|---|
+| 0.10 · etapa 4, plano vinculado | E00, E11 | Fusionada en `main` (#47), sin publicar |
+| 0.10 · etapa 5, áreas de Home Assistant | E05 (hoy propone categorías) | Sin empezar según la hoja de ruta |
+| 0.10 · etapa 6, limpieza | Todas | Sin empezar según la hoja de ruta |
+| Pista B · ESPHome | E09, E10 | El propietario pidió revisarla más adelante |
+
+## Decisiones pendientes del propietario
+
+Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, pregunta y espera.
+
+| # | Pregunta | Recomendación | Afecta a | Estado |
+|---|---|---|---|---|
+| 1 | ¿Las alertas que hoy salen solas (por ejemplo, un sensor de fuga mojado) quedan como reglas base visibles y desactivables? | Sí | E07 | Abierta |
+| 2 | ¿Se aceptan PDF al subir un plano, o se convierten antes? | Aceptar SVG, PNG y JPG; el PDF se convierte antes | E11 | Abierta |
+| 3 | ¿Qué pantallas sin maqueta se dibujan antes de construirlas? Ventana de controles, editar un aviso, otras secciones de Ajustes, panel oscuro de escritorio, RF en el teléfono | Dibujarlas en la etapa que las toca y validarlas | E02, E04, E07, E09 | Abierta |
+| 4 | ¿Qué falla de la vista por espacio en la PC? | La revisa el auditor y lo muestra | E13 | Abierta |
+| 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
+
+## Bitácora
+
+- 2026-11-01 · Codex · **Preparación autorizada de v0.11.0-beta.1.** E00 a E04 incluidas para prueba del propietario; sin validación del propietario ni recorrido independiente. Versión alineada en paquete, lockfile, manifest, CHANGELOG y expectativa del YAML RF. Notas para personas no técnicas: rediseño E01–E04 y cambios de main todavía no publicados (#41, #46, #47, #50 y #53), revisados en el historial. Local: `npm run check` (255 pruebas), `npm run format:check` y el caso de navegador de escritorio del YAML RF aprobados. E2E no ejecutado: se intentó iniciar HA 2026.2.3 con configuración nueva y luces ficticias, pero la conexión a 127.0.0.1:18127 fue rechazada por permisos de sockets; proceso de prueba detenido. Carga, guardado y recarga de plano viejo inventado siguen sin comprobarse en HA real durante esta preparación. Excepción de publicación limitada a esta beta: squash de #52, ramas conservadas y publicación obligatoria como Pre-release; CI del candidato y publicación pendientes. No iniciar lote 2 ni tocar la casa. La marca «publicada» se anotará en el primer commit de ese lote, en su nueva rama y PR.
+
+- 2026-11-01 · Codex · **Lote 1 / cierre final para revisión.** Subida normal confirmada en 48627af3ae6faff625db42eea734292a54d748e4, que conserva los commits originales y une 8dbee89 con la corrección aislada 29c7589. La CI documental 41295295144 había fallado en una captura de escritorio del selector (429 aprobadas/1 fallida/4 omitidas); sólo se corrigió esa prueba, esperando geometría estable antes del clic real y conservando su aserción. Repetición local del único caso fallido: 3/3 aprobadas. [CI 41303529160](https://github.com/Delpoo/homemanager/actions/runs/41303529160) aprobada sobre 48627af: 255 pruebas de código, 430 de navegador y 4 omisiones previstas, integración 244 por versión HA (2026.2.3/2026.10.4), cero vulnerabilidades y paquete verificado. ESTADO y [reporte único del lote 1](https://github.com/Delpoo/homemanager/pull/52#issuecomment-6552694595) actualizados; sin bloqueo vigente de entorno ni subida. Se conserva íntegro el registro del auditor e50e712. E03/E04 siguen en revisión: faltan reauditoría independiente en vivo, validación del propietario y pruebas físicas; E2E completo en HA desechable previsto para lote 4. Sin contacto con la casa, fusión, versión ni inicio del lote 2; esperar «continuá».
+
+- 2026-11-01 · Codex · **Lote 1 / E03 y E04: cerrado para revisión.** E03 b0f5b36, E04 693c7ef y P2 2ae437c subidos sin rebase, stash ni force push; e50e712 conservado mediante 66265c3 y 1e8efdd unido por merge 5d8bcfc. [CI 41294660028](https://github.com/Delpoo/homemanager/actions/runs/41294660028) aprobada sobre 5d8bcfc19cedf01202cdfa32b13c57e76e24bed1: 255 pruebas de código, 430 de navegador y 4 omisiones previstas, integración 244 por versión HA (2026.2.3/2026.10.4), cero vulnerabilidades y paquete verificado. P2 tuvo regresión rojo/verde en ES/EN y ambos tipos de pantalla, con valores de comando y nombres personalizados conservados. Formato local aprobado. [Reporte vigente](https://github.com/Delpoo/homemanager/pull/52#issuecomment-6552694595); los bloqueos históricos de subida de las entradas anteriores están resueltos. Se mantienen las 40 capturas ficticias del lote, las 13/8 funciones asignadas y el registro íntegro de auditoría; no se atribuyen recorridos independientes ni pruebas físicas nuevas. Reauditoría en vivo y validación pendientes. Sin cambios de contrato/integración, contacto con la casa, fusión a main, versión ni inicio del lote 2.
+
+- 2026-11-01 · Codex (implementación autorizada por el propietario) · Lote 1 / P2 · Dirección vuelve a Normal/Inversa y los modos comunes se traducen sin cambiar sus valores; regresión comprobada fallando antes y pasando después, en ES/EN y ambos tipos de pantalla. Check 255 y formato aprobados. Commit exacto de auditoría e50e712 integrado localmente en 66265c3; se conserva íntegra su bitácora. La autorización actual permite subir y reportar, prohíbe fusionar a main y sacar versión. Este checkpoint se registró mientras la subida estaba pendiente; los commits originales seguían en la PC. La entrega y su CI quedaron resueltas en las entradas posteriores. [Reporte único de la corrección](https://github.com/Delpoo/homemanager/pull/52#issuecomment-6552694595). No confundir este registro remoto con una subida del producto. Sin force push, acceso a la casa ni inicio del lote 2.
+
+- 2026-11-01 · Codex (auditor, sin implementación) · E00–E04 · **Debe corregirse.** [Veredicto y 12 puntos de auditoria.md](https://github.com/Delpoo/homemanager/pull/52#issuecomment-6548120095). PR auditado en 7b3dd79 (E00–E02); E03 b0f5b36 y E04 693c7ef sólo locales, sin CI remota nueva. Reproducción de modelo confirmó regresión Normal/Inversa → forward/reverse y sleep sin traducir en versión local. Código exacto del PR: 250 pruebas, tipos/formato aprobados; local: check 254 y formato aprobados. CI 41209217667 verificada por logs: 414 casos de navegador aprobados/4 omitidos, integración 244 por versión HA. App no abierta: tiempo de espera del navegador integrado y bloqueo del control de Chrome al no poder verificar su URL; no se eludió. Capturas existentes revisadas, sin darlas por recorridos nuevos. Conservación completa de funciones, plano viejo guardado/recargado, teléfono/lector y E2E siguen sin validar por este auditor. Estados auditada registran revisión parcial, no aprobación del propietario. Sólo se modifica ESTADO.md y este comentario; sin correcciones de código, subida del lote 1, fusión, release, contacto con la casa ni inicio de lote 2.
+
+- 2026-10-31 · ChatGPT · Lote 1 / E03 y E04 · Implementación local completa: capas por iconos, minimizar/ocultar, alertas permanentes, salud y textos ES/EN; ficha con seis canales Power 1…6, resumen, lecturas plegadas y Editar. 12/12 criterios, 21/21 funciones conservadas, 254 pruebas de código, 28 casos únicos de escritorio aprobados y uno móvil omitido, formato aprobado y 40 capturas ficticias. Dos commits locales, uno por etapa. La revisión automática rechazó crear el árbol en GitHub por interpretar «no publiques nada» como prohibición de subida: PR #52 permanece en `7b3dd79`, sin reporte nuevo ni CI del lote 1. Cierre pausado hasta autorización de subida; no avanzar de lote. Contrato e integración intactos, sin fusión, release, instalación ni contacto con la casa.
+
+- 2026-10-31 · ChatGPT · Lote 0 / E02 · Cierre en PR #52 contra main, sin borrador: una sola vuelta de movimientos, herramientas de zonas sin desplazamiento horizontal en teléfono, 65 casos específicos de escritorio aprobados, 88 capturas ficticias y 6/6 criterios/68 filas registrados. Modo continuo guardado íntegro. Primera CI cancelada por tiempo con pruebas antiguas; 23 casos corregidos/repetidos. HA: 244 pruebas por versión aprobadas. Resultado final de CI en PR; no se corrió la suite general local. Próximo lote 1 después de «continuá».
+
+- 2026-10-31 · ChatGPT · E02 · Autorizada por el propietario e implementada en PR #52: pantallas con vuelta y borradores, confirmaciones únicas, 250 pruebas de código y 105 casos únicos de navegador aprobados, 1 omitido. Main b9cce00 integrado. 60 de 72 capturas transferidas; desconexión local impidió las otras 12. Suite general y auditoría pendientes. Reporte: entregas/E02-2026-10-31-continuacion.md. No iniciar E03.
+
+- 2026-10-31 · ChatGPT · E02 · Pausada en la parada de validación de diseño, PR #52: clasificación de 12 aperturas, usos del helper y propuesta HTML. Recomienda Vincular en ficha de escritorio y pantalla completa móvil. Sin convertir src/. Capturas locales anteriores y comprobación del HTML publicado pendientes de incorporar/repetir; no se dan por aprobadas. Reporte en entregas/E02-2026-10-31.md.
+
+- 2026-10-31 · ChatGPT · E02 · Reclamada por «continua con eo1 y eo2». Rama creada desde main 764a9e0 e integrada con E01, PR apilado para evitar mezclar etapas. Alcance inicial: clasificación y maquetas; parada de validación obligatoria antes del código de conversión.
+
+- 2026-10-31 · ChatGPT · E01 · Implementada para revisión en #51: dock de 380 px, hoja móvil ampliable, vista previa sin guardar y deshacer local. 25 funciones cotejadas con método por fila; 250 pruebas de código y 11 de navegador pasan, 1 omitida. Seis capturas nuevas. Suite completa sin iniciar por timeout del servidor; teléfono y E2E HA pendientes. E02 autorizada aparte por el propietario, sin saltar su parada de diseño.
+
+- 2026-10-31 · ChatGPT · E01 · Reclamada por instrucción del propietario «continua con eo1 y eo2». Rama creada desde main 764a9e0 e integrada con E00 (#49), sin fusionar a main ni aprobar por cuenta propia sus decisiones. E02 se preparará después en otra rama, respetando su parada de validación de pantallas.
+
+Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
+
+- 2026-10-31 · ChatGPT · E00 · Cierre actualizado: main 764a9e0 (#50) integrado; 137 funciones, 40 con capturas históricas, 51 comandos y 12 aperturas. Check (248) y formato pasan; navegador pendiente de auditoría. Misma parada antes de E01.
+- 2026-10-31 · ChatGPT · E00 · Terminada para revisión en PR #49: 131 funciones (40 con capturas históricas además de código), 49 comandos literales y 12 aperturas de ventanas. Check (239) y formato pasan; navegador no aprobado. Seis destinos a validar antes de E01. Reporte en entregas/E00-2026-10-31.md.
+- 2026-10-31 · ChatGPT · E00 · Retomada por instrucción del propietario, con guías fa97550 y main 7f192e3 integrados. Se distingue código, captura y app; E00 no requiere maqueta.
+- 2026-10-31 · ChatGPT · E00 · Pausada en PR #49: 28 funciones registradas sólo desde código; navegador rechazó la apertura local de la maqueta. Faltan recorrido y cobertura completa. Reporte en entregas/E00-2026-10-31.md; no iniciar E01.
+- 2026-10-31 · ChatGPT · E00 · Etapa reclamada desde main 9a5d975; guías leídas en claude/guias-rediseno (4e376aa), sin modificar sus otras etapas.
+- 2026-10-31 · Claude (guía y auditor) · — · Agregó la maqueta como imágenes y qué hacer si una herramienta no puede abrir algo.
+- 2026-10-31 · Claude (guía y auditor) · — · Creó las guías y la maqueta de módulos. Todavía sin validar por el propietario.

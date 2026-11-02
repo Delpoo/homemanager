@@ -1,5 +1,18 @@
 /** 0.7 shell and pure-model source messages. */
 export const enShell: Record<string, string> = {
+  'Consumo relativo': 'Relative consumption',
+  'Mostrar capas': 'Show layers',
+  'Minimizar capas': 'Minimize layers',
+  'Sólo en este navegador': 'Only in this browser',
+  'Sin alertas': 'No alerts',
+  'Se guarda la ubicación visual. Las entidades, áreas de Home Assistant, scripts y rutas de control conservan sus asociaciones.':
+    'The visual position is saved. Home Assistant entities, areas, scripts and control paths keep their associations.',
+  'Los cambios de esta pantalla todavía no se aplicaron.': 'The changes on this screen have not been applied yet.',
+  Avisos: 'Alerts',
+  'Ampliar ficha': 'Expand editor',
+  'Reducir ficha': 'Collapse editor',
+  'Deshacer cambios de este dispositivo': 'Undo changes to this device',
+  'Ficha de edición': 'Device editor',
   'Sin vincular': 'Not linked',
   'Usar esta entidad': 'Use this entity',
   'Vincular dispositivo': 'Link device',

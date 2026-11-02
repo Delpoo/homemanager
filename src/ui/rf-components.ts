@@ -1,4 +1,5 @@
 import { uiEscape as e } from './components.js';
+import { taskScreen } from './task-screen.js';
 import { personName } from '../model/names.js';
 
 /** §10 layouts share the same fields, actions, notices and dialog frame as §6/§11. */
@@ -9,7 +10,7 @@ export const rfEditedText = (value: string, original?: string): string =>
 export const rfWorkspace = (navigation: string, content: string, learning: string, view: string): string =>
   `<div class="rf-workspace" data-page="${e(view)}" data-learning="${!!learning}"><aside class="rf-navigation">${navigation}</aside><main class="rf-detail">${content}</main>${learning ? `<aside class="rf-learning">${learning}</aside>` : ''}</div>`;
 export const rfWidgetDialog = (title: string, body: string, footer: string): string =>
-  `<dialog class="k-dialog editor" aria-labelledby="editor-title"><header class="k-dialog-head"><h2 id="editor-title">${e(title)}</h2></header><form method="dialog">${body}<div class="actions">${footer}</div></form></dialog>`;
+  taskScreen(title, `<form>${body}<div class="actions">${footer}</div></form>`, '', 'editor');
 export const remoteCell = (column: number, row: number): string =>
   `<div class="cell" style="grid-column:${column};grid-row:${row}" aria-hidden="true"></div>`;
 export const remoteWidget = (

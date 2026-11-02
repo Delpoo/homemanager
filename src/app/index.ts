@@ -1,5 +1,7 @@
 import { homeStart } from '../ui/home-start.js';
 import { t } from '../i18n/index.js';
+import { TaskScreen } from '../ui/task-screen.js';
+import { confirmDialog } from '../ui/confirm-dialog.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { describeError, listHomes, type HomeSummary } from '../integration/store.js';
 import { tokens } from '../ui/theme.js';
@@ -216,13 +218,13 @@ export class HomeManagerApp extends HTMLElement {
   private async openStorage(): Promise<void> {
     if (!this._hass?.callWS || this._hass.user?.is_admin !== true) return;
     const hass = this._hass;
-    const dialog = document.createElement('dialog');
+    const dialog = new TaskScreen();
     dialog.className = 'maintenance';
     dialog.innerHTML = `<h2>${e(t('Almacenamiento'))}</h2><p>${e(t('Los historiales de hogares eliminados se conservan hasta que los elimines definitivamente. Las copias de seguridad se administran por separado.'))}</p><div class="retained"></div><p class="storage-status" role="status"></p><button type="button" class="close">${e(t('Cerrar'))}</button>`;
     dialog.querySelector('.close')!.addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
     this.root.append(dialog);
-    dialog.showModal();
+    dialog.show(this.root, t('Almacenamiento'));
     const refresh = async () => {
       try {
         const result = await hass.callWS!<{ bytes: number; retained_home_ids: string[] }>({
@@ -237,7 +239,14 @@ export class HomeManagerApp extends HTMLElement {
           button.textContent = t('Eliminar historial');
           button.type = 'button';
           button.addEventListener('click', async () => {
-            if (!window.confirm(t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }))) return;
+            if (
+              !(await confirmDialog(this.root, {
+                title: t('Eliminar historial'),
+                message: t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }),
+                trigger: button,
+              }))
+            )
+              return;
             button.disabled = true;
             try {
               await hass.callWS!({ type: 'homemanager/history/purge', home_id: homeId, confirm: true });

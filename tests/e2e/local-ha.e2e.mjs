@@ -148,7 +148,7 @@ async function applyImport() {
     await download;
   }
   await apply.click();
-  const review = card.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  const review = card.getByRole('region', { name: 'Revisar cambios', exact: true });
   if (await review.isVisible())
     await review.getByRole('button', { name: 'Importar sólo el plano', exact: true }).click();
 }
@@ -160,7 +160,7 @@ async function importFile(name, content, type) {
 }
 async function save() {
   // Plan settings (import) is a modal sheet since 0.5: close it to reach Save.
-  const settings = card.getByRole('dialog', { name: 'Ajustes del plano' });
+  const settings = card.getByRole('region', { name: 'Ajustes del plano' });
   if (await settings.isVisible()) await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
   // The previous save's message may still be on screen: wait for a new revision.
   const before = (await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' })).result?.revision ?? 0;
@@ -170,7 +170,7 @@ async function save() {
   await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
 }
 async function openImport() {
-  if (!(await card.getByRole('dialog', { name: 'Ajustes del plano' }).isVisible()))
+  if (!(await card.getByRole('region', { name: 'Ajustes del plano' }).isVisible()))
     await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
   await card.locator('[data-settings="import-section"]').click();
 }

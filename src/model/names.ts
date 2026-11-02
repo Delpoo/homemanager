@@ -1,4 +1,5 @@
 import type { ModelHass, RegistryDevice } from './types.js';
+import { readingChannel } from './reading-channel.js';
 
 const WORDS: Record<string, Record<string, string>> = {
   es: {
@@ -38,6 +39,8 @@ const WORDS: Record<string, Record<string, string>> = {
     off: 'Apagado',
     unknown: 'Sin dato',
     unavailable: 'No disponible',
+    total_power: 'Potencia total',
+    daily_energy: 'Energía de hoy',
   },
   en: {
     device: 'Device',
@@ -76,6 +79,8 @@ const WORDS: Record<string, Record<string, string>> = {
     off: 'Off',
     unknown: 'No data',
     unavailable: 'Unavailable',
+    total_power: 'Total power',
+    daily_energy: 'Energy today',
   },
   de: {
     device: 'Gerät',
@@ -95,6 +100,8 @@ const WORDS: Record<string, Record<string, string>> = {
     off: 'Aus',
     unknown: 'Keine Daten',
     unavailable: 'Nicht verfügbar',
+    total_power: 'Gesamtleistung',
+    daily_energy: 'Tagesenergie',
   },
 };
 export function nameWord(key: string, hass?: ModelHass): string {
@@ -106,6 +113,72 @@ export const foldName = (value: string): string =>
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+
+const STATES: Record<string, [string, string]> = {
+  on: ['Encendido', 'On'],
+  off: ['Apagado', 'Off'],
+  open: ['Abierto', 'Open'],
+  closed: ['Cerrado', 'Closed'],
+  opening: ['Abriendo', 'Opening'],
+  closing: ['Cerrando', 'Closing'],
+  locked: ['Cerrado', 'Locked'],
+  unlocked: ['Abierto', 'Unlocked'],
+  cool: ['Frío', 'Cool'],
+  heat: ['Calor', 'Heat'],
+  heat_cool: ['Frío y calor', 'Heat and cool'],
+  dry: ['Seco', 'Dry'],
+  fan_only: ['Ventilar', 'Fan only'],
+  auto: ['Automático', 'Auto'],
+  forward: ['Normal', 'Normal'],
+  reverse: ['Inversa', 'Reverse'],
+  sleep: ['Noche', 'Sleep'],
+  eco: ['Económico', 'Eco'],
+  away: ['Ausente', 'Away'],
+  boost: ['Intensivo', 'Boost'],
+  comfort: ['Confort', 'Comfort'],
+  activity: ['Actividad', 'Activity'],
+  none: ['Sin preajuste', 'None'],
+  manual: ['Manual', 'Manual'],
+  normal: ['Normal', 'Normal'],
+  smart: ['Inteligente', 'Smart'],
+  quiet: ['Silencioso', 'Quiet'],
+  silent: ['Silencioso', 'Silent'],
+  natural: ['Brisa natural', 'Natural'],
+  nature: ['Brisa natural', 'Nature'],
+  breeze: ['Brisa', 'Breeze'],
+  turbo: ['Turbo', 'Turbo'],
+  low: ['Baja', 'Low'],
+  medium: ['Media', 'Medium'],
+  high: ['Alta', 'High'],
+  vertical: ['Vertical', 'Vertical'],
+  horizontal: ['Horizontal', 'Horizontal'],
+  both: ['Ambas', 'Both'],
+  idle: ['En espera', 'Idle'],
+  cooling: ['Enfriando', 'Cooling'],
+  heating: ['Calentando', 'Heating'],
+  online: ['En línea', 'Online'],
+  unavailable: ['No disponible', 'Unavailable'],
+  unknown: ['Sin dato', 'No data'],
+  home: ['En casa', 'Home'],
+  not_home: ['Fuera de casa', 'Away'],
+  cleaning: ['Limpiando', 'Cleaning'],
+  docked: ['En la base', 'Docked'],
+  paused: ['En pausa', 'Paused'],
+};
+/** Translate built-in states, keeping user-defined values readable. */
+export function stateName(value: string, hass?: ModelHass): string {
+  const es = (hass?.locale?.language ?? hass?.language ?? 'es').toLowerCase().startsWith('es');
+  return STATES[value]?.[es ? 0 : 1] ?? personName(value);
+}
+
+function readingLabel(label: string, deviceClass: string, hass?: ModelHass): string {
+  const known = Object.values(WORDS).some(words => foldName(words[deviceClass] ?? '') === foldName(label));
+  if (known) return nameWord(deviceClass, hass);
+  if (/^(?:total power|power total|potencia total|gesamtleistung)$/i.test(label)) return nameWord('total_power', hass);
+  if (/^(?:energy today|today energy|daily energy|energia de hoy|energia diaria|tagesenergie)$/i.test(foldName(label)))
+    return nameWord('daily_energy', hass);
+  return label;
+}
 
 /** An identifier is never a display-name fallback. Registry labels are untrusted. */
 export function personName(value: unknown, fallback = ''): string {
@@ -125,7 +198,8 @@ export function readingName(entityId: string, hass?: ModelHass): string {
   const entry = hass?.entities?.[entityId],
     entity = hass?.states[entityId];
   const device = entry?.device_id ? hass?.devices?.[entry.device_id] : undefined;
-  const deviceClass = String(entity?.attributes?.device_class ?? entityId.split('.')[0]);
+  const rawClass = String(entity?.attributes?.device_class ?? entityId.split('.')[0]);
+  const deviceClass = rawClass === 'moisture' && entityId.startsWith('sensor.') ? 'soil_moisture' : rawClass;
   const fallback = nameWord(
     deviceClass === 'moisture' && entityId.startsWith('sensor.') ? 'soil_moisture' : deviceClass,
     hass,
@@ -147,14 +221,14 @@ export function readingName(entityId: string, hass?: ModelHass): string {
       break;
     }
   }
-  const channel = label.match(/^(?:channel|canal|kanal)\s*(\d+)\s*(?:[·:–—-]\s*)?(.*)$/i);
+  const channel = readingChannel(label, deviceClass);
   if (channel) {
-    const suffix = channel[2];
+    const suffix = channel.suffix;
     const isClass =
       !suffix || Object.values(WORDS).some(words => foldName(words[deviceClass] ?? '') === foldName(suffix));
-    return `${nameWord('channel', hass)} ${channel[1]} · ${isClass ? fallback : suffix}`;
+    return `${nameWord('channel', hass)} ${channel.index} · ${isClass ? fallback : readingLabel(suffix, deviceClass, hass)}`;
   }
-  return label || fallback;
+  return readingLabel(label, deviceClass, hass) || fallback;
 }
 /** Entity's own area wins, then its device area. An unknown area stays unknown. */
 export function entityAreaId(entityId: string, hass?: ModelHass): string | null {

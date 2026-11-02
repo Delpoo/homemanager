@@ -1,13 +1,25 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const button = (page, name) => card(page).getByRole('button', { name, exact: true });
+const button = (page, name) =>
+  card(page).getByRole('button', {
+    name:
+      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
+    exact: true,
+  });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = async page => {
   await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
-  await expect(button(page, 'Guardar cambios')).toBeVisible();
+  // The first-space page deliberately covers the editing toolbar until dismissed.
+  await expect
+    .poll(
+      async () =>
+        (await button(page, 'Guardar cambios').isVisible()) ||
+        (await page.getByRole('region', { name: 'Este plano no tiene zonas', exact: true }).isVisible()),
+    )
+    .toBe(true);
 };
 /** Replaces the synthetic card with a V2 plan built from its own draft. */
 const replace = async (page, change) => {
@@ -60,7 +72,7 @@ test('a plan without zones offers to draw, and ends with three spaces drawn in t
      for (const device of configuration.catalog.devices) device.roomId = null;`,
   );
   await begin(page);
-  const offer = page.getByRole('dialog', { name: 'Este plano no tiene zonas', exact: true });
+  const offer = page.getByRole('region', { name: 'Este plano no tiene zonas', exact: true });
   await expect(offer).toBeVisible();
   await offer.getByRole('button', { name: 'Dibujar el primero', exact: true }).click();
   await draw(page, 'Living', [0.05, 0.05]);
@@ -98,7 +110,7 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
     await editor(page)
       .getByLabel('Importar JSON o SVG', { exact: true })
       .setInputFiles({ name: 'same.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) });
-    return page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+    return page.getByRole('region', { name: 'Revisar cambios', exact: true });
   };
   const office = () => draft(page).then(configuration => configuration.rooms.find(room => room.id === 'office'));
   let review = await upload();
@@ -108,7 +120,9 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
   expect(await office()).toMatchObject({ shape: drawn, shapeSource: 'app' });
   // The other spaces got a copy of their zone.
   expect((await draft(page)).rooms.find(room => room.id === 'kitchen').shapeSource).toBe('svg');
-  await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await editor(page)
+    .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+    .click();
   review = await upload();
   await review.getByRole('checkbox', { name: /Usar la zona del plano/ }).check();
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
@@ -122,7 +136,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
 }) => {
   await begin(page);
   await button(page, 'Ajustes del plano').click();
-  const settings = editor(page).getByRole('dialog', { name: 'Ajustes del plano' });
+  const settings = editor(page).getByRole('region', { name: 'Ajustes del plano' });
   const ids = async () => (await draft(page)).rooms.map(room => room.id);
   const first = (await draft(page)).rooms[0];
   await settings.getByRole('button', { name: `Mover ${first.label}: flechas arriba y abajo`, exact: true }).focus();
@@ -130,6 +144,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   expect(await ids()).toEqual(['kitchen', 'living', 'office']);
   // Dragging the last grip to the top.
   const grips = settings.locator('[data-room-grip]');
+  await grips.nth(2).scrollIntoViewIfNeeded();
   const last = await grips.nth(2).boundingBox();
   const top = await grips.nth(0).boundingBox();
   await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);
@@ -139,9 +154,9 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   expect(await ids()).toEqual(['office', 'kitchen', 'living']);
   const office = (await draft(page)).rooms[0].label;
   await settings.getByRole('button', { name: `Editar ${office}`, exact: true }).click();
-  await expect(editor(page).getByRole('dialog', { name: office, exact: true })).toBeVisible();
+  await expect(editor(page).getByRole('region', { name: office, exact: true })).toBeVisible();
   await editor(page)
-    .getByRole('dialog', { name: office, exact: true })
+    .getByRole('region', { name: office, exact: true })
     .getByRole('button', { name: 'Cancelar', exact: true })
     .click();
   await settings.getByRole('button', { name: 'Editar zonas', exact: true }).click();
@@ -163,7 +178,7 @@ test('an L-shaped zone of the SVG becomes two rectangles, and its hole belongs t
   await editor(page)
     .getByLabel('Importar JSON o SVG', { exact: true })
     .setInputFiles({ name: 'l.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(plan) });
-  const review = page.getByRole('dialog', { name: 'Revisar cambios', exact: true });
+  const review = page.getByRole('region', { name: 'Revisar cambios', exact: true });
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
   const rooms = (await draft(page)).rooms;
   const living = rooms.find(room => room.id === 'living');

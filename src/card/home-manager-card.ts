@@ -22,16 +22,17 @@ import {
   type RuntimeState,
 } from './types.js';
 
-import { iconButtonMarkup, layerItems, renderLayers } from '../shell/layers.js';
+import * as layerView from '../shell/layers.js';
 import { symbolSpec } from '../model/symbol-spec.js';
-import { ActivityLog, activityIsRecent } from '../model/activity.js';
+import { ActivityLog } from '../model/activity.js';
+import { updateShell } from '../shell/card-shell.js';
 import { RuntimeFeed } from '../shell/runtime-feed.js';
 import * as roomView from './room-view.js';
 import * as linkedPlan from './linked-plan.js';
 import * as zoneEditor from './zone-editor.js';
-import { activityText, showActivity, showAlerts } from '../shell/activity-view.js';
+import { showActivity, showAlerts } from '../shell/activity-view.js';
 import { renderRoomRail } from '../shell/room-rail.js';
-import { bindTopBar, renderTopBar, updateTopBar, type AppShellContext } from '../shell/top-bar.js';
+import { bindTopBar, renderTopBar, type AppShellContext } from '../shell/top-bar.js';
 import { layer, same, type Adapter } from './card-helpers.js';
 import * as commands from './commands.js';
 import * as editing from './editing.js';
@@ -58,25 +59,7 @@ export class HomeManagerCard extends HTMLElement {
     this.shellContext = context;
     this.updateShell();
   }
-  updateShell(): void {
-    this.insights?.update(this);
-    updateTopBar(this.root, {
-      title:
-        this.shellContext?.homes.find(home => home.home_id === this.shellContext?.selected)?.title ??
-        this.config?.title ??
-        t('HomeManager'),
-      admin: this._hass?.user?.is_admin === true,
-      app: this.shellContext,
-      activityText: activityText(this.activity.latest),
-      activityTone:
-        this.activity.latest && activityIsRecent(this.activity.latest, Date.now())
-          ? this.activity.latest.tone
-          : 'neutral',
-      alertCount: this.feed.alerts.length,
-      alertLevel: this.feed.alerts.some(alert => alert.level === 'critical') ? 'critical' : 'warning',
-    });
-    this.updateRail();
-  }
+  updateShell = updateShell.bind(this);
   insights?: DeviceScreenView;
   config?: CardConfig;
   draft?: Configuration;
@@ -99,6 +82,8 @@ export class HomeManagerCard extends HTMLElement {
   fixedPermit: string | null = null;
   history: Configuration[] = [];
   future: Configuration[] = [];
+  /** A live sheet edit is one undo step, never a persisted physical state. */
+  editorPreviewBase?: Configuration;
   box: ViewBox = { x: 0, y: 0, width: 1000, height: 700 };
   camera: Camera = { x: 0, y: 0, scale: 1 };
   fitted?: { camera: Camera; width: number };
@@ -128,6 +113,8 @@ export class HomeManagerCard extends HTMLElement {
   linkedAt = 0;
   linkedBusy = false;
   enabledLayers = new Set(['controls', 'sensors', 'energy']);
+  private layerNamesCleanup?: () => void;
+  private syncLayerChoice = () => layerView.syncLayers(this.root);
   pointers = new Map<number, { x: number; y: number }>();
   gesture?:
     | { kind: 'pan'; x: number; y: number; camera: Camera; at: number }
@@ -250,6 +237,9 @@ export class HomeManagerCard extends HTMLElement {
   }
   // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
   connectedCallback() {
+    document.addEventListener('homemanager-layers-change', this.syncLayerChoice);
+    this.layerNamesCleanup?.();
+    this.layerNamesCleanup = layerView.bindLayerNames(this.root);
     this.activityUnsubscribe ??= this.activity.subscribe(() => this.updateShell());
     this.activityTimer ??= setInterval(() => {
       if (this._hass) {
@@ -274,6 +264,8 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   disconnectedCallback() {
+    document.removeEventListener('homemanager-layers-change', this.syncLayerChoice);
+    this.layerNamesCleanup?.();
     clearInterval(this.activityTimer);
     this.activityTimer = undefined;
     this.activityUnsubscribe?.();
@@ -309,14 +301,18 @@ export class HomeManagerCard extends HTMLElement {
     this.observer?.disconnect();
     this.panel?.close();
     this.shellUnsubscribe?.();
-    const layers = layerItems().filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
+    const layers = layerView
+      .layerItems()
+      .filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
     this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
     this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
+    this.layerNamesCleanup?.();
+    this.layerNamesCleanup = layerView.bindLayerNames(this.root);
     this.groupsKey = '';
     this.root.addEventListener('click', this.onClick);
     this.bindNav();
@@ -452,6 +448,9 @@ export class HomeManagerCard extends HTMLElement {
       return;
     }
     switch (command) {
+      case 'layers-collapse':
+        layerView.toggleLayers();
+        break;
       case 'activity':
         showActivity.call(this);
         break;

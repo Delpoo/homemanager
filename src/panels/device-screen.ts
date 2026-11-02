@@ -111,6 +111,7 @@ export class DeviceScreenView extends HTMLElement {
       title,
       this.screen ? this.deviceContent(this.screen) : this.nowContent(),
       this.dataset.expanded === 'true',
+      this.screen ? this.deviceFooter(this.screen) : '',
     );
     const editingInput = (this.root.activeElement as HTMLElement | null)?.matches('input,select,textarea');
     if (html !== this.html && !editingInput) {
@@ -139,10 +140,18 @@ export class DeviceScreenView extends HTMLElement {
     this.refreshAvailability();
   }
   openDevice(id: string, trigger: HTMLElement): void {
+    if (this.deviceId !== id)
+      this.root.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(fold => {
+        fold.open = false;
+      });
     this.returnFocus = trigger;
     if (!this.deviceId && (this.card?.getBoundingClientRect().width ?? innerWidth) <= 650 && this.card)
       this.cameraBefore = { ...this.card.camera };
     this.deviceId = id;
+    if (this.card) {
+      this.card.selected = id;
+      this.card.renderMarkers();
+    }
     this.expanded(true);
     this.root.querySelector('.insights-scroll')!.scrollTop = 0;
     if ((this.card?.getBoundingClientRect().width ?? innerWidth) <= 650 && this.card) {
@@ -174,6 +183,7 @@ export class DeviceScreenView extends HTMLElement {
     if (this.returnFocus?.isConnected) this.returnFocus.focus({ preventScroll: true });
     else
       (
+        this.card?.root.querySelector<HTMLElement>(`[data-id="${CSS.escape(id ?? '')}"] .primary`) ??
         this.root.querySelector<HTMLElement>(`[data-action=device][data-key="${CSS.escape(id ?? '')}"]`) ??
         this.root.querySelector<HTMLElement>('.insights-handle')
       )?.focus({ preventScroll: true });
@@ -220,19 +230,31 @@ export class DeviceScreenView extends HTMLElement {
       (screen.values.length ? uiValues(screen.values) : '') +
       (screen.channels.length ? uiChannels(screen.channels) : '') +
       `<div class="device-custom"></div>` +
-      screen.readingGroups
-        .map(group =>
-          uiGroup(
-            group.name,
-            group.readings.map(reading => uiRow({ name: reading.name, value: reading.value })).join(''),
-          ),
-        )
-        .join('') +
+      (screen.readings.length
+        ? uiFold(
+            t('Otras lecturas ({count})', { count: screen.readings.length }),
+            screen.readingGroups
+              .map(group =>
+                uiGroup(
+                  group.name,
+                  group.readings.map(reading => uiRow({ name: reading.name, value: reading.value })).join(''),
+                ),
+              )
+              .join(''),
+          )
+        : '') +
       uiFold(
         t('Actividad'),
         screen.activity.length
           ? screen.activity
-              .map(entry => uiRow({ name: t(entry.message), detail: new Date(entry.at).toLocaleTimeString() }))
+              .map(entry =>
+                uiRow({
+                  name: [t(entry.message), entry.detail, entry.reason ? reasonText(entry.reason) : '']
+                    .filter(Boolean)
+                    .join(' · '),
+                  detail: new Date(entry.at).toLocaleTimeString(),
+                }),
+              )
               .join('')
           : uiEmpty(t('Sin actividad reciente')),
       ) +
@@ -242,11 +264,12 @@ export class DeviceScreenView extends HTMLElement {
           ? screen.diagnosis.map(reading => uiRow(reading)).join('')
           : uiEmpty(t('Sin lecturas de diagnóstico')),
       ) +
-      (screen.registryId && this.card?._hass?.user?.is_admin
-        ? `<div class="device-footer"><a href="/config/devices/device/${encodeURIComponent(screen.registryId)}" target="_blank" rel="noopener">${uiIcon('mdi:open-in-new')}${e(t('Abrir en Home Assistant'))}</a></div>`
-        : '') +
       `</div>`
     );
+  }
+  private deviceFooter(screen: DeviceScreen): string {
+    if (!this.card?._hass?.user?.is_admin) return '';
+    return `<footer class="device-footer">${screen.registryId ? `<a href="/config/devices/device/${encodeURIComponent(screen.registryId)}" target="_blank" rel="noopener">${uiIcon('mdi:open-in-new')}${e(t('Abrir en Home Assistant'))}</a>` : ''}<button class="k-btn" type="button" data-action="edit" data-key="${e(screen.id)}">${e(t('Editar'))}</button></footer>`;
   }
   private nowContent(): string {
     const card = this.card!;
@@ -278,6 +301,12 @@ export class DeviceScreenView extends HTMLElement {
     }
     const id = target.dataset.key;
     if (!id || !this.card) return;
+    if (target.dataset.action === 'edit' && this.card._hass?.user?.is_admin) {
+      const card = this.card;
+      await card.toggleEdit();
+      if (card.editing && card.draft?.catalog.devices.some(device => device.id === id)) card.select(id);
+      return;
+    }
     if (target.dataset.action === 'configured' && this.screen && !this.busy) {
       this.busy = true;
       this.refreshAvailability();

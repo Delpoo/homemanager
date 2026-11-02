@@ -212,17 +212,22 @@ export function renderControlsEditor(
     type =>
       `<button type="button" data-command="ctl-add" data-type="${type}" title="${esc(typeHint(type))}"${model.controls.length >= MAX_CONTROLS ? ' disabled' : ''}><ha-icon icon="${TYPE_ICONS[type]}"></ha-icon>${esc(typeLabel(type))}</button>`,
   ).join('');
+  return `<section class="ctl-section" id="device-controls" aria-labelledby="ctl-title">
+<div class="ctl-top"><label class="field"><span class="field-title">${esc(t('Al tocar el símbolo'))}${helpTip(t('Al tocar el símbolo'), t('Un pulsador envía siempre su acción; un ciclo envía la siguiente de sus acciones en cada toque y el símbolo muestra el icono de la última. Mantener pulsado abre siempre el panel.'))}</span><select data-sheet="tap" aria-label="${esc(t('Al tocar el símbolo'))}">${option('', t('Abrir el panel'), model.tap ?? '')}${tapChoices.map(control => option(control.id, control.label === typeLabel(control.type) ? control.label : `${control.label} · ${typeLabel(control.type)}`, model.tap ?? '')).join('')}</select></label>
+</div>
+<h3 id="ctl-title" class="field-title">${esc(t('Controles'))}${helpTip(t('Controles'), t('Se eligen por cómo se usan, no por lo que controlan: lo que hace cada paso es una acción. Aparecen en el panel; con el alfiler, hasta 3 quedan también junto al símbolo en el plano.'))}</h3>
+${cards || `<p class="note">${esc(t('Sin controles. Agregá uno por cómo se usa:'))}</p>`}
+<div class="ctl-add" role="group" aria-label="${esc(t('Agregar control'))}">${add}</div></section>`;
+}
+
+/** Size belongs to the common base, including symbols without a controls section. */
+export function renderSymbolSize(current: SymbolSize): string {
   const sizes: [SymbolSize, string][] = [
     ['s', t('Chico')],
     ['m', t('Mediano')],
     ['l', t('Grande')],
   ];
-  return `<section class="ctl-section" id="device-controls" aria-labelledby="ctl-title">
-<div class="ctl-top"><label class="field"><span class="field-title">${esc(t('Al tocar el símbolo'))}${helpTip(t('Al tocar el símbolo'), t('Un pulsador envía siempre su acción; un ciclo envía la siguiente de sus acciones en cada toque y el símbolo muestra el icono de la última. Mantener pulsado abre siempre el panel.'))}</span><select data-sheet="tap" aria-label="${esc(t('Al tocar el símbolo'))}">${option('', t('Abrir el panel'), model.tap ?? '')}${tapChoices.map(control => option(control.id, control.label === typeLabel(control.type) ? control.label : `${control.label} · ${typeLabel(control.type)}`, model.tap ?? '')).join('')}</select></label>
-<div class="field"><span class="field-title">${esc(t('Tamaño en el plano'))}</span><div class="seg" role="group" aria-label="${esc(t('Tamaño en el plano'))}">${sizes.map(([size, label]) => `<button type="button" data-command="sheet-size" data-size="${size}" aria-pressed="${model.size === size}">${esc(label)}</button>`).join('')}</div></div></div>
-<h3 id="ctl-title" class="field-title">${esc(t('Controles'))}${helpTip(t('Controles'), t('Se eligen por cómo se usan, no por lo que controlan: lo que hace cada paso es una acción. Aparecen en el panel; con el alfiler, hasta 3 quedan también junto al símbolo en el plano.'))}</h3>
-${cards || `<p class="note">${esc(t('Sin controles. Agregá uno por cómo se usa:'))}</p>`}
-<div class="ctl-add" role="group" aria-label="${esc(t('Agregar control'))}">${add}</div></section>`;
+  return `<div class="field symbol-size"><span class="field-title">${esc(t('Tamaño en el plano'))}</span><div class="seg" role="group" aria-label="${esc(t('Tamaño en el plano'))}">${sizes.map(([size, label]) => `<button type="button" data-command="sheet-size" data-size="${size}" aria-pressed="${current === size}">${esc(label)}</button>`).join('')}</div></div>`;
 }
 
 export const controlsEditorStyles = `

@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { mkdir } from 'node:fs/promises';
+import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
 const alerts = page => editor(page).locator('homemanager-alert-editor');
@@ -8,7 +9,18 @@ const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfig
 async function begin(page, label) {
   await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: label, exact: true }).click();
+  await card(page)
+    .getByRole('button', {
+      name:
+        label === 'Guardar dispositivo'
+          ? /^(Guardar dispositivo|Listo)$/
+          : label === 'Cerrar'
+            ? /^(Cerrar|Volver)$/
+            : label,
+      exact: true,
+    })
+    .click();
+  await openDeviceSections(page);
 }
 async function readable(host) {
   const text = await host.evaluate(host => {
@@ -36,6 +48,7 @@ test('plant rules are explicit, editable, preserved across categories and undone
   page,
 }) => {
   await begin(page, 'Planta de prueba');
+  const before = await draft(page);
   const rules = alerts(page);
   await expect(rules.getByRole('switch', { name: 'Humedad del suelo', exact: true })).toBeChecked();
   await expect(rules.getByRole('switch', { name: 'Luz', exact: true })).not.toBeChecked();
@@ -49,8 +62,9 @@ test('plant rules are explicit, editable, preserved across categories and undone
   await editor(page).getByRole('radio', { name: 'Planta', exact: true }).check();
   await expect(rules.locator('[data-rule="0"]').getByLabel('Menos de', { exact: true })).toHaveValue('0');
   await readable(rules);
-  const before = await draft(page);
-  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   const saved = (await draft(page)).catalog.devices.find(device => device.id === 'plant');
   expect(saved.display.alerts[0]).toEqual({
     reading: 'sensor.test_soil',
@@ -71,7 +85,9 @@ test('presence highlighting and counting are independent, with no hidden enabled
   await expect(alerts(page).getByRole('switch', { name: 'Resaltar al detectar' })).not.toBeChecked();
   await expect(alerts(page).getByRole('switch', { name: 'Contar como alerta' })).not.toBeChecked();
   await alerts(page).getByRole('switch', { name: 'Resaltar al detectar' }).check();
-  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   let saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
   expect(saved.display.highlight).toBe(true);
   expect(saved.display.alerts).toBeUndefined();
@@ -80,7 +96,9 @@ test('presence highlighting and counting are independent, with no hidden enabled
   await card(page).getByRole('button', { name: 'Puerta de prueba', exact: true }).click();
   await alerts(page).getByRole('switch', { name: 'Contar como alerta' }).check();
   await alerts(page).getByLabel('Nivel', { exact: true }).selectOption('warning');
-  await card(page).getByRole('button', { name: 'Guardar dispositivo', exact: true }).click();
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
   saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
   expect(saved.display.alerts).toEqual([{ reading: 'binary_sensor.test_door', level: 'warning' }]);
   await expect(card(page).locator('[data-id=presence] .symbol-badge')).toHaveAttribute('data-level', 'warning');
@@ -140,11 +158,11 @@ for (const dark of [false, true])
     await expect(insights.getByRole('heading', { name: 'Planta de prueba', exact: true })).toBeVisible();
     await readable(insights);
     await shot('device');
-    await insights.getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await insights.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
     await card(page).getByRole('button', { name: 'Alertas', exact: true }).click();
-    await expect(card(page).getByRole('dialog')).toBeVisible();
+    await expect(card(page).locator('homemanager-task-screen[open]')).toBeVisible();
     await shot('alerts');
-    await card(page).getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await card(page).locator('homemanager-task-screen[open] .task-back').click();
     await begin(page, 'Planta de prueba');
     for (const [category, slug] of [
       ['Planta', 'plant'],
@@ -154,7 +172,9 @@ for (const dark of [false, true])
     ]) {
       // Each category uses its own fictional device and associated reading.
       if (slug !== 'plant') {
-        await editor(page).getByRole('button', { name: 'Cerrar', exact: true }).click();
+        await editor(page)
+          .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
+          .click();
         await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
         await card(page)
           .getByRole('button', {
