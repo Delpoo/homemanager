@@ -36,6 +36,8 @@ export interface Device {
     archetype?: SymbolArchetype;
     show?: SymbolShow;
     category?: DeviceCategory;
+    modules?: import('../model/modules.js').ModuleId[];
+    layer?: import('../model/types.js').SymbolLayer;
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
     /** Up to 3 controls drawn next to the symbol (V2, optional). */

@@ -59,6 +59,9 @@ export interface ModelDevice {
     archetype?: Archetype;
     show?: DisplayShow;
     category?: Category;
+    modules?: import('./modules.js').ModuleId[];
+    layer?: SymbolLayer;
+    pinned?: string[];
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
   };
@@ -70,6 +73,7 @@ export interface ModelDevice {
     advancedPopupId?: string | null;
     remoteId?: string | null;
     tap?: string | null;
+    controls?: { id: string; type: string }[];
   };
   state?: { value: string; confidence: ModelConfidence };
 }

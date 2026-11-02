@@ -50,7 +50,7 @@ export class AlertEditor extends HTMLElement {
         });
       } else if (category === 'alert') draft.rules[this.binary].enabled = true;
     }
-    this.hidden = !['plant', 'meter', 'alert', 'presence'].includes(category);
+    this.hidden = false;
     this.render();
   }
   valid(): boolean {

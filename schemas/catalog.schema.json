@@ -4,149 +4,487 @@
   "description": "Shared catalog shape. Spaces are instance data: roomId references configuration.rooms or is null while unassigned. Persisted configuration constrains state to unknown; live state uses a separate schema.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "devices"],
+  "required": [
+    "schemaVersion",
+    "devices"
+  ],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": {
+      "const": 2
+    },
     "devices": {
       "type": "array",
       "maxItems": 2000,
-      "items": { "$ref": "#/$defs/device" }
+      "items": {
+        "$ref": "#/$defs/device"
+      }
     }
   },
   "$defs": {
-    "text": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S" },
-    "mdiIcon": { "type": "string", "minLength": 5, "maxLength": 240, "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])" },
-    "nullableText": { "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
-    "deviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-    "registryDeviceId": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(?![\\s\\S])", "not": { "enum": ["__proto__", "prototype", "constructor"] } },
-    "entityId": { "type": "string", "minLength": 3, "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+(?![\\s\\S])", "not": { "pattern": "\\.all$" } },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "\\S"
+    },
+    "mdiIcon": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 240,
+      "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "nullableText": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deviceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "registryDeviceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(?![\\s\\S])",
+      "not": {
+        "enum": [
+          "__proto__",
+          "prototype",
+          "constructor"
+        ]
+      }
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 240,
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+(?![\\s\\S])",
+      "not": {
+        "pattern": "\\.all$"
+      }
+    },
     "alertRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reading", "level"],
+      "required": [
+        "reading",
+        "level"
+      ],
       "properties": {
-        "reading": { "$ref": "#/$defs/entityId" },
-        "below": { "type": "number" },
-        "above": { "type": "number" },
-        "forMinutes": { "type": "number", "minimum": 0 },
-        "level": { "enum": ["alert", "warning"] }
+        "reading": {
+          "$ref": "#/$defs/entityId"
+        },
+        "below": {
+          "type": "number"
+        },
+        "above": {
+          "type": "number"
+        },
+        "forMinutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "level": {
+          "enum": [
+            "alert",
+            "warning"
+          ]
+        }
       }
     },
-    "roomId": { "$ref": "#/$defs/deviceId", "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/." },
+    "roomId": {
+      "$ref": "#/$defs/deviceId",
+      "$comment": "Instance-defined space ID; its SVG zone is room-${roomId}. V1's closed vocabulary lives in schemas/v1/."
+    },
     "position": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["x", "y"],
+      "required": [
+        "x",
+        "y"
+      ],
       "properties": {
-        "x": { "type": "number", "minimum": 0, "maximum": 1 },
-        "y": { "type": "number", "minimum": 0, "maximum": 1 }
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "state": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value", "confidence"],
+      "required": [
+        "value",
+        "confidence"
+      ],
       "properties": {
-        "value": { "$ref": "#/$defs/text" },
-        "confidence": { "enum": ["confirmed", "estimated", "sent", "unknown", "error"] }
+        "value": {
+          "$ref": "#/$defs/text"
+        },
+        "confidence": {
+          "enum": [
+            "confirmed",
+            "estimated",
+            "sent",
+            "unknown",
+            "error"
+          ]
+        }
       }
     },
     "step": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["actionId"],
+      "required": [
+        "actionId"
+      ],
       "properties": {
-        "actionId": { "$ref": "#/$defs/deviceId" },
-        "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
-        "icon": { "$ref": "#/$defs/text" }
+        "actionId": {
+          "$ref": "#/$defs/deviceId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "\\S"
+        },
+        "icon": {
+          "$ref": "#/$defs/text"
+        }
       }
     },
     "control": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "label", "steps"],
+      "required": [
+        "id",
+        "type",
+        "label",
+        "steps"
+      ],
       "$comment": "Named by how it is operated. Steps: button 1, cycle 2-4, updown 2 (up, down), select 2-8, slider none (adjusts entityId's own value, or the device entity's) or 2-12 stops.",
       "properties": {
-        "id": { "$ref": "#/$defs/deviceId" },
-        "type": { "enum": ["button", "cycle", "slider", "updown", "select"] },
-        "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
-        "steps": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/step" } },
-        "entityId": { "$ref": "#/$defs/text" },
-        "orientation": { "enum": ["vertical", "horizontal"] }
+        "id": {
+          "$ref": "#/$defs/deviceId"
+        },
+        "type": {
+          "enum": [
+            "button",
+            "cycle",
+            "slider",
+            "updown",
+            "select"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "\\S"
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "entityId": {
+          "$ref": "#/$defs/text"
+        },
+        "orientation": {
+          "enum": [
+            "vertical",
+            "horizontal"
+          ]
+        }
       }
     },
     "device": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "roomId", "kind", "position", "mobility", "display", "bindings", "state"],
+      "required": [
+        "id",
+        "roomId",
+        "kind",
+        "position",
+        "mobility",
+        "display",
+        "bindings",
+        "state"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/deviceId" },
-        "roomId": { "anyOf": [{ "$ref": "#/$defs/roomId" }, { "type": "null" }] },
-        "kind": { "enum": ["light", "fan", "curtain", "ac", "sensor", "switch", "robot", "purifier", "plant", "infra", "energy", "media", "lock", "camera", "appliance", "other"] },
-        "position": { "$ref": "#/$defs/position" },
-        "mobility": { "enum": ["fixed", "editable", "portable"] },
+        "id": {
+          "$ref": "#/$defs/deviceId"
+        },
+        "roomId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/roomId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "enum": [
+            "light",
+            "fan",
+            "curtain",
+            "ac",
+            "sensor",
+            "switch",
+            "robot",
+            "purifier",
+            "plant",
+            "infra",
+            "energy",
+            "media",
+            "lock",
+            "camera",
+            "appliance",
+            "other"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        },
+        "mobility": {
+          "enum": [
+            "fixed",
+            "editable",
+            "portable"
+          ]
+        },
         "display": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["label", "icon"],
+          "required": [
+            "label",
+            "icon"
+          ],
           "properties": {
-            "label": { "$ref": "#/$defs/text" },
-            "icon": { "$ref": "#/$defs/text" },
-            "size": { "enum": ["s", "m", "l"], "$comment": "Size of the symbol on the plan; m when absent." },
+            "label": {
+              "$ref": "#/$defs/text"
+            },
+            "icon": {
+              "$ref": "#/$defs/text"
+            },
+            "size": {
+              "enum": [
+                "s",
+                "m",
+                "l"
+              ],
+              "$comment": "Size of the symbol on the plan; m when absent."
+            },
             "archetype": {
-              "enum": ["actuator", "equipment", "sensor", "meter", "remote", "infrastructure"],
+              "enum": [
+                "actuator",
+                "equipment",
+                "sensor",
+                "meter",
+                "remote",
+                "infrastructure"
+              ],
               "$comment": "Optional presentation override; inferred without changing the stored document when absent."
             },
-            "show": { "enum": ["icon", "value", "both"], "$comment": "Body content; value for meters and icon for other archetypes when absent." },
+            "show": {
+              "enum": [
+                "icon",
+                "value",
+                "both"
+              ],
+              "$comment": "Body content; value for meters and icon for other archetypes when absent."
+            },
             "category": {
-              "enum": ["switch", "equipment", "remote", "meter", "plant", "alert", "presence", "infrastructure"],
+              "enum": [
+                "switch",
+                "equipment",
+                "remote",
+                "meter",
+                "plant",
+                "alert",
+                "presence",
+                "infrastructure"
+              ],
               "$comment": "What the person chose (D21). Decides the archetype; inferred from archetype or kind when absent."
             },
-            "alerts": { "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/alertRule" } },
-            "highlight": { "type": "boolean" },
+            "alerts": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/alertRule"
+              }
+            },
+            "highlight": {
+              "type": "boolean"
+            },
             "pinned": {
               "type": "array",
               "maxItems": 3,
               "uniqueItems": true,
-              "items": { "$ref": "#/$defs/deviceId" },
+              "items": {
+                "$ref": "#/$defs/deviceId"
+              },
               "$comment": "Controls of bindings.controls shown next to the symbol, in this order."
+            },
+            "modules": {
+              "type": "array",
+              "maxItems": 7,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "device",
+                  "indicators",
+                  "gestures",
+                  "control",
+                  "pinned",
+                  "native",
+                  "rules"
+                ]
+              }
+            },
+            "layer": {
+              "enum": [
+                "controls",
+                "sensors",
+                "energy",
+                "infrastructure"
+              ]
             }
           }
         },
         "bindings": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["entityId", "primaryAction", "advancedPopupId"],
+          "required": [
+            "entityId",
+            "primaryAction",
+            "advancedPopupId"
+          ],
           "properties": {
-            "entityId": { "$ref": "#/$defs/nullableText" },
-            "deviceId": { "$ref": "#/$defs/registryDeviceId" },
-            "readings": { "type": "array", "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/$defs/entityId" }, "$comment": "Additional readings exclude the principal (semantic validation); registry membership is checked live without rejecting older plans." },
-            "primaryAction": { "$ref": "#/$defs/nullableText" },
-            "advancedPopupId": { "$ref": "#/$defs/nullableText" },
+            "entityId": {
+              "$ref": "#/$defs/nullableText"
+            },
+            "deviceId": {
+              "$ref": "#/$defs/registryDeviceId"
+            },
+            "readings": {
+              "type": "array",
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/entityId"
+              },
+              "$comment": "Additional readings exclude the principal (semantic validation); registry membership is checked live without rejecting older plans."
+            },
+            "primaryAction": {
+              "$ref": "#/$defs/nullableText"
+            },
+            "advancedPopupId": {
+              "$ref": "#/$defs/nullableText"
+            },
             "quickActions": {
               "type": "array",
               "maxItems": 4,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "label", "actionId"],
+                "required": [
+                  "id",
+                  "label",
+                  "actionId"
+                ],
                 "properties": {
-                  "id": { "$ref": "#/$defs/deviceId" },
-                  "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
-                  "actionId": { "$ref": "#/$defs/deviceId" }
+                  "id": {
+                    "$ref": "#/$defs/deviceId"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "\\S"
+                  },
+                  "actionId": {
+                    "$ref": "#/$defs/deviceId"
+                  }
                 }
               }
             },
-            "remoteId": { "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }] },
-            "controls": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/control" } },
+            "remoteId": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/deviceId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "controls": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/control"
+              }
+            },
             "tap": {
-              "anyOf": [{ "$ref": "#/$defs/deviceId" }, { "type": "null" }],
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/deviceId"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "$comment": "Control (button or cycle) a tap on the symbol runs; null opens the panel. Absent: primaryAction, as before."
             }
           },
-          "allOf": [{ "if": { "required": ["readings"], "properties": { "readings": { "type": "array", "minItems": 1 } } }, "then": { "required": ["deviceId"], "properties": { "deviceId": { "$ref": "#/$defs/registryDeviceId" } } } }]
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "readings"
+                ],
+                "properties": {
+                  "readings": {
+                    "type": "array",
+                    "minItems": 1
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "deviceId"
+                ],
+                "properties": {
+                  "deviceId": {
+                    "$ref": "#/$defs/registryDeviceId"
+                  }
+                }
+              }
+            }
+          ]
         },
-        "state": { "$ref": "#/$defs/state" }
+        "state": {
+          "$ref": "#/$defs/state"
+        }
       }
     }
   },
