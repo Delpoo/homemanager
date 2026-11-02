@@ -61,3 +61,7 @@ AL TERMINAR EL LOTE 4
 - Corré una prueba extremo a extremo completa en un Home Assistant desechable, nunca en mi casa. Si no se puede, decilo.
 - Enviame un reporte final: todas las etapas, todo lo que decidiste por mí, todo lo que no se probó y qué debo probar yo.
 - No fusiones ni publiques hasta que te lo pida.
+
+
+AUTORIZACIÓN PERMANENTE DE SUBIDA (2026-11-02)
+El propietario respondió «si autorizo, este y futuros» a la solicitud de subir los commits E09/E10 y las 40 capturas ficticias a Delpoo/homemanager, abrir el PR del lote hacia main y ejecutar CI. Autoriza también esas operaciones de revisión en futuros lotes, incluidas correcciones y actualizaciones de sus PR. No autoriza fusionar, publicar versiones ni enviar comandos a la casa real.

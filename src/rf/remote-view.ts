@@ -46,7 +46,17 @@ export class HomeManagerRfRemote extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-remote-view', rfRemoteStyles(COLUMNS, ROW, GAP) + controlViewStyles, false);
+    installPanelComponents(
+      this.root,
+      'rf-remote-view',
+      rfRemoteStyles(COLUMNS, ROW, GAP) +
+        controlViewStyles +
+        `
+      [data-reading]{font-size:24px;font-weight:500;text-align:center;line-height:1.1}
+      .content>small,.content>strong{text-align:center}.content>input[type=range]{width:100%;min-width:0;accent-color:var(--hm-brand)}
+    `,
+      false,
+    );
   }
 
   set remote(remote: RfRemote | null) {

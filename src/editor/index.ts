@@ -1659,6 +1659,18 @@ export class HomeManagerEditor extends HTMLElement {
         }
         case 'design-open':
           if (this.flushDevice()) {
+            const device = this.device();
+            // Opening the visual designer explicitly materializes the read migration.
+            // A legacy primary action must remain a visible, executable piece.
+            if (device && device.bindings.controls === undefined) {
+              const next = clone(this.configuration);
+              next.catalog.devices.find(d => d.id === device.id)!.bindings.controls = sheetFromDevice(
+                device,
+                device.id,
+                this.configuration,
+              ).controls;
+              this.emit(next);
+            }
             this.surface = 'settings';
             this.settingsSection = 'designer-section';
             this.render();

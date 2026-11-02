@@ -775,3 +775,26 @@ Object.assign(en, {
     'Only the layout is replaced; buttons and actions are kept.',
   'Elegí los botones de este elemento.': 'Choose the buttons for this element.',
 });
+
+Object.assign(en, {
+  'El receptor está desconectado. Conectalo y volvé a empezar.':
+    'The receiver is disconnected. Connect it and start again.',
+  'Pasos de aprendizaje': 'Learning steps',
+  'Elegí un botón': 'Choose a button',
+  'Apuntá y pulsá': 'Point and press',
+  'Probá y guardá': 'Test and save',
+  'Botón que querés aprender': 'Button to learn',
+  'Elegí un botón del mando, apuntá al receptor y pulsalo cuando empiece la escucha.':
+    'Choose a remote button, point at the receiver and press it when listening starts.',
+  'Tramas iguales en esta pulsación: {count}': 'Matching frames in this press: {count}',
+  'Pulsaciones separadas: {count}': 'Separate presses: {count}',
+  'Se reconoce con 3 tramas iguales en una pulsación o con 2 pulsaciones separadas por más de 0,3 s.':
+    'Recognized with 3 matching frames in one press or 2 presses more than 0.3 s apart.',
+  'No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.':
+    'No receiver is available. In RF devices, connect a device with the RF package and choose it for learning.',
+  'Abrir Equipos RF': 'Open RF devices',
+  'Modo libre': 'Free mode',
+  Empezar: 'Start',
+  'Modo guiado': 'Guided mode',
+  'Elegí qué botón vas a aprender.': 'Choose which button to learn.',
+});

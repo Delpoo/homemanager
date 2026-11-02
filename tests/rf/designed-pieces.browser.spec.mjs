@@ -1,5 +1,45 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { setup, ceiling, calls } from '../browser/rf-helpers.mjs';
+
+test('the opened RF design displays the same live estimated reading as its designer', async ({ page }) => {
+  await setup(page, {
+    remotes: [
+      ceiling({
+        layout: [
+          {
+            id: 'value',
+            type: 'indicator',
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 1,
+            buttons: [],
+            label: 'Nivel',
+            icon: null,
+            reading: 'sensor.synthetic_temperature',
+          },
+        ],
+      }),
+    ],
+  });
+  await page.evaluate(() => {
+    const h = window.testHarness;
+    const config = structuredClone(h.original);
+    config.configuration.catalog.devices[0].bindings.remoteId = 'techo';
+    h.card.setConfig(config);
+    h.card.hass = { ...h.hass };
+    document.querySelector('#mount').replaceChildren(h.card);
+  });
+  const card = page.locator('homemanager-card');
+  await card.locator('[data-id=synthetic-light] .primary').click({ button: 'right' });
+  const panel = page.locator('homemanager-panel');
+  const remote = panel.locator('.remote homemanager-rf-remote');
+  await expect(remote.locator('[data-reading=value]')).toHaveText('23');
+  await expect(remote).toContainText('Estimado');
+  await page.evaluate(() => window.testHarness.updateState('sensor.synthetic_temperature', '24'));
+  await expect(remote.locator('[data-reading=value]')).toHaveText('24');
+  await expect(panel.locator('.additional-controls')).not.toHaveAttribute('open', '');
+});
 test('a designed RF cycle advances after each send and a slider sends only on release', async ({ page }) => {
   const base = { x: 0, h: 1, label: null, icon: null };
   const rf = await setup(page, {

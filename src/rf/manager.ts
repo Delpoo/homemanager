@@ -1,5 +1,6 @@
 import { iconPicker } from '../ui/icon-picker.js';
 import { ControlDesigner } from '../ui/control-designer.js';
+import { learningWorkspaceStyles } from '../ui/learning-components.js';
 import { t } from '../i18n/index.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
@@ -19,6 +20,7 @@ import {
   type RfPart,
   type RfRemote,
   type RfTransmitter,
+  type RfDevice,
   type RfWidget,
 } from '../integration/rf.js';
 import { icon, kindLabel, roleLabel } from './catalog.js';
@@ -54,6 +56,8 @@ export class HomeManagerRf extends HTMLElement {
   private editing = false;
   private learning = false;
   private readonly designer = new ControlDesigner();
+  private rfDevices: RfDevice[] = [];
+  private inlineOwner: string | null = null;
   private learnSuspended = false;
   private learnOwner: string | null = null;
   private message = '';
@@ -66,10 +70,15 @@ export class HomeManagerRf extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-manager', rfManagerStyles, true);
+    installPanelComponents(this.root, 'rf-manager', rfManagerStyles + learningWorkspaceStyles, true);
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
     this.learn.onSaved = id => void this.learned(id);
     this.learn.onClose = () => this.closeLearn();
+    this.learn.receiverOnline = id => this.rfDevices.find(d => d.id === id)?.online !== false;
+    this.root.addEventListener('homemanager-rf-open-devices', () => {
+      this.learn.stop();
+      this.show('devices');
+    });
     this.devices.onChange = () => void this.reload();
   }
 
@@ -78,6 +87,8 @@ export class HomeManagerRf extends HTMLElement {
     const first = !this._hass;
     this._hass = hass;
     this.learn.hass = hass;
+    this.remoteView.updateIndicators();
+    this.designer.refreshIndicators();
     if (this.view === 'devices') this.devices.hass = hass;
     if (first) void this.load();
   }
@@ -111,6 +122,7 @@ export class HomeManagerRf extends HTMLElement {
     this.remotes = library.remotes;
     this.transmitters = transmitters;
     this.defaultReceiver = devices?.default_receiver ?? null;
+    this.rfDevices = devices?.devices ?? [];
   }
 
   private report(error: unknown): void {
@@ -148,8 +160,21 @@ export class HomeManagerRf extends HTMLElement {
     else if (this.view === 'remote' && (this.remote() || this.draft)) body = this.renderRemote(status);
     else body = this.renderList(status);
     const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button></div>`;
+    const inline = this.editing && this.view === 'remote' && !!this.remote() && !this.learning;
+    if (inline) {
+      const remote = this.remote()!;
+      this.learn.inline = true;
+      this.learn.remote = remote;
+      this.learn.draft = null;
+      this.learn.transmitters = this.transmitters;
+      this.learn.hass = this._hass;
+      if (this.inlineOwner !== remote.id) {
+        this.inlineOwner = remote.id;
+        this.learn.prepare(this.receiver());
+      } else this.learn.resume();
+    } else this.learn.inline = false;
     this.root.innerHTML =
-      rfWorkspace(this.renderNavigation(tabs), body, '', this.view) +
+      rfWorkspace(this.renderNavigation(tabs), body, inline ? '<div data-slot="learn"></div>' : '', this.view) +
       (this.learning ? taskScreen(t('Aprender botones'), '<div data-slot="learn"></div>', '', 'learning-page') : '');
     for (const [slot, element] of [
       ['remote', this.editing ? this.designer : this.remoteView],
@@ -469,6 +494,7 @@ export class HomeManagerRf extends HTMLElement {
         case 'edit':
           this.editing = !this.editing;
           if (this.editing) this.closeLearn(false);
+          else this.learn.stop();
           this.say('');
           break;
         case 'delete-remote': {

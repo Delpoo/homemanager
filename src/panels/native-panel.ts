@@ -281,14 +281,23 @@ export class HomeManagerPanel extends HTMLElement {
         host.innerHTML = `<p class="group-title">${escapeHTML(t('Control remoto'))}</p>`;
         const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
         view.onPress = source.press;
+        view.readValues = () => this.options?.controlHost?.hass()?.states ?? {};
         view.remote = remote;
+        this.rfDesignView = view;
         host.append(view);
         host.hidden = false;
+        const extras = this.root.querySelector<HTMLDetailsElement>('.additional-controls');
+        if (extras) {
+          extras.open = false;
+          const own = this.root.querySelector('.own');
+          if (own) extras.append(own);
+        }
       })
       .catch(() => undefined);
   }
   private views: ControlView[] = [];
   private designView?: HomeManagerRfRemote;
+  private rfDesignView?: HomeManagerRfRemote;
   private renderOwn(): void {
     const host = this.root.querySelector<HTMLElement>('.own');
     const controls = this.options?.controls ?? [];
@@ -641,6 +650,7 @@ export class HomeManagerPanel extends HTMLElement {
   }
   private renderState(): void {
     this.designView?.updateIndicators();
+    this.rfDesignView?.updateIndicators();
     const value = this.root.querySelector<HTMLElement>('.value'),
       confidence = this.root.querySelector<HTMLElement>('.confidence'),
       hint = this.root.querySelector<HTMLElement>('.hint');

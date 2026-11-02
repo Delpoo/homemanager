@@ -86,6 +86,33 @@ function setup(t, { feedback = 'measured', verified = true, ttl = 1, attribute =
 }
 const state = adapter => adapter.getSnapshot().states['contract-device'];
 
+test('a reading used only by a designed indicator is relevant to adapter refresh', t => {
+  const { adapter, hass } = setup(t);
+  const c = adapter.configuration;
+  c.catalog.devices[0].bindings.layout = [
+    {
+      id: 'reading',
+      type: 'indicator',
+      x: 0,
+      y: 0,
+      w: 1,
+      h: 1,
+      buttons: [],
+      label: null,
+      icon: null,
+      reading: 'sensor.design_only',
+    },
+  ];
+  adapter.configure(c);
+  hass.states['sensor.design_only'] = { state: '2', attributes: {} };
+  const seen = [];
+  adapter.subscribe(s => seen.push(s));
+  adapter.setHass(hass);
+  const count = seen.length;
+  adapter.setHass({ ...hass, states: { ...hass.states, 'sensor.design_only': { state: '3', attributes: {} } } });
+  assert.equal(seen.length, count + 1);
+});
+
 test('additional reading and registry changes republish without confirming a sent command', async t => {
   const { adapter, hass } = setup(t);
   const configuration = adapter.configuration;
