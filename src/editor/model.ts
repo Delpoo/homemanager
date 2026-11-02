@@ -134,7 +134,8 @@ export function upsertDevice(
         : {}),
       ...(input.bindings.remoteId ? { remoteId: input.bindings.remoteId } : {}),
       ...(input.bindings.controls ? { controls: structuredClone(input.bindings.controls) } : {}),
-      ...(input.bindings.tap !== undefined ? { tap: input.bindings.tap } : {}),
+      ...(input.bindings.tap !== undefined ? { tap: structuredClone(input.bindings.tap) } : {}),
+      ...(input.bindings.hold !== undefined ? { hold: structuredClone(input.bindings.hold) } : {}),
     },
     state: { value: 'unknown', confidence: 'unknown' },
   };

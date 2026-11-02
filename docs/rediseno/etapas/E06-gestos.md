@@ -52,3 +52,12 @@ Atajos junto al símbolo y sus gestos propios (un deslizador arrastra, no mueve 
 - [ ] Toda acción muestra respuesta en la barra de actividad.
 
 ## Registro
+
+### 2026-11-02 — Codex — implementación local
+- **Hecho:** resolución pura de tocar/mantener; bloque Gestos independiente, acciones pantalla/control completo/control elegido/panel nativo/nada. Mayús+Enter ejecuta mantener; menú contextual y tecla ContextMenu siempre abren controles. Se conserva LONG_PRESS_MS y supresión del clic posterior.
+- **Contrato:** `bindings.hold` opcional, y objetos de acción opcionales en `tap`; cadena y null antiguos conservados. Objetos `{action, controlId?}` extensibles a nuevos gestos sin duplicar acciones. Un deslizador elegido abre el control para ajustar su valor, no inventa uno.
+- **Aceptación:** 1 cumplido, ambos selectores y prueba navegador; 2 cumplido, casos ausente/null y apertura antigua; 3 cumplido, primaryAction en prueba unitaria; 4 cumplido, Mayús+Enter/ContextMenu en navegador; 5 cumplido, acceso fijo al control; 6 cumplido, referencia perdida resuelta a pantalla y aviso; 7 cumplido, acciones de navegación/nada registradas como actividad sin confirmación física, envíos usan flujo existente.
+- **Inventario:** F-029 gesto a módulo; F-030 menú contextual/teclado conservado; F-033 doble toque del fondo intacto; F-097 tamaño y alfileres conservados, toque movido; F-121 compatibilidad en contrato. Atajos no capturan el paneo, lógica existente sin cambios.
+- **Comprobaciones:** pruebas puras de compatibilidad/resolución; dos recorridos de escritorio de módulos/gestos aprobados. Check y matriz de validadores se registran en el cierre del lote.
+- **Falta:** lector y pantalla táctil físicos, auditor independiente; capturas/CI al cerrar lote.
+- **Dónde quedó:** rama `chatgpt/rediseno-lote-2`, commit E06; PR al cierre.

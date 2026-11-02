@@ -221,10 +221,20 @@ function controls(device, path) {
       }
     });
   }
-  if (Object.hasOwn(device.bindings, 'tap') && device.bindings.tap !== null) {
-    const type = types.get(device.bindings.tap);
-    if (type !== 'button' && type !== 'cycle')
-      invalid(`${path}.bindings.tap`, 'must name a button or cycle control of this device');
+  for (const gesture of ['tap', 'hold']) {
+    const binding = device.bindings[gesture];
+    if (binding === undefined || binding === null) continue;
+    const at = `${path}.bindings.${gesture}`;
+    if (typeof binding === 'string') {
+      id(binding, at);
+      if (gesture === 'tap' && !['button', 'cycle'].includes(types.get(binding)))
+        invalid(at, 'must name a button or cycle control of this device');
+    } else {
+      fields(binding, ['action'], ['controlId'], at);
+      one(binding.action, ['screen', 'panel', 'native', 'none', 'control'], at);
+      if (binding.action === 'control') id(binding.controlId, at + '.controlId');
+      else if (Object.hasOwn(binding, 'controlId')) invalid(at, 'controlId only belongs to a control action');
+    }
   }
   if (Object.hasOwn(device.display, 'pinned')) {
     const pinned = device.display.pinned;
@@ -340,7 +350,7 @@ function shape(configuration) {
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings'],
+      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold'],
       `${path}.bindings`,
     );
     if (Object.hasOwn(device.bindings, 'deviceId')) {

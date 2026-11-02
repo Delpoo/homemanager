@@ -1,3 +1,4 @@
+import type { GestureAction, GestureBinding } from '../model/gestures.js';
 import { t } from '../i18n/index.js';
 import {
   CONTROL_STEPS,
@@ -38,6 +39,8 @@ export interface SheetModel {
   key: string;
   controls: DeviceControl[];
   tap: string | null;
+  tapAction?: GestureAction;
+  hold?: GestureBinding;
   pinned: string[];
   size: SymbolSize;
 }
@@ -54,7 +57,7 @@ const NEW = /^new:([a-z_]+)\.([a-z_]+):([a-z0-9_]+\.[a-z0-9_]+)$/;
 export function sheetFromDevice(device: Device | undefined, key: string, configuration?: Configuration): SheetModel {
   const controls = device ? structuredClone(controlsOf(device)) : [];
   let tap: string | null = null;
-  if (device?.bindings.tap !== undefined) tap = device.bindings.tap ?? null;
+  if (device?.bindings.tap !== undefined) tap = typeof device.bindings.tap === 'string' ? device.bindings.tap : null;
   else if (device?.bindings.primaryAction) {
     // A 0.5 plan: its primary action becomes a visible button control.
     const id = uniqueControlId(controls, 'tap');
@@ -71,6 +74,10 @@ export function sheetFromDevice(device: Device | undefined, key: string, configu
     key,
     controls,
     tap,
+    ...(device?.bindings.tap && typeof device.bindings.tap === 'object'
+      ? { tapAction: structuredClone(device.bindings.tap) }
+      : {}),
+    ...(device?.bindings.hold !== undefined ? { hold: structuredClone(device.bindings.hold) } : {}),
     pinned: [...(device?.display.pinned ?? [])],
     size: device?.display.size ?? 'm',
   };
@@ -213,8 +220,7 @@ export function renderControlsEditor(
       `<button type="button" data-command="ctl-add" data-type="${type}" title="${esc(typeHint(type))}"${model.controls.length >= MAX_CONTROLS ? ' disabled' : ''}><ha-icon icon="${TYPE_ICONS[type]}"></ha-icon>${esc(typeLabel(type))}</button>`,
   ).join('');
   return `<section class="ctl-section" id="device-controls" aria-labelledby="ctl-title">
-<div class="ctl-top"><label class="field"><span class="field-title">${esc(t('Al tocar el símbolo'))}${helpTip(t('Al tocar el símbolo'), t('Un pulsador envía siempre su acción; un ciclo envía la siguiente de sus acciones en cada toque y el símbolo muestra el icono de la última. Mantener pulsado abre siempre el panel.'))}</span><select data-sheet="tap" aria-label="${esc(t('Al tocar el símbolo'))}">${option('', t('Abrir el panel'), model.tap ?? '')}${tapChoices.map(control => option(control.id, control.label === typeLabel(control.type) ? control.label : `${control.label} · ${typeLabel(control.type)}`, model.tap ?? '')).join('')}</select></label>
-</div>
+
 <h3 id="ctl-title" class="field-title">${esc(t('Controles'))}${helpTip(t('Controles'), t('Se eligen por cómo se usan, no por lo que controlan: lo que hace cada paso es una acción. Aparecen en el panel; con el alfiler, hasta 3 quedan también junto al símbolo en el plano.'))}</h3>
 ${cards || `<p class="note">${esc(t('Sin controles. Agregá uno por cómo se usa:'))}</p>`}
 <div class="ctl-add" role="group" aria-label="${esc(t('Agregar control'))}">${add}</div></section>`;
@@ -360,6 +366,8 @@ export function resolveSheet(
   configuration: Configuration;
   controls: DeviceControl[];
   tap: string | null;
+  tapAction?: GestureAction;
+  hold?: GestureBinding;
   pinned: string[];
   size: SymbolSize;
   incomplete: string[];

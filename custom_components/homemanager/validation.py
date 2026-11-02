@@ -236,9 +236,22 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
                 _entity(control["entityId"])
             if "orientation" in control and (control["type"] != "slider" or control["orientation"] not in ("vertical", "horizontal")):
                 _fail()
-    tap = bindings.get("tap")
-    if tap is not None and (not isinstance(tap, str) or types.get(tap) not in ("button", "cycle")):
-        _fail()
+    for gesture in ("tap", "hold"):
+        binding = bindings.get(gesture)
+        if binding is None:
+            continue
+        if isinstance(binding, str):
+            _id(binding)
+            if gesture == "tap" and types.get(binding) not in ("button", "cycle"):
+                _fail()
+        else:
+            _fields(binding, {"action"}, {"controlId"})
+            if binding["action"] not in ("screen", "panel", "native", "none", "control"):
+                _fail()
+            if binding["action"] == "control":
+                _id(binding.get("controlId"))
+            elif "controlId" in binding:
+                _fail()
     if "pinned" in display:
         pinned = display["pinned"]
         if not isinstance(pinned, list) or len(pinned) > MAX_PINNED or len(set(map(str, pinned))) != len(pinned) or any(not isinstance(item, str) or item not in types for item in pinned):
@@ -352,7 +365,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 if "forMinutes" in rule and rule["forMinutes"] < 0:
                     _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings", "hold"})
         if "deviceId" in bindings:
             _text(bindings["deviceId"])
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", bindings["deviceId"]) or bindings["deviceId"] in UNSAFE:

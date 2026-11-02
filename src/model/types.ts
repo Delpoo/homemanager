@@ -72,7 +72,8 @@ export interface ModelDevice {
     primaryAction?: string | null;
     advancedPopupId?: string | null;
     remoteId?: string | null;
-    tap?: string | null;
+    tap?: import('./gestures.js').GestureBinding;
+    hold?: import('./gestures.js').GestureBinding;
     controls?: { id: string; type: string }[];
   };
   state?: { value: string; confidence: ModelConfidence };
