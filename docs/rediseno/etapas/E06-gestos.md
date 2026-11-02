@@ -79,3 +79,7 @@ Atajos junto al símbolo y sus gestos propios (un deslizador arrastra, no mueve 
 - **Hecho:** corrección final guardada en el commit local `3b514b3`; check 274, formato y los tres casos de escritorio señalados por CI aprobados.
 - **Falta:** autorización explícita para subir la corrección al PR #55 y verificar CI del commit final. La revisión automática rechazó la creación del árbol remoto porque interpretó «no publiques nada» como prohibición de subida; no se intentó otro canal.
 - **Dónde quedó:** rama local `chatgpt/rediseno-lote-2`; remoto en `1d0ea7c60803e9f834f56868455731b7b4537d8d`. E06 pausada y resto del lote implementado para revisión; no iniciar E09/E10.
+
+### 2026-11-02 - Codex - continuación de validación autorizada
+- El propietario autorizó subir las correcciones al PR y completar CI; el bloqueo de autorización anterior queda resuelto. E06 vuelve a en revisión, sin aprobación funcional del propietario ni fusión.
+- Se agrega recorrido de compatibilidad con plano V1, edición de tocar/mantener y guardado/recarga real de la página contra servidor simulado. Elegir pantalla sustituye el atajo antiguo; la acción anterior sigue disponible como control y en el catálogo. CI final y comprobaciones en el reporte único del lote.
