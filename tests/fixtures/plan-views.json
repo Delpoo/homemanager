@@ -128,5 +128,61 @@
         "lightBackground": "url(x)"
       }
     ]
+  ],
+  "panelsValid": [
+    {},
+    {
+      "wall": []
+    },
+    {
+      "home": [
+        {
+          "id": "one",
+          "type": "readings",
+          "readings": [
+            "sensor.sample"
+          ]
+        },
+        {
+          "id": "two",
+          "type": "control",
+          "deviceId": "gone",
+          "controlId": "gone"
+        }
+      ]
+    }
+  ],
+  "panelsInvalid": [
+    {
+      "home": [
+        {
+          "id": "one",
+          "type": "script",
+          "service": "turn_on"
+        }
+      ]
+    },
+    {
+      "home": [
+        {
+          "id": "one",
+          "type": "reading",
+          "readings": [
+            "light.all"
+          ]
+        }
+      ]
+    },
+    {
+      "home": [
+        {
+          "id": "one",
+          "type": "active",
+          "devices": [
+            "bad_id"
+          ]
+        }
+      ]
+    }
   ]
 }

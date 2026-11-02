@@ -58,6 +58,16 @@ async def test_image_websocket_has_same_read_permissions_and_admin_writes(hass,s
     assert (await client.receive_json())['success'] is False
 
 
+def test_shared_now_panel_contract():
+    cases=json.loads((Path(__file__).parents[1]/'fixtures'/'plan-views.json').read_text())
+    for expected, entries in ((True,cases['panelsValid']),(False,cases['panelsInvalid'])):
+        for panels in entries:
+            c={**deepcopy(cases['base']),"nowPanels":panels}
+            if expected: assert validate_configuration(c)==c
+            else:
+                with pytest.raises(ModelError):validate_configuration(c)
+
+
 def test_valid_static_png_and_jpeg():
     for raw in json.loads((Path(__file__).parents[1]/'fixtures'/'image-bytes.json').read_text()):
         image=image_data(raw)

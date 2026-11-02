@@ -1,3 +1,4 @@
+import { configuredNow } from '../model/now-panel.js';
 import { t } from '../i18n/index.js';
 import { deviceScreen, type DeviceScreen } from '../model/device-screen.js';
 import { alertText, alertComponentStyles } from '../ui/alert-components.js';
@@ -124,6 +125,7 @@ export class DeviceScreenView extends HTMLElement {
         ? `[data-control="${CSS.escape(active.dataset.control)}"]${active.dataset.value ? `[data-value="${CSS.escape(active.dataset.value)}"]` : ''}`
         : null;
       this.root.innerHTML = html;
+      this.installNowViews();
       this.html = html;
       for (const fold of this.root.querySelectorAll<HTMLDetailsElement>('details'))
         if (open.includes(fold.querySelector('summary')?.textContent)) fold.open = true;
@@ -136,6 +138,7 @@ export class DeviceScreenView extends HTMLElement {
       }
       if (focus) this.root.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
     }
+    this.nowViews.forEach(view => view.refresh());
     this.updateAge();
     this.refreshAvailability();
   }
@@ -276,6 +279,21 @@ export class DeviceScreenView extends HTMLElement {
     if (!this.card?._hass?.user?.is_admin) return '';
     return `<footer class="device-footer">${screen.registryId ? `<a href="/config/devices/device/${encodeURIComponent(screen.registryId)}" target="_blank" rel="noopener">${uiIcon('mdi:open-in-new')}${e(t('Abrir en Home Assistant'))}</a>` : ''}<button class="k-btn" type="button" data-action="edit" data-key="${e(screen.id)}">${e(t('Editar'))}</button></footer>`;
   }
+  private nowViews: ControlView[] = [];
+  private installNowViews() {
+    this.nowViews = [];
+    const card = this.card;
+    if (!card?.draft) return;
+    for (const host of this.root.querySelectorAll<HTMLElement>('.now-control')) {
+      const device = card.draft.catalog.devices.find(d => d.id === host.dataset.device);
+      const control = device ? controlsOf(device).find(c => c.id === host.dataset.controlId) : undefined;
+      if (device && control) {
+        const view = new ControlView(control, card.controlHost(device), false);
+        host.append(view.element);
+        this.nowViews.push(view);
+      } else host.textContent = t('Referencia no disponible');
+    }
+  }
   private nowContent(): string {
     const card = this.card!;
     const sections = nowSections(
@@ -313,11 +331,18 @@ export class DeviceScreenView extends HTMLElement {
         })),
       );
     }
+    const custom = configuredNow(card.draft!, card._hass, sections, card.dataset.wall === 'true');
+    if (custom)
+      return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${custom.length ? custom.map(section => uiGroup(t(section.title), (section.missing ? uiNotice(t('Referencia no disponible'), 'warning') : '') + (section.block.type === 'control' ? `<div class="now-control" data-device="${e(section.block.deviceId ?? '')}" data-control-id="${e(section.block.controlId ?? '')}"></div>` : section.block.type === 'shortcut' && section.block.roomId ? `<button type="button" class="k-btn" data-now-room="${e(section.block.roomId)}">${e(section.rows[0]?.name ?? t('Referencia no disponible'))}</button>` : section.rows.map(uiNowRow).join('')))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
     return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
   }
   private async onClick(event: Event): Promise<void> {
     const target = (event.target as Element).closest<HTMLElement>('button');
     if (!target) return;
+    if (target.dataset.nowRoom) {
+      this.card?.fit(target.dataset.nowRoom);
+      return;
+    }
     if (target.dataset.control) {
       await this.control(target);
       return;

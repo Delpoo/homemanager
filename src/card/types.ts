@@ -82,6 +82,7 @@ export interface StateSource {
   feedback: 'measured' | 'optimistic' | 'transmitter';
 }
 export interface Configuration {
+  nowPanels?: import('../model/now-panel.js').NowPanels;
   planViews?: import('../model/plan-views.js').PlanView[];
   schemaVersion: 2;
   rooms: Room[];

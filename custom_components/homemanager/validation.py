@@ -261,7 +261,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -451,6 +451,34 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
         if source["feedback"] not in ("measured", "optimistic", "transmitter"):
             _fail()
+    if "nowPanels" in configuration:
+        panels = configuration["nowPanels"]
+        _fields(panels, set(), {"home", "wall"})
+        for blocks in panels.values():
+            if not isinstance(blocks, list) or len(blocks) > 32:
+                _fail()
+            ids = set()
+            for block in blocks:
+                _fields(block, {"id", "type"}, {"title", "devices", "readings", "deviceId", "controlId", "roomId"})
+                _id(block["id"])
+                if block["id"] in ids or block["type"] not in ("alerts", "reading", "readings", "active", "energy", "control", "shortcut"):
+                    _fail()
+                ids.add(block["id"])
+                if "title" in block:
+                    _text(block["title"])
+                for key in ("deviceId", "controlId", "roomId"):
+                    if key in block:
+                        _id(block[key])
+                for key in ("devices", "readings"):
+                    if key in block:
+                        values = block[key]
+                        if not isinstance(values, list) or len(values) > (2000 if key == "devices" else 200) or any(not isinstance(v, str) for v in values) or len(set(values)) != len(values):
+                            _fail()
+                        for value in values:
+                            if key == "devices":
+                                _id(value)
+                            elif len(value) > 240 or not re.fullmatch(r"(sensor|binary_sensor)\.[a-z0-9_]+", value):
+                                _fail()
     if "planViews" in configuration:
         views = configuration["planViews"]
         if not isinstance(views, list) or len(views) > 12:

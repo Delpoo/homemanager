@@ -161,3 +161,8 @@ Ausente: disposición y comportamiento anteriores. Los controles, acciones, gest
 ### E11: alternativas visuales
 
 `planViews?` es una lista de hasta 12 alternativas, con id, name, light/dark opcionales (al menos una) y lightBackground/darkBackground. Imagen: scope, sha256, format (svg/png/jpg), box [x,y,width,height]. Campos nuevos opcionales; architecture sigue siendo SVG y única base geométrica. Los bytes viven en almacenes HA privados de imágenes, contados dentro de 64 MiB; carga y lectura vía WebSocket autorizado. Exportar configuración conserva referencias; Exportar copia con imágenes incluye bytes y verifica las huellas al importar. Los almacenes .storage forman parte de las copias HA. Un vínculo de archivo sigue actualizando sólo el original; las alternativas no requieren zonas propias.
+
+
+### E12: panel Ahora opcional
+
+`nowPanels?` contiene listas home?/wall?, hasta 32 bloques por lista. Sin home se conserva el panel automático; sin wall se usa home. Bloque: id, type (alerts/reading/readings/active/energy/control/shortcut), title?, devices?, readings?, deviceId?, controlId?, roomId?. Referencias ausentes se muestran explícitamente; los bloques no crean servicios, scripts ni automatizaciones. Un control se ejecuta por el host y adaptador ya existentes. Configuración por hogar, misma lista en escritorio y hoja de teléfono.
