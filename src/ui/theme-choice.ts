@@ -61,3 +61,7 @@ class ThemeChoiceField extends HTMLElement {
 }
 if (!customElements.get('homemanager-theme-choice'))
   customElements.define('homemanager-theme-choice', ThemeChoiceField);
+
+export function effectiveDark(haDark = false): boolean {
+  return choice === 'dark' || (choice === 'auto' && haDark);
+}

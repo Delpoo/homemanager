@@ -261,7 +261,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -451,6 +451,33 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
         if source["feedback"] not in ("measured", "optimistic", "transmitter"):
             _fail()
+    if "planViews" in configuration:
+        views = configuration["planViews"]
+        if not isinstance(views, list) or len(views) > 12:
+            _fail()
+        ids = set()
+        for view in views:
+            _fields(view, {"id", "name"}, {"light", "dark", "lightBackground", "darkBackground"})
+            _id(view["id"])
+            _text(view["name"])
+            if view["id"] in ids or not ("light" in view or "dark" in view):
+                _fail()
+            ids.add(view["id"])
+            for mode in ("light", "dark"):
+                if mode in view:
+                    image = view[mode]
+                    _fields(image, {"scope", "sha256", "format", "box"})
+                    if not isinstance(image["scope"], str) or len(image["scope"]) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", image["scope"]) or not isinstance(image["sha256"], str) or not re.fullmatch(r"[a-f0-9]{64}", image["sha256"]) or image["format"] not in ("svg", "png", "jpg"):
+                        _fail()
+                    if not isinstance(image["box"], list) or len(image["box"]) != 4:
+                        _fail()
+                    for i, value in enumerate(image["box"]):
+                        _number(value, -10000000, 10000000)
+                        if i > 1 and value <= 0:
+                            _fail()
+                bg = view.get(mode + "Background", "transparent")
+                if not isinstance(bg, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}|transparent", bg):
+                    _fail()
     if "rules" in configuration:
         rules = configuration["rules"]
         if not isinstance(rules, list) or len(rules) > 2000:

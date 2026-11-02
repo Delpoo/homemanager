@@ -52,7 +52,7 @@ def _read_allowed(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge):
+    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge, ws_image_get, ws_image_put):
         websocket_api.async_register_command(hass, command)
 
 
@@ -240,3 +240,28 @@ async def ws_history_purge(hass: HomeAssistant, connection: websocket_api.Active
         _error(connection, msg["id"], error)
         return
     connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/image/get", vol.Required("scope"): HOME_ID, vol.Required("sha256"): str})
+@websocket_api.async_response
+async def ws_image_get(hass, connection, msg):
+    if not _read_allowed(hass, connection, msg["id"]):
+        return
+    from .images import get_image
+    try:
+        image = await get_image(_store(hass), msg["scope"], msg["sha256"])
+        connection.send_result(msg["id"], image)
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/image/put", vol.Required("scope"): HOME_ID, vol.Required("image"): dict})
+@websocket_api.async_response
+async def ws_image_put(hass, connection, msg):
+    from .images import put_image
+    try:
+        image = await put_image(_store(hass), msg["scope"], msg["image"])
+        connection.send_result(msg["id"], {"sha256": image["sha256"], "format": image["format"]})
+    except ModelError as error:
+        _error(connection, msg["id"], error)

@@ -208,6 +208,173 @@
         }
       },
       "$comment": "Semantic checks require unique rule/source IDs and homogeneous binary or numeric conditions."
+    },
+    "planViews": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "light"
+            ],
+            "properties": {
+              "light": {}
+            }
+          },
+          {
+            "required": [
+              "dark"
+            ],
+            "properties": {
+              "dark": {}
+            }
+          }
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 240,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "\\S"
+          },
+          "light": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "sha256",
+              "format",
+              "box"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "format": {
+                "enum": [
+                  "svg",
+                  "png",
+                  "jpg"
+                ]
+              },
+              "box": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000,
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000,
+                    "exclusiveMinimum": 0
+                  }
+                ],
+                "items": false
+              }
+            }
+          },
+          "dark": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "sha256",
+              "format",
+              "box"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "format": {
+                "enum": [
+                  "svg",
+                  "png",
+                  "jpg"
+                ]
+              },
+              "box": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000,
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -10000000,
+                    "maximum": 10000000,
+                    "exclusiveMinimum": 0
+                  }
+                ],
+                "items": false
+              }
+            }
+          },
+          "lightBackground": {
+            "type": "string",
+            "pattern": "^(#[0-9a-fA-F]{6}|transparent)$"
+          },
+          "darkBackground": {
+            "type": "string",
+            "pattern": "^(#[0-9a-fA-F]{6}|transparent)$"
+          }
+        }
+      }
     }
   },
   "$defs": {

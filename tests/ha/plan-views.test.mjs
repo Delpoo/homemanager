@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import Ajv from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
+import { assertConfiguration } from '../../src/ha/validation.mjs';
+const cases = JSON.parse(readFileSync('tests/fixtures/plan-views.json'));
+const ajv = new Ajv({ strict: true, strictTypes: false });
+addFormats(ajv);
+ajv.addSchema(JSON.parse(readFileSync('schemas/catalog.schema.json')), 'catalog.schema.json');
+const validate = ajv.compile(JSON.parse(readFileSync('schemas/configuration.schema.json')));
+test('alternative references agree in JS and schema and preserve geometry', () => {
+  for (const [expected, views] of [
+    [true, cases.valid],
+    [false, cases.invalid],
+  ])
+    for (const planViews of views) {
+      const c = { ...structuredClone(cases.base), planViews };
+      const before = structuredClone(c);
+      assert.equal(validate(c), expected, JSON.stringify(validate.errors));
+      if (expected) assert.deepEqual(assertConfiguration(c), c);
+      else assert.throws(() => assertConfiguration(c));
+      assert.deepEqual(c, before);
+    }
+});

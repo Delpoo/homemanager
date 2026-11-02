@@ -636,6 +636,71 @@ export const en: Record<string, string> = {
     'Use lowercase letters, numbers and hyphens. Add the floor plan later.',
   'Usá minúsculas, números y guiones para el nombre del hogar.':
     'Use lowercase letters, numbers and hyphens for the home name.',
+  'La imagen no coincide con su referencia.': 'The image does not match its reference.',
+  'Cada imagen admite hasta 1 MiB.': 'Each image supports up to 1 MiB.',
+  'Usá SVG, PNG o JPG. Convertí el PDF antes de subirlo.': 'Use SVG, PNG or JPG. Convert the PDF before uploading.',
+  'La imagen supera las dimensiones admitidas.': 'The image exceeds the supported dimensions.',
+  'Alternativa del plano': 'Plan alternative',
+  'Plano original': 'Original plan',
+  'Falta la imagen de este modo; se usa la otra.': 'The image for this mode is missing; the other one is used.',
+  'No se pudo cargar la imagen. Se conserva el plano original.':
+    'The image could not be loaded. The original plan remains.',
+  'Nueva alternativa': 'New alternative',
+  Copia: 'Copy',
+  '¿Quitar esta alternativa?': 'Remove this alternative?',
+  'El plano original y los símbolos se conservan.': 'The original plan and symbols are kept.',
+  'Elegí un nombre y al menos una imagen.': 'Choose a name and at least one image.',
+  'Revisá el encuadre y alineá la imagen antes de guardar.': 'Review the framing and align the image before saving.',
+  'La copia incluye la configuración y todas las imágenes de alternativas.':
+    'The copy includes the configuration and all alternative images.',
+  'El encuadre es distinto. Compará la vista previa y elegí Alinear al plano.':
+    'The framing differs. Compare the preview and choose Align to plan.',
+  'La copia supera el límite de almacenamiento.': 'The copy exceeds the storage limit.',
+  'La copia debe incluir las imágenes.': 'The copy must include the images.',
+  '¿Importar la copia con imágenes?': 'Import the copy with images?',
+  'Reemplaza el borrador. Podés descartar los cambios antes de guardar el hogar.':
+    'Replaces the draft. You can discard changes before saving the home.',
+  'Alternativas del plano': 'Plan alternatives',
+  'El plano original conserva símbolos, zonas e historial. Las alternativas cambian sólo la imagen.':
+    'The original plan keeps symbols, zones and history. Alternatives change only the image.',
+  'Las imágenes se guardan en Home Assistant y sus copias de seguridad. Para trasladarlas, usá la copia con imágenes. La exportación habitual de configuración sólo contiene referencias.':
+    'Images are stored in Home Assistant and its backups. To transfer them, use the copy with images. The usual configuration export contains references only.',
+  'Importar copia con imágenes': 'Import copy with images',
+  'Editar alternativa': 'Edit alternative',
+  'Imagen por modo': 'Image by mode',
+  'Cargar o reemplazar imagen': 'Upload or replace image',
+  'Color del fondo': 'Background color',
+  'Usá un color hexadecimal o transparent. La imagen debe traer su transparencia.':
+    'Use a hex color or transparent. The image must include its own transparency.',
+  'Alinear ajusta la imagen al encuadre original. Comprobá sus paredes con los símbolos antes de guardar.':
+    'Align fits the image to the original framing. Check its walls against the symbols before saving.',
+  'Agregar alternativa': 'Add alternative',
+  'Exportar copia con imágenes': 'Export copy with images',
+  'Alinear al plano': 'Align to plan',
+  'Guardar alternativa': 'Save alternative',
+  Importar: 'Import',
+  'Editar Ahora': 'Edit Now',
+  'Configuración del panel': 'Panel configuration',
+  Casa: 'Home',
+  'Modo pared': 'Wall mode',
+  'Sin personalizar se conservan las secciones automáticas. El modo pared puede usar otra lista.':
+    'Without customization the automatic sections are kept. Wall mode can use another list.',
+  'Usar panel automático': 'Use automatic panel',
+  'Agregar bloque': 'Add block',
+  'Editar bloque': 'Edit block',
+  'Dispositivos del bloque': 'Block devices',
+  'Sin selección se incluyen todos los dispositivos.': 'With no selection all devices are included.',
+  'Sin dispositivo': 'No device',
+  'Elegí un control': 'Choose a control',
+  'Referencia no disponible': 'Reference unavailable',
+  'Una lectura': 'One reading',
+  'Grupo de lecturas': 'Reading group',
+  'Un control': 'A control',
+  'Acceso directo': 'Shortcut',
+  'Se conservan las secciones automáticas.': 'The automatic sections are kept.',
+  'Salir del modo pared': 'Exit wall mode',
+  'El encuadre del plano cambió. Revisá la alternativa en Ajustes.':
+    'The plan framing changed. Review the alternative in Settings.',
 };
 
 Object.assign(en, {

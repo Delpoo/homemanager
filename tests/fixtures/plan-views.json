@@ -1,0 +1,132 @@
+{
+  "base": {
+    "schemaVersion": 2,
+    "rooms": [],
+    "catalog": {
+      "schemaVersion": 2,
+      "devices": []
+    },
+    "architecture": {
+      "format": "svg",
+      "content": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 80\"/>"
+    },
+    "actions": {},
+    "panels": {},
+    "stateSources": {}
+  },
+  "valid": [
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "light": {
+          "scope": "test-images",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "format": "svg",
+          "box": [
+            0,
+            0,
+            100,
+            80
+          ]
+        }
+      }
+    ],
+    [],
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "dark": {
+          "scope": "test-images",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "format": "png",
+          "box": [
+            0,
+            0,
+            100,
+            80
+          ]
+        },
+        "darkBackground": "#142536"
+      }
+    ]
+  ],
+  "invalid": [
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing"
+      }
+    ],
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "light": {
+          "scope": "test-images",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "format": "svg",
+          "box": [
+            0,
+            0,
+            -1,
+            80
+          ]
+        }
+      }
+    ],
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "light": {
+          "scope": "../bad",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "format": "svg",
+          "box": [
+            0,
+            0,
+            100,
+            80
+          ]
+        }
+      }
+    ],
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "light": {
+          "scope": "test-images",
+          "sha256": "x",
+          "format": "svg",
+          "box": [
+            0,
+            0,
+            100,
+            80
+          ]
+        }
+      }
+    ],
+    [
+      {
+        "id": "drawing",
+        "name": "Drawing",
+        "light": {
+          "scope": "test-images",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "format": "svg",
+          "box": [
+            0,
+            0,
+            100,
+            80
+          ]
+        },
+        "lightBackground": "url(x)"
+      }
+    ]
+  ]
+}

@@ -1,3 +1,4 @@
+import { PlanViewsEditor } from '../ui/plan-views-editor.js';
 import { COLOR_PALETTE } from '../model/color.js';
 import { t, getLanguage, setLanguage, languageFromHass } from '../i18n/index.js';
 import { validateConfiguration } from '../card/configuration.js';
@@ -218,6 +219,7 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private openSections = new Set<string>();
   /** The plan settings page section in view (CP9b). */
+  private planViewsEditor?: PlanViewsEditor;
   private settingsSection: SettingsSection = 'rooms-section';
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
@@ -750,7 +752,7 @@ export class HomeManagerEditor extends HTMLElement {
       bodies: {
         'designer-section': '<div class="designer-host"></div>',
         'rules-section': '<div class="rules-host"></div>',
-        'rooms-section': this.roomsForm(),
+        'rooms-section': this.roomsForm() + '<div class=plan-views-host></div>',
         'connect-section': this.connectForm(),
         'health-section': health
           ? healthBody(
@@ -850,6 +852,14 @@ export class HomeManagerEditor extends HTMLElement {
           this.emit(next);
         },
       });
+    }
+    const planViewsHost = this.root.querySelector('.plan-views-host');
+    if (planViewsHost) {
+      this.planViewsEditor ??= new PlanViewsEditor();
+      planViewsHost.append(this.planViewsEditor);
+      this.planViewsEditor.configure(this.configuration, this._hass, this.config.card_id.slice(0, 64), next =>
+        this.emit(next),
+      );
     }
     const rulesHost = this.root.querySelector('.rules-host');
     if (rulesHost) {
