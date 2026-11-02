@@ -320,8 +320,14 @@ export function refreshState(this: HomeManagerCard) {
     const availability = tap ? this.adapter?.getActionAvailability(tap.steps[next]?.actionId ?? '') : undefined;
     const gestureLabel = (gesture: 'tap' | 'hold') => {
       const choice = resolveGesture(d, gesture, this._hass);
-      if (choice.action === 'control')
-        return controlsOf(d).find(c => c.id === choice.controlId)?.label ?? t('Abrir su pantalla');
+      if (choice.action === 'control') {
+        const control = controlsOf(d).find(c => c.id === choice.controlId);
+        return control
+          ? ['button', 'cycle'].includes(control.type)
+            ? stepLabel(control, this.tapStep(d, control), this.draft)
+            : control.label
+          : t('Abrir su pantalla');
+      }
       if (choice.action === 'legacy') return tap ? stepLabel(tap, next, this.draft) : d.display.label;
       return t(
         (
