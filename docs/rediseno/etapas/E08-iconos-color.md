@@ -66,3 +66,8 @@ Sugerir un icono según el nombre, usar cualquier `mdi:` escrito a mano, iconos 
 - **Comprobaciones:** check, formato, recorridos focales, 34 casos Python aislados y capturas se registran en el PR. 40 capturas ficticias (1440×900 y 390×844, claro/oscuro; ocho superficies y dos referencias por combinación). Correcciones de contraste y ancho de filas incluidas tras inspección visual.
 - **Falta:** auditor independiente, validación del propietario, lector/teléfono físicos y E2E previsto para lote 4. Python local sin pytest; matriz de integración en CI.
 - **Dónde quedó:** `chatgpt/rediseno-lote-2`, commit E08 y PR propio al cierre; no se fusiona ni publica.
+
+### 2026-11-02 - Codex - regresión RF y persistencia
+- El caso RF fallaba por buscar el select retirado. Reproducido antes de actualizarlo; el recorrido ahora abre el selector compartido, busca power-off y guarda el identificador. Compara toda la biblioteca tras cambiar sólo icono y rol, conservando nombres, huellas y comandos; aprobado en escritorio.
+- El nuevo recorrido de plano anterior comprueba icono y color junto con módulos, gestos y regla después de guardar y recargar. Usa datos ficticios y servidor simulado; no se presenta como prueba de HA real. No se agregan nuevas capturas porque no cambió ninguna pantalla.
+- La suite completa queda en GitHub; el límite del job aumenta de 10 a 20 minutos tras agotarse el anterior, sin quitar pruebas. Resultado exacto en el reporte del PR #55.
