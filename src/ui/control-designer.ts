@@ -176,7 +176,7 @@ export class ControlDesigner extends HTMLElement {
       <div class="size">${size('w', t('Ancho'), 4)}${size('h', t('Alto'), 3)}</div>
       <div class="toolbar" aria-label="${e(t('Alinear'))}"><button type="button" data-align="left">${e(t('Izquierda'))}</button><button type="button" data-align="center">${e(t('Centro'))}</button><button type="button" data-align="right">${e(t('Derecha'))}</button></div>
       <p class="error-text" role="alert">${e(this.error)}</p></div>`,
-      `<button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button><button type="button" data-command="widget-save">${e(t('Guardar'))}</button>`,
+      `<button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button><button type="button" data-command="widget-save" aria-label="${e(t('Guardar'))}" title="${e(t('Guardar'))}"><ha-icon icon="mdi:check"></ha-icon></button>`,
     );
   }
   private render(): void {
