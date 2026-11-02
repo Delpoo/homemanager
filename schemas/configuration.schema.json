@@ -430,7 +430,7 @@
                 "items": {
                   "type": "string",
                   "maxLength": 240,
-                  "pattern": "^(sensor|binary_sensor)\\.[a-z0-9_]+$"
+                  "pattern": "^(?!.*\\.all$)[a-z][a-z0-9_]*\\.[a-z0-9_]+$"
                 }
               },
               "deviceId": {
@@ -501,7 +501,7 @@
                 "items": {
                   "type": "string",
                   "maxLength": 240,
-                  "pattern": "^(sensor|binary_sensor)\\.[a-z0-9_]+$"
+                  "pattern": "^(?!.*\\.all$)[a-z][a-z0-9_]*\\.[a-z0-9_]+$"
                 }
               },
               "deviceId": {

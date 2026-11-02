@@ -18,6 +18,7 @@ const STORAGE = 'homemanager-room-nav';
 /** Pixels between a room's edge and its arrows. */
 const GAP = 16;
 const HOLD_MS = 350;
+const namedRooms = new WeakMap<HomeManagerCard, Set<string>>();
 export interface NavModes {
   arrows: boolean;
   swipe: boolean;
@@ -112,7 +113,17 @@ export function toggleRoomView(this: HomeManagerCard): void {
 export function travel(this: HomeManagerCard, id: string): void {
   this.roomView = true;
   this.fit(id);
-  this.status(labelOf(this, id));
+  const seen = namedRooms.get(this) ?? new Set<string>();
+  namedRooms.set(this, seen);
+  if (!seen.has(id)) {
+    seen.add(id);
+    const label = labelOf(this, id);
+    this.status(label);
+    const node = this.root.querySelector('.status');
+    setTimeout(() => {
+      if (node?.textContent === label) node.textContent = '';
+    }, 1600);
+  }
 }
 
 /** Arrows just outside the current space, one per target; redrawn with every camera frame. */
@@ -147,8 +158,9 @@ export function renderNav(this: HomeManagerCard): void {
     arrow.setAttribute('aria-label', t('Ir a {room}', { room: label }));
     arrow.querySelector('.nav-name')!.textContent = label;
     const point = exitPoint(nav.room.bounds, target.angle, gap);
-    arrow.style.left = `${this.camera.x + point.x * this.camera.scale}px`;
-    arrow.style.top = `${this.camera.y + point.y * this.camera.scale}px`;
+    const viewport = this.viewport.getBoundingClientRect();
+    arrow.style.left = `${Math.max(28, Math.min(viewport.width - 28, this.camera.x + point.x * this.camera.scale))}px`;
+    arrow.style.top = `${Math.max(28, Math.min(viewport.height - 28, this.camera.y + point.y * this.camera.scale))}px`;
     arrow.style.setProperty('--angle', `${target.angle}rad`);
     arrow.style.setProperty('--size', String(target.scale));
     arrow.style.opacity = String(target.opacity);
@@ -161,6 +173,8 @@ export function renderNav(this: HomeManagerCard): void {
 export function bindNav(this: HomeManagerCard): void {
   const layer = this.root.querySelector<HTMLElement>('.nav-layer');
   if (!layer) return;
+  let mousePress = false,
+    held = false;
   const finish = (travel: boolean) => {
     const drag = this.navDrag;
     if (!drag) return;
@@ -182,6 +196,8 @@ export function bindNav(this: HomeManagerCard): void {
     event.stopPropagation();
     event.preventDefault();
     arrow.setPointerCapture(event.pointerId);
+    mousePress = event.pointerType === 'mouse' && this.getBoundingClientRect().width > 650;
+    held = false;
     const name = arrow.querySelector<HTMLElement>('.nav-name')!;
     this.navDrag = {
       id: arrow.dataset.nav!,
@@ -190,7 +206,10 @@ export function bindNav(this: HomeManagerCard): void {
       y: event.clientY,
       moved: false,
       arrow,
-      timer: setTimeout(() => (name.hidden = false), HOLD_MS),
+      timer: setTimeout(() => {
+        held = true;
+        name.hidden = false;
+      }, HOLD_MS),
     };
   });
   layer.addEventListener('pointermove', event => {
@@ -205,7 +224,10 @@ export function bindNav(this: HomeManagerCard): void {
   layer.addEventListener('pointerup', event => {
     const drag = this.navDrag;
     if (!drag) return;
-    finish(pullOf(drag.angle, { x: event.clientX - drag.x, y: event.clientY - drag.y }).travels);
+    finish(
+      (mousePress && !held && !drag.moved) ||
+        pullOf(drag.angle, { x: event.clientX - drag.x, y: event.clientY - drag.y }).travels,
+    );
   });
   layer.addEventListener('pointercancel', () => finish(false));
   // Keyboard and screen readers: Enter or Space on an arrow travels (a click with no pointer).

@@ -83,3 +83,39 @@ jobs:
         run: python -m pip install -r ${{ matrix.requirements }}
       - name: Test the companion integration against Home Assistant
         run: python -m pytest -q
+
+  end-to-end:
+    name: Disposable Home Assistant end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - name: Install test dependencies and build
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          npx playwright install --with-deps chromium
+          python -m pip install -r requirements_test.txt
+      - name: Start fresh loopback-only Home Assistant
+        env:
+          HM_E2E_HOST: 127.0.0.1
+        run: |
+          python tests/e2e/start_disposable.py .work/disposable-ha
+          python tests/e2e/prepare_local_ha.py http://${HM_E2E_HOST}:18139 .work/disposable-ha/TEST_CREDENTIALS.local.json
+      - name: Test actual frontend and persistent integration
+        env:
+          HM_E2E_CREDENTIALS: .work/disposable-ha/TEST_CREDENTIALS.local.json
+        run: node tests/e2e/redesign.e2e.mjs

@@ -477,7 +477,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                         for value in values:
                             if key == "devices":
                                 _id(value)
-                            elif len(value) > 240 or not re.fullmatch(r"(sensor|binary_sensor)\.[a-z0-9_]+", value):
+                            elif len(value) > 240 or (not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", value) or value.endswith(".all")):
                                 _fail()
     if "planViews" in configuration:
         views = configuration["planViews"]

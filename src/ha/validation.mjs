@@ -503,9 +503,10 @@ function shape(configuration) {
               else if (
                 typeof value !== 'string' ||
                 value.length > 240 ||
-                !/^(sensor|binary_sensor)\.[a-z0-9_]+$/.test(value)
+                !/^[a-z][a-z0-9_]*\.[a-z0-9_]+$/.test(value) ||
+                value.endsWith('.all')
               )
-                invalid('nowPanels', 'sensor reading required');
+                invalid('nowPanels', 'explicit entity reading required');
             }
           }
       }

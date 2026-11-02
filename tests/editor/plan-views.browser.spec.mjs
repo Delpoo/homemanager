@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 async function setup(page) {
@@ -65,7 +66,17 @@ test('theme fallback and per-screen alternative selection never change geometry'
       {
         id: 'simple',
         name: 'Simple',
-        light: { scope: 'example', sha256: sha, format: 'svg', box: [0, 0, 100, 80] },
+        light: {
+          scope: 'example',
+          sha256: sha,
+          format: 'svg',
+          box: new DOMParser()
+            .parseFromString(c.configuration.architecture.content, 'image/svg+xml')
+            .documentElement.getAttribute('viewBox')
+            .trim()
+            .split(/[ ,]+/)
+            .map(Number),
+        },
         lightBackground: '#eeeeee',
         darkBackground: '#122334',
       },
@@ -74,7 +85,16 @@ test('theme fallback and per-screen alternative selection never change geometry'
     h.card.hass = { ...h.hass };
   }, svg);
   const original = await card.evaluate(c => ({ box: c.box, positions: c.draft.catalog.devices.map(d => d.position) }));
-  await card.getByLabel('Alternativa del plano', { exact: true }).selectOption('simple');
+  const choice = card.getByLabel('Alternativa del plano', { exact: true });
+  await choice.dispatchEvent('pointerdown', {
+    button: 0,
+    pointerId: 91,
+    pointerType: 'mouse',
+    clientX: 80,
+    clientY: 80,
+  });
+  expect(await card.evaluate(c => c.pointers.size)).toBe(0);
+  await choice.selectOption('simple');
   await expect(card.locator('.plan-image')).toBeVisible();
   await card.evaluate(c => {
     c.hass = { ...c.hass, themes: { darkMode: true } };
@@ -85,4 +105,50 @@ test('theme fallback and per-screen alternative selection never change geometry'
   );
   await card.getByLabel('Alternativa del plano', { exact: true }).selectOption('');
   await expect(card.locator('.plan-image')).toHaveCount(0);
+});
+
+test('copy with images exports bytes and imports only after backing up the current draft', async ({ page }) => {
+  const card = await setup(page);
+  await page.evaluate(async svg => {
+    const h = window.testHarness,
+      config = { ...h.original, configuration: structuredClone(h.card.draft) };
+    const bytes = new TextEncoder().encode(svg);
+    const sha = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    window.testImages[sha] = { format: 'svg', content: btoa(svg), sha256: sha };
+    const box = new DOMParser()
+      .parseFromString(config.configuration.architecture.content, 'image/svg+xml')
+      .documentElement.getAttribute('viewBox')
+      .trim()
+      .split(/[ ,]+/)
+      .map(Number);
+    config.configuration.planViews = [
+      { id: 'original', name: 'Copia de prueba', light: { scope: 'example', sha256: sha, format: 'svg', box } },
+    ];
+    h.mutateRemote(d => (d.views[0].cards[0] = config));
+    h.card.setConfig(config);
+    h.card.hass = { ...h.hass };
+  }, svg);
+  await openCardMenu(page);
+  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card.locator('[data-command=settings]').click();
+  const editor = card.locator('homemanager-plan-views-editor');
+  const downloading = page.waitForEvent('download');
+  await editor.getByRole('button', { name: 'Exportar copia con imágenes', exact: true }).click();
+  const download = await downloading;
+  const bundle = JSON.parse(await readFile(await download.path(), 'utf8'));
+  expect(Object.keys(bundle.images)).toHaveLength(1);
+  expect(Object.values(bundle.images)[0].content).toBe(Buffer.from(svg).toString('base64'));
+  bundle.configuration.planViews[0].name = 'Restaurada';
+  await editor
+    .locator('[data-import]')
+    .setInputFiles({ name: 'copy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(bundle)) });
+  const backup = page.waitForEvent('download');
+  await editor.getByRole('button', { name: 'Importar', exact: true }).click();
+  await backup;
+  await expect(editor.getByText('Restaurada', { exact: true })).toBeVisible();
+  expect(await card.evaluate(c => c.draft.catalog.devices.map(d => d.position))).toEqual(
+    bundle.configuration.catalog.devices.map(d => d.position),
+  );
 });

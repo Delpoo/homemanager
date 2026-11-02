@@ -1,3 +1,4 @@
+import { toggleWallMode } from './wall-mode.js';
 import * as layerView from '../shell/layers.js';
 import { showActivity, showAlerts } from '../shell/activity-view.js';
 import { t } from '../i18n/index.js';
@@ -114,6 +115,9 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
       break;
     case 'out':
       this.zoom(1 / 1.3);
+      break;
+    case 'wall':
+      void toggleWallMode(this);
       break;
     case 'fullscreen':
       void (this.root.querySelector('.shell') as HTMLElement)

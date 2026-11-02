@@ -30,9 +30,10 @@ test('Now editor previews selected readings, orders blocks, saves and permits a 
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.locator('.shell>.status')).toContainText('Guardado');
   await card.getByRole('button', { name: 'Salir de edición', exact: true }).click();
+  expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
   await page.reload();
   await page.waitForFunction(() => window.testHarnessReady);
   await expect(card.locator('homemanager-insights')).toContainText('Lectura de prueba');
   await expect(card.locator('homemanager-insights')).toContainText('23');
-  expect(await page.evaluate(() => window.testHarness.calls.filter(c => c.type === 'call_service'))).toEqual([]);
+  expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
 });

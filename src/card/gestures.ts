@@ -15,7 +15,9 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
   const target = event.target as Element;
   // Floating controls inside the plan keep their own clicks (no pan capture).
   if (
-    target.closest('.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .zones-bar, .linked-note')
+    target.closest(
+      '.zoom, .layers, .cluster, .edit-add, .sent-note, .navmodes, .nav-layer, .zones-bar, .linked-note, .plan-choices',
+    )
   )
     return;
   // Pinned controls keep their own gestures (a slider drags, not the plan).

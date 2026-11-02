@@ -150,6 +150,19 @@
           "controlId": "gone"
         }
       ]
+    },
+    {
+      "home": [
+        {
+          "id": "all-readings",
+          "type": "readings",
+          "readings": [
+            "cover.example",
+            "climate.example",
+            "input_number.example"
+          ]
+        }
+      ]
     }
   ],
   "panelsInvalid": [
