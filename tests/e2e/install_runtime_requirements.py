@@ -17,7 +17,7 @@ source = ast.parse((root / "helpers/service.py").read_text(encoding="utf-8"))
 base = next(node for node in source.body if isinstance(node, ast.FunctionDef) and node.name == "_base_components")
 pending = [alias.name for node in ast.walk(base) if isinstance(node, ast.ImportFrom) and node.module == "homeassistant.components" for alias in node.names]
 # Onboarding creates these default config flows even on a minimal installation.
-pending.extend(["google_translate", "met"])
+pending.extend(["google_translate", "met", "radio_browser"])
 seen = set()
 requirements = set()
 while pending:

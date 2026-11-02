@@ -77,7 +77,11 @@ assert.ok(state.ok);
 const browser = await chromium.launch(
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
 );
-const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+const context = await browser.newContext({
+  viewport: { width: 1440, height: 900 },
+  locale: 'es-ES',
+  acceptDownloads: true,
+});
 await context.addInitScript(
   ([tokens, hassUrl, clientId]) => {
     localStorage.setItem(
@@ -85,6 +89,7 @@ await context.addInitScript(
       JSON.stringify({ ...tokens, hassUrl, clientId, expires: Date.now() + tokens.expires_in * 1000 }),
     );
     localStorage.setItem('homemanager-app-home', 'e2e-redesign');
+    localStorage.setItem('selectedLanguage', 'es');
   },
   [credentials.tokens, base, credentials.clientId],
 );
@@ -127,6 +132,8 @@ try {
   if (await confirmation.isVisible().catch(() => false)) await confirmation.click();
   const card = page.locator('homemanager-app homemanager-card');
   await expect(card.locator('[data-id=lamp] .primary')).toBeVisible({ timeout: 60000 });
+  await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.user?.is_admin)).toBe(true);
+  await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.locale?.language)).toBe('es');
   console.log('ok: legacy plan loads from actual persistent HA storage');
   await card.locator('.hm-menu>summary').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
@@ -202,6 +209,7 @@ try {
       messages: await page.locator('.status, .error, .messages').allTextContents(),
       body: (await page.locator('body').innerText()).slice(0, 1600),
       frontendErrors,
+      buttons: await page.getByRole('button').allTextContents(),
     }),
   );
   await page.screenshot({ path: '.work/e2e-redesign/failure.png' }).catch(() => {});
