@@ -83,6 +83,7 @@ test('HA uses the same designer, persists layout and opens the designed control 
   await card.locator('[data-id=synthetic-light] .primary').click({ button: 'right' });
   const panel = page.locator('homemanager-panel');
   await expect(panel.locator('homemanager-rf-remote')).toContainText('Mi control');
+  await expect(panel.getByRole('button', { name: 'Alternar', exact: true })).toBeVisible();
   await expect(panel.locator('.additional-controls')).not.toHaveAttribute('open', '');
   await panel.getByText('Lecturas y más controles', { exact: true }).click();
   await expect(panel.locator('.auto')).toBeVisible();

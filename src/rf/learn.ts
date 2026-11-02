@@ -5,6 +5,8 @@ import { installPanelComponents, panelIconAction } from '../ui/panel-components.
 import { rfLearnStyles, rfText } from '../ui/rf-components.js';
 import { ROLES, rf, type RfAbout, type RfCandidate, type RfRemote, type RfTransmitter } from '../integration/rf.js';
 import { buttonSuggestions, icon, roleLabel } from './catalog.js';
+import { learningProgress } from '../model/learning-progress.js';
+import { learningPanelStyles } from '../ui/learning-components.js';
 
 /** Learning buttons, in any order. The receiver listens while this panel is
  * open; each code heard is shown as it arrives, with why it is or is not
@@ -40,6 +42,19 @@ export class HomeManagerRfLearn extends HTMLElement {
   /** Called with the remote id after every saved button. */
   onSaved?: (remoteId: string) => void;
   onClose?: () => void;
+  inline = false;
+  receiverOnline?: (id: string) => boolean;
+  private guided = true;
+  private target = '';
+
+  /** An always-visible panel is idle until the user starts a capture. */
+  prepare(receiver: string): void {
+    this.stop();
+    this.listen = receiver;
+    this.target = '';
+    this.reset();
+    this.render();
+  }
 
   private listen = '';
   private listening = false;
@@ -57,7 +72,7 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-learn', rfLearnStyles, false);
+    installPanelComponents(this.root, 'rf-learn', rfLearnStyles + learningPanelStyles, false);
   }
 
   /** Starts listening with this receiver. */
@@ -65,6 +80,7 @@ export class HomeManagerRfLearn extends HTMLElement {
     this.listen = receiver;
     this.until = Date.now() + LISTEN_MS;
     this.reset();
+    if (this.guided && this.target.trim()) this.name = this.target.trim();
     this.render();
     void this.capture();
   }
@@ -101,6 +117,12 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   private async capture(): Promise<void> {
     if (!this.hass || !this.listen) return;
+    if (this.hass.connection?.connected === false || this.receiverOnline?.(this.listen) === false) {
+      this.listening = false;
+      this.say(t('El receptor está desconectado. Conectalo y volvé a empezar.'));
+      this.render();
+      return;
+    }
     const stop = this.stopCapture;
     this.stopCapture = null;
     try {
@@ -120,6 +142,7 @@ export class HomeManagerRfLearn extends HTMLElement {
           window.setTimeout(() => this.isConnected && this.render(), NOISE_MS + 50);
         } else if (event.candidate) {
           const next = event.candidate;
+          if (this.guided && this.candidate?.confirmed && this.candidate.candidate_id !== next.candidate_id) return;
           // A code under test stays; another code replaces an untested one.
           if (this.trial && this.candidate?.candidate_id !== next.candidate_id) return;
           if (this.candidate?.candidate_id !== next.candidate_id) {
@@ -169,7 +192,19 @@ export class HomeManagerRfLearn extends HTMLElement {
       )
       .join('');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
+    const available =
+      receivers.some(r => this.receiverOnline?.(r.id) !== false) && this.hass?.connection?.connected !== false;
+    const progress = learningProgress(this.candidate);
+    const guide = this.guided
+      ? `<ol class="learning-steps" aria-label="${e(t('Pasos de aprendizaje'))}">${[t('Elegí un botón'), t('Apuntá y pulsá'), t('Probá y guardá')].map((label, i) => `<li${(this.candidate ? progress.stage : this.listening ? 2 : 1) === i + 1 ? ' aria-current="step"' : ''}>${i + 1}. ${e(label)}</li>`).join('')}</ol>
+      ${!this.listening && !this.candidate ? `<label>${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label><p>${e(t('Elegí un botón del mando, apuntá al receptor y pulsalo cuando empiece la escucha.'))}</p><button type="button" data-command="guided-start"${!available || !this.target.trim() ? ' disabled' : ''}>${e(t('Empezar'))}</button>` : ''}
+      ${this.candidate ? `<div class="evidence" role="status"><label>${e(t('Tramas iguales en esta pulsación: {count}', { count: progress.frames }))}<progress max="3" value="${Math.min(3, progress.frames)}"></progress></label><label>${e(t('Pulsaciones separadas: {count}', { count: progress.presses }))}<progress max="2" value="${Math.min(2, progress.presses)}"></progress></label><p>${e(t('Se reconoce con 3 tramas iguales en una pulsación o con 2 pulsaciones separadas por más de 0,3 s.'))}</p></div>` : ''}`
+      : '';
+    const help = !available
+      ? `<p class="notice">${e(t('No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.'))}</p><button type="button" data-open-devices>${e(t('Abrir Equipos RF'))}</button>`
+      : '';
     this.root.innerHTML = `<section class="sheet" aria-labelledby="learn-title"><div class="head"><h3 id="learn-title">${e(t('Aprender botones'))}</h3>${panelIconAction(t('Listo'), 'data-command="close"', 'mdi:check')}</div>
+<button type="button" data-command="learning-mode" aria-pressed="${!this.guided}">${e(this.guided ? t('Modo libre') : t('Modo guiado'))}</button>${help}${guide}
 <label>${e(t('Escucha'))}<select name="listen">${options}</select></label>
 ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</section>`;
     this.bind();
@@ -187,7 +222,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       title: string,
       detail: string;
     if (!this.listening) {
-      title = t('El receptor dejó de escuchar.');
+      title = this.guided && !this.until ? t('Elegí qué botón vas a aprender.') : t('El receptor dejó de escuchar.');
       detail = '';
     } else if (c?.confirmed) {
       dot = 'ok';
@@ -208,7 +243,10 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       title = t('Pulsá un botón del control');
       detail = t('Cualquiera, en el orden que quieras. Escucha {receiver}.', { receiver });
     }
-    const resume = this.listening ? '' : `<button type="button" data-command="listen">${e(t('Escuchar'))}</button>`;
+    const resume =
+      this.listening || (this.guided && !this.until)
+        ? ''
+        : `<button type="button" data-command="listen">${e(t('Escuchar'))}</button>`;
     return `<div class="listen"><span class="pulse ${dot}" aria-hidden="true"></span><div class="text"><strong>${e(title)}</strong>${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div>${resume}</div>`;
   }
 
@@ -278,11 +316,33 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
     root
       .querySelectorAll<HTMLButtonElement>('[data-command]')
       .forEach(button => button.addEventListener('click', () => void this.command(button.dataset.command!)));
+    root
+      .querySelector('[data-open-devices]')
+      ?.addEventListener('click', () =>
+        this.dispatchEvent(new CustomEvent('homemanager-rf-open-devices', { bubbles: true, composed: true })),
+      );
+    root.querySelector<HTMLInputElement>('[name=target]')?.addEventListener('input', event => {
+      this.target = (event.target as HTMLInputElement).value;
+      const button = root.querySelector<HTMLButtonElement>('[data-command=guided-start]');
+      if (button)
+        button.disabled =
+          !this.target.trim() ||
+          !this.listen ||
+          this.receiverOnline?.(this.listen) === false ||
+          this.hass?.connection?.connected === false;
+    });
     root.querySelector<HTMLSelectElement>('select[name=listen]')?.addEventListener('change', event => {
+      const wasActive = this.until > 0;
       this.listen = (event.target as HTMLSelectElement).value;
       this.until = Date.now() + LISTEN_MS;
       this.reset();
-      void this.capture();
+      if (this.guided && !this.target.trim() && !wasActive) {
+        this.until = 0;
+        this.render();
+      } else {
+        if (this.guided) this.name = this.target.trim();
+        void this.capture();
+      }
     });
     root.querySelector<HTMLInputElement>('input[name=name]')?.addEventListener('input', event => {
       this.name = (event.target as HTMLInputElement).value;
@@ -308,8 +368,19 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
   private async command(name: string): Promise<void> {
     try {
       switch (name) {
+        case 'guided-start':
+          if (this.target.trim()) this.start(this.listen);
+          return;
+        case 'learning-mode':
+          this.guided = !this.guided;
+          if (!this.guided && !this.listening && this.listen) {
+            this.until = Date.now() + LISTEN_MS;
+            await this.capture();
+          }
+          break;
         case 'close':
           this.stop();
+          this.render();
           this.onClose?.();
           return;
         case 'listen':
@@ -444,6 +515,8 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       { name, icon: this.glyph || null },
       { candidateId: c.candidate_id, ...(part && role ? { role: { part, role } } : {}) },
     );
+    this.target = '';
+    if (this.guided) this.stop();
     this.reset();
     this.say(t('«{name}» guardado. Pulsá el siguiente botón.', { name }) + note);
     this.onSaved?.(remote.id);

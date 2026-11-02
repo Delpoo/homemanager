@@ -48,6 +48,7 @@ export class ControlDesigner extends HTMLElement {
       .canvas{max-width:520px;margin:auto;width:100%} .error-text:empty{display:none}
       .inspector{display:grid;gap:12px}.size{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       label{min-width:0}input,select{max-width:100%;box-sizing:border-box}
+      homemanager-task-screen.editor{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:100dvh;margin:0;border:0;padding:0}
     `,
       false,
     );
@@ -64,6 +65,9 @@ export class ControlDesigner extends HTMLElement {
     this.options = options;
     this.remote = structuredClone(options.remote);
     this.render();
+  }
+  refreshIndicators(): void {
+    this.canvas.updateIndicators();
   }
   private async commit(layout: RfWidget[] | null, undo = false): Promise<void> {
     if (!this.remote || !this.options || this.busy) return;
@@ -235,6 +239,18 @@ export class ControlDesigner extends HTMLElement {
         this.render();
       };
       dialog.show(this.root);
+      for (const node of this.root.children)
+        if (node instanceof HTMLElement && node !== dialog && node.localName !== 'style') {
+          node.inert = true;
+          node.style.visibility = 'hidden';
+        }
+      // A native top-layer task escapes the canvas's containment without
+      // turning the task into a modal confirmation or moving its live fields.
+      if ('showPopover' in dialog) {
+        dialog.setAttribute('popover', 'manual');
+        if (!dialog.matches(':popover-open')) dialog.showPopover();
+        dialog.querySelector<HTMLElement>('.task-head h2')?.focus();
+      }
     }
     this.root.querySelectorAll<HTMLButtonElement>('[data-type]').forEach(b =>
       b.addEventListener('click', () => {

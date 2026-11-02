@@ -57,3 +57,13 @@ Elegir el receptor, ver código a código, candidatos y por qué son o no confia
 - [ ] Ningún código RF real en pruebas ni capturas.
 
 ## Registro
+
+### 2026-11-02 - Codex - cierre del lote 3
+- **Hecho:** aprendizaje visible junto al diseñador RF; guiado por elegir botón, apuntar/pulsar y probar/guardar. Modo libre a un toque, receptor elegible, detalles plegados y ayuda sin receptor disponible. Se retiene el candidato del botón elegido aunque lleguen otras señales.
+- **Criterio real:** tres tramas iguales en una pulsación o dos pulsaciones separadas por más de 0,3 s; contadores entregados por backend, sin avance inventado ni cambio de protocolo. Confirmar calidad de señal no confirma el estado físico.
+- **Aceptación:** 1 cumplido, panel visible al editar sin captura automática; 2 recorrido guiado con receptor simulado aprobado, usabilidad con persona nueva pendiente; 3 contadores reales y confirmación comprobados por modelo/navegador; 4 modo libre accesible y probado; 5 ausencia/desconexión explica Equipos y no inicia captura; 6 recorridos a 390x844 y capturas claro/oscuro; 7 datos y señales exclusivamente ficticios.
+- **Inventario, 13 filas:** F-008 acceso desde menú; F-100 metadatos y botones intactos; F-101 ajustes medidos conservados; F-108 selector/captura/cierre en libre y guiado; F-109 candidatos y razones en detalles; F-110 nombre/icono/rol conservados; F-111 prueba con ajustes existentes; F-112 resultado e intentos de una variable; F-113 guardar sin probar y primer botón; F-114 equipos/actualizar; F-115 ayuda YAML/copia; F-116 receptor predeterminado y prueba; F-099 creación de control. Ninguna función retirada. Equipos, variantes y YAML se mantienen por código y pruebas existentes, sin afirmar prueba física.
+- **Comprobaciones:** check 279, formato y 14 recorridos focales escritorio/móvil aprobados. Python real aislado: 27 casos compartidos de disposición y cinco tipos RF nuevos aceptados. Pytest local intentado, módulo no instalado; integración y suite completa pendientes de CI en el PR.
+- **Decisiones:** mostrar los dos criterios reales y no alterar backend; panel al lado en escritorio, flujo vertical en móvil. Capturas y comparación en docs/evidence/rediseno-lote3/README.md.
+- **Falta:** CI completa, auditoría independiente, validación funcional y teléfono/lector/receptor físicos. E2E HA desechable previsto al cerrar lote 4.
+- **Dónde quedó:** chatgpt/rediseno-lote-3, commit E10; subida rechazada por revisión automática, PR pendiente hacia main dependiente de #55, sin fusión, versión ni casa real.

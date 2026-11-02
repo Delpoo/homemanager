@@ -177,7 +177,9 @@ export class TaskScreen extends HTMLElement {
     this.trigger ??= root.activeElement instanceof HTMLElement ? root.activeElement : undefined;
     if (!this.isConnected) root.append(this);
     this.covered = [];
-    const hostTask = ['homemanager-device-picker', 'homemanager-panel'].includes(root.host.localName);
+    const hostTask = ['homemanager-device-picker', 'homemanager-panel', 'homemanager-control-designer'].includes(
+      root.host.localName,
+    );
     const coverRoot =
       hostTask && root.host.getRootNode() instanceof ShadowRoot ? (root.host.getRootNode() as ShadowRoot) : root;
     let branch: Element = hostTask ? root.host : this;

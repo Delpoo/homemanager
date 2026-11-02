@@ -43,6 +43,10 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/rediseno-lote1\/(?:desktop|mobile)-(?:light|dark)-(?:plan|alerts|layers|settings|meter|readings|sensor|climate|reference-shell|reference-device)\.png$/.test(
       relative,
     );
+  const redesignBatchThree =
+    /^docs\/evidence\/rediseno-lote3\/(?:desktop|mobile)-(?:light|dark)-(?:rf-designer|piece|ha-designer|control|learning-idle|learning-progress|learning-free|learning-offline|reference-components|reference-learning)\.png$/.test(
+      relative,
+    );
   const redesignBatchTwo =
     /^docs\/evidence\/rediseno-lote2\/(?:desktop|mobile)-(?:light|dark)-(?:modules|gestures|add|color|icons|rules|rule-new|rf-icons|reference-modules|reference-rules)\.png$/.test(
       relative,
@@ -59,38 +63,41 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     !taskScreens &&
     !taskClosure &&
     !redesignBatchOne &&
-    !redesignBatchTwo
+    !redesignBatchTwo &&
+    !redesignBatchThree
   )
     return false;
   if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.assets)) return false;
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (redesignBatchTwo
-        ? 'scripts/capture-redesign-lote2.mjs'
-        : redesignBatchOne
-          ? 'scripts/capture-redesign-lote1.mjs'
-          : taskClosure
-            ? 'scripts/capture-redesign-e02.mjs'
-            : taskScreens
-              ? 'tests/card/task-screens.browser.spec.mjs'
-              : editorDock
-                ? 'tests/card/editor-dock.browser.spec.mjs'
-                : redesignMockup
-                  ? 'docs/rediseno/maqueta-modulos.html'
-                  : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
-                        relative,
-                      )
-                    ? 'docs/vision-mockup.html'
-                    : picker
-                      ? 'tests/browser/fixtures/picker.html'
-                      : alertRules
-                        ? 'tests/editor/alerts.browser.spec.mjs'
-                        : rfDialogs
-                          ? 'tests/rf/cp6.browser.spec.mjs'
-                          : deviceScreen
-                            ? 'tests/browser/fixtures/device-screen.html'
-                            : 'tests/browser/fixtures/shell.html') &&
+      (redesignBatchThree
+        ? 'scripts/capture-redesign-lote3.mjs'
+        : redesignBatchTwo
+          ? 'scripts/capture-redesign-lote2.mjs'
+          : redesignBatchOne
+            ? 'scripts/capture-redesign-lote1.mjs'
+            : taskClosure
+              ? 'scripts/capture-redesign-e02.mjs'
+              : taskScreens
+                ? 'tests/card/task-screens.browser.spec.mjs'
+                : editorDock
+                  ? 'tests/card/editor-dock.browser.spec.mjs'
+                  : redesignMockup
+                    ? 'docs/rediseno/maqueta-modulos.html'
+                    : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
+                          relative,
+                        )
+                      ? 'docs/vision-mockup.html'
+                      : picker
+                        ? 'tests/browser/fixtures/picker.html'
+                        : alertRules
+                          ? 'tests/editor/alerts.browser.spec.mjs'
+                          : rfDialogs
+                            ? 'tests/rf/cp6.browser.spec.mjs'
+                            : deviceScreen
+                              ? 'tests/browser/fixtures/device-screen.html'
+                              : 'tests/browser/fixtures/shell.html') &&
     entry?.review === 'fictional-only' &&
     entry?.sha256 === createHash('sha256').update(bytes).digest('hex') &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

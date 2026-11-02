@@ -67,6 +67,7 @@ function relevantEntities(configuration) {
   for (const device of configuration.catalog.devices) {
     if (device.bindings.entityId) ids.add(device.bindings.entityId);
     for (const reading of device.bindings.readings ?? []) ids.add(reading);
+    for (const piece of device.bindings.layout ?? []) if (piece.reading) ids.add(piece.reading);
     for (const rule of device.display.alerts ?? []) ids.add(rule.reading);
   }
   for (const source of Object.values(configuration.stateSources)) ids.add(source.entityId);
