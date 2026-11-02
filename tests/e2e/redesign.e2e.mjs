@@ -120,6 +120,7 @@ page.on('pageerror', error => {
 });
 mkdirSync('.work/e2e-redesign', { recursive: true });
 try {
+  await ws({ type: 'get_services' });
   await page.goto(base + '/homemanager');
   await expect(page.locator('homemanager-app')).toBeVisible({ timeout: 60000 });
   const confirmation = page.getByRole('button', { name: 'Confirmar', exact: true });
@@ -191,6 +192,7 @@ try {
   assert.deepEqual(errors, []);
   console.log('All disposable Home Assistant redesign end-to-end checks passed.');
 } catch (error) {
+  console.log('Disposable HA server log:', readFileSync('.work/disposable-ha/process.log', 'utf8').slice(-16000));
   console.log(
     'Frontend diagnostics:',
     JSON.stringify({
