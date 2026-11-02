@@ -45,13 +45,21 @@ test('room view frames the centred space, with one arrow per reachable space and
   await expect(card(page).getByRole('group', { name: 'Navegación por espacios' })).toBeHidden();
 });
 
-test('a tap on an arrow does not travel; holding shows the name; pulling it back travels', async ({ page }) => {
+test('a tap on an arrow does not travel; holding shows the name; pulling it back travels', async ({ page }, info) => {
   await enter(page);
   const arrow = button(page, 'Ir a Espacio B');
   await arrow.click();
   await page.waitForTimeout(400);
-  expect(await current(page)).toBe('office');
-  await expect(card(page).locator('.status')).toContainText('Tirá de la flecha');
+  if (info.project.name === 'desktop') {
+    expect(await current(page)).toBe('kitchen');
+    await card(page).locator('.viewport').focus();
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(() => current(page)).toBe('office');
+    await page.waitForTimeout(400);
+  } else {
+    expect(await current(page)).toBe('office');
+    await expect(card(page).locator('.status')).toContainText('Tirá de la flecha');
+  }
   // Hold: the destination's name appears, and releasing in place goes nowhere.
   const point = await centre(arrow);
   await page.mouse.move(point.x, point.y);

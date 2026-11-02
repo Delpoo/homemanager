@@ -1,3 +1,4 @@
+import { wallModeStyles, syncWallMode } from './wall-mode.js';
 import { onCardClick } from './click-dispatch.js';
 import { renderPlanChoice } from './plan-views.js';
 import '../panels/device-screen.js';
@@ -240,10 +241,12 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
+  private wallChanged = () => syncWallMode(this);
   private planThemeChanged = () => {
     void renderPlanChoice(this);
   };
   connectedCallback() {
+    document.addEventListener('fullscreenchange', this.wallChanged);
     document.addEventListener('homemanager-theme-change', this.planThemeChanged);
     document.addEventListener('homemanager-layers-change', this.syncLayerChoice);
     this.layerNamesCleanup?.();
@@ -272,6 +275,7 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   disconnectedCallback() {
+    document.removeEventListener('fullscreenchange', this.wallChanged);
     document.removeEventListener('homemanager-theme-change', this.planThemeChanged);
     document.removeEventListener('homemanager-layers-change', this.syncLayerChoice);
     this.layerNamesCleanup?.();
@@ -313,7 +317,7 @@ export class HomeManagerCard extends HTMLElement {
     const layers = layerView
       .layerItems()
       .filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
-    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
+    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${wallModeStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
       <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;

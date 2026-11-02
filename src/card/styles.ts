@@ -25,7 +25,7 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;ov
 .rooms button[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent)}
 .rooms .all{font-weight:600}
 .workspace{position:relative;grid-area:workspace;min-width:0;min-height:0}
-.viewport{height:var(--hm-viewport-height,clamp(420px,66vh,920px));min-width:0;position:relative;overflow:hidden;background:var(--hm-surface);touch-action:none;outline-offset:-3px;user-select:none;-webkit-user-select:none}
+.viewport{height:var(--hm-viewport-height,clamp(420px,66vh,920px));min-width:0;position:relative;overflow:clip;background:var(--hm-surface);touch-action:none;outline-offset:-3px;user-select:none;-webkit-user-select:none}
 .architecture{position:absolute;inset:0 auto auto 0;transform-origin:0 0;pointer-events:none}
 .overlay{position:absolute;inset:0;pointer-events:none}
 .room-highlight{position:absolute;border:2px solid var(--hm-accent);border-radius:12px;background:color-mix(in srgb,var(--hm-accent) 7%,transparent);pointer-events:none}

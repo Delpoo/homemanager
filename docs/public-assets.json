@@ -3324,6 +3324,244 @@
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
       "sha256": "5c601d124940981666e140cdc4e66f8986adc331a4390ec0a1def4942db50549"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "85dba78a3b8e178461cb97539bda772c83c2ce64235f5fd7813e74a2089ace56"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-now-list.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "04d96b573702ff94f5536a62aa700c76b604206a39425c51642343b0d81b3123"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-now.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "9ffd77b525982ca73f30035c2e682068e0a493ebed88e72a4636499e9aca21ef"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "cbbdeb68d99dd16c60435b381248d83809c5ca5298e3635a27b582667055a068"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-wide-light-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "4799f707e935b9bfdfaff3645489a7ea59313420b975a532c2c7f4cc7f056fda"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-wall.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "a3c4a263413aa68047afc0b0545aeb3b9d86cb1aa0c57a1f4b7f550bfa8d7db1"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-reference-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "cf4618272abc0f3e310d1411142a9103af11875f8f954b921b2412352cd79585"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-reference-components.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "263bd6b785a25cba4d71332c584c6043f114d8fe9af3c120e79277170650fe9b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-reference-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "0df9f0fd072222835e7ce7af3c2c80cd77c661b7fd95b3aa7da9db8af871965b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "e8fdc47ed52096202e16b6c0864e7d1c04cdfd5d109af35101e1c1106cc2dd85"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-now-list.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "2b44ac00b149990a96f6fcdaf8418db6886b974791c5ffe4247cc7cb5c568d7e"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-now.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "8c1541c2f12054c84b3c88540ceb7b281e037af0ec0d24fa235fe2ae5d589117"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "7b2a663b9f3ac1904e43627ca53b9c69a70f150a13f9c6099ac30eb1afb09ef1"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-wide-dark-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "3401a8e6843fd2da6c8d22da1183d59e8551876616d93a5245475061a1c8bfff"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-wall.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "a3c4a263413aa68047afc0b0545aeb3b9d86cb1aa0c57a1f4b7f550bfa8d7db1"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-reference-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "cf4618272abc0f3e310d1411142a9103af11875f8f954b921b2412352cd79585"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-reference-components.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "263bd6b785a25cba4d71332c584c6043f114d8fe9af3c120e79277170650fe9b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-reference-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "0df9f0fd072222835e7ce7af3c2c80cd77c661b7fd95b3aa7da9db8af871965b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "12f5a5de1ca5e882200fb8df2d192ea11b9801f916451bbc030a6f6a895a8b6a"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-now-list.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "a934dba35aa61936c9ce862860d1f76a5892f677f933c13648f950db85f8fa3d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-now.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "2589aaf3763c3717baf44bf217cdcb64c3dc0dbd2985cb9dc483538f7def1924"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "80852ba857a89e2709983a01038c8f652a6b979a6745414ec054a6f4164ab882"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-wall.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "b9cd2a9332bcc22cb6e0f7c0e6035dcdaf197790f0bc12cc00efa915b49946e5"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-alternatives.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "fb8d3bf2b2a74f135488305444e6f26c45470f4401ae2b61072ac94a7a650f20"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-now-list.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "4d6fbb325ea23847d3abbfd8def05f9bd4e847ee104aec876aad0f7e87c103de"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-now.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "05c48b338b8fbd48165042170abdcbae4ec47d8058482dca5918a7aa1bdd038f"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "dfb57ed4cdb751af48c07f5fa5d820889720f08956f299bfd8d2b5ec71548c3d"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-wall.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "b9cd2a9332bcc22cb6e0f7c0e6035dcdaf197790f0bc12cc00efa915b49946e5"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-wide-light-before-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "1901caa2101a6aa25d5566c53d3d533205d8dcbeb809efa568552f4ac1de3c0a"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-wide-dark-before-room.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "de2be2344d53205f8928cbefa5a63b535e9db3b66925f1a4ad4dc440ee8673ef"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-light-now-editor.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "4c5e1fd298591c8495c94e3d733461f371cef6d26f31233ce592ca5242c7bffe"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/desktop-dark-now-editor.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "840c781dd2301dc1d9db6eb5d2627aebec9ffe472a2c46ecd73562e772d7f231"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-light-now-editor.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "f66a57b8dc1a2997fd3f66a13febc5ccd431928bb7d37eed4482178e46ae164b"
+    },
+    {
+      "path": "docs/evidence/rediseno-lote4/mobile-dark-now-editor.png",
+      "source": "scripts/capture-redesign-lote4.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-03",
+      "sha256": "713cc5804073cd41fefe8ca623a4a86027b49b26b1f6b875105d49b1bcd1080b"
     }
   ]
 }

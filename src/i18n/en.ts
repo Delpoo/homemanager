@@ -701,6 +701,8 @@ export const en: Record<string, string> = {
   'Salir del modo pared': 'Exit wall mode',
   'El encuadre del plano cambió. Revisá la alternativa en Ajustes.':
     'The plan framing changed. Review the alternative in Settings.',
+  'Primero se descarga una copia actual con imágenes. Después se reemplaza el borrador; podés descartar los cambios antes de guardar el hogar.':
+    'A current copy with images is downloaded first. Then the draft is replaced; you can discard changes before saving the home.',
 };
 
 Object.assign(en, {

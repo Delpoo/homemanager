@@ -23,9 +23,9 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | [E08](etapas/E08-iconos-color.md) | Un solo selector de iconos, lista amplia y color | E05 | en revisión | Codex | `chatgpt/rediseno-lote-2` · [PR #55](https://github.com/Delpoo/homemanager/pull/55) | 2026-11-02 | Implementada y probada localmente; CI enlazada en PR. Faltan auditor independiente, validación del propietario y pruebas físicas. |
 | [E09](etapas/E09-disenador-controles.md) | Un solo diseñador de controles, flexible | E06, E08 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
 | [E10](etapas/E10-aprendizaje-rf.md) | Aprender botones con pasos guiados | E09 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
-| [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | en curso | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-02 | Modelo, almacén privado y editor implementados. Dos recorridos aprobados; validación HA, capturas y CI al cierre. |
-| [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | en curso | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-03 | Bloques, vista previa y configuración home/wall implementados. Guardado/recarga aprobados; móvil, capturas y CI al cierre. |
-| [E13](etapas/E13-espacio-pared.md) | Vista por espacio en PC y modo pared | E11 | pendiente | — | — | — | Todo |
+| [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | en revisión | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-03 | Implementada y validada en recorridos focales. CI completa y E2E en el reporte del PR; auditoría y dispositivos físicos pendientes. |
+| [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | en revisión | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-03 | Implementada y validada en recorridos focales. CI completa y E2E en el reporte del PR; auditoría y dispositivos físicos pendientes. |
+| [E13](etapas/E13-espacio-pared.md) | Vista por espacio en PC y modo pared | E11 | en revisión | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-03 | Implementada y validada en recorridos focales. CI completa y E2E en el reporte del PR; auditoría y dispositivos físicos pendientes. |
 
 E01 a E04 no dependen entre sí, pero E01, E02 y E03 tocan archivos en común. Conviene hacerlas de a una.
 
@@ -53,6 +53,8 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Abierta |
 
 ## Bitácora
+
+- 2026-11-03 - Codex - **Lote 4 / E11-E13.** Alternativas con imágenes privadas y copia completa, Ahora editable por hogar/pared, mouse PC y modo pared real. Un commit por etapa; E11 aislada aprueba tipos y 280 pruebas, conjunto 284. Recorridos focales y 34 capturas ficticias con referencias y antes/después. Validación HA y E2E sólo en runner desechable de CI. Resultado final y limitaciones en reporte del PR. Sin fusiones, versiones ni acceso a la casa.
 
 - 2026-11-02 - Codex - **Lote 3 / PR #56 y regresión de cierre.** E09 y E10 transferidos por conector; árboles comprobados idénticos a los commits locales. Integración inicial: 247 pruebas por versión HA. Recorrido CP6 reprodujo jerga en aprendizaje y falta del icono Guardar; corregidos sin cambiar contadores, se conserva nombre accesible. Nueve casos de escritorio y siete móviles repetidos; 279 pruebas de código, formato y ocho capturas actualizadas. CI final y reporte en PR, sin main, release ni lote 4.
 

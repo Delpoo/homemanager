@@ -33,13 +33,13 @@ function menu(options: TopBarOptions): string {
     ${app && app.homes.length > 1 ? `<label class="hm-home-label">${e(t('Hogares'))}<select class="home-select" aria-label="${e(t('Hogar'))}">${app.homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === app.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}</select></label>` : ''}
     ${admin && app ? item('new', t('Nuevo hogar'), 'home-plus-outline', true) + item('storage', t('Almacenamiento'), 'database-outline', true) : ''}
     <homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>
-    ${item('fullscreen', t('Pantalla completa'), 'fullscreen')}${item('info', t('Ayuda'), 'help-circle-outline')}
+    ${item('wall', t('Modo pared'), 'monitor-dashboard')}${item('fullscreen', t('Pantalla completa'), 'fullscreen')}${item('info', t('Ayuda'), 'help-circle-outline')}
   </div></details>`;
 }
 const menuKey = (options: TopBarOptions) => JSON.stringify({ admin: options.admin, app: options.app });
 export function renderTopBar(options: TopBarOptions): string {
   const count = options.alertCount ?? 0;
-  return `<header class="header" data-menu-key="${e(menuKey(options))}"><span class="logo">${logo}</span><h1>${e(options.title)}</h1><button type="button" class="activity" data-command="activity" data-tone="${e(options.activityTone ?? 'neutral')}" aria-label="${e(t('Historial de actividad'))}"><span>${e(options.activityText ?? t('Sin actividad reciente'))}</span></button><button type="button" class="alert-pill" data-command="alerts" data-active="${count > 0}" aria-label="${e(t('Alertas'))}" title="${e(t('Alertas'))}">${glyph('alert-outline')}<span>${count}</span></button><time class="clock">${clockText()}</time>${menu(options)}</header>`;
+  return `<header class="header" data-menu-key="${e(menuKey(options))}"><span class="logo">${logo}</span><h1>${e(options.title)}</h1><button type="button" class="activity" data-command="activity" data-tone="${e(options.activityTone ?? 'neutral')}" aria-label="${e(t('Historial de actividad'))}"><span>${e(options.activityText ?? t('Sin actividad reciente'))}</span></button><button type="button" class="alert-pill" data-command="alerts" data-active="${count > 0}" aria-label="${e(t('Alertas'))}" title="${e(t('Alertas'))}">${glyph('alert-outline')}<span>${count}</span></button><button class="wall-exit" type="button" data-command="wall" aria-label="${e(t('Salir del modo pared'))}" title="${e(t('Salir del modo pared'))}">${glyph('fullscreen-exit')}</button><time class="clock">${clockText()}</time>${menu(options)}</header>`;
 }
 function clockText(): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date());
