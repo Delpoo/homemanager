@@ -3057,7 +3057,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "129ba0242e3b8205090102824224a28dd3a7f9da0db49a7f77d0e84c068901a0"
+      "sha256": "0e6ca577e932b4dfbc533bf7f7c8df415d5ce7e265e6e9a997a0166cb696117a"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-light-learning-idle.png",
@@ -3071,7 +3071,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "fc74f8d0b2d145683ec951e0bc59ed4e05888c4aedcf4048ef38b9eebe7fa540"
+      "sha256": "134b0b3a65561aaaf8cf71d2e23bf5a85d1b8ef79cb1c248162a49f5ab5609ed"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-light-learning-free.png",
@@ -3092,7 +3092,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "6ab596ff95ab2c022d1899676f05d9c47d52404bdc1ec857187bf1590e095583"
+      "sha256": "8c698ab3be69308809d84bd7350039a5966ee21613ba60958fdf5977f723be87"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-light-control.png",
@@ -3127,7 +3127,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "0294a226d33311388e25d8c609b8366c8600090753d7788f81ee9f2f0926a118"
+      "sha256": "66d602b34f0625bbb283e15c9e22c17a4909851077e7d88cc654743a32c62b15"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-dark-learning-idle.png",
@@ -3141,7 +3141,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "4d8d014cec7cc920db5f5c828c20c69179cc892e347f4b62d4924a3865f8cfac"
+      "sha256": "afab410e755ab4b81cd1b1a6e05701fb7dbe0a173be431c726a6ac0ffd940010"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-dark-learning-free.png",
@@ -3162,7 +3162,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "4f329e9affb692a7549468c816f1dd594e19b16d7efe3fea80dec7a85906eb06"
+      "sha256": "b49282b3e267f9731872dc4831084fd47ba62edcd0ed72e8ec43aa99727952a6"
     },
     {
       "path": "docs/evidence/rediseno-lote3/desktop-dark-control.png",
@@ -3211,7 +3211,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "fb2e62bd15db0a9d4629ff477ef0c132eb265f7d2ae25f1d9f3b6e9cae8fe2f4"
+      "sha256": "bf8b3f57b3712aed094286f1f74f635ee9363b529b49f596e83ce3a84e87ae6a"
     },
     {
       "path": "docs/evidence/rediseno-lote3/mobile-light-learning-free.png",
@@ -3281,7 +3281,7 @@
       "source": "scripts/capture-redesign-lote3.mjs",
       "review": "fictional-only",
       "reviewDate": "2026-11-02",
-      "sha256": "44f40f8d538c195d5b2de140f3dca8c8ff73b2dea851336681c9b3f111d76eb8"
+      "sha256": "f47fd66f8931154d18345acaa10fc9f8de79d1b0ca7d33aeb3f5e18367b98a67"
     },
     {
       "path": "docs/evidence/rediseno-lote3/mobile-dark-learning-free.png",

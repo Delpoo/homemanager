@@ -786,9 +786,9 @@ Object.assign(en, {
   'Botón que querés aprender': 'Button to learn',
   'Elegí un botón del mando, apuntá al receptor y pulsalo cuando empiece la escucha.':
     'Choose a remote button, point at the receiver and press it when listening starts.',
-  'Tramas iguales en esta pulsación: {count}': 'Matching frames in this press: {count}',
+  'Señales iguales en esta pulsación: {count}': 'Matching signals in this press: {count}',
   'Pulsaciones separadas: {count}': 'Separate presses: {count}',
-  'Se reconoce con 3 tramas iguales en una pulsación o con 2 pulsaciones separadas por más de 0,3 s.':
+  'Se reconoce con 3 señales iguales en una pulsación o con 2 pulsaciones separadas por más de 0,3 s.':
     'Recognized with 3 matching frames in one press or 2 presses more than 0.3 s apart.',
   'No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.':
     'No receiver is available. In RF devices, connect a device with the RF package and choose it for learning.',

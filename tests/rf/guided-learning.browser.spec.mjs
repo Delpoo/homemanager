@@ -14,7 +14,7 @@ test('editing exposes guided learning; evidence is real, one target is retained,
   await learn.getByRole('button', { name: 'Empezar', exact: true }).click();
   await page.evaluate(() => window.rfServer.heard({ burst_frames: 2, frames: 2, bursts: 1 }));
   await expect(learn.locator('progress').first()).toHaveAttribute('value', '2');
-  await expect(learn.getByText(/Tramas iguales en esta pulsación: 2/)).toBeVisible();
+  await expect(learn.getByText(/Señales iguales en esta pulsación: 2/)).toBeVisible();
   await expect(learn.getByRole('button', { name: 'Probar', exact: true })).toHaveCount(0);
   await page.evaluate(() =>
     window.rfServer.heard({ burst_frames: 1, frames: 3, bursts: 2, confirmed: true, confirmed_by: 'presses' }),
