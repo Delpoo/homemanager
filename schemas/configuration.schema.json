@@ -375,6 +375,154 @@
           }
         }
       }
+    },
+    "nowPanels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "home": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "type": {
+                "enum": [
+                  "alerts",
+                  "reading",
+                  "readings",
+                  "active",
+                  "energy",
+                  "control",
+                  "shortcut"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240,
+                "pattern": "\\S"
+              },
+              "devices": {
+                "type": "array",
+                "maxItems": 2000,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 240,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                }
+              },
+              "readings": {
+                "type": "array",
+                "maxItems": 200,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 240,
+                  "pattern": "^(sensor|binary_sensor)\\.[a-z0-9_]+$"
+                }
+              },
+              "deviceId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "roomId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "controlId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              }
+            }
+          }
+        },
+        "wall": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "type": {
+                "enum": [
+                  "alerts",
+                  "reading",
+                  "readings",
+                  "active",
+                  "energy",
+                  "control",
+                  "shortcut"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240,
+                "pattern": "\\S"
+              },
+              "devices": {
+                "type": "array",
+                "maxItems": 2000,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 240,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                }
+              },
+              "readings": {
+                "type": "array",
+                "maxItems": 200,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 240,
+                  "pattern": "^(sensor|binary_sensor)\\.[a-z0-9_]+$"
+                }
+              },
+              "deviceId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "roomId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "controlId": {
+                "type": "string",
+                "maxLength": 240,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

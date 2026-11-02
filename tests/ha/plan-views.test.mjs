@@ -23,3 +23,16 @@ test('alternative references agree in JS and schema and preserve geometry', () =
       assert.deepEqual(c, before);
     }
 });
+
+test('optional Now panels agree in JS and schema; removed references remain displayable', () => {
+  for (const [expected, panels] of [
+    [true, cases.panelsValid],
+    [false, cases.panelsInvalid],
+  ])
+    for (const nowPanels of panels) {
+      const c = { ...structuredClone(cases.base), nowPanels };
+      assert.equal(validate(c), expected, JSON.stringify(validate.errors));
+      if (expected) assert.doesNotThrow(() => assertConfiguration(c));
+      else assert.throws(() => assertConfiguration(c));
+    }
+});

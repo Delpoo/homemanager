@@ -256,7 +256,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules', 'planViews'],
+    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -466,6 +466,50 @@ function shape(configuration) {
         invalid(`stateSources.${key}.attribute`, 'unsafe attribute');
     }
     one(source.feedback, ['measured', 'optimistic', 'transmitter'], `stateSources.${key}.feedback`);
+  }
+  if (Object.hasOwn(configuration, 'nowPanels')) {
+    fields(configuration.nowPanels, [], ['home', 'wall'], 'nowPanels');
+    for (const [mode, blocks] of Object.entries(configuration.nowPanels)) {
+      if (!Array.isArray(blocks) || blocks.length > 32) invalid('nowPanels', 'at most 32 blocks');
+      const ids = new Set();
+      for (const block of blocks) {
+        fields(
+          block,
+          ['id', 'type'],
+          ['title', 'devices', 'readings', 'deviceId', 'controlId', 'roomId'],
+          'nowPanels.block',
+        );
+        id(block.id, 'nowPanels.id');
+        if (
+          ids.has(block.id) ||
+          !['alerts', 'reading', 'readings', 'active', 'energy', 'control', 'shortcut'].includes(block.type)
+        )
+          invalid('nowPanels', 'invalid block');
+        ids.add(block.id);
+        if (block.title !== undefined) text(block.title, 'nowPanels.title');
+        for (const key of ['deviceId', 'controlId', 'roomId'])
+          if (block[key] !== undefined) id(block[key], 'nowPanels.' + key);
+        for (const key of ['devices', 'readings'])
+          if (block[key] !== undefined) {
+            const values = block[key];
+            if (
+              !Array.isArray(values) ||
+              values.length > (key === 'devices' ? 2000 : 200) ||
+              new Set(values).size !== values.length
+            )
+              invalid('nowPanels', 'invalid selection');
+            for (const value of values) {
+              if (key === 'devices') id(value, 'nowPanels.device');
+              else if (
+                typeof value !== 'string' ||
+                value.length > 240 ||
+                !/^(sensor|binary_sensor)\.[a-z0-9_]+$/.test(value)
+              )
+                invalid('nowPanels', 'sensor reading required');
+            }
+          }
+      }
+    }
   }
   if (Object.hasOwn(configuration, 'planViews')) {
     const views = configuration.planViews;

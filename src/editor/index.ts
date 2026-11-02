@@ -1,3 +1,4 @@
+import { NowPanelEditor } from '../ui/now-panel-editor.js';
 import { PlanViewsEditor } from '../ui/plan-views-editor.js';
 import { COLOR_PALETTE } from '../model/color.js';
 import { t, getLanguage, setLanguage, languageFromHass } from '../i18n/index.js';
@@ -219,6 +220,7 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private openSections = new Set<string>();
   /** The plan settings page section in view (CP9b). */
+  private nowPanelEditor?: NowPanelEditor;
   private planViewsEditor?: PlanViewsEditor;
   private settingsSection: SettingsSection = 'rooms-section';
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
@@ -752,6 +754,7 @@ export class HomeManagerEditor extends HTMLElement {
       bodies: {
         'designer-section': '<div class="designer-host"></div>',
         'rules-section': '<div class="rules-host"></div>',
+        'now-section': '<div class=now-editor-host></div>',
         'rooms-section': this.roomsForm() + '<div class=plan-views-host></div>',
         'connect-section': this.connectForm(),
         'health-section': health
@@ -860,6 +863,12 @@ export class HomeManagerEditor extends HTMLElement {
       this.planViewsEditor.configure(this.configuration, this._hass, this.config.card_id.slice(0, 64), next =>
         this.emit(next),
       );
+    }
+    const nowHost = this.root.querySelector('.now-editor-host');
+    if (nowHost) {
+      this.nowPanelEditor ??= new NowPanelEditor();
+      nowHost.append(this.nowPanelEditor);
+      this.nowPanelEditor.configure(this.configuration, this._hass, next => this.emit(next));
     }
     const rulesHost = this.root.querySelector('.rules-host');
     if (rulesHost) {

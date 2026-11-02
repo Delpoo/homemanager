@@ -24,7 +24,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | [E09](etapas/E09-disenador-controles.md) | Un solo diseñador de controles, flexible | E06, E08 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
 | [E10](etapas/E10-aprendizaje-rf.md) | Aprender botones con pasos guiados | E09 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
 | [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | en curso | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-02 | Modelo, almacén privado y editor implementados. Dos recorridos aprobados; validación HA, capturas y CI al cierre. |
-| [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | pendiente | — | — | — | Todo |
+| [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | en curso | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-03 | Bloques, vista previa y configuración home/wall implementados. Guardado/recarga aprobados; móvil, capturas y CI al cierre. |
 | [E13](etapas/E13-espacio-pared.md) | Vista por espacio en PC y modo pared | E11 | pendiente | — | — | — | Todo |
 
 E01 a E04 no dependen entre sí, pero E01, E02 y E03 tocan archivos en común. Conviene hacerlas de a una.
