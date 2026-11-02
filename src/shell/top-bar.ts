@@ -28,6 +28,7 @@ function menu(options: TopBarOptions): string {
     ${admin ? item('edit', t('Editar plano'), 'pencil-outline') : ''}
     ${app ? item('plan', t('Plano'), 'floor-plan', true) : ''}
     ${admin && app ? item('rf', t('Controles RF'), 'remote', true) : ''}
+    ${admin ? item('rules', t('Reglas'), 'format-list-checks') : ''}
     ${admin ? item('plan-settings', t('Ajustes del plano'), 'cog-outline') : ''}
     ${app && app.homes.length > 1 ? `<label class="hm-home-label">${e(t('Hogares'))}<select class="home-select" aria-label="${e(t('Hogar'))}">${app.homes.map(home => `<option value="${e(home.home_id)}"${home.home_id === app.selected ? ' selected' : ''}>${e(home.title ?? home.home_id)}</option>`).join('')}</select></label>` : ''}
     ${admin && app ? item('new', t('Nuevo hogar'), 'home-plus-outline', true) + item('storage', t('Almacenamiento'), 'database-outline', true) : ''}

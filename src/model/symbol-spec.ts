@@ -1,3 +1,4 @@
+import type { VisualResult } from './visual-rules.js';
 import { activeStateOf, presentationOf } from './archetype.js';
 import { alertsOf, presenceHighlightOf, summarizeAlerts, type AlertContext } from './alerts.js';
 import { entityOf, finiteNumber } from './types.js';
@@ -45,11 +46,18 @@ export function symbolSpec(
   now: number,
   runtime?: ModelRuntime,
   context: AlertContext = {},
+  rules: readonly VisualResult[] = [],
 ): SymbolSpec {
   const { archetype, layer, cool, level } = presentationOf(device, hass);
   const entity = entityOf(device, hass);
   const show = device.display.show ?? (archetype === 'meter' ? 'value' : 'icon');
-  const alerts = alertsOf(device, hass, now, context);
+  const effects = rules.filter(result => result.rule.symbols.includes(device.id));
+  const alerts = [
+    ...alertsOf(device, hass, now, context),
+    ...effects
+      .filter(result => result.rule.badge !== false && result.rule.level !== 'indicator')
+      .map(result => result.alert),
+  ];
   const live =
     runtime?.value && !['unknown', 'unavailable'].includes(runtime.value)
       ? runtime.value
@@ -93,7 +101,9 @@ export function symbolSpec(
     archetype,
     body: { show, icon: show === 'value' ? null : icon, value: bodyValue, fullValue },
     ring: ringAllowed && active ? { active: true, level, tone: cool ? 'cool' : 'active' } : null,
-    highlight: presenceHighlightOf(device, hass),
+    highlight:
+      presenceHighlightOf(device, hass) ||
+      effects.some(result => result.rule.highlight === true || result.rule.level === 'indicator'),
     badge: alerts.length ? summarizeAlerts(alerts) : null,
     health,
     tap: archetype === 'remote' ? 'remote' : configuredControl ? 'control' : 'panel',

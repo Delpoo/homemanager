@@ -217,7 +217,12 @@ export class DeviceScreenView extends HTMLElement {
       screen.issues
         .map(() => uiNotice(t('Revisá el vínculo: una lectura ya no está disponible en este dispositivo.'), 'alert'))
         .join('') +
-      screen.alerts
+      [
+        ...screen.alerts,
+        ...(this.card?.feed.ruleResults
+          .filter(result => result.rule.symbols.includes(screen.id))
+          .map(result => result.alert) ?? []),
+      ]
         .map(alert => uiNotice(alertText(alert), alert.level === 'critical' ? 'alert' : 'warning'))
         .join('') +
       screen.controls.map(uiEntityControl).join('') +
@@ -282,6 +287,32 @@ export class DeviceScreenView extends HTMLElement {
       card.runtime.states,
       card.feed.alertContext,
     );
+    const global = card.feed.ruleResults.filter(
+      result =>
+        result.rule.now !== false &&
+        (!card.currentRoom ||
+          result.rule.symbols.some(
+            id => card.draft!.catalog.devices.find(d => d.id === id)?.roomId === card.currentRoom,
+          ) ||
+          !result.rule.symbols.length),
+    );
+    if (global.length) {
+      let alerts = sections.find(section => section.id === 'alerts');
+      if (!alerts) {
+        alerts = { id: 'alerts', title: 'Alertas', rows: [] };
+        sections.unshift(alerts);
+      }
+      alerts.rows.push(
+        ...global.map(result => ({
+          id: result.alert.deviceId,
+          name: result.rule.name,
+          value: result.value,
+          icon: 'mdi:bell-outline',
+          tone: result.rule.level === 'alert' ? ('alert' as const) : ('warning' as const),
+          alert: result.alert,
+        })),
+      );
+    }
     return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
   }
   private async onClick(event: Event): Promise<void> {

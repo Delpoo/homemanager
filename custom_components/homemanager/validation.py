@@ -261,7 +261,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -327,7 +327,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules"})
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
@@ -346,12 +346,18 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
         if "layer" in display and display["layer"] not in ("controls", "sensors", "energy", "infrastructure"):
             _fail()
+        if "disabledBaseRules" in display:
+            disabled = display["disabledBaseRules"]
+            if not isinstance(disabled, list) or len(disabled) > 3 or any(not isinstance(key, str) or key not in ("safety", "battery", "unavailable") for key in disabled) or len(set(disabled)) != len(disabled):
+                _fail()
         if "alerts" in display:
             rules = display["alerts"]
-            if not isinstance(rules, list) or len(rules) > 4:
+            if not isinstance(rules, list) or len(rules) > 2000:
                 _fail()
             for rule in rules:
-                _fields(rule, {"reading", "level"}, {"below", "above", "forMinutes"})
+                _fields(rule, {"reading", "level"}, {"below", "above", "forMinutes", "enabled"})
+                if "enabled" in rule and type(rule["enabled"]) is not bool:
+                    _fail()
                 _entity(rule["reading"])
                 if rule["level"] not in ("alert", "warning"):
                     _fail()
@@ -441,6 +447,60 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
         if source["feedback"] not in ("measured", "optimistic", "transmitter"):
             _fail()
+    if "rules" in configuration:
+        rules = configuration["rules"]
+        if not isinstance(rules, list) or len(rules) > 2000:
+            _fail()
+        rule_ids = set()
+        for rule in rules:
+            _fields(rule, {"id", "name", "enabled", "sources", "symbols", "level"}, {"below", "above", "state", "forMinutes", "badge", "highlight", "color", "bar", "now"})
+            _id(rule["id"])
+            if rule["id"] in rule_ids:
+                _fail()
+            rule_ids.add(rule["id"])
+            _text(rule["name"])
+            if rule["level"] not in ("alert", "warning", "indicator"):
+                _fail()
+            for key in ("enabled", "badge", "highlight", "bar", "now"):
+                if key in rule and type(rule[key]) is not bool:
+                    _fail()
+            for key in ("below", "above", "forMinutes"):
+                if key in rule and (type(rule[key]) not in (int, float) or not math.isfinite(rule[key]) or (key == "forMinutes" and rule[key] < 0)):
+                    _fail()
+            if "color" in rule and (not isinstance(rule["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", rule["color"])):
+                _fail()
+            sources = rule["sources"]
+            if not isinstance(sources, list) or not 1 <= len(sources) <= 2000:
+                _fail()
+            readings = set()
+            binary = None
+            for source in sources:
+                _fields(source, {"reading"}, {"deviceId"})
+                _entity(source["reading"])
+                reading = source["reading"]
+                if not reading.startswith(("sensor.", "binary_sensor.")) or reading in readings:
+                    _fail()
+                readings.add(reading)
+                current = reading.startswith("binary_sensor.")
+                if binary is not None and current != binary:
+                    _fail()
+                binary = current
+                if "deviceId" in source:
+                    _text(source["deviceId"])
+                    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", source["deviceId"]) or source["deviceId"] in UNSAFE:
+                        _fail()
+            if binary:
+                if "below" in rule or "above" in rule or ("state" in rule and rule["state"] not in ("on", "off")):
+                    _fail()
+            elif "state" in rule or not ({"below", "above"} & rule.keys()):
+                _fail()
+            symbols = rule["symbols"]
+            if not isinstance(symbols, list) or len(symbols) > 2000:
+                _fail()
+            for symbol in symbols:
+                _id(symbol)
+            if len(set(symbols)) != len(symbols):
+                _fail()
     if "commandTtlSeconds" in configuration:
         _number(configuration["commandTtlSeconds"], 1, 300, True)
     return deepcopy(configuration)

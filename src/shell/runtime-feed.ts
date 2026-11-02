@@ -1,3 +1,4 @@
+import { evaluateVisualRules, visualRuleCleared, type VisualResult } from '../model/visual-rules.js';
 import { ActivityLog, isStateEvent } from '../model/activity.js';
 import { formattedValue } from '../model/symbol-spec.js';
 import { alertCleared, alertsOf, observeAlertRules, type AlertContext, type DeviceAlert } from '../model/alerts.js';
@@ -27,6 +28,11 @@ export class RuntimeFeed {
   private active = new Map<string, DeviceAlert>();
   private unresolved = new Map<string, DeviceAlert>();
   private observations: AlertContext = {};
+  private visualObservations: AlertContext = {};
+  private visualResults: VisualResult[] = [];
+  get ruleResults(): VisualResult[] {
+    return this.online ? this.visualResults : [];
+  }
   private online = false;
   constructor(readonly log: ActivityLog) {}
   get alerts(): DeviceAlert[] {
@@ -43,6 +49,8 @@ export class RuntimeFeed {
     this.active.clear();
     this.unresolved.clear();
     this.observations = {};
+    this.visualObservations = {};
+    this.visualResults = [];
     this.online = false;
   }
   prepareCommand(
@@ -97,7 +105,36 @@ export class RuntimeFeed {
     this.online = !!hass && hass.connection?.connected !== false;
     this.observations = observeAlertRules(this.configuration?.catalog.devices ?? [], hass, now, this.observations);
     if (!this.configuration || !hass || !this.online) return;
-    const alerts = this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now, this.observations));
+    const previousVisual = this.visualResults;
+    const visual = evaluateVisualRules(
+      this.configuration.rules ?? [],
+      this.configuration.catalog.devices,
+      hass,
+      now,
+      this.visualObservations,
+    );
+    this.visualObservations = visual.context;
+    this.visualResults = visual.results;
+    for (const result of visual.results)
+      if (
+        result.rule.level === 'indicator' &&
+        result.rule.bar !== false &&
+        !previousVisual.some(old => old.rule.id === result.rule.id)
+      )
+        this.log.record({
+          type: 'state',
+          at: now,
+          entityId: result.alert.entityId,
+          deviceId: result.alert.deviceId,
+          message: result.rule.name,
+          value: result.value,
+        });
+    const alerts = [
+      ...this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now, this.observations)),
+      ...visual.results
+        .filter(result => result.rule.level !== 'indicator' && result.rule.bar !== false)
+        .map(result => result.alert),
+    ];
     const next = new Map(alerts.map(alert => [alert.id, alert]));
     const alertChanged = new Set<string>();
     for (const alert of alerts)
@@ -118,9 +155,13 @@ export class RuntimeFeed {
     for (const alert of this.unresolved.values())
       if (
         !next.has(alert.id) &&
-        this.configuration.catalog.devices.some(
-          device => device.id === alert.deviceId && alertCleared(alert, device, hass),
-        )
+        (alert.id.startsWith('visual:')
+          ? (this.configuration.rules ?? []).some(
+              rule => 'visual:' + rule.id === alert.id && visualRuleCleared(rule, hass),
+            )
+          : this.configuration.catalog.devices.some(
+              device => device.id === alert.deviceId && alertCleared(alert, device, hass),
+            ))
       ) {
         alertChanged.add(alert.deviceId);
         this.log.record({

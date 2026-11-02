@@ -97,6 +97,9 @@
             "alert",
             "warning"
           ]
+        },
+        "enabled": {
+          "type": "boolean"
         }
       }
     },
@@ -327,7 +330,7 @@
             },
             "alerts": {
               "type": "array",
-              "maxItems": 4,
+              "maxItems": 2000,
               "items": {
                 "$ref": "#/$defs/alertRule"
               }
@@ -367,6 +370,18 @@
                 "energy",
                 "infrastructure"
               ]
+            },
+            "disabledBaseRules": {
+              "type": "array",
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "safety",
+                  "battery",
+                  "unavailable"
+                ]
+              }
             }
           }
         },

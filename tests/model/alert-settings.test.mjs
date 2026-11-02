@@ -41,14 +41,7 @@ test('choices use only associated useful readings and plant suggestions are expl
   );
   assert.equal(choices[0].name, 'Humedad del suelo');
   const suggestions = plantAlertSuggestions(device, hass);
-  assert.deepEqual(
-    suggestions.map(item => [item.below, item.minutes, item.level, item.enabled]),
-    [
-      ['20', '', 'warning', false],
-      ['800', '4320', 'warning', false],
-      ['10', '', 'alert', false],
-    ],
-  );
+  assert.deepEqual(suggestions, []);
   assert.deepEqual(alertSettingsDisplay({ rules: suggestions }), { alerts: [] });
   const before = structuredClone(device);
   alertSettingsDraft(device);
@@ -92,7 +85,7 @@ test('unfinished, nonfinite, negative duration and too many enabled settings can
     { ...rule, below: 'invalid' },
   ])
     assert.throws(() => alertSettingsDisplay({ rules: [invalid] }));
-  assert.throws(() => alertSettingsDisplay({ rules: Array.from({ length: 5 }, () => ({ ...rule, below: '20' })) }));
+  assert.throws(() => alertSettingsDisplay({ rules: Array.from({ length: 2001 }, () => ({ ...rule, below: '20' })) }));
   assert.deepEqual(alertSettingsDisplay({ rules: [{ ...rule, enabled: false }] }), { alerts: [] });
 });
 test('CP4 domain modules stay pure and the new inspector composes UI without owning CSS', () => {

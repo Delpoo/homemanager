@@ -112,6 +112,7 @@ export interface Device {
     alerts?: AlertRuleConfig[];
     /** Presence is highlighted only when explicitly enabled. */
     highlight?: boolean;
+    disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
   };
@@ -165,6 +166,7 @@ export interface Configuration {
   panels: Record<string, NativePanel>;
   stateSources: Record<string, StateSource>;
   commandTtlSeconds?: number;
+  rules?: import('../model/visual-rules.js').VisualRule[];
 }
 export interface RuntimeCommand {
   id: string;

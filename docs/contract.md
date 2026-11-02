@@ -141,3 +141,11 @@ El documento serializado no supera 3 MiB: el WebSocket de HA admite 4 MiB por me
 - [Recursos frontend y archivos de /local](https://contributors.home-assistant.io/frontend/custom-ui/resources/).
 
 Las rutas de API concretas y sus permisos deben comprobarse contra la versión HA instalada antes de integrar. Los archivos bajo `/local` no son el lugar para un plano privado o configuración sensible: el almacenamiento autenticado debe conservar también la arquitectura de la instancia.
+
+### Rediseño E05–E07: módulos, gestos y reglas visuales (opcionales)
+
+`display.modules` recuerda bloques elegidos; ausente deriva sugerencias sin migrar ni borrar categoría/arquetipo. `display.layer` cambia la capa. Quitar un bloque conserva sus datos. `bindings.tap` sigue aceptando cadena/null; también acepta `{action: screen|panel|native|none}` o `{action: control, controlId}`. `bindings.hold` usa el mismo formato y, ausente, conserva la pulsación larga previa. Referencias nuevas no resueltas abren pantalla con aviso; ContextMenu siempre deja acceso al control.
+
+`configuration.rules` es una lista opcional de reglas sólo visuales (máximo defensivo 2000, dentro de 3 MiB). Cada regla tiene id/name/enabled/sources/symbols/level; fuentes explícitas `{reading,deviceId?}` forman un grupo ANY homogéneo. Condición numérica below/above o binaria state on/off; forMinutes opcional cuenta observación continua de esta sesión. No se persiste historial ni se deduce de una recarga. level alert/warning/indicator; badge/highlight/color/bar/now opcionales determinan salidas. symbols puede estar vacío. El registro de la fuente, cuando se proporciona, debe seguir coincidiendo. No se ejecutan comandos ni notificaciones.
+
+Los `display.alerts` anteriores se conservan, con `enabled` opcional (true si falta), y ya no dependen de categorías. Su límite defensivo sube de 4 a 2000. La edición explícita puede trasladar uno a rules sin duplicarlo. `display.disabledBaseRules` contiene safety/battery/unavailable, opcional, para apagar reglas base visibles. Ausente mantiene exactamente las alertas automáticas previas. Los umbrales heredados de esas reglas base se muestran como comportamiento conservado; las reglas nuevas nunca rellenan límites automáticamente.

@@ -4,18 +4,32 @@
   "description": "Authenticated persistent configuration. Runtime HA state, command acknowledgements and session credentials are excluded.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"],
+  "required": [
+    "schemaVersion",
+    "rooms",
+    "catalog",
+    "architecture",
+    "actions",
+    "panels",
+    "stateSources"
+  ],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": {
+      "const": 2
+    },
     "rooms": {
       "type": "array",
       "maxItems": 200,
-      "items": { "$ref": "#/$defs/room" },
+      "items": {
+        "$ref": "#/$defs/room"
+      },
       "$comment": "Ordered instance spaces (navigation order). Unique IDs and device roomId membership are semantic rules."
     },
     "catalog": {
       "allOf": [
-        { "$ref": "catalog.schema.json" },
+        {
+          "$ref": "catalog.schema.json"
+        },
         {
           "properties": {
             "devices": {
@@ -23,8 +37,12 @@
                 "properties": {
                   "state": {
                     "properties": {
-                      "value": { "const": "unknown" },
-                      "confidence": { "const": "unknown" }
+                      "value": {
+                        "const": "unknown"
+                      },
+                      "confidence": {
+                        "const": "unknown"
+                      }
                     }
                   }
                 }
@@ -37,131 +55,398 @@
     "architecture": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["format", "content"],
+      "required": [
+        "format",
+        "content"
+      ],
       "properties": {
-        "format": { "const": "svg" },
-        "content": { "type": "string", "minLength": 1, "maxLength": 1048576 }
+        "format": {
+          "const": "svg"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1048576
+        }
       },
       "$comment": "The content must pass the SVG sanitizer before persistence and before rendering. The application additionally enforces a 1 MiB UTF-8 byte limit; maxLength alone counts characters."
     },
     "actions": {
       "type": "object",
       "maxProperties": 2000,
-      "propertyNames": { "$ref": "#/$defs/mapKey" },
-      "additionalProperties": { "$ref": "#/$defs/action" }
+      "propertyNames": {
+        "$ref": "#/$defs/mapKey"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/action"
+      }
     },
     "panels": {
       "type": "object",
       "maxProperties": 2000,
-      "propertyNames": { "$ref": "#/$defs/mapKey" },
-      "additionalProperties": { "$ref": "#/$defs/panel" }
+      "propertyNames": {
+        "$ref": "#/$defs/mapKey"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/panel"
+      }
     },
     "stateSources": {
       "type": "object",
       "maxProperties": 2000,
-      "propertyNames": { "$ref": "#/$defs/mapKey" },
-      "additionalProperties": { "$ref": "#/$defs/stateSource" }
+      "propertyNames": {
+        "$ref": "#/$defs/mapKey"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/stateSource"
+      }
     },
-    "commandTtlSeconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
+    "commandTtlSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 300,
+      "default": 30
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "sources",
+          "symbols",
+          "level"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "catalog.schema.json#/$defs/deviceId"
+          },
+          "name": {
+            "$ref": "catalog.schema.json#/$defs/text"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "level": {
+            "enum": [
+              "alert",
+              "warning",
+              "indicator"
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2000,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reading"
+              ],
+              "properties": {
+                "reading": {
+                  "allOf": [
+                    {
+                      "$ref": "catalog.schema.json#/$defs/entityId"
+                    },
+                    {
+                      "pattern": "^(sensor|binary_sensor)\\."
+                    }
+                  ]
+                },
+                "deviceId": {
+                  "$ref": "catalog.schema.json#/$defs/registryDeviceId"
+                }
+              }
+            }
+          },
+          "symbols": {
+            "type": "array",
+            "maxItems": 2000,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "catalog.schema.json#/$defs/deviceId"
+            }
+          },
+          "below": {
+            "type": "number"
+          },
+          "above": {
+            "type": "number"
+          },
+          "forMinutes": {
+            "type": "number",
+            "minimum": 0
+          },
+          "state": {
+            "enum": [
+              "on",
+              "off"
+            ]
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "badge": {
+            "type": "boolean"
+          },
+          "highlight": {
+            "type": "boolean"
+          },
+          "bar": {
+            "type": "boolean"
+          },
+          "now": {
+            "type": "boolean"
+          }
+        }
+      },
+      "$comment": "Semantic checks require unique rule/source IDs and homogeneous binary or numeric conditions."
+    }
   },
   "$defs": {
     "rect": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["x", "y", "width", "height"],
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
       "properties": {
-        "x": { "type": "number", "minimum": 0, "maximum": 1 },
-        "y": { "type": "number", "minimum": 0, "maximum": 1 },
-        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
       },
       "$comment": "A rectangle normalized to the plan. x + width and y + height stay within 1 (semantic rule)."
     },
     "room": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label"],
+      "required": [
+        "id",
+        "label"
+      ],
       "properties": {
-        "id": { "$ref": "catalog.schema.json#/$defs/roomId" },
-        "label": { "$ref": "catalog.schema.json#/$defs/text" },
-        "icon": { "$ref": "catalog.schema.json#/$defs/mdiIcon", "$comment": "Optional MDI icon for the space rail." },
-        "shape": { "$ref": "#/$defs/rect", "$comment": "D22: the space's own rectangle; with rects, the box around them." },
+        "id": {
+          "$ref": "catalog.schema.json#/$defs/roomId"
+        },
+        "label": {
+          "$ref": "catalog.schema.json#/$defs/text"
+        },
+        "icon": {
+          "$ref": "catalog.schema.json#/$defs/mdiIcon",
+          "$comment": "Optional MDI icon for the space rail."
+        },
+        "shape": {
+          "$ref": "#/$defs/rect",
+          "$comment": "D22: the space's own rectangle; with rects, the box around them."
+        },
         "rects": {
           "type": "array",
           "minItems": 2,
           "maxItems": 12,
-          "items": { "$ref": "#/$defs/rect" },
+          "items": {
+            "$ref": "#/$defs/rect"
+          },
           "$comment": "A zone of merged rectangles: an L is two."
         },
-        "shapeSource": { "enum": ["svg", "app"], "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape." },
-        "areaId": { "$ref": "catalog.schema.json#/$defs/text", "$comment": "The Home Assistant area this space stands for (stage 5 of 0.10)." },
-        "frame": { "enum": ["tight", "normal", "wide"], "$comment": "Room view framing around the space; normal when absent." },
+        "shapeSource": {
+          "enum": [
+            "svg",
+            "app"
+          ],
+          "$comment": "svg: copied from a zone; app: edited in HomeManager, never overwritten. Requires shape."
+        },
+        "areaId": {
+          "$ref": "catalog.schema.json#/$defs/text",
+          "$comment": "The Home Assistant area this space stands for (stage 5 of 0.10)."
+        },
+        "frame": {
+          "enum": [
+            "tight",
+            "normal",
+            "wide"
+          ],
+          "$comment": "Room view framing around the space; normal when absent."
+        },
         "nav": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "skip": { "type": "boolean", "$comment": "A space you pass through: it gets no arrows and no swipes." },
+            "skip": {
+              "type": "boolean",
+              "$comment": "A space you pass through: it gets no arrows and no swipes."
+            },
             "hidden": {
               "type": "array",
               "maxItems": 200,
               "uniqueItems": true,
-              "items": { "$ref": "catalog.schema.json#/$defs/roomId" },
+              "items": {
+                "$ref": "catalog.schema.json#/$defs/roomId"
+              },
               "$comment": "Destinations without an arrow from this space."
             }
           }
         }
       },
-      "dependentRequired": { "shapeSource": ["shape"], "rects": ["shape"] }
+      "dependentRequired": {
+        "shapeSource": [
+          "shape"
+        ],
+        "rects": [
+          "shape"
+        ]
+      }
     },
     "mapKey": {
       "allOf": [
-        { "$ref": "catalog.schema.json#/$defs/deviceId" },
-        { "not": { "enum": ["__proto__", "prototype", "constructor"] } }
+        {
+          "$ref": "catalog.schema.json#/$defs/deviceId"
+        },
+        {
+          "not": {
+            "enum": [
+              "__proto__",
+              "prototype",
+              "constructor"
+            ]
+          }
+        }
       ]
     },
-    "entityId": { "type": "string", "minLength": 3, "maxLength": 240, "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+$" },
+    "entityId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 240,
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+$"
+    },
     "dataKey": {
       "type": "string",
       "minLength": 1,
       "maxLength": 100,
       "not": {
         "anyOf": [
-          { "enum": ["__proto__", "prototype", "constructor", "entity_id", "device_id", "area_id"] },
-          { "pattern": "^(?:[Rr][Ff]_[Cc][Oo][Dd][Ee][Ss]?|[Ii][Rr]_[Cc][Oo][Dd][Ee][Ss]?|[Cc][Oo][Dd][Ee][Ss]?|[Pp][Rr][Oo][Tt][Oo][Cc][Oo][Ll]|[Pp][Uu][Ll][Ss][Ee]_[Ll][Ee][Nn][Gg][Tt][Hh]|[Rr][Aa][Ww](?:_[Dd][Aa][Tt][Aa])?|[Rr][Cc]_[Ss][Ww][Ii][Tt][Cc][Hh]|[Cc][Oo][Mm][Mm][Aa][Nn][Dd][Ss]?|[Cc][Oo][Mm][Mm][Aa][Nn][Dd]_[Tt][Yy][Pp][Ee])$" }
+          {
+            "enum": [
+              "__proto__",
+              "prototype",
+              "constructor",
+              "entity_id",
+              "device_id",
+              "area_id"
+            ]
+          },
+          {
+            "pattern": "^(?:[Rr][Ff]_[Cc][Oo][Dd][Ee][Ss]?|[Ii][Rr]_[Cc][Oo][Dd][Ee][Ss]?|[Cc][Oo][Dd][Ee][Ss]?|[Pp][Rr][Oo][Tt][Oo][Cc][Oo][Ll]|[Pp][Uu][Ll][Ss][Ee]_[Ll][Ee][Nn][Gg][Tt][Hh]|[Rr][Aa][Ww](?:_[Dd][Aa][Tt][Aa])?|[Rr][Cc]_[Ss][Ww][Ii][Tt][Cc][Hh]|[Cc][Oo][Mm][Mm][Aa][Nn][Dd][Ss]?|[Cc][Oo][Mm][Mm][Aa][Nn][Dd]_[Tt][Yy][Pp][Ee])$"
+          }
         ]
       }
     },
     "jsonData": {
       "anyOf": [
-        { "type": "null" },
-        { "type": "boolean" },
-        { "type": "number" },
-        { "type": "string", "maxLength": 1024 },
-        { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/jsonData" } },
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 1024
+        },
+        {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/jsonData"
+          }
+        },
         {
           "type": "object",
           "maxProperties": 100,
-          "propertyNames": { "$ref": "#/$defs/dataKey" },
-          "additionalProperties": { "$ref": "#/$defs/jsonData" }
+          "propertyNames": {
+            "$ref": "#/$defs/dataKey"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonData"
+          }
         }
       ]
     },
     "action": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["domain", "service", "target"],
+      "required": [
+        "domain",
+        "service",
+        "target"
+      ],
       "properties": {
-        "domain": { "enum": ["light", "fan", "cover", "climate", "switch", "button", "script"] },
-        "service": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 80 },
+        "domain": {
+          "enum": [
+            "light",
+            "fan",
+            "cover",
+            "climate",
+            "switch",
+            "button",
+            "script"
+          ]
+        },
+        "service": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 80
+        },
         "target": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["entity_id"],
+          "required": [
+            "entity_id"
+          ],
           "properties": {
             "entity_id": {
               "anyOf": [
-                { "$ref": "#/$defs/entityId" },
-                { "type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": { "$ref": "#/$defs/entityId" } }
+                {
+                  "$ref": "#/$defs/entityId"
+                },
+                {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 20,
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/entityId"
+                  }
+                }
               ]
             }
           }
@@ -169,38 +454,197 @@
         "data": {
           "type": "object",
           "maxProperties": 100,
-          "propertyNames": { "$ref": "#/$defs/dataKey" },
-          "additionalProperties": { "$ref": "#/$defs/jsonData" }
+          "propertyNames": {
+            "$ref": "#/$defs/dataKey"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonData"
+          }
         }
       },
       "allOf": [
-        { "if": { "properties": { "domain": { "const": "light" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle"] } } } },
-        { "if": { "properties": { "domain": { "const": "fan" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle", "set_percentage", "set_preset_mode", "set_direction", "oscillate"] } } } },
-        { "if": { "properties": { "domain": { "const": "cover" } } }, "then": { "properties": { "service": { "enum": ["open_cover", "close_cover", "stop_cover", "set_cover_position"] } } } },
-        { "if": { "properties": { "domain": { "const": "climate" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "set_temperature", "set_hvac_mode", "set_fan_mode", "set_preset_mode", "set_swing_mode"] } } } },
-        { "if": { "properties": { "domain": { "const": "switch" } } }, "then": { "properties": { "service": { "enum": ["turn_on", "turn_off", "toggle"] } } } },
-        { "if": { "properties": { "domain": { "const": "button" } } }, "then": { "properties": { "service": { "const": "press" } } } },
-        { "if": { "properties": { "domain": { "const": "script" } } }, "then": { "properties": { "service": { "const": "turn_on" } } } }
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "light"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on",
+                  "turn_off",
+                  "toggle"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "fan"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on",
+                  "turn_off",
+                  "toggle",
+                  "set_percentage",
+                  "set_preset_mode",
+                  "set_direction",
+                  "oscillate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "cover"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "open_cover",
+                  "close_cover",
+                  "stop_cover",
+                  "set_cover_position"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "climate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on",
+                  "turn_off",
+                  "set_temperature",
+                  "set_hvac_mode",
+                  "set_fan_mode",
+                  "set_preset_mode",
+                  "set_swing_mode"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "switch"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on",
+                  "turn_off",
+                  "toggle"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "button"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "const": "press"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "script"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "const": "turn_on"
+              }
+            }
+          }
+        }
       ]
     },
     "panel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "title", "controls"],
+      "required": [
+        "kind",
+        "title",
+        "controls"
+      ],
       "properties": {
-        "kind": { "enum": ["device-controls", "rf-fan"] },
-        "title": { "$ref": "catalog.schema.json#/$defs/text" },
+        "kind": {
+          "enum": [
+            "device-controls",
+            "rf-fan"
+          ]
+        },
+        "title": {
+          "$ref": "catalog.schema.json#/$defs/text"
+        },
         "controls": {
           "type": "array",
           "maxItems": 100,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "label", "actionId"],
+            "required": [
+              "id",
+              "label",
+              "actionId"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/mapKey" },
-              "label": { "$ref": "catalog.schema.json#/$defs/text" },
-              "actionId": { "$ref": "#/$defs/mapKey" }
+              "id": {
+                "$ref": "#/$defs/mapKey"
+              },
+              "label": {
+                "$ref": "catalog.schema.json#/$defs/text"
+              },
+              "actionId": {
+                "$ref": "#/$defs/mapKey"
+              }
             }
           }
         }
@@ -210,11 +654,32 @@
     "stateSource": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["entityId", "attribute", "feedback"],
+      "required": [
+        "entityId",
+        "attribute",
+        "feedback"
+      ],
       "properties": {
-        "entityId": { "$ref": "#/$defs/entityId" },
-        "attribute": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/dataKey" }] },
-        "feedback": { "enum": ["measured", "optimistic", "transmitter"] }
+        "entityId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "attribute": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/dataKey"
+            }
+          ]
+        },
+        "feedback": {
+          "enum": [
+            "measured",
+            "optimistic",
+            "transmitter"
+          ]
+        }
       }
     }
   },

@@ -452,6 +452,12 @@ export class HomeManagerCard extends HTMLElement {
       case 'alerts':
         showAlerts.call(this);
         break;
+      case 'rules':
+        void (async () => {
+          if (!this.editing) await this.toggleEdit();
+          if (this.editing) this.editor?.openRules();
+        })();
+        break;
       case 'plan-settings':
         void (async () => {
           if (!this.editing) await this.toggleEdit();

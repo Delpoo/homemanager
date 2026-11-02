@@ -29,6 +29,7 @@ export function alertReading(device: ModelDevice, reading: string, hass?: ModelH
 }
 
 function applicable(device: ModelDevice, rule: AlertRuleConfig, hass?: ModelHass): boolean {
+  if (rule.enabled === false) return false;
   if (!['alert', 'warning'].includes(rule.level)) return false;
   const binary = rule.reading.startsWith('binary_sensor.');
   const bounds = rule.below !== undefined || rule.above !== undefined;

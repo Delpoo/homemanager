@@ -67,6 +67,8 @@ import type { GestureBinding } from '../model/gestures.js';
 import { presentationOf } from '../model/archetype.js';
 import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
+import { RulesEditor } from '../ui/rules-editor.js';
+import { rulesForSymbol } from '../model/visual-rules.js';
 import type { AlertEditor } from '../ui/alert-editor.js';
 import '../ui/alert-editor.js';
 import type { Category } from '../model/types.js';
@@ -741,6 +743,7 @@ export class HomeManagerEditor extends HTMLElement {
           ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>`
           : ''),
       bodies: {
+        'rules-section': '<div class="rules-host"></div>',
         'rooms-section': this.roomsForm(),
         'connect-section': this.connectForm(),
         'health-section': health
@@ -810,6 +813,12 @@ export class HomeManagerEditor extends HTMLElement {
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
     this.wirePickers();
+    const rulesHost = this.root.querySelector('.rules-host');
+    if (rulesHost) {
+      this.rulesView ??= new RulesEditor();
+      rulesHost.append(this.rulesView);
+      this.rulesView.configure(this.configuration, this._hass, next => this.emit(next));
+    }
     const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
       dialog.resumeKey = 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId;
@@ -887,7 +896,7 @@ export class HomeManagerEditor extends HTMLElement {
       <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
       <div class="size-host">${renderSymbolSize(this.sheet!.size)}</div><label>${esc(t('Capa'))}<select name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label></div>
 
-      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', '<homemanager-alert-editor></homemanager-alert-editor>', device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
+      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
       ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', `<p>${esc(t('Elegí hasta tres atajos en Control.'))}</p>`, device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
@@ -959,6 +968,18 @@ export class HomeManagerEditor extends HTMLElement {
     if (undo) undo.hidden = !this.moduleUndo;
   }
 
+  private rulesView?: RulesEditor;
+  private symbolRules(device?: Device): string {
+    const rules = device ? rulesForSymbol(this.configuration.rules ?? [], device.id) : [];
+    return `<ul>${rules.map(r => `<li>${esc(r.name)} · ${esc(t(r.enabled ? 'Activa' : 'Apagada'))}</li>`).join('')}${(device?.display.alerts ?? []).map(r => `<li>${esc(readingName(r.reading, this._hass))} · ${esc(t('Aviso conservado'))}</li>`).join('')}</ul><button type="button" data-command="rules-open">${esc(t('Abrir Reglas'))}</button><button type="button" data-command="rules-create">${esc(t('Crear regla para este símbolo'))}</button>`;
+  }
+  openRules(createFor?: string): void {
+    if (!this.flushDevice()) return;
+    this.surface = 'settings';
+    this.settingsSection = 'rules-section';
+    this.render();
+    if (createFor) this.rulesView?.createFor(createFor);
+  }
   private alertDraft?: AlertSettingsDraft;
   private configureAlerts(category?: Category): void {
     const editor = this.root.querySelector<AlertEditor>('homemanager-alert-editor');
@@ -1578,6 +1599,12 @@ export class HomeManagerEditor extends HTMLElement {
         case 'restore-plan':
           void this.restorePlan(button.dataset.plan!);
           break;
+        case 'rules-open':
+          this.openRules();
+          break;
+        case 'rules-create':
+          this.openRules(this.device()?.id);
+          break;
         case 'module-add': {
           const id = button.dataset.moduleId as ModuleId;
           this.moduleUndo = modulesOf(this.moduleDevice(), this._hass);
@@ -1788,9 +1815,10 @@ export class HomeManagerEditor extends HTMLElement {
         ...(this.moduleDraft ? { modules: [...this.moduleDraft] } : {}),
         ...(value(data, 'layer') ? { layer: value(data, 'layer') as NonNullable<Device['display']['layer']> } : {}),
         ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
-          ? { alerts: alertDisplay.alerts }
+          ? { alerts: previous?.display.alerts ? structuredClone(previous.display.alerts) : alertDisplay.alerts }
           : {}),
         ...(alertDisplay.highlight !== undefined ? { highlight: alertDisplay.highlight } : {}),
+        ...(previous?.display.disabledBaseRules ? { disabledBaseRules: [...previous.display.disabledBaseRules] } : {}),
       },
       kind,
       roomId: value(data, 'roomId') || null,
