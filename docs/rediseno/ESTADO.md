@@ -4,7 +4,7 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** cerrar CI del [PR #56](https://github.com/Delpoo/homemanager/pull/56); no iniciar lote 4. Contexto:  cierre del lote 3 en curso; check 279, formato, 14 recorridos focales y 40 capturas disponibles; subida/PR/CI autorizados expresamente por «si autorizo, este y futuros»; cierre remoto en curso. Lote 3 autorizado por el propietario: E09 y E10 en `chatgpt/rediseno-lote-3`. Base nueva desde main `d2c8a24`, adelantada sin commit de unión a los commits del lote 2 `570d883`, necesarios para E06/E08. #55 sigue abierto: CI 41394650153 aprobada (274 código, 448 navegador y 4 omisiones previstas, 245 por versión HA). Este lote tendrá PR propio contra main, indicando esa dependencia; main y #55 no se modifican. Sin fusiones a main, versiones ni casa real.
+**Siguiente paso:** lote 4 autorizado: E11, E12 y E13 en chatgpt/rediseno-lote-4. Base main d2c8a24 adelantada a la base validada del lote 3 (#56, remoto 4cdb847; árbol local a88c8aa idéntico). PR propio al cierre, dependiente de #55 y #56 todavía sin fusionar. Subidas, evidencias y CI autorizadas; sin fusiones, versiones ni casa real.
 
 **Versión de prueba:** E00–E04 publicadas en `v0.11.0-beta.1` (PR #52 fusionado por squash y pre-release comprobados en GitHub). Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
@@ -23,7 +23,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | [E08](etapas/E08-iconos-color.md) | Un solo selector de iconos, lista amplia y color | E05 | en revisión | Codex | `chatgpt/rediseno-lote-2` · [PR #55](https://github.com/Delpoo/homemanager/pull/55) | 2026-11-02 | Implementada y probada localmente; CI enlazada en PR. Faltan auditor independiente, validación del propietario y pruebas físicas. |
 | [E09](etapas/E09-disenador-controles.md) | Un solo diseñador de controles, flexible | E06, E08 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
 | [E10](etapas/E10-aprendizaje-rf.md) | Aprender botones con pasos guiados | E09 | en revisión | Codex | `chatgpt/rediseno-lote-3` / [PR #56](https://github.com/Delpoo/homemanager/pull/56) | 2026-11-02 | Implementada, subida y validada localmente. Resultado de CI y cierre en PR #56; auditoría y pruebas físicas pendientes. |
-| [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | pendiente | — | — | — | Todo |
+| [E11](etapas/E11-alternativas-plano.md) | Alternativas del plano, claras y oscuras | E02 | en curso | Codex | chatgpt/rediseno-lote-4 / PR al cierre | 2026-11-02 | Modelo, almacén privado y editor implementados. Dos recorridos aprobados; validación HA, capturas y CI al cierre. |
 | [E12](etapas/E12-panel-lateral.md) | Panel lateral editable | E05, E07 | pendiente | — | — | — | Todo |
 | [E13](etapas/E13-espacio-pared.md) | Vista por espacio en PC y modo pared | E11 | pendiente | — | — | — | Todo |
 

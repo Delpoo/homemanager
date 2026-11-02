@@ -82,6 +82,7 @@ export interface StateSource {
   feedback: 'measured' | 'optimistic' | 'transmitter';
 }
 export interface Configuration {
+  planViews?: import('../model/plan-views.js').PlanView[];
   schemaVersion: 2;
   rooms: Room[];
   catalog: { schemaVersion: 2; devices: Device[] };

@@ -256,7 +256,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules'],
+    ['commandTtlSeconds', 'rules', 'planViews'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -466,6 +466,39 @@ function shape(configuration) {
         invalid(`stateSources.${key}.attribute`, 'unsafe attribute');
     }
     one(source.feedback, ['measured', 'optimistic', 'transmitter'], `stateSources.${key}.feedback`);
+  }
+  if (Object.hasOwn(configuration, 'planViews')) {
+    const views = configuration.planViews;
+    if (!Array.isArray(views) || views.length > 12) invalid('planViews', 'at most 12 alternatives');
+    const ids = new Set();
+    for (const view of views) {
+      fields(view, ['id', 'name'], ['light', 'dark', 'lightBackground', 'darkBackground'], 'planViews');
+      id(view.id, 'planViews.id');
+      text(view.name, 'planViews.name');
+      if (ids.has(view.id) || (!view.light && !view.dark)) invalid('planViews', 'unique IDs and an image required');
+      ids.add(view.id);
+      for (const mode of ['light', 'dark']) {
+        const image = view[mode];
+        if (Object.hasOwn(view, mode)) {
+          fields(image, ['scope', 'sha256', 'format', 'box'], [], 'planViews.image');
+          if (
+            typeof image.scope !== 'string' ||
+            image.scope.length > 64 ||
+            !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(image.scope) ||
+            typeof image.sha256 !== 'string' ||
+            !/^[a-f0-9]{64}$/.test(image.sha256) ||
+            !['svg', 'png', 'jpg'].includes(image.format) ||
+            !Array.isArray(image.box) ||
+            image.box.length !== 4 ||
+            image.box.some((v, i) => !Number.isFinite(v) || Math.abs(v) > 1e7 || (i > 1 && v <= 0))
+          )
+            invalid('planViews.image', 'invalid image reference');
+        }
+        const bg = view[mode + 'Background'];
+        if (bg !== undefined && (typeof bg !== 'string' || !/^(#[0-9a-fA-F]{6}|transparent)$/.test(bg)))
+          invalid('planViews.background', 'invalid color');
+      }
+    }
   }
   if (Object.hasOwn(configuration, 'rules')) {
     if (!Array.isArray(configuration.rules) || configuration.rules.length > 2000)

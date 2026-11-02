@@ -1,3 +1,4 @@
+import { renderPlanChoice } from './plan-views.js';
 import { resolveGesture } from '../model/gestures.js';
 import { t } from '../i18n/index.js';
 import { isActiveValue } from '../panels/controls.js';
@@ -33,6 +34,7 @@ export function mountArchitecture(this: HomeManagerCard) {
   host.replaceChildren(inner);
   this.svg.setAttribute('width', String(this.box.width));
   this.svg.setAttribute('height', String(this.box.height));
+  void renderPlanChoice(this);
   this.updateShell();
   (this.root.querySelector('.empty') as HTMLElement).hidden = this.svg.children.length > 0;
 }
