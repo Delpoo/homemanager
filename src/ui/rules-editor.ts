@@ -1,7 +1,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { readingName } from '../model/names.js';
-import { evaluateVisualRules, type VisualRule } from '../model/visual-rules.js';
+import { evaluateVisualRules, promoteLegacyRule, type VisualRule } from '../model/visual-rules.js';
 import type { ModelHass } from '../model/types.js';
 import { confirmDialog } from './confirm-dialog.js';
 
@@ -212,14 +212,13 @@ export class RulesEditor extends HTMLElement {
       if (!rule) return;
       try {
         const value = this.readForm(form, rule);
-        const next = structuredClone(this.configuration!);
+        let next = structuredClone(this.configuration!);
         if (row?.legacy) {
-          next.catalog.devices.find(d => d.id === row.legacy!.device)!.display.alerts!.splice(row.legacy.index, 1);
-          next.rules = [...(next.rules ?? []), value];
+          next = promoteLegacyRule(next, row.legacy.device, row.legacy.index, value);
         } else {
           next.rules = [...(next.rules ?? []).filter(r => r.id !== value.id), value];
         }
-        this.selected = value.id;
+        this.selected = row?.legacy ? next.rules!.at(-1)!.id : value.id;
         this.commit(next);
       } catch (error) {
         form.querySelector('.error')!.textContent = t(error instanceof Error ? error.message : String(error));

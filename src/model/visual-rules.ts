@@ -116,6 +116,26 @@ export function rulesForSymbol(rules: readonly VisualRule[], id: string): Visual
   return rules.filter(rule => rule.symbols.includes(id));
 }
 
+/** Explicit promotion replaces exactly one old rule and preserves its base-alarm override. */
+export function promoteLegacyRule<T extends { catalog: { devices: ModelDevice[] }; rules?: VisualRule[] }>(
+  configuration: T,
+  deviceId: string,
+  index: number,
+  rule: VisualRule,
+): T {
+  const next = structuredClone(configuration),
+    device = next.catalog.devices.find(d => d.id === deviceId);
+  const old = device?.display.alerts?.[index];
+  if (!device || !old) throw new Error('Missing legacy rule');
+  let id = rule.id;
+  for (let suffix = 2; next.rules?.some(r => r.id === id); suffix++) id = `${rule.id}-${suffix}`;
+  if (old.enabled !== false && old.reading === device.bindings.entityId && old.reading.startsWith('binary_sensor.'))
+    device.display.disabledBaseRules = [...new Set([...(device.display.disabledBaseRules ?? []), 'safety' as const])];
+  device.display.alerts!.splice(index, 1);
+  next.rules = [...(next.rules ?? []), { ...structuredClone(rule), id }];
+  return next;
+}
+
 /** Missing evidence never proves recovery, including an ANY group with a missing member. */
 export function visualRuleCleared(rule: VisualRule, hass: ModelHass): boolean {
   if (hass.connection?.connected === false || !rule.enabled) return false;

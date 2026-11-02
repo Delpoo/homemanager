@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateVisualRules } from '../../.work/model/visual-rules.js';
+import { evaluateVisualRules, promoteLegacyRule } from '../../.work/model/visual-rules.js';
 import { alertsOf } from '../../.work/model/alerts.js';
 import { RuntimeFeed } from '../../.work/shell/runtime-feed.js';
 import { ActivityLog } from '../../.work/model/activity.js';
@@ -127,4 +127,40 @@ test('disconnect discards duration evidence before reconnect', () => {
   assert.equal(feed.ruleResults.length, 0);
   feed.update(h, { states: {} }, new Set(), 130000);
   assert.equal(feed.ruleResults.length, 1);
+});
+
+test('promoting two legacy rules keeps both IDs unique and preserves binary warning override', () => {
+  const legacy = { reading: 'binary_sensor.sample', level: 'warning' };
+  const config = {
+    schemaVersion: 2,
+    rooms: [],
+    catalog: {
+      schemaVersion: 2,
+      devices: [
+        {
+          id: 'sample',
+          roomId: null,
+          kind: 'sensor',
+          display: { label: 'Sample', icon: 'mdi:shape', alerts: [legacy, structuredClone(legacy)] },
+          bindings: { entityId: 'binary_sensor.sample', primaryAction: null, advancedPopupId: null },
+        },
+      ],
+    },
+    rules: [],
+  };
+  const original = structuredClone(config),
+    r = rule({
+      id: 'legacy-sample-0',
+      sources: [{ reading: 'binary_sensor.sample' }],
+      below: undefined,
+      state: 'on',
+      symbols: ['sample'],
+    });
+  const first = promoteLegacyRule(config, 'sample', 0, r),
+    second = promoteLegacyRule(first, 'sample', 0, r);
+  assert.equal(new Set(second.rules.map(r => r.id)).size, 2);
+  assert.ok(second.rules.every(r => r.level === 'warning'));
+  assert.deepEqual(second.catalog.devices[0].display.alerts, []);
+  assert.deepEqual(second.catalog.devices[0].display.disabledBaseRules, ['safety']);
+  assert.deepEqual(config, original);
 });
