@@ -79,21 +79,26 @@ const browser = await chromium.launch(
 );
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
 await context.addInitScript(
-  ([tokens, hassUrl, clientId]) =>
+  ([tokens, hassUrl, clientId]) => {
     localStorage.setItem(
       'hassTokens',
       JSON.stringify({ ...tokens, hassUrl, clientId, expires: Date.now() + tokens.expires_in * 1000 }),
-    ),
+    );
+    localStorage.setItem('homemanager-app-home', 'e2e-redesign');
+  },
   [credentials.tokens, base, credentials.clientId],
 );
 const page = await context.newPage();
 const errors = [];
+const frontendErrors = [];
 page.on('pageerror', error => {
+  frontendErrors.push(error.message);
   if (String(error.stack).includes('/homemanager_files/')) errors.push(error.message);
 });
 mkdirSync('.work/e2e-redesign', { recursive: true });
 try {
   await page.goto(base + '/homemanager');
+  await expect(page.locator('homemanager-app')).toBeVisible({ timeout: 60000 });
   const confirmation = page.getByRole('button', { name: 'Confirmar', exact: true });
   if (await confirmation.isVisible().catch(() => false)) await confirmation.click();
   const card = page.locator('homemanager-app homemanager-card');
@@ -163,6 +168,16 @@ try {
   assert.deepEqual(errors, []);
   console.log('All disposable Home Assistant redesign end-to-end checks passed.');
 } catch (error) {
+  console.log(
+    'Frontend diagnostics:',
+    JSON.stringify({
+      path: new URL(page.url()).pathname,
+      appCount: await page.locator('homemanager-app').count(),
+      cardCount: await page.locator('homemanager-card').count(),
+      messages: await page.locator('.status, .error, .messages').allTextContents(),
+      frontendErrors,
+    }),
+  );
   await page.screenshot({ path: '.work/e2e-redesign/failure.png' }).catch(() => {});
   throw error;
 } finally {
