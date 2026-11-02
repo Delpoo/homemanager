@@ -1,3 +1,4 @@
+import type { ControlPiece as importControlPiece } from '../model/control-layout.js';
 import type { Hass, HassEntity } from '../card/types.js';
 
 /** Websocket client of the RF remote manager (custom_components/homemanager/rf*.py).
@@ -5,7 +6,7 @@ import type { Hass, HassEntity } from '../card/types.js';
  * by a short fingerprint. */
 
 export type PartKind = 'fan' | 'light';
-export type WidgetType = 'button' | 'toggle' | 'updown' | 'steps' | 'modes';
+export type WidgetType = import('../model/control-layout.js').PieceType;
 
 export interface RfSettings {
   transmitter: string;
@@ -36,17 +37,7 @@ export interface RfPart {
   roles: Record<string, string>;
 }
 /** One control of the drawn remote, on a grid of four columns. */
-export interface RfWidget {
-  id: string;
-  type: WidgetType;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  buttons: string[];
-  label: string | null;
-  icon: string | null;
-}
+export interface RfWidget extends importControlPiece {}
 export interface RfRemote extends RfSettings, RfAbout {
   id: string;
   buttons: RfButton[];

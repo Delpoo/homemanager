@@ -68,6 +68,9 @@ import type { GestureBinding } from '../model/gestures.js';
 import { presentationOf } from '../model/archetype.js';
 import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
+import { ControlDesigner } from '../ui/control-designer.js';
+import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
+import type { ControlHost } from '../ui/control-view.js';
 import { RulesEditor } from '../ui/rules-editor.js';
 import { rulesForSymbol } from '../model/visual-rules.js';
 import type { AlertEditor } from '../ui/alert-editor.js';
@@ -745,6 +748,7 @@ export class HomeManagerEditor extends HTMLElement {
           ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>`
           : ''),
       bodies: {
+        'designer-section': '<div class="designer-host"></div>',
         'rules-section': '<div class="rules-host"></div>',
         'rooms-section': this.roomsForm(),
         'connect-section': this.connectForm(),
@@ -815,6 +819,38 @@ export class HomeManagerEditor extends HTMLElement {
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
     this.wirePickers();
+    const designHost = this.root.querySelector('.designer-host');
+    const designDevice = this.device();
+    if (designHost && designDevice) {
+      const host: ControlHost = {
+        configuration: this.configuration,
+        device: designDevice,
+        hass: () => this._hass,
+        availability: () => ({ available: true }),
+        remembered: () => undefined,
+        run: async () => t('Vista previa: no se envían comandos.'),
+        sendValue: async () => t('Vista previa: no se envían comandos.'),
+        valueAvailability: () => ({ available: true }),
+        reason: () => '',
+      };
+      const controls = designDevice.bindings.controls ?? [];
+      designHost.append(this.controlDesigner);
+      this.controlDesigner.configure({
+        key: designDevice.id,
+        remote: designRemote(designDevice, this.configuration, controls),
+        controls,
+        estimated: false,
+        readValues: () => this._hass?.states ?? {},
+        renderContent: p => renderDesignPiece(p, controls, host),
+        save: layout => {
+          const next = clone(this.configuration);
+          const d = next.catalog.devices.find(d => d.id === designDevice.id)!;
+          if (layout === null) delete d.bindings.layout;
+          else d.bindings.layout = layout;
+          this.emit(next);
+        },
+      });
+    }
     const rulesHost = this.root.querySelector('.rules-host');
     if (rulesHost) {
       this.rulesView ??= new RulesEditor();
@@ -982,6 +1018,7 @@ export class HomeManagerEditor extends HTMLElement {
   }
 
   private rulesView?: RulesEditor;
+  private readonly controlDesigner = new ControlDesigner();
   private symbolRules(device?: Device): string {
     const rules = device ? rulesForSymbol(this.configuration.rules ?? [], device.id) : [];
     return `<ul>${rules.map(r => `<li>${esc(r.name)} · ${esc(t(r.enabled ? 'Activa' : 'Apagada'))}</li>`).join('')}${(device?.display.alerts ?? []).map(r => `<li>${esc(readingName(r.reading, this._hass))} · ${esc(t('Aviso conservado'))}</li>`).join('')}</ul><button type="button" data-command="rules-open">${esc(t('Abrir Reglas'))}</button><button type="button" data-command="rules-create">${esc(t('Crear regla para este símbolo'))}</button>`;
@@ -1425,7 +1462,7 @@ export class HomeManagerEditor extends HTMLElement {
   private onClick = (event: Event): void => {
     const button = (event.target as Element).closest<HTMLButtonElement>('button[data-command]');
     if (!button || button.disabled || !this.config) return;
-    if (this.sheet && button.closest('.ctl-host, .size-host')) {
+    if (this.sheet && button.dataset.command !== 'design-open' && button.closest('.ctl-host, .size-host')) {
       const icon = this.root.querySelector<HTMLInputElement>('#device-form [name=icon]')?.value ?? 'mdi:shape';
       if (editCommand(this.sheet, button, this.suggestions(), icon)) {
         this.paintControls();
@@ -1620,6 +1657,13 @@ export class HomeManagerEditor extends HTMLElement {
           if (picker && button.dataset.colorValue) picker.value = button.dataset.colorValue;
           break;
         }
+        case 'design-open':
+          if (this.flushDevice()) {
+            this.surface = 'settings';
+            this.settingsSection = 'designer-section';
+            this.render();
+          }
+          break;
         case 'rules-open':
           this.openRules();
           break;
@@ -1855,6 +1899,7 @@ export class HomeManagerEditor extends HTMLElement {
         entityId: value(data, 'entityId') || null,
         ...(value(data, 'deviceId') ? { deviceId: value(data, 'deviceId') } : {}),
         ...(value(data, 'readings') ? { readings: JSON.parse(value(data, 'readings')) as string[] } : {}),
+        ...(previous?.bindings.layout ? { layout: clone(previous.bindings.layout) } : {}),
         // Kept for readers before 0.6: a tap that is a single button.
         primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
         advancedPopupId: value(data, 'panelId') || null,

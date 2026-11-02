@@ -1,3 +1,4 @@
+import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
 import { t } from '../i18n/index.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import {
@@ -238,7 +239,7 @@ export class HomeManagerPanel extends HTMLElement {
     const glyph = customElements.get('ha-icon')
       ? `<ha-icon icon="${escapeHTML(this.device.display.icon)}"></ha-icon>`
       : '◉';
-    this.root.innerHTML = `<style>${css}</style><homemanager-task-screen aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="remote group" hidden></div><div class="own group" hidden></div><div class="auto group" hidden></div><div class="custom group" hidden></div><p class="status" role="status" aria-live="polite"></p></div></homemanager-task-screen>`;
+    this.root.innerHTML = `<style>${css}</style><homemanager-task-screen aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="remote group" hidden></div><div class="own group" hidden></div><details class="additional-controls"${this.device?.bindings.layout || this.options?.controls?.length || this.device.bindings.remoteId ? '' : ' open'}><summary>${escapeHTML(t('Lecturas y más controles'))}</summary><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="auto group" hidden></div><div class="custom group" hidden></div></details><p class="status" role="status" aria-live="polite"></p></div></homemanager-task-screen>`;
     this.renderCustom();
     this.renderAuto(true);
     this.renderRemote();
@@ -287,11 +288,12 @@ export class HomeManagerPanel extends HTMLElement {
       .catch(() => undefined);
   }
   private views: ControlView[] = [];
+  private designView?: HomeManagerRfRemote;
   private renderOwn(): void {
     const host = this.root.querySelector<HTMLElement>('.own');
     const controls = this.options?.controls ?? [];
     const source = this.options?.controlHost;
-    if (!host || !controls.length || !source) return;
+    if (!host || (!controls.length && !this.device?.bindings.layout?.length) || !source) return;
     host.innerHTML = `<p class="group-title">${escapeHTML(t('Controles'))}</p>`;
     // What was sent (or why not) is said here: the plan behind the sheet is covered.
     const say = (message: string | null, sent: string) => {
@@ -313,6 +315,18 @@ export class HomeManagerPanel extends HTMLElement {
         return message;
       },
     };
+    if (this.device?.bindings.layout) {
+      this.views = [];
+      const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+      view.estimated = false;
+      view.readValues = () => source.hass()?.states ?? {};
+      view.renderContent = p => renderDesignPiece(p, controls, wrapped, this.views);
+      view.remote = designRemote(this.device!, source.configuration, controls);
+      host.append(view);
+      host.hidden = false;
+      this.designView = view;
+      return;
+    }
     this.views = controls.map(control => new ControlView(control, wrapped, false));
     for (const view of this.views) {
       view.element.classList.add('control');
@@ -626,6 +640,7 @@ export class HomeManagerPanel extends HTMLElement {
     return Array.isArray(ids) ? ids.join(', ') : (ids ?? '');
   }
   private renderState(): void {
+    this.designView?.updateIndicators();
     const value = this.root.querySelector<HTMLElement>('.value'),
       confidence = this.root.querySelector<HTMLElement>('.confidence'),
       hint = this.root.querySelector<HTMLElement>('.hint');

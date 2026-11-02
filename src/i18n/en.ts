@@ -737,3 +737,41 @@ Object.assign(en, {
   'Tocar: {action}. Mantener: {hold}. Menú contextual: control completo.':
     'Tap: {action}. Hold: {hold}. Context menu: full control.',
 });
+
+Object.assign(en, {
+  'Diseñar control': 'Design control',
+  'Vista previa: no se envían comandos.': 'Preview: no commands are sent.',
+  'Diseñador de controles': 'Control designer',
+  'Lecturas y más controles': 'Readings and more controls',
+  'Indicador de valor': 'Value indicator',
+  Separador: 'Separator',
+  'Control existente': 'Existing control',
+  'Cada toque envía el siguiente paso.': 'Each tap sends the next step.',
+  'Envía el paso elegido al soltar.': 'Sends the selected step on release.',
+  'Muestra una lectura, sin enviar comandos.': 'Displays a reading without sending commands.',
+  'Texto para organizar el control.': 'Text to organize the control.',
+  'Espacio entre piezas.': 'Space between pieces.',
+  'Conserva un control existente con todos sus pasos.': 'Keeps an existing control with all its steps.',
+  'Este control ya no está disponible.': 'This control is no longer available.',
+  'No queda espacio en el lienzo.': 'There is no room left on the canvas.',
+  '¿Quitar este elemento?': 'Remove this element?',
+  'El botón y sus acciones se conservan.': 'The button and its actions are kept.',
+  'Bajar (-)': 'Decrease (-)',
+  'Quitar paso': 'Remove step',
+  'Lectura que muestra': 'Displayed reading',
+  'Sin lectura': 'No reading',
+  'Atributo (avanzado)': 'Attribute (advanced)',
+  'Este valor es estimado; RF no confirma el estado físico.':
+    'This value is estimated; RF does not confirm the physical state.',
+  Alinear: 'Align',
+  Izquierda: 'Left',
+  Centro: 'Center',
+  Derecha: 'Right',
+  'Deshacer diseño': 'Undo design',
+  'Vista previa': 'Preview',
+  'Arrastrá para mover; usá la esquina para cambiar el tamaño. Flechas para mover, Mayús y flechas para tamaño.':
+    'Drag to move; use the corner to resize. Arrow keys move; Shift and arrow keys resize.',
+  'Se reemplaza sólo la disposición; los botones y acciones se conservan.':
+    'Only the layout is replaced; buttons and actions are kept.',
+  'Elegí los botones de este elemento.': 'Choose the buttons for this element.',
+});

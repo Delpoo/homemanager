@@ -373,7 +373,9 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 if "forMinutes" in rule and rule["forMinutes"] < 0:
                     _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings", "hold"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings", "hold", "layout"})
+        if "layout" in bindings:
+            validate_control_layout(bindings["layout"])
         if "deviceId" in bindings:
             _text(bindings["deviceId"])
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", bindings["deviceId"]) or bindings["deviceId"] in UNSAFE:
@@ -506,3 +508,35 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
     if "commandTtlSeconds" in configuration:
         _number(configuration["commandTtlSeconds"], 1, 300, True)
     return deepcopy(configuration)
+
+
+def validate_control_layout(layout: Any) -> None:
+    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1)}
+    if not isinstance(layout, list) or len(layout) > 64:
+        _fail()
+    ids = set()
+    for p in layout:
+        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute"})
+        if not isinstance(p["id"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", p["id"]) or p["id"] in UNSAFE or p["id"] in ids:
+            _fail()
+        ids.add(p["id"])
+        if not isinstance(p["type"], str) or p["type"] not in counts:
+            _fail()
+        for k, low, high in [("x", 0, 3), ("y", 0, 39), ("w", 1, 4), ("h", 1, 3)]:
+            if type(p[k]) is not int or not low <= p[k] <= high:
+                _fail()
+        if p["x"] + p["w"] > 4:
+            _fail()
+        low, high = counts[p["type"]]
+        if not isinstance(p["buttons"], list) or not low <= len(p["buttons"]) <= high:
+            _fail()
+        for ref in p["buttons"]:
+            _id(ref)
+        if p["label"] is not None:
+            _text(p["label"], 40)
+        if p["icon"] is not None and (not isinstance(p["icon"], str) or not MDI_ICON.fullmatch(p["icon"])):
+            _fail()
+        if "reading" in p:
+            _entity(p["reading"])
+        if "attribute" in p and (not isinstance(p["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", p["attribute"])):
+            _fail()

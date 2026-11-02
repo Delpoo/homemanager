@@ -51,7 +51,7 @@ MAX_LABEL = 40
 # How many buttons each widget type uses, in order:
 # button [press]; toggle [on or toggle, off?]; updown [down, up];
 # steps [1, 2, ...]; modes [one per mode].
-WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8)}
+WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8), "cycle": (2, 4), "slider": (2, 12), "indicator": (0, 0), "title": (0, 0), "separator": (0, 0), "control": (1, 1)}
 # Defaults for a new remote: what most 433 MHz fan remotes use. The capture
 # replaces protocol, length and pulse with measured values.
 DEFAULTS = {"protocol": 1, "nbits": 24, "pulse_us": 350, "repeats": 5, "wait_us": 0}
@@ -165,7 +165,17 @@ def _widget(raw: Any, buttons: dict[str, Button], taken: set[str]) -> dict[str, 
     low, high = WIDGETS[kind]
     if not isinstance(used, list) or not low <= len(used) <= high or any(button not in buttons for button in used):
         raise ModelError("invalid_layout", f"a {kind} uses {low}-{high} of this remote's buttons")
+    optional = {}
+    if "reading" in raw:
+        if not isinstance(raw["reading"], str) or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", raw["reading"]):
+            raise ModelError("invalid_layout", "invalid reading")
+        optional["reading"] = raw["reading"]
+    if "attribute" in raw:
+        if not isinstance(raw["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", raw["attribute"]):
+            raise ModelError("invalid_layout", "invalid attribute")
+        optional["attribute"] = raw["attribute"]
     return {
+        **optional,
         "id": widget_id,
         "type": kind,
         "x": x,

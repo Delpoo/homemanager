@@ -131,6 +131,7 @@ export interface Device {
     remoteId?: string | null;
     /** The device's controls, shown in its panel (V2, optional). */
     controls?: DeviceControl[];
+    layout?: import('../model/control-layout.js').ControlPiece[];
     /** Control a tap runs; null opens the panel; absent keeps primaryAction (V2, optional). */
     tap?: import('../model/gestures.js').GestureBinding;
     hold?: import('../model/gestures.js').GestureBinding;

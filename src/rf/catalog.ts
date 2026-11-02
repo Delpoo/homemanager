@@ -48,6 +48,12 @@ export function widgetLabel(type: WidgetType): string {
     updown: t('Subir / bajar'),
     steps: t('Deslizador por pasos'),
     modes: t('Selector'),
+    cycle: t('Ciclo'),
+    slider: t('Deslizador'),
+    indicator: t('Indicador de valor'),
+    title: t('Título'),
+    separator: t('Separador'),
+    control: t('Control existente'),
   };
   return labels[type];
 }
@@ -59,6 +65,12 @@ export function widgetHelp(type: WidgetType): string {
     updown: t('Dos botones juntos: bajar y subir.'),
     steps: t('Una barra de 2 a 12 pasos, cada uno con su botón: velocidades, niveles.'),
     modes: t('De 2 a 8 opciones con nombre, cada una con su botón: tonos, modos.'),
+    cycle: t('Cada toque envía el siguiente paso.'),
+    slider: t('Envía el paso elegido al soltar.'),
+    indicator: t('Muestra una lectura, sin enviar comandos.'),
+    title: t('Texto para organizar el control.'),
+    separator: t('Espacio entre piezas.'),
+    control: t('Conserva un control existente con todos sus pasos.'),
   };
   return help[type];
 }
