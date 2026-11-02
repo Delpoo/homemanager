@@ -35,3 +35,29 @@ test('modules are independent, preview immediately, keep data and undo removal',
     )
     .toBe('energy');
 });
+
+test('tap and hold are independently editable, keyboard hold works and context menu preserves control access', async ({
+  page,
+}) => {
+  await edit(page);
+  await editor(page).locator('#module-gestures > summary').click();
+  await editor(page).locator('[data-gesture=tap]').selectOption('@screen');
+  await editor(page).locator('[data-gesture=hold]').selectOption('@none');
+  await expect
+    .poll(() =>
+      card(page).evaluate(c => c.getDraftConfiguration().catalog.devices.find(d => d.id === 'fan').bindings.hold),
+    )
+    .toEqual({ action: 'none' });
+  await editor(page).getByRole('button', { name: 'Listo', exact: true }).click();
+  // The synthetic fixture keeps the draft in memory; no Home Assistant is contacted.
+  await card(page).evaluate(c => {
+    c.editing = false;
+    c.render();
+  });
+  const marker = card(page).locator('[data-id=fan] .primary');
+  await marker.focus();
+  await page.keyboard.press('Shift+Enter');
+  await expect.poll(() => card(page).evaluate(c => c.feed.log.entries.at(-1)?.message)).toBe('Sin acción configurada');
+  await marker.click({ button: 'right' });
+  await expect(page.locator('homemanager-task-screen')).not.toHaveCount(0);
+});

@@ -451,9 +451,25 @@
                 },
                 {
                   "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/gestureAction"
                 }
               ],
               "$comment": "Control (button or cycle) a tap on the symbol runs; null opens the panel. Absent: primaryAction, as before."
+            },
+            "hold": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/deviceId"
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/gestureAction"
+                }
+              ]
             }
           },
           "allOf": [
@@ -486,6 +502,43 @@
           "$ref": "#/$defs/state"
         }
       }
+    },
+    "gestureAction": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "enum": [
+                "screen",
+                "panel",
+                "native",
+                "none"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "controlId"
+          ],
+          "properties": {
+            "action": {
+              "const": "control"
+            },
+            "controlId": {
+              "$ref": "#/$defs/deviceId"
+            }
+          }
+        }
+      ]
     }
   },
   "$comment": "Semantic validation must additionally reject duplicate device IDs, roomId values not declared in configuration.rooms, non-finite numbers in in-memory input, unsafe object keys, invalid or unresolved HA references and unsafe icon content. No real household data belongs in the public repository."

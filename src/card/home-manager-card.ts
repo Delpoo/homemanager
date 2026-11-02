@@ -410,12 +410,7 @@ export class HomeManagerCard extends HTMLElement {
       if (target.closest('.pins')) return;
       const d = this.draft?.catalog.devices.find(item => item.id === id);
       if (!d) return;
-      const tap =
-        symbolSpec(d, this._hass, Date.now(), this.runtime.states[d.id], this.feed.alertContext).tap === 'control'
-          ? tapControl(d)
-          : null;
-      if (!tap) this.showDetails(id, target);
-      else void this.runStep(d, tap, this.tapStep(d, tap), target);
+      this.runGesture(id, 'tap', target);
       return;
     }
     const room = target.dataset.room as RoomId | undefined;
@@ -560,6 +555,7 @@ export class HomeManagerCard extends HTMLElement {
   /** The RF remote to draw in a device's panel: chosen in the editor, or the
    * remote behind an RF entity of HomeManager. */
   remoteOf: OmitThisParameter<typeof commands.remoteOf> = commands.remoteOf.bind(this);
+  runGesture: OmitThisParameter<typeof commands.runGesture> = commands.runGesture.bind(this);
   showDetails: OmitThisParameter<typeof commands.showDetails> = commands.showDetails.bind(this);
   toggleEdit: OmitThisParameter<typeof editing.toggleEdit> = editing.toggleEdit.bind(this);
   mountEditor: OmitThisParameter<typeof editing.mountEditor> = editing.mountEditor.bind(this);

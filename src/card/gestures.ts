@@ -37,7 +37,7 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
         timer: setTimeout(() => {
           this.longPress = undefined;
           this.suppressClick = { id, until: Date.now() + 1500 };
-          this.showDetails(id, marker.querySelector('button.primary') ?? this.viewport, true);
+          this.runGesture(id, 'hold', marker.querySelector('button.primary') ?? this.viewport);
         }, LONG_PRESS_MS),
       };
       return;
@@ -177,7 +177,7 @@ export function contextMenu(this: HomeManagerCard, event: MouseEvent) {
   // On touch screens the long press already opened it.
   const held = this.suppressClick;
   if (held && held.id === marker.dataset.id && Date.now() < held.until) return;
-  this.showDetails(marker.dataset.id!, marker.querySelector('button.primary') ?? this.viewport);
+  this.showDetails(marker.dataset.id!, marker.querySelector('button.primary') ?? this.viewport, true);
 }
 
 export function startPlacing(this: HomeManagerCard, id: string) {
@@ -297,7 +297,8 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     ((event.key === 'Enter' && event.shiftKey) || event.key === 'ContextMenu')
   ) {
     event.preventDefault();
-    this.showDetails((held as HTMLElement).dataset.id!, target);
+    if (event.key === 'ContextMenu') this.showDetails((held as HTMLElement).dataset.id!, target, true);
+    else this.runGesture((held as HTMLElement).dataset.id!, 'hold', target);
     return;
   }
   if (this.editing && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {

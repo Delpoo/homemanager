@@ -658,3 +658,18 @@ Object.assign(en, {
   'Elegí hasta tres atajos en Control.': 'Choose up to three shortcuts in Control.',
   'Configurar en Control': 'Configure in Control',
 });
+
+Object.assign(en, {
+  'Abrir el control completo': 'Open full control',
+  'Abrir su pantalla': 'Open its screen',
+  'Abrir panel nativo': 'Open native panel',
+  Nada: 'Nothing',
+  'Al mantener': 'On hold',
+  'Mayús+Enter ejecuta mantener. El menú contextual siempre abre el control.':
+    'Shift+Enter runs the hold action. The context menu always opens the control.',
+  'La acción ya no existe. Se abre su pantalla.': 'The action no longer exists. Opening its screen.',
+  'Sin acción configurada': 'No action configured',
+  'Control abierto': 'Control opened',
+});
+
+Object.assign(en, { 'Pantalla del dispositivo': 'Device screen' });

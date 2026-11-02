@@ -1,3 +1,4 @@
+import { resolveGesture } from '../model/gestures.js';
 import { commandLabel } from '../model/control-capabilities.js';
 import { archetypeOf } from '../model/archetype.js';
 import { t } from '../i18n/index.js';
@@ -193,12 +194,63 @@ export function remoteOf(this: HomeManagerCard, d: Device): string | null {
   return d.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
 }
 
+/** Every gesture keeps an accessible response, even a deliberate no-op. */
+export function runGesture(this: HomeManagerCard, id: string, gesture: 'tap' | 'hold', anchor: HTMLElement) {
+  if (this.editing) return;
+  const device = this.draft?.catalog.devices.find(d => d.id === id);
+  if (!device) return;
+  let choice = resolveGesture(device, gesture, this._hass);
+  if (choice.action === 'control') {
+    const controlId = choice.controlId;
+    const control = controlsOf(device).find(c => c.id === controlId);
+    if (!control || control.steps.some(s => !this.draft?.actions[s.actionId]))
+      choice = { action: 'screen', missing: true };
+    else if (['button', 'cycle'].includes(control.type)) {
+      void this.runStep(device, control, this.tapStep(device, control), anchor);
+      return;
+    } else choice = { action: 'panel' };
+  }
+  if (choice.action === 'legacy') {
+    void this.executeAction(choice.actionId, id).catch(() => this.showDetails(id, anchor));
+    return;
+  }
+  const message =
+    'missing' in choice && choice.missing
+      ? t('La acción ya no existe. Se abre su pantalla.')
+      : choice.action === 'none'
+        ? t('Sin acción configurada')
+        : choice.action === 'screen'
+          ? t('Pantalla del dispositivo')
+          : t('Control abierto');
+  this.feed.log.record({
+    type: 'state',
+    at: Date.now(),
+    deviceId: id,
+    deviceLabel: device.display.label,
+    entityId: 'gesture',
+    value: '',
+    message,
+  });
+  this.updateShell();
+  if ('missing' in choice && choice.missing) this.status(message);
+  if (choice.action === 'none') return;
+  if (choice.action === 'screen' && this.insights) {
+    this.insights.openDevice(id, anchor);
+    return;
+  }
+  this.showDetails(id, anchor, device.bindings[gesture] !== undefined && device.bindings[gesture] !== null);
+}
+
 export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTMLElement, held = false) {
   const d = this.draft?.catalog.devices.find(d => d.id === id);
   if (!d || !this.draft) return;
   this.selected = id;
   this.panel?.close();
-  if (['sensor', 'meter', 'equipment', 'infrastructure'].includes(archetypeOf(d, this._hass)) && this.insights) {
+  if (
+    ['sensor', 'meter', 'equipment', 'infrastructure'].includes(archetypeOf(d, this._hass)) &&
+    this.insights &&
+    !held
+  ) {
     this.insights.openDevice(id, returnFocus);
     return;
   }

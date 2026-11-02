@@ -63,6 +63,7 @@ import { bindingIssues, deviceCatalog, pickerReadings, type DeviceSelection } fr
 import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
 import { MODULES, MODULE_LABELS, modulesOf, moduleChoices, type ModuleId } from '../model/modules.js';
+import type { GestureBinding } from '../model/gestures.js';
 import { presentationOf } from '../model/archetype.js';
 import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
@@ -886,7 +887,7 @@ export class HomeManagerEditor extends HTMLElement {
       <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
       <div class="size-host">${renderSymbolSize(this.sheet!.size)}</div><label>${esc(t('Capa'))}<select name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label></div>
 
-      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', '<homemanager-alert-editor></homemanager-alert-editor>', device)}${this.moduleBlock('gestures', `<p>${esc(t('Al tocar'))}: ${esc(t('Configurar en Control'))}</p>`, device)}</form>
+      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', '<homemanager-alert-editor></homemanager-alert-editor>', device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
       ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', `<p>${esc(t('Elegí hasta tres atajos en Control.'))}</p>`, device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
@@ -980,6 +981,27 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** Sheet model of the device being edited (controls, tap, pins, size). */
   private sheet?: SheetModel;
+  private gesturesForm(): string {
+    const value = (binding: GestureBinding | undefined) =>
+      typeof binding === 'object' && binding
+        ? '@' + binding.action + (binding.controlId ? ':' + binding.controlId : '')
+        : (binding ?? '');
+    const select = (gesture: 'tap' | 'hold', label: string, binding: GestureBinding | undefined) =>
+      `<label class="field">${esc(t(label))}<select data-gesture="${gesture}" aria-label="${esc(t(label))}">${option('', t('Abrir el control completo'), value(binding))}${[
+        ['@screen', 'Abrir su pantalla'],
+        ['@native', 'Abrir panel nativo'],
+        ['@none', 'Nada'],
+      ]
+        .map(([id, title]) => option(id, t(title), value(binding)))
+        .join(
+          '',
+        )}${this.sheet!.controls.map(c => option(c.id, c.label, value(binding).replace('@control:', ''))).join('')}</select></label>`;
+    return (
+      select('tap', 'Al tocar', this.sheet?.tapAction ?? this.sheet?.tap) +
+      select('hold', 'Al mantener', this.sheet?.hold) +
+      `<p class="note">${esc(t('Mayús+Enter ejecuta mantener. El menú contextual siempre abre el control.'))}</p>`
+    );
+  }
   private controlsSection(): string {
     return renderControlsEditor(this.sheet!, this.suggestions(), this.actionChoices());
   }
@@ -1003,6 +1025,9 @@ export class HomeManagerEditor extends HTMLElement {
     const host = this.root.querySelector<HTMLElement>('.ctl-host');
     if (!host || !this.sheet) return;
     host.innerHTML = this.controlsSection();
+    const gestures = this.root.querySelector('.gestures-host');
+    if (gestures) gestures.innerHTML = this.gesturesForm();
+    this.updateModules();
     const sizes = this.root.querySelector('.size-host');
     if (sizes) sizes.innerHTML = renderSymbolSize(this.sheet.size);
     this.wirePickers();
@@ -1635,6 +1660,21 @@ export class HomeManagerEditor extends HTMLElement {
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (!this.config) return;
+    if (target.dataset.gesture && this.sheet) {
+      const selected = target.value;
+      const binding: GestureBinding = selected.startsWith('@')
+        ? { action: selected.slice(1) as 'screen' | 'native' | 'none' }
+        : selected || null;
+      if (target.dataset.gesture === 'hold') this.sheet.hold = binding;
+      else if (typeof binding === 'object' && binding) {
+        this.sheet.tapAction = binding;
+        this.sheet.tap = null;
+      } else {
+        delete this.sheet.tapAction;
+        this.sheet.tap = binding;
+      }
+      return;
+    }
     if (target.hasAttribute('data-room-icon')) {
       const index = target.dataset.roomIcon!;
       const hidden = this.root.querySelector<HTMLInputElement>(`[name="room-icon-${index}"]`);
@@ -1719,7 +1759,12 @@ export class HomeManagerEditor extends HTMLElement {
       previous &&
       entityId === (previous.bindings.entityId ?? '') &&
       JSON.stringify(this.sheet?.controls) ===
-        JSON.stringify(sheetFromDevice(previous, previous.id, this.configuration).controls);
+        JSON.stringify(sheetFromDevice(previous, previous.id, this.configuration).controls) &&
+      JSON.stringify(this.sheet?.tapAction ?? this.sheet?.tap) ===
+        JSON.stringify(
+          sheetFromDevice(previous, previous.id, this.configuration).tapAction ??
+            sheetFromDevice(previous, previous.id, this.configuration).tap,
+        );
     const suggested = entityId ? suggestPresentation(entityId, this._hass?.states[entityId]).kind : '';
     // The technical kind is no longer chosen: kept, else suggested by the entity or the category.
     const kind = (value(data, 'kind') ||
@@ -1764,7 +1809,8 @@ export class HomeManagerEditor extends HTMLElement {
               ...(previous.bindings.controls ? { controls: clone(previous.bindings.controls) } : {}),
               ...(previous.bindings.tap !== undefined ? { tap: previous.bindings.tap } : {}),
             }
-          : { ...(held.controls.length ? { controls: held.controls } : {}), tap: held.tap }),
+          : { ...(held.controls.length ? { controls: held.controls } : {}), tap: this.sheet?.tapAction ?? held.tap }),
+        ...(this.sheet?.hold !== undefined ? { hold: structuredClone(this.sheet.hold) } : {}),
       },
       state: { value: 'unknown', confidence: 'unknown' },
     };

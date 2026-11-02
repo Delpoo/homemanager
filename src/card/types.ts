@@ -56,7 +56,8 @@ export interface Device {
     /** The device's controls, shown in its panel (V2, optional). */
     controls?: DeviceControl[];
     /** Control a tap runs; null opens the panel; absent keeps primaryAction (V2, optional). */
-    tap?: string | null;
+    tap?: import('../model/gestures.js').GestureBinding;
+    hold?: import('../model/gestures.js').GestureBinding;
   };
   state: { value: string; confidence: Confidence };
 }
