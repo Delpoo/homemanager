@@ -109,6 +109,7 @@ jobs:
           npm run build
           npx playwright install --with-deps chromium
           python -m pip install -r requirements_test.txt
+          python tests/e2e/install_runtime_requirements.py
       - name: Start fresh loopback-only Home Assistant
         env:
           HM_E2E_HOST: 127.0.0.1
