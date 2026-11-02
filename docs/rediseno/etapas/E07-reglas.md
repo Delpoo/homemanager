@@ -74,3 +74,7 @@ Los avisos configurados, la duración con su lógica de observación (`observeAl
 - Ocho criterios cotejados; se conserva también el resaltado anterior como fila visible y desactivable. Las reglas sólo indicadoras tienen insignia sin sumarse a alertas y no fuerzan resaltado si se desactiva. Desconectar descarta evidencia temporal antes de reconectar, con regresión específica. Fuentes globales incluidas en la observación del adaptador.
 - Corregidos contraste del tema oscuro y desplazamiento propio de la lista durante revisión de capturas. Sin símbolos, el aviso sigue visible sin ofrecer un encuadre inexistente. Campos opcionales cubiertos por los tres validadores.
 - E07 en revisión: ocho filas conservadas. Matriz HA en CI, no ejecutada localmente por faltar pytest; sin E2E nuevo ni prueba física.
+
+### 2026-11-02 — Codex — compatibilidad de avisos anteriores en PR #55
+- Promover varios avisos del mismo símbolo asigna IDs únicos incluso cuando la lista anterior se acorta; cada aviso se reemplaza una sola vez. Promover un aviso binario conserva la supresión de la alarma base que ya reemplazaba, evitando que un aviso de nivel warning reaparezca también como crítico. Se conserva la posibilidad de reactivar esa base en la lista.
+- Caso puro específico aprobado sin modificar la entrada; edición y deshacer de avisos anteriores repetidos en navegador. Corrección aislada para conservar funciones; sin E09/E10.
