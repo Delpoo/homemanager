@@ -219,4 +219,5 @@ export class PlanViewsEditor extends HTMLElement {
     }
   }
 }
-customElements.define('homemanager-plan-views-editor', PlanViewsEditor);
+if (!customElements.get('homemanager-plan-views-editor'))
+  customElements.define('homemanager-plan-views-editor', PlanViewsEditor);

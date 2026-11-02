@@ -144,4 +144,5 @@ export class NowPanelEditor extends HTMLElement {
     );
   }
 }
-customElements.define('homemanager-now-panel-editor', NowPanelEditor);
+if (!customElements.get('homemanager-now-panel-editor'))
+  customElements.define('homemanager-now-panel-editor', NowPanelEditor);
