@@ -120,4 +120,10 @@ ${topBarStyles}${roomRailStyles}${layerStyles}
 @media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
 ${insightsLayoutStyles}
 ${editorDockStyles}
+
+.marker[data-custom-color]{--hm-symbol-color:var(--hm-symbol-light)}
+:host([data-theme=dark]) .marker[data-custom-color]{--hm-symbol-color:var(--hm-symbol-dark)}
+@media(prefers-color-scheme:dark){:host(:not([data-theme=light])) .marker[data-custom-color]{--hm-symbol-color:var(--hm-symbol-dark)}}
+.marker[data-custom-color] .primary .symbol-body,.marker[data-custom-color] .primary .symbol-body ha-icon{color:var(--hm-symbol-color)}
+.marker[data-custom-color] .symbol-ring{background:conic-gradient(var(--hm-symbol-color) calc(var(--level)*1turn),transparent 0)}
 `;

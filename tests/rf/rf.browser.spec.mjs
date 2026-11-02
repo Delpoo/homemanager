@@ -9,7 +9,10 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   const rf = await setup(page);
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
   await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
-  await rf.getByRole('button', { name: 'Ventilador de techo', exact: true }).click();
+  const icons = rf.locator('homemanager-icon-picker').first();
+  await icons.locator('.trigger').click();
+  await icons.getByRole('searchbox').fill('ceiling-fan');
+  await icons.getByRole('option', { name: 'ceiling-fan', exact: true }).click();
   expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();

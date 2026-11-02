@@ -40,14 +40,14 @@ export function showActivity(this: HomeManagerCard): void {
 }
 export function showAlerts(this: HomeManagerCard): void {
   const alerts = this.feed.alerts;
-  if (alerts.length === 1) {
+  if (alerts.length === 1 && alerts[0].deviceId) {
     focusAlert.call(this, alerts[0].deviceId);
     return;
   }
   this.dialog(
     t('Alertas'),
     alerts.length
-      ? `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}">${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`
+      ? `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}"${alert.deviceId ? '' : ' disabled'}>${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`
       : `<p>${e(t('Sin alertas'))}</p>`,
     [{ label: t('Cerrar'), action: () => {} }],
   );

@@ -1,6 +1,6 @@
+import { MDI_NAMES } from './icon-names.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
-import { tokens } from './theme.js';
 
 /**
  * Icon chooser: a button that shows the icon and opens a searchable, scrollable
@@ -155,23 +155,111 @@ const ICONS: [string, string][] = [
   ['heart', 'corazon'],
   ['shape', 'forma generico'],
 ];
-const fold = (value: string) => value.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const fold = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+const SPANISH: Record<string, string> = {
+  cerradura: 'lock',
+  candado: 'lock',
+  puerta: 'door',
+  ventana: 'window',
+  luz: 'light',
+  bombilla: 'lightbulb',
+  lampara: 'lamp',
+  ventilador: 'fan',
+  cortina: 'curtain',
+  persiana: 'blinds',
+  agua: 'water',
+  fuego: 'fire',
+  humo: 'smoke',
+  bateria: 'battery',
+  energia: 'power',
+  enchufe: 'plug',
+  planta: 'plant',
+  flor: 'flower',
+  hoja: 'leaf',
+  arbol: 'tree',
+  temperatura: 'thermometer',
+  humedad: 'water',
+  sol: 'sun',
+  luna: 'moon',
+  nube: 'cloud',
+  lluvia: 'rain',
+  casa: 'home',
+  cocina: 'stove',
+  cama: 'bed',
+  mesa: 'table',
+  silla: 'chair',
+  auto: 'car',
+  bicicleta: 'bicycle',
+  perro: 'dog',
+  gato: 'cat',
+  musica: 'music',
+  sonido: 'volume',
+  camara: 'camera',
+  reloj: 'clock',
+  calendario: 'calendar',
+  flecha: 'arrow',
+  arriba: 'up',
+  abajo: 'down',
+  izquierda: 'left',
+  derecha: 'right',
+  alarma: 'alarm',
+  sensor: 'sensor',
+  control: 'remote',
+  televisor: 'television',
+  computadora: 'computer',
+  telefono: 'phone',
+  libro: 'book',
+  escuela: 'school',
+  maleta: 'bag',
+  corazon: 'heart',
+  estrella: 'star',
+  playa: 'beach',
+  avion: 'airplane',
+  cohete: 'rocket',
+  nave: 'rocket',
+  barco: 'boat',
+  tren: 'train',
+  tijera: 'scissors',
+  seguridad: 'shield',
+  diente: 'tooth',
+  cafe: 'coffee',
+  manzana: 'apple',
+  comida: 'food',
+  ropa: 'shirt',
+  lavadora: 'washing',
+  ducha: 'shower',
+  bano: 'toilet',
+  oficina: 'office',
+  jardin: 'flower',
+  hospital: 'hospital',
+  medico: 'doctor',
+  dinero: 'cash',
+  moneda: 'currency',
+  busqueda: 'magnify',
+  buscar: 'magnify',
+};
+const INDEX: [string, string][] = MDI_NAMES.map(name => [`mdi:${name}`, name]);
 const VALID = /^[a-z0-9-]+:[a-z0-9-]+$/;
 
 /** Icons matching a query; extra names (for example icons of entities) join the list. */
 export function searchIcons(query: string, extra: string[] = []): string[] {
-  const words = fold(query.replace(/^mdi:/, '')).split(/\s+/).filter(Boolean);
+  const words = fold(query.replace(/^mdi:/i, '')).split(/\s+/).filter(Boolean);
   const seen = new Set<string>();
   const all: [string, string][] = [
     ...ICONS.map(([name, words]) => [`mdi:${name}`, `${name} ${words}`] as [string, string]),
     ...extra.filter(icon => VALID.test(icon)).map(icon => [icon, icon] as [string, string]),
+    ...INDEX,
   ];
   const found: string[] = [];
   for (const [icon, haystack] of all) {
     if (seen.has(icon)) continue;
     seen.add(icon);
     const text = fold(haystack);
-    if (words.every(word => text.includes(word))) found.push(icon);
+    if (words.every(word => text.includes(word) || (!!SPANISH[word] && text.includes(SPANISH[word])))) found.push(icon);
   }
   return found;
 }
@@ -181,6 +269,7 @@ class IconPicker extends HTMLElement {
   private root = this.attachShadow({ mode: 'open' });
   /** Icons of the session's entities, offered after the built-in ones. */
   extra: string[] = [];
+  private limit = 96;
   get value(): string {
     return this.getAttribute('value') ?? '';
   }
@@ -191,7 +280,7 @@ class IconPicker extends HTMLElement {
     if (this.root.childElementCount) return;
     const label = this.getAttribute('label') ?? t('Icono');
     const wide = this.hasAttribute('wide');
-    this.root.innerHTML = `<style>${tokens}:host{display:inline-block}${wide ? ':host{display:block}' : ''}
+    this.root.innerHTML = `<style>:host{display:inline-block}[hidden]{display:none!important}${wide ? ':host{display:block}' : ''}
 button{font:inherit;color:inherit;cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;min-height:44px}
 .trigger{display:flex;align-items:center;gap:8px;width:100%;padding:0 10px;text-align:left}
 .trigger.small{width:44px;padding:0;justify-content:center}
@@ -201,17 +290,18 @@ button{font:inherit;color:inherit;cursor:pointer;background:var(--hm-bg);border:
 input{font:inherit;color:inherit;width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px;box-sizing:border-box}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:4px;overflow:auto;min-height:0}
 .grid button{min-height:48px;display:grid;place-items:center;padding:0}
-.grid button[aria-pressed=true]{border-color:var(--hm-accent);box-shadow:0 0 0 2px var(--hm-accent) inset}
+.grid button[aria-selected=true]{border-color:var(--hm-accent);box-shadow:0 0 0 2px var(--hm-accent) inset}
 .grid ha-icon{--mdc-icon-size:24px}
 .none{font-size:13px;color:var(--hm-muted);padding:8px}
 button:focus-visible,input:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}</style>
 <button type="button" class="trigger${wide ? '' : ' small'}" aria-haspopup="dialog" aria-label="${e(label)}" title="${e(label)}"><ha-icon></ha-icon>${wide ? '<span class="name"></span>' : ''}</button>
-<div popover="auto" role="dialog" aria-label="${e(label)}"><input type="search" aria-label="${e(t('Buscar icono'))}" placeholder="${e(t('Buscar: luz, ventilador, mdi:…'))}"><div class="grid" role="listbox" aria-label="${e(t('Iconos'))}"></div></div>`;
+<div popover="auto" role="dialog" aria-label="${e(label)}"><input type="search" aria-label="${e(t('Buscar icono'))}" placeholder="${e(t('Buscar: luz, ventilador, mdi:…'))}"><div class="grid" role="listbox" aria-label="${e(t('Iconos'))}"></div><button type="button" class="more">${e(t('Mostrar más iconos'))}</button><small class="count" role="status"></small>${this.hasAttribute('clearable') ? `<button type="button" class="clear">${e(t('Sin icono'))}</button>` : ''}</div>`;
     const trigger = this.root.querySelector<HTMLButtonElement>('.trigger')!;
     const panel = this.root.querySelector<HTMLElement>('[popover]')!;
     const search = this.root.querySelector<HTMLInputElement>('input')!;
     trigger.addEventListener('click', () => {
       search.value = '';
+      this.limit = 96;
       this.paint('');
       panel.showPopover?.();
       const anchor = trigger.getBoundingClientRect(),
@@ -220,7 +310,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--hm-accent);outl
       panel.style.top = `${anchor.bottom + box.height + 12 <= innerHeight ? anchor.bottom + 6 : Math.max(12, anchor.top - box.height - 6)}px`;
       search.focus();
     });
-    search.addEventListener('input', () => this.paint(search.value));
+    search.addEventListener('input', () => {
+      this.limit = 96;
+      this.paint(search.value);
+    });
+    this.root.querySelector('.clear')?.addEventListener('click', () => this.choose(''));
+    this.root.querySelector('.more')!.addEventListener('click', () => {
+      this.limit += 96;
+      this.paint(search.value);
+    });
     search.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -249,18 +347,26 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--hm-accent);outl
     if (name) name.textContent = t('Cambiar icono');
   }
   private paint(query: string): void {
-    const icons = searchIcons(query, this.extra);
+    const icons = searchIcons(query, [this.value, ...this.extra]);
     const typed = query.trim();
+    const manual = VALID.test(typed) ? typed : /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(typed) ? `mdi:${typed}` : null;
     // A full name typed by hand is offered even if it is not in the list.
-    if (VALID.test(typed) && !icons.includes(typed)) icons.unshift(typed);
+    if (manual && !icons.includes(manual) && icons.length === 0) icons.push(manual);
     this.root.querySelector('.grid')!.innerHTML = icons.length
       ? icons
+          .slice(0, this.limit)
           .map(
             icon =>
-              `<button type="button" role="option" data-icon="${e(icon)}" aria-pressed="${icon === this.value}" aria-label="${e(icon)}" title="${e(icon)}"><ha-icon icon="${e(icon)}"></ha-icon></button>`,
+              `<button type="button" role="option" data-icon="${e(icon)}" aria-selected="${icon === this.value}" aria-label="${e(icon.replace(/^[^:]+:/, ''))}" title="${e(icon.replace(/^[^:]+:/, ''))}"><ha-icon icon="${e(icon)}"></ha-icon></button>`,
           )
           .join('')
-      : `<p class="none">${e(t('Sin coincidencias. Escribí el nombre completo, p. ej. mdi:sofa.'))}</p>`;
+      : `<p class="none">${e(t('Sin coincidencias. Escribí otro nombre.'))}</p>`;
+    const more = this.root.querySelector<HTMLButtonElement>('.more')!;
+    more.hidden = this.limit >= icons.length;
+    this.root.querySelector('.count')!.textContent = t('{shown} de {total} iconos', {
+      shown: Math.min(this.limit, icons.length),
+      total: icons.length,
+    });
   }
   private choose(icon: string): void {
     this.value = icon;

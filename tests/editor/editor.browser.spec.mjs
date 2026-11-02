@@ -64,12 +64,11 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await button(page, 'Agregar dispositivo').click();
   await openDeviceSections(page, ['device-category', 'device-options']);
   await field(page, 'Nombre del dispositivo').fill('Test portátil');
-  // The category replaces the technical kind; a chosen one survives linking an entity.
-  await editor(page).getByRole('group', { name: 'Categoría' }).getByRole('radio', { name: 'Equipo' }).check();
+  // No category is written: the initial binding proposes independent modules.
   // The icon chooser searches by Spanish words too.
   await button(page, 'Icono del dispositivo').click();
   await editor(page).getByRole('searchbox', { name: 'Buscar icono' }).fill('purificador');
-  await editor(page).getByRole('option', { name: 'mdi:air-purifier', exact: true }).click();
+  await editor(page).getByRole('option', { name: 'air-purifier', exact: true }).click();
   await field(page, 'Habitación del dispositivo').selectOption('office');
   await field(page, 'Movilidad del dispositivo').selectOption('portable');
   await field(page, 'Posición X').fill('0.61');
@@ -80,7 +79,7 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   expect(first).toMatchObject({
     roomId: 'office',
     kind: 'fan',
-    display: { category: 'equipment' },
+    display: { icon: 'mdi:air-purifier' },
     mobility: 'portable',
     position: { x: 0.61, y: 0.73 },
     bindings: { entityId: 'fan.not_configured_yet', primaryAction: null, advancedPopupId: null },

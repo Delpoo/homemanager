@@ -255,13 +255,13 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
-  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote', 'module-gestures']) {
     const section = editor.locator('#' + id);
     if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
       await section.locator(':scope > summary').click();
   }
   // The 0.5 primary action shows up as a visible control that the tap runs.
-  await expect(editor.getByLabel('Al tocar el símbolo', { exact: true })).toHaveValue('tap');
+  await expect(editor.getByLabel('Al tocar', { exact: true })).toHaveValue('tap');
   await editor.getByRole('button', { name: 'Ciclo', exact: true }).click();
   // A new cycle starts filled in with what the entity offers.
   await expect(editor.getByLabel('Ciclo: acción de Paso 1', { exact: true })).toHaveValue(
@@ -270,7 +270,7 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await expect(editor.getByLabel('Ciclo: acción de Paso 2', { exact: true })).toHaveValue(
     'new:light.turn_off:light.synthetic_light',
   );
-  await editor.getByLabel('Al tocar el símbolo', { exact: true }).selectOption({ label: 'Ciclo' });
+  await editor.getByLabel('Al tocar', { exact: true }).selectOption({ label: 'Ciclo' });
   // With an RF remote chosen for the device, its buttons are suggested too.
   await editor.getByText('Más opciones', { exact: true }).click();
   await editor.getByRole('combobox', { name: 'Control RF en el panel' }).selectOption('techo');
@@ -319,7 +319,7 @@ test('a control left without its actions is reported instead of being saved half
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
-  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote', 'module-gestures']) {
     const section = editor.locator('#' + id);
     if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
       await section.locator(':scope > summary').click();
@@ -337,7 +337,7 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   await button(page, 'Editar plano').click();
   await button(page, 'Luz de prueba').click();
   const editor = card(page).locator('homemanager-editor');
-  for (const id of ['device-binding', 'device-controls-section', 'device-remote']) {
+  for (const id of ['device-binding', 'device-controls-section', 'device-remote', 'module-gestures']) {
     const section = editor.locator('#' + id);
     if ((await section.isVisible()) && !(await section.evaluate(node => node.open)))
       await section.locator(':scope > summary').click();
@@ -357,7 +357,7 @@ test('icon and entity choosers offer suggestions with nothing typed, filter whil
   expect(await grid.getByRole('option').count()).toBeGreaterThan(50);
   expect(await grid.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
   await editor.getByRole('searchbox', { name: 'Buscar icono' }).fill('ventilador');
-  await grid.getByRole('option', { name: 'mdi:fan', exact: true }).click();
+  await grid.getByRole('option', { name: 'fan', exact: true }).click();
   await expect(editor.locator('input[name=icon]')).toHaveValue('mdi:fan');
   // Esc on a chooser does not close the whole sheet.
   await editor.getByRole('button', { name: 'Icono del dispositivo', exact: true }).click();

@@ -1,3 +1,4 @@
+import { validColor, symbolTones, readableColor } from './color.js';
 import type { VisualResult } from './visual-rules.js';
 import { activeStateOf, presentationOf } from './archetype.js';
 import { alertsOf, presenceHighlightOf, summarizeAlerts, type AlertContext } from './alerts.js';
@@ -15,11 +16,12 @@ import type {
 } from './types.js';
 
 export interface SymbolSpec {
+  color?: { light: string; dark: string };
   archetype: Archetype;
   body: { show: DisplayShow; icon: string | null; value: string | null; fullValue: string | null };
   ring: { active: true; level: number | null; tone: 'active' | 'cool' } | null;
   highlight: boolean;
-  badge: { count: number; level: AlertLevel } | null;
+  badge: { count: number; level: AlertLevel | 'indicator'; color?: string } | null;
   health: 'unavailable' | 'estimated' | 'unknown' | null;
   tap: 'control' | 'panel' | 'remote';
   hold: 'panel' | null;
@@ -82,7 +84,7 @@ export function symbolSpec(
     show !== 'icon' ? `${formattedValue(entity, hass)}${extra ? ` · ${formattedValue(extra, hass)}` : ''}` : null;
   const max = extra ? 25 : 9;
   const bodyValue = fullValue && fullValue.length > max ? `${fullValue.slice(0, max - 1)}…` : fullValue;
-  const ringAllowed = archetype === 'actuator' || archetype === 'equipment';
+  const ringAllowed = device.display.modules !== undefined || archetype === 'actuator' || archetype === 'equipment';
   const confidence = runtime?.confidence;
   // A sent/unknown command never manufactures activity from the requested action.
   const active = available && !unknown && activeStateOf(device, live) && confidence !== 'error';
@@ -99,12 +101,22 @@ export function symbolSpec(
     device.bindings.tap !== undefined ? device.bindings.tap !== null : !!device.bindings.primaryAction;
   return {
     archetype,
+    ...(validColor(device.display.color) ? { color: symbolTones(device.display.color) } : {}),
     body: { show, icon: show === 'value' ? null : icon, value: bodyValue, fullValue },
     ring: ringAllowed && active ? { active: true, level, tone: cool ? 'cool' : 'active' } : null,
-    highlight:
-      presenceHighlightOf(device, hass) ||
-      effects.some(result => result.rule.highlight === true || result.rule.level === 'indicator'),
-    badge: alerts.length ? summarizeAlerts(alerts) : null,
+    highlight: presenceHighlightOf(device, hass) || effects.some(result => result.rule.highlight === true),
+    badge: alerts.length
+      ? summarizeAlerts(alerts)
+      : effects.some(result => result.rule.level === 'indicator' && result.rule.badge !== false)
+        ? {
+            count: effects.filter(result => result.rule.level === 'indicator' && result.rule.badge !== false).length,
+            level: 'indicator',
+            color: readableColor(
+              effects.find(result => result.rule.level === 'indicator')?.rule.color ?? '#4f7a5a',
+              '#ffffff',
+            ),
+          }
+        : null,
     health,
     tap: archetype === 'remote' ? 'remote' : configuredControl ? 'control' : 'panel',
     hold: ['actuator', 'equipment', 'remote'].includes(archetype) ? 'panel' : null,

@@ -40,6 +40,7 @@ export interface Device {
     layer?: import('../model/types.js').SymbolLayer;
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
+    color?: string;
     disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];

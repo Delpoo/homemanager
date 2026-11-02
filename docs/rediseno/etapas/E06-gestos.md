@@ -61,3 +61,7 @@ Atajos junto al símbolo y sus gestos propios (un deslizador arrastra, no mueve 
 - **Comprobaciones:** pruebas puras de compatibilidad/resolución; dos recorridos de escritorio de módulos/gestos aprobados. Check y matriz de validadores se registran en el cierre del lote.
 - **Falta:** lector y pantalla táctil físicos, auditor independiente; capturas/CI al cerrar lote.
 - **Dónde quedó:** rama `chatgpt/rediseno-lote-2`, commit E06; PR al cierre.
+
+### 2026-11-02 — Codex — cierre del lote 2
+- Siete criterios cotejados; teclado y menú contextual en navegador, supresión de clic y atajos conservados. Referencias nativas ausentes también vuelven a pantalla con aviso. La descripción accesible dice las acciones reales de tocar/mantener. Campos opcionales cubiertos por los 34 casos compartidos de los tres validadores.
+- E06 queda en revisión; cinco filas del inventario, sin afirmar prueba con lector o teléfono físicos. CI del lote en el PR.

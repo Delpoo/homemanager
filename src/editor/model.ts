@@ -114,6 +114,7 @@ export function upsertDevice(
       ...(input.display.category ? { category: input.display.category } : {}),
       ...(input.display.modules ? { modules: [...input.display.modules] } : {}),
       ...(input.display.layer ? { layer: input.display.layer } : {}),
+      ...(input.display.color ? { color: input.display.color } : {}),
       ...(input.display.alerts !== undefined ? { alerts: structuredClone(input.display.alerts) } : {}),
       ...(input.display.highlight !== undefined ? { highlight: input.display.highlight } : {}),
       ...(input.display.disabledBaseRules ? { disabledBaseRules: [...input.display.disabledBaseRules] } : {}),

@@ -4,7 +4,8 @@ import { mkdir } from 'node:fs/promises';
 import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
-const alerts = page => editor(page).locator('homemanager-alert-editor');
+const alerts = page => editor(page).locator('[data-module=rules]');
+const ruleScreen = page => page.locator('homemanager-rules-editor');
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 async function begin(page, label) {
   await openCardMenu(page);
@@ -35,7 +36,7 @@ async function readable(host) {
         if (node.shadowRoot) visit(node.shadowRoot);
       }
     }
-    visit(host.shadowRoot);
+    visit(host.shadowRoot ?? host);
     return out.join(' ');
   });
   expect(text).not.toMatch(/_|\b(?:sensor|binary_sensor|light|switch)\.[a-z0-9_]+\b/);
@@ -44,64 +45,44 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/alerts.html');
   await page.waitForFunction(() => window.alertHarnessReady);
 });
-test('plant rules are explicit, editable, preserved across categories and undone as one draft step', async ({
-  page,
-}) => {
+test('old plant notices move to the unified editor only on explicit save and undo restores them', async ({ page }) => {
   await begin(page, 'Planta de prueba');
   const before = await draft(page);
-  const rules = alerts(page);
-  await expect(rules.getByRole('switch', { name: 'Humedad del suelo', exact: true })).toBeChecked();
-  await expect(rules.getByRole('switch', { name: 'Luz', exact: true })).not.toBeChecked();
-  await expect(rules).toContainText('menos de 800 lx · durante 3 días · aviso');
-  await rules.getByRole('button', { name: 'Editar aviso de Humedad del suelo', exact: true }).click();
-  await rules.locator('[data-rule="0"]').getByLabel('Menos de', { exact: true }).fill('0');
-  await rules.locator('[data-rule="0"]').getByLabel('Más de', { exact: true }).fill('90');
-  await rules.locator('[data-rule="0"]').getByLabel('Durante (minutos)', { exact: true }).fill('5');
-  await editor(page).getByRole('radio', { name: 'Interruptor', exact: true }).check();
-  await expect(rules).toBeHidden();
-  await editor(page).getByRole('radio', { name: 'Planta', exact: true }).check();
-  await expect(rules.locator('[data-rule="0"]').getByLabel('Menos de', { exact: true })).toHaveValue('0');
+  await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
+  const rules = ruleScreen(page);
+  await rules.locator('[data-edit="legacy:plant:0"]').click();
+  await rules.getByLabel('Menos de', { exact: true }).fill('0');
+  await rules.getByLabel('Más de', { exact: true }).fill('90');
+  await rules.getByLabel('Durante (minutos)', { exact: true }).fill('5');
   await readable(rules);
-  await card(page)
-    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
-    .click();
-  const saved = (await draft(page)).catalog.devices.find(device => device.id === 'plant');
-  expect(saved.display.alerts[0]).toEqual({
-    reading: 'sensor.test_soil',
-    below: 0,
-    above: 90,
-    forMinutes: 5,
-    level: 'warning',
-  });
-  expect(saved.display.alerts).toHaveLength(2);
-  await card(page).getByRole('button', { name: 'Deshacer', exact: true }).click();
-  expect((await draft(page)).catalog.devices.find(device => device.id === 'plant')).toEqual(
-    before.catalog.devices.find(device => device.id === 'plant'),
+  await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
+  let config = await draft(page);
+  expect(config.catalog.devices.find(d => d.id === 'plant').display.alerts).toHaveLength(1);
+  expect(config.rules[0]).toMatchObject({ below: 0, above: 90, forMinutes: 5, level: 'warning', symbols: ['plant'] });
+  await rules.getByRole('button', { name: 'Deshacer regla', exact: true }).click();
+  config = await draft(page);
+  expect(config.catalog.devices.find(d => d.id === 'plant')).toEqual(
+    before.catalog.devices.find(d => d.id === 'plant'),
   );
 });
-test('presence highlighting and counting are independent, with no hidden enabled defaults', async ({ page }) => {
+test('presence highlighting and counting remain independent with no numeric defaults', async ({ page }) => {
   await expect(card(page).locator('[data-id=presence]')).toHaveAttribute('data-highlight', 'false');
   await begin(page, 'Puerta de prueba');
-  await expect(alerts(page).getByRole('switch', { name: 'Resaltar al detectar' })).not.toBeChecked();
-  await expect(alerts(page).getByRole('switch', { name: 'Contar como alerta' })).not.toBeChecked();
-  await alerts(page).getByRole('switch', { name: 'Resaltar al detectar' }).check();
-  await card(page)
-    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
-    .click();
+  await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
+  const rules = ruleScreen(page);
+  await rules.locator('[data-toggle="base:presence:highlight"]').check();
   let saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
   expect(saved.display.highlight).toBe(true);
   expect(saved.display.alerts).toBeUndefined();
-  await expect(card(page).locator('[data-id=presence]')).toHaveAttribute('data-highlight', 'true');
-  await expect(card(page).locator('[data-id=presence] .symbol-badge')).toHaveCount(0);
-  await card(page).getByRole('button', { name: 'Puerta de prueba', exact: true }).click();
-  await alerts(page).getByRole('switch', { name: 'Contar como alerta' }).check();
-  await alerts(page).getByLabel('Nivel', { exact: true }).selectOption('warning');
-  await card(page)
-    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
-    .click();
-  saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
-  expect(saved.display.alerts).toEqual([{ reading: 'binary_sensor.test_door', level: 'warning' }]);
-  await expect(card(page).locator('[data-id=presence] .symbol-badge')).toHaveAttribute('data-level', 'warning');
+  await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
+  await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Apertura de prueba');
+  await rules.getByLabel('Lecturas del grupo', { exact: true }).selectOption(['binary_sensor.test_door']);
+  await rules.locator('[name="symbol:presence"]').check();
+  await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
+  const rule = (await draft(page)).rules[0];
+  expect(rule).toMatchObject({ state: 'on', level: 'warning', symbols: ['presence'] });
+  expect(rule.below).toBeUndefined();
+  expect(rule.above).toBeUndefined();
 });
 test('all alert surfaces agree; unknown data cannot claim a resolution', async ({ page }) => {
   await expect(card(page).locator('.alert-pill')).toHaveText('4');
@@ -182,16 +163,18 @@ for (const dark of [false, true])
             exact: true,
           })
           .click();
-      } else await editor(page).getByRole('radio', { name: category, exact: true }).check();
+      }
+      await openDeviceSections(page);
       await expect(alerts(page)).toBeVisible();
       await alerts(page).scrollIntoViewIfNeeded();
       await readable(alerts(page));
       await shot(`inspector-${slug}`);
       if (slug === 'plant') {
-        await alerts(page).getByRole('button', { name: 'Editar aviso de Humedad del suelo', exact: true }).click();
-        await alerts(page).locator('[data-rule="0"] .alert-fields').scrollIntoViewIfNeeded();
+        await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
+        await ruleScreen(page).locator('[data-edit="legacy:plant:0"]').click();
         await shot('inspector-rule');
-        await alerts(page).getByRole('button', { name: 'Editar aviso de Humedad del suelo', exact: true }).click();
+        await page.evaluate(() => window.testHarness.card.editor.closeSurface());
+        await card(page).getByRole('button', { name: 'Planta de prueba', exact: true }).click();
       }
     }
     await page.goto('/docs/vision-mockup.html');

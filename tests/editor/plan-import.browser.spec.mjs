@@ -118,7 +118,7 @@ test('editing rail supports rename, merge and explicit unassignment on removal',
   await dialog.getByLabel('Nombre del espacio', { exact: true }).fill('Sala nueva');
   await dialog.getByRole('button', { name: 'Icono del espacio', exact: true }).click();
   await dialog.getByRole('searchbox', { name: 'Buscar icono' }).fill('sofa');
-  await dialog.getByRole('option', { name: 'mdi:sofa', exact: true }).click();
+  await dialog.getByRole('option', { name: 'sofa', exact: true }).click();
   await dialog.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await draft(page)).rooms.find(room => room.id === 'living').icon).toBe('mdi:sofa');
   await expect(card(page).getByRole('button', { name: 'Encuadrar Sala nueva', exact: true })).toBeVisible();

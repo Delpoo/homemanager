@@ -57,3 +57,12 @@ Sugerir un icono según el nombre, usar cualquier `mdi:` escrito a mano, iconos 
 - [ ] Un plano sin color se ve igual que antes.
 
 ## Registro
+
+### 2026-11-02 — Codex — terminada para revisión
+- **Hecho:** selector único en símbolos, espacios, controles, mando RF, botones aprendidos y widgets; 7447 nombres, búsqueda ES/EN, 96 resultados por tanda, entrada manual y borrado opcional. Nombre visible sin prefijo, valor persistido con mdi:. Color opcional en base, paleta y libre, vista previa y contraste en ambos temas; alertas/salud separadas.
+- **Investigación y decisiones:** [fuentes, compatibilidad, peso y colores](../icon-index.md). Selector compartido propio porque el nativo muestra prefijos y su índice es interno; no se cambian los colores predeterminados. Ajuste sólo del tono dibujado para legibilidad.
+- **Aceptación:** 1 cumplido (mismo componente en todos los puntos; listas RF cortas retiradas); 2 cumplido (lock/cerradura/mdi:lock en navegador, opciones sin prefijo); 3 cumplido (valor no listado en prueba de navegador); 4 cumplido (96 nodos/tanda, apertura medida en captura, aproximadamente 13–16 ms en esta PC); 5 cumplido (cambio en vivo y temas en navegador, contraste 4.5:1 en pruebas); 6 cumplido (modelo conserva insignia crítica y salud independientemente del color); 7 cumplido (sin color no se agrega semántica al símbolo ni cambian sus colores).
+- **Inventario:** F-042 nombre/icono en base; F-100 edición de mandos/botones con selector compartido; F-104 widgets conservan icono opcional; F-110 candidato aprendido conserva sugerencias y rol; F-121 campos opcionales, tres validadores; F-131 búsqueda/manual/fuera de lista/scroll conservados. Seis filas cotejadas; ninguna función retirada.
+- **Comprobaciones:** check, formato, recorridos focales, 34 casos Python aislados y capturas se registran en el PR. 40 capturas ficticias (1440×900 y 390×844, claro/oscuro; ocho superficies y dos referencias por combinación). Correcciones de contraste y ancho de filas incluidas tras inspección visual.
+- **Falta:** auditor independiente, validación del propietario, lector/teléfono físicos y E2E previsto para lote 4. Python local sin pytest; matriz de integración en CI.
+- **Dónde quedó:** `chatgpt/rediseno-lote-2`, commit E08 y PR propio al cierre; no se fusiona ni publica.

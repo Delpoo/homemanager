@@ -65,6 +65,7 @@ export interface ModelDevice {
     pinned?: string[];
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
+    color?: string;
     disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
   };
   bindings: {

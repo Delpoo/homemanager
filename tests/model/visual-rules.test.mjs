@@ -106,3 +106,25 @@ test('a rule without symbols reaches the shared activity feed without calling an
   assert.equal(log.entries.at(-1).message, 'Custom condition');
   assert.equal(calls, 0);
 });
+
+test('disconnect discards duration evidence before reconnect', () => {
+  const feed = new RuntimeFeed(new ActivityLog()),
+    h = hass();
+  feed.configure({
+    schemaVersion: 2,
+    rooms: [],
+    catalog: { schemaVersion: 2, devices: [] },
+    rules: [rule({ forMinutes: 1 })],
+    actions: {},
+    panels: {},
+    stateSources: {},
+  });
+  feed.update(h, { states: {} }, new Set(), 1000);
+  h.connection.connected = false;
+  feed.update(h, { states: {} }, new Set(), 2000);
+  h.connection.connected = true;
+  feed.update(h, { states: {} }, new Set(), 70000);
+  assert.equal(feed.ruleResults.length, 0);
+  feed.update(h, { states: {} }, new Set(), 130000);
+  assert.equal(feed.ruleResults.length, 1);
+});

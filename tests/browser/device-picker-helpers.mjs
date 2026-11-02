@@ -1,7 +1,14 @@
 export const picker = page => page.locator('homemanager-device-picker');
 export async function openDeviceSections(
   page,
-  ids = ['device-category', 'device-binding', 'device-alerts', 'device-controls-section'],
+  ids = [
+    'device-binding',
+    'device-alerts',
+    'device-controls-section',
+    'module-gestures',
+    'module-indicators',
+    'module-native',
+  ],
 ) {
   const editor = page.locator('homemanager-editor');
   for (const id of ids) {
