@@ -8,21 +8,8 @@ export const COLUMNS = 4;
 export const MAX_ROWS = 40;
 export const MAX_HEIGHT = 3;
 /** Buttons each widget type uses, as [minimum, maximum]. */
-export const WIDGET_BUTTONS: Record<WidgetType, [number, number]> = {
-  button: [1, 1],
-  toggle: [1, 2],
-  updown: [2, 2],
-  steps: [2, 12],
-  modes: [2, 8],
-};
-/** Size a new widget of each type starts with. */
-export const WIDGET_SIZE: Record<WidgetType, [number, number]> = {
-  button: [1, 1],
-  toggle: [2, 1],
-  updown: [2, 1],
-  steps: [4, 1],
-  modes: [4, 1],
-};
+export { PIECE_INPUTS as WIDGET_BUTTONS, PIECE_SIZE as WIDGET_SIZE } from '../model/control-layout.js';
+import { PIECE_INPUTS as WIDGET_BUTTONS, PIECE_SIZE as WIDGET_SIZE } from '../model/control-layout.js';
 
 type Box = Pick<RfWidget, 'x' | 'y' | 'w' | 'h'>;
 
@@ -70,16 +57,22 @@ export function place(layout: RfWidget[], id: string, box: Partial<Box>): RfWidg
   if (!moved) return layout;
   const target = clamp({ ...moved, ...box });
   const settled: RfWidget[] = [target];
+  let overflow = false;
   const others = layout
     .filter(widget => widget.id !== id)
     .sort((a, b) => a.y - b.y || a.x - b.x)
     .map(widget => {
       let y = widget.y;
       while (settled.some(other => overlaps({ ...widget, y }, other))) y++;
+      if (y + widget.h > MAX_ROWS) {
+        overflow = true;
+        return widget;
+      }
       const placed = { ...widget, y };
       settled.push(placed);
       return placed;
     });
+  if (overflow || settled.some((a, i) => settled.some((b, j) => j > i && overlaps(a, b)))) return layout;
   const byId = new Map([target, ...others].map(widget => [widget.id, widget]));
   return layout.map(widget => byId.get(widget.id)!);
 }

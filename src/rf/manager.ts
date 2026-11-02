@@ -1,4 +1,5 @@
 import { iconPicker } from '../ui/icon-picker.js';
+import { ControlDesigner } from '../ui/control-designer.js';
 import { t } from '../i18n/index.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
@@ -9,7 +10,7 @@ import {
   panelChoices,
   keepPanelFocus,
 } from '../ui/panel-components.js';
-import { rfManagerStyles, rfText, rfEditedText, rfWorkspace, rfWidgetDialog } from '../ui/rf-components.js';
+import { rfManagerStyles, rfText, rfEditedText, rfWorkspace } from '../ui/rf-components.js';
 import {
   ROLES,
   rf,
@@ -19,13 +20,11 @@ import {
   type RfRemote,
   type RfTransmitter,
   type RfWidget,
-  type WidgetType,
 } from '../integration/rf.js';
-import { icon, kindLabel, roleLabel, widgetHelp, widgetLabel } from './catalog.js';
+import { icon, kindLabel, roleLabel } from './catalog.js';
 import { uiEmpty, uiNotice } from '../ui/components.js';
 import { iconLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
-import { WIDGET_BUTTONS, WIDGET_SIZE, add, layoutOf, place, uniqueId } from './layout.js';
 import './remote-view.js';
 import './learn.js';
 import './devices.js';
@@ -41,12 +40,6 @@ import type { HomeManagerRfDevices } from './devices.js';
  * Codes never reach this page. */
 
 type View = 'list' | 'new' | 'remote' | 'devices';
-interface WidgetDraft {
-  widget: RfWidget;
-  isNew: boolean;
-  error: string;
-}
-
 export class HomeManagerRf extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
@@ -60,9 +53,7 @@ export class HomeManagerRf extends HTMLElement {
   private newRemote: RfAbout = { name: '', icon: 'mdi:remote', description: null };
   private editing = false;
   private learning = false;
-  private widgetDraft: WidgetDraft | null = null;
-  private widgetSuspended = false;
-  private widgetBaseline = '';
+  private readonly designer = new ControlDesigner();
   private learnSuspended = false;
   private learnOwner: string | null = null;
   private message = '';
@@ -77,9 +68,6 @@ export class HomeManagerRf extends HTMLElement {
     super();
     installPanelComponents(this.root, 'rf-manager', rfManagerStyles, true);
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
-    this.remoteView.onLayout = layout => void this.saveLayout(layout);
-    this.remoteView.onEdit = id => this.editWidget(id);
-    this.remoteView.onDelete = id => void this.deleteWidget(id);
     this.learn.onSaved = id => void this.learned(id);
     this.learn.onClose = () => this.closeLearn();
     this.devices.onChange = () => void this.reload();
@@ -162,10 +150,9 @@ export class HomeManagerRf extends HTMLElement {
     const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button></div>`;
     this.root.innerHTML =
       rfWorkspace(this.renderNavigation(tabs), body, '', this.view) +
-      (this.learning ? taskScreen(t('Aprender botones'), '<div data-slot="learn"></div>', '', 'learning-page') : '') +
-      this.renderWidgetEditor();
+      (this.learning ? taskScreen(t('Aprender botones'), '<div data-slot="learn"></div>', '', 'learning-page') : '');
     for (const [slot, element] of [
-      ['remote', this.remoteView],
+      ['remote', this.editing ? this.designer : this.remoteView],
       ['learn', this.learn],
       ['devices', this.devices],
     ] as const)
@@ -180,14 +167,6 @@ export class HomeManagerRf extends HTMLElement {
         this.render();
       };
       learnPage.show(this.root);
-    }
-    const editor = this.root.querySelector<TaskScreen>('homemanager-task-screen.editor');
-    if (editor) {
-      editor.onBack = () => {
-        this.widgetSuspended = true;
-        this.render();
-      };
-      editor.show(this.root);
     }
     restoreFocus();
   }
@@ -247,11 +226,8 @@ export class HomeManagerRf extends HTMLElement {
     const head = `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title">${icon(about.icon ?? 'mdi:remote')}<div><h2>${e(rfText(about.name))}</h2>${about.description ? `<p class="muted">${e(rfText(about.description))}</p>` : ''}</div></div>${remote ? panelIconAction(this.editing ? t('Terminar edición') : t('Editar'), `data-command="edit" aria-pressed="${this.editing}"`, this.editing ? 'mdi:check' : 'mdi:pencil-outline') : ''}</div>`;
     if (!remote)
       return `${head}<p class="notice">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`;
-    const toolbar = this.editing
-      ? `<div class="toolbar"><button type="button" data-command="add-widget">${e(t('Agregar elemento'))}</button><button type="button" data-command="auto-layout"${remote.layout ? '' : ' disabled'}>${e(t('Diseño automático'))}</button><span class="muted">${e(t('Arrastrá para mover, la esquina para cambiar el tamaño, tocá para editar.'))}</span></div>`
-      : '';
     const sections = this.editing ? this.renderEditSections(remote) : '';
-    return `${head}${toolbar}<div data-slot="remote"></div>${this.learning ? '' : `<div class="actions"><button type="button" data-command="learn" aria-label="${e(t('Aprender botones'))}">${icon('mdi:plus')}${e(t('Agregar botón'))}</button></div>`}${uiNotice(t('El envío no confirma que el equipo reaccionó. El eco «en el aire» sólo indica que la señal salió.'))}${status}${sections}`;
+    return `${head}<div data-slot="remote"></div>${this.learning ? '' : `<div class="actions"><button type="button" data-command="learn" aria-label="${e(t('Aprender botones'))}">${icon('mdi:plus')}${e(t('Agregar botón'))}</button></div>`}${uiNotice(t('El envío no confirma que el equipo reaccionó. El eco «en el aire» sólo indica que la señal salió.'))}${status}${sections}`;
   }
 
   private entities(remoteId: string): string[] {
@@ -333,53 +309,6 @@ export class HomeManagerRf extends HTMLElement {
     return `<div class="head"><div class="title"><h2>${e(t('Equipos ESPHome'))}</h2></div></div><div data-slot="devices"></div>${status}`;
   }
 
-  private renderWidgetEditor(): string {
-    const draft = this.widgetDraft;
-    const remote = this.remote();
-    if (!draft || !remote || this.widgetSuspended) return '';
-    const widget = draft.widget;
-    const types = (Object.keys(WIDGET_BUTTONS) as WidgetType[])
-      .map(
-        type =>
-          `<button type="button" data-type="${type}" aria-pressed="${type === widget.type}">${e(widgetLabel(type))}</button>`,
-      )
-      .join('');
-    const slot = (index: number, label: string, removable: boolean) =>
-      `<div class="slot"><label>${e(label)}<select name="slot-${index}" data-slot-index="${index}" aria-label="${e(label)}">${this.buttonOptions(remote, widget.buttons[index], t('Elegí un botón'))}</select></label>${removable ? `<button type="button" data-remove-slot="${index}" aria-label="${e(t('Quitar {name}', { name: rfText(label) }))}">✕</button>` : ''}</div>`;
-    let slots = '';
-    if (widget.type === 'button') slots = slot(0, t('Botón'), false);
-    else if (widget.type === 'toggle')
-      slots = slot(0, t('Encender (o el que alterna)'), false) + slot(1, t('Apagar (opcional)'), false);
-    else if (widget.type === 'updown') slots = slot(0, t('Bajar (−)'), false) + slot(1, t('Subir (+)'), false);
-    else {
-      const [min, max] = WIDGET_BUTTONS[widget.type];
-      const count = Math.max(min, widget.buttons.length);
-      const name = (index: number) =>
-        widget.type === 'steps'
-          ? t('Paso {number}', { number: index + 1 })
-          : t('Opción {number}', { number: index + 1 });
-      slots =
-        Array.from({ length: count }, (_, index) => slot(index, name(index), count > min)).join('') +
-        (count < max
-          ? `<div><button type="button" data-command="add-slot">${e(widget.type === 'steps' ? t('Agregar paso') : t('Agregar opción'))}</button></div>`
-          : '');
-    }
-    const glyph =
-      widget.type === 'button' || widget.type === 'toggle'
-        ? `<label>${e(t('Icono (opcional)'))}${iconPicker(widget.icon ?? '', t('Icono (opcional)'), 'wide clearable name="widget-icon"')}</label>`
-        : '';
-    const size = (name: string, label: string, value: number, max: number) =>
-      `<label>${e(label)}<select name="${name}">${Array.from({ length: max }, (_, index) => `<option value="${index + 1}"${index + 1 === value ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>`;
-    return rfWidgetDialog(
-      draft.isNew ? t('Agregar elemento') : t('Editar elemento'),
-      `<div class="type-picker">${panelChoices(t('Tipo'), `<div class="types" role="group" aria-label="${e(t('Tipo'))}">${types}</div>`, widgetHelp(widget.type))}</div><div class="slots">${slots}</div>${panelField(t('Etiqueta (opcional)'), `<input name="widget-label" maxlength="40" value="${e(rfText(widget.label))}">`)}${glyph}<div class="row">${size('widget-w', t('Ancho'), widget.w, 4)}${size('widget-h', t('Alto'), widget.h, 3)}</div><p class="error-text" role="alert">${e(draft.error)}</p>`,
-      `<button type="button" data-command="widget-cancel">${e(t('Cancelar'))}</button>` +
-        panelIconAction(t('Guardar'), 'data-command="widget-save"', 'mdi:check', 'primary'),
-    );
-  }
-
-  // Events --------------------------------------------------------------
-
   private bind(): void {
     const root = this.root;
     const remote = this.remote();
@@ -406,12 +335,23 @@ export class HomeManagerRf extends HTMLElement {
       this.newRemote.description = (event.target as HTMLInputElement).value || null;
     });
     if (this.view === 'remote' && remote) {
+      this.remoteView.readValues = () => this._hass?.states ?? {};
+      this.designer.configure({
+        key: remote.id,
+        remote,
+        estimated: true,
+        readValues: () => this._hass?.states ?? {},
+        save: async layout => {
+          const saved = await rf.saveLayout(this._hass!, remote.id, layout);
+          this.remotes = this.remotes.map(r => (r.id === saved.id ? saved : r));
+          this.render();
+        },
+      });
       this.remoteView.remote = remote;
       this.remoteView.editing = this.editing;
       this.bindEditSections(remote);
     }
     if (this.view === 'devices') this.devices.hass = this._hass!;
-    this.bindWidgetEditor();
   }
 
   private bindEditSections(remote: RfRemote): void {
@@ -471,61 +411,11 @@ export class HomeManagerRf extends HTMLElement {
     });
   }
 
-  private bindWidgetEditor(): void {
-    const dialog = this.root.querySelector<TaskScreen>('homemanager-task-screen.editor');
-    const draft = this.widgetDraft;
-    if (!dialog || !draft) return;
-    const widget = draft.widget;
-    dialog.addEventListener('cancel', event => {
-      event.preventDefault();
-      this.widgetDraft = null;
-      this.render();
-    });
-    dialog.querySelector('form')!.addEventListener('submit', event => {
-      event.preventDefault();
-      void this.command('widget-save');
-    });
-    dialog.querySelectorAll<HTMLButtonElement>('[data-type]').forEach(button =>
-      button.addEventListener('click', () => {
-        const type = button.dataset.type as WidgetType;
-        widget.type = type;
-        widget.buttons = widget.buttons.slice(0, WIDGET_BUTTONS[type][1]);
-        if (draft.isNew) [widget.w, widget.h] = WIDGET_SIZE[type];
-        draft.error = '';
-        this.render();
-      }),
-    );
-    dialog.querySelectorAll<HTMLSelectElement>('[data-slot-index]').forEach(select =>
-      select.addEventListener('change', () => {
-        widget.buttons[Number(select.dataset.slotIndex)] = select.value;
-      }),
-    );
-    dialog.querySelectorAll<HTMLButtonElement>('[data-remove-slot]').forEach(button =>
-      button.addEventListener('click', () => {
-        widget.buttons.splice(Number(button.dataset.removeSlot), 1);
-        this.render();
-      }),
-    );
-    dialog.querySelector('[name=widget-label]')!.addEventListener('input', event => {
-      widget.label = (event.target as HTMLInputElement).value || null;
-    });
-    dialog.querySelector('[name=widget-icon]')?.addEventListener('change', event => {
-      widget.icon = (event.target as HTMLSelectElement).value || null;
-    });
-    dialog.querySelector('[name=widget-w]')!.addEventListener('change', event => {
-      widget.w = Number((event.target as HTMLSelectElement).value);
-    });
-    dialog.querySelector('[name=widget-h]')!.addEventListener('change', event => {
-      widget.h = Number((event.target as HTMLSelectElement).value);
-    });
-  }
-
   private show(view: View): void {
     if (view !== 'remote') this.closeLearn(false);
     if (view !== 'devices') this.devices.stop();
     this.view = view;
     this.editing = false;
-    this.widgetDraft = null;
     this.say('');
     this.render();
   }
@@ -581,54 +471,6 @@ export class HomeManagerRf extends HTMLElement {
           if (this.editing) this.closeLearn(false);
           this.say('');
           break;
-        case 'add-widget':
-          this.widgetSuspended = false;
-          if (this.widgetDraft?.isNew) break;
-          this.widgetDraft = {
-            widget: {
-              id: '',
-              type: 'button',
-              x: 0,
-              y: 0,
-              w: 1,
-              h: 1,
-              buttons: [],
-              label: null,
-              icon: null,
-            },
-            isNew: true,
-            error: '',
-          };
-          this.widgetBaseline = JSON.stringify(this.widgetDraft.widget);
-          break;
-        case 'add-slot':
-          this.widgetDraft?.widget.buttons.push('');
-          break;
-        case 'widget-cancel':
-          if (
-            this.widgetDraft &&
-            JSON.stringify(this.widgetDraft.widget) !== this.widgetBaseline &&
-            !(await confirmDialog(this.root, {
-              title: t('¿Descartar los cambios?'),
-              message: t('Los cambios de esta pantalla todavía no se aplicaron.'),
-              confirm: t('Descartar cambios'),
-            }))
-          )
-            break;
-          this.widgetDraft = null;
-          break;
-        case 'widget-save':
-          await this.saveWidget();
-          break;
-        case 'auto-layout': {
-          const ok = await confirmDialog(this.root, {
-            title: t('¿Volver al diseño automático?'),
-            message: t('Se pierde la ubicación que elegiste para cada elemento.'),
-            confirm: t('Volver'),
-          });
-          if (ok) await this.saveLayout(null);
-          break;
-        }
         case 'delete-remote': {
           const remote = this.remote()!;
           const ok = await confirmDialog(this.root, {
@@ -731,73 +573,6 @@ export class HomeManagerRf extends HTMLElement {
       await this.reload();
       this.say(t('Ajustes guardados. Probá un botón.'));
     });
-  }
-
-  private async saveLayout(layout: RfWidget[] | null): Promise<void> {
-    const remote = this.remote();
-    if (!remote) return;
-    await this.run(async () => {
-      const saved = await rf.saveLayout(this._hass!, remote.id, layout);
-      this.remotes = this.remotes.map(item => (item.id === saved.id ? saved : item));
-      this.say('');
-    });
-  }
-
-  private editWidget(id: string): void {
-    const remote = this.remote();
-    const widget = remote && layoutOf(remote).find(item => item.id === id);
-    if (!widget) return;
-    if (this.widgetDraft?.widget.id !== id) {
-      this.widgetDraft = { widget: structuredClone(widget), isNew: false, error: '' };
-      this.widgetBaseline = JSON.stringify(widget);
-    }
-    this.widgetSuspended = false;
-    this.render();
-  }
-
-  private async deleteWidget(id: string): Promise<void> {
-    const remote = this.remote();
-    const layout = remote ? layoutOf(remote) : [];
-    const widget = layout.find(item => item.id === id);
-    if (!remote || !widget) return;
-    const label = widget.label ?? remote.buttons.find(button => button.id === widget.buttons[0])?.name ?? '';
-    const ok = await confirmDialog(this.root, {
-      title: t('¿Quitar «{name}» del control?', { name: rfText(label) }),
-      message: t('El botón sigue aprendido: podés volver a ponerlo con Agregar elemento.'),
-      confirm: t('Quitar'),
-    });
-    if (ok) await this.saveLayout(layout.filter(item => item.id !== id));
-  }
-
-  private async saveWidget(): Promise<void> {
-    const draft = this.widgetDraft;
-    const remote = this.remote();
-    if (!draft || !remote) return;
-    const widget = draft.widget;
-    const [min] = WIDGET_BUTTONS[widget.type];
-    // Optional slots (the toggle's off, extra steps) may stay empty.
-    const required = widget.type === 'toggle' || widget.type === 'button' ? 1 : widget.type === 'updown' ? 2 : min;
-    if (widget.buttons.slice(0, required).some(id => !id) || widget.buttons.filter(Boolean).length < required) {
-      draft.error =
-        widget.type === 'steps' || widget.type === 'modes'
-          ? t('Elegí al menos {count} botones.', { count: min })
-          : t('Elegí un botón en cada lugar obligatorio.');
-      return;
-    }
-    const clean: RfWidget = { ...widget, buttons: widget.buttons.filter(Boolean) };
-    const layout = layoutOf(remote);
-    const next = draft.isNew
-      ? add(layout, {
-          ...clean,
-          id: uniqueId(layout, clean.label ?? `${clean.type}-${clean.buttons[0]}`),
-        })
-      : place(
-          layout.map(item => (item.id === clean.id ? clean : item)),
-          clean.id,
-          { w: clean.w, h: clean.h },
-        );
-    this.widgetDraft = null;
-    await this.saveLayout(next);
   }
 
   private async deleteButton(buttonId: string): Promise<void> {

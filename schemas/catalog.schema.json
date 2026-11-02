@@ -489,6 +489,342 @@
                   "$ref": "#/$defs/gestureAction"
                 }
               ]
+            },
+            "layout": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "type",
+                  "x",
+                  "y",
+                  "w",
+                  "h",
+                  "buttons",
+                  "label",
+                  "icon"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                    "not": {
+                      "enum": [
+                        "constructor",
+                        "prototype",
+                        "__proto__"
+                      ]
+                    }
+                  },
+                  "type": {
+                    "enum": [
+                      "button",
+                      "toggle",
+                      "updown",
+                      "steps",
+                      "modes",
+                      "cycle",
+                      "slider",
+                      "indicator",
+                      "title",
+                      "separator",
+                      "control"
+                    ]
+                  },
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 39
+                  },
+                  "w": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  "h": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "buttons": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                      "maxLength": 120
+                    }
+                  },
+                  "label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "reading": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*\\.[a-z0-9_]+$"
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_]{1,80}$"
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "button"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 1,
+                          "maxItems": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "toggle"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 1,
+                          "maxItems": 2
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "updown"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "steps"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "modes"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 8
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "cycle"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 4
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "slider"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "indicator"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "title"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "separator"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "control"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 1,
+                          "maxItems": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "x": {
+                          "const": 1
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "w": {
+                          "maximum": 3
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "x": {
+                          "const": 2
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "w": {
+                          "maximum": 2
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "x": {
+                          "const": 3
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "w": {
+                          "maximum": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
             }
           },
           "allOf": [

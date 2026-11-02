@@ -375,9 +375,11 @@ function shape(configuration) {
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold'],
+      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold', 'layout'],
       `${path}.bindings`,
     );
+    if (Object.hasOwn(device.bindings, 'layout'))
+      assertControlLayout(device.bindings.layout, `${path}.bindings.layout`);
     if (Object.hasOwn(device.bindings, 'deviceId')) {
       text(device.bindings.deviceId, `${path}.bindings.deviceId`);
       if (!REGISTRY_DEVICE.test(device.bindings.deviceId) || UNSAFE.has(device.bindings.deviceId))
@@ -583,4 +585,46 @@ export function assertConfiguration(configuration, options) {
       result.issues,
     );
   return result.configuration;
+}
+
+/** Same optional visual layout as the RF designer; this contains references, never service definitions. */
+export function assertControlLayout(layout, path = 'layout') {
+  const counts = {
+    button: [1, 1],
+    toggle: [1, 2],
+    updown: [2, 2],
+    steps: [2, 12],
+    modes: [2, 8],
+    cycle: [2, 4],
+    slider: [2, 12],
+    indicator: [0, 0],
+    title: [0, 0],
+    separator: [0, 0],
+    control: [1, 1],
+  };
+  if (!Array.isArray(layout) || layout.length > 64) invalid(path, 'array of at most 64 pieces required');
+  const ids = new Set();
+  for (const p of layout) {
+    fields(p, ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'], ['reading', 'attribute'], path);
+    if (typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(p.id) || UNSAFE.has(p.id) || ids.has(p.id))
+      invalid(path, 'unique piece id required');
+    ids.add(p.id);
+    one(p.type, Object.keys(counts), path);
+    for (const [k, low, high] of [
+      ['x', 0, 3],
+      ['y', 0, 39],
+      ['w', 1, 4 - p.x],
+      ['h', 1, 3],
+    ])
+      if (!Number.isInteger(p[k]) || p[k] < low || p[k] > high) invalid(path, 'invalid piece bounds');
+    const [min, max] = counts[p.type];
+    if (!Array.isArray(p.buttons) || p.buttons.length < min || p.buttons.length > max)
+      invalid(path, 'invalid piece inputs');
+    for (const ref of p.buttons) id(ref, path);
+    if (p.label !== null) text(p.label, path, 40);
+    if (p.icon !== null && (typeof p.icon !== 'string' || !MDI_ICON.test(p.icon))) invalid(path, 'invalid icon');
+    if (p.reading !== undefined) entity(p.reading, path);
+    if (p.attribute !== undefined && (typeof p.attribute !== 'string' || !/^[a-zA-Z0-9_]{1,80}$/.test(p.attribute)))
+      invalid(path, 'invalid attribute');
+  }
 }

@@ -134,3 +134,8 @@ Los navegadores sólo reciben nombres, iconos, ajustes y una huella corta de cad
 - Protocolos RCSwitch invertidos o con sincronización larga (3, 5, 6 y 8) no se decodifican.
 - Los aires acondicionados por infrarrojos no encajan en "capturar botones" (cada código lleva el estado completo). Para ellos se usa la plataforma de clima IR de ESPHome.
 - El paquete se aplica una vez por transmisor y requiere conocer los `id` del transmisor y del receptor de 433 MHz en su YAML.
+
+
+### Rediseño E09: diseñador compartido
+
+El diseñador de disposición e inspector es el mismo para RF y HA. El diseño anterior se lee sin modificarlo; se agregan ciclo, deslizador por pasos con envío al soltar, indicador de lectura, título y separador. Los pulsadores independientes permiten combinar menos, indicador y más. Un indicador RF dice Estimado y no se usa como confirmación física. Se mantienen botones, roles, ajustes medidos y diseño automático. Alinear y deshacer afectan sólo al dibujo. En HA la disposición opcional puede incorporar controles existentes completos, con sus capacidades y comprobaciones de servicio.

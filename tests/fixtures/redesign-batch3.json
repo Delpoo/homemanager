@@ -1,0 +1,1249 @@
+{
+  "valid": [
+    [],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "indicator",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [],
+        "label": null,
+        "icon": null,
+        "reading": "sensor.sample",
+        "attribute": "percentage"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "title",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [],
+        "label": null,
+        "icon": null,
+        "reading": "sensor.sample",
+        "attribute": "percentage"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "separator",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [],
+        "label": null,
+        "icon": null,
+        "reading": "sensor.sample",
+        "attribute": "percentage"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "cycle",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action",
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "slider",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action",
+          "sample-action",
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "toggle",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "updown",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action",
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "steps",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action",
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "modes",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action",
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "control",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ]
+  ],
+  "invalid": [
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 5,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 3,
+        "y": 0,
+        "w": 2,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": true,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "unknown",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "reading": "bad"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "attribute": "{{bad}}"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "indicator",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": "<svg>"
+      }
+    ],
+    [
+      {
+        "id": "constructor",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": "",
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "extra": 1
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ]
+  ]
+}

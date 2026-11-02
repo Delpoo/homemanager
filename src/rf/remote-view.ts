@@ -5,6 +5,8 @@ import { rfRemoteStyles, rfText, remoteCell, remoteWidget, positionRemoteWidget 
 import type { RfButton, RfRemote, RfWidget } from '../integration/rf.js';
 import { COLUMNS, MAX_HEIGHT, MAX_ROWS, buttonById, layoutOf, place, rows } from './layout.js';
 import { icon } from './catalog.js';
+import { readingValue } from '../model/control-layout.js';
+import { controlViewStyles } from '../ui/control-view.js';
 
 /** A remote drawn as a remote: its widgets on a four-column grid.
  *
@@ -35,13 +37,20 @@ export class HomeManagerRfRemote extends HTMLElement {
   onLayout?: (layout: RfWidget[]) => void;
   onEdit?: (widgetId: string) => void;
   onDelete?: (widgetId: string) => void;
+  /** HA adapter embeds the existing control renderer, preserving service checks. */
+  renderContent?: (widget: RfWidget) => HTMLElement | null;
+  readValues?: () => Record<string, { state: string; attributes?: Record<string, unknown> }>;
+  estimated = true;
+  preview = false;
+  private sentSteps = new Map<string, number>();
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-remote-view', rfRemoteStyles(COLUMNS, ROW, GAP), false);
+    installPanelComponents(this.root, 'rf-remote-view', rfRemoteStyles(COLUMNS, ROW, GAP) + controlViewStyles, false);
   }
 
   set remote(remote: RfRemote | null) {
+    if (remote?.id !== this._remote?.id) this.sentSteps.clear();
     this._remote = remote;
     this.render();
   }
@@ -78,6 +87,10 @@ export class HomeManagerRfRemote extends HTMLElement {
     const widgets = layout.map(widget => this.renderWidget(remote, widget)).join('');
     const empty = layout.length ? '' : `<p class="empty">${e(t('Este control todavía no tiene botones.'))}</p>`;
     this.root.innerHTML = `<div class="body${this._editing ? ' editing' : ''}"><div class="grid">${cells}${widgets}${empty}</div><p class="live" role="status" aria-live="polite"></p></div>`;
+    for (const widget of layout) {
+      const content = this.renderContent?.(widget);
+      if (content) this.root.querySelector(`[data-content="${widget.id}"]`)?.append(content);
+    }
     this.bind();
   }
 
@@ -95,6 +108,29 @@ export class HomeManagerRfRemote extends HTMLElement {
     const cap = widget.label ? `<div class="cap">${e(rfText(widget.label))}</div>` : '';
     let content = '';
     switch (widget.type) {
+      case 'indicator':
+        content = `${cap}${icon(widget.icon)}<output data-reading="${e(widget.id)}">${e(readingValue(widget, this.readValues?.()))}</output>${this.estimated ? `<small>${e(t('Estimado'))}</small>` : ''}`;
+        break;
+      case 'title':
+        content = `<strong>${icon(widget.icon)}${e(widget.label ?? '')}</strong>`;
+        break;
+      case 'separator':
+        content = '<hr>';
+        break;
+      case 'cycle': {
+        const index = ((this.sentSteps.get(widget.id) ?? -1) + 1) % buttons.length;
+        const button = buttons[index];
+        if (button)
+          content = key(button, widget.label ?? button.name, widget.icon ?? button.icon).replace(
+            '<button',
+            `<button data-cycle="${e(widget.id)}" aria-label="${e(`${widget.label ?? ''} ${button.name}`.trim())}"`,
+          );
+        break;
+      }
+      case 'slider':
+        content = `${cap}<input type="range" data-discrete="${e(widget.id)}" min="0" max="${buttons.length - 1}" step="1" value="${this.sentSteps.get(widget.id) ?? 0}" aria-label="${e(this.name(widget, remote))}">`;
+        break;
+      case 'control':
       case 'button': {
         const [button] = buttons;
         if (button) content = key(button, widget.label ?? button.name, widget.icon ?? button.icon);
@@ -119,6 +155,8 @@ export class HomeManagerRfRemote extends HTMLElement {
         content = `${cap}<div class="row">${buttons.map(button => send(button, e(rfText(button.name)))).join('')}</div>`;
         break;
     }
+    if (this.renderContent && !['indicator', 'title', 'separator'].includes(widget.type))
+      content = `<div data-content="${e(widget.id)}"></div>`;
     const label = this.name(widget, remote);
 
     const tools = this._editing
@@ -135,6 +173,16 @@ export class HomeManagerRfRemote extends HTMLElement {
   private bind(): void {
     const root = this.root;
     if (!this._editing) {
+      root.querySelectorAll<HTMLInputElement>('[data-discrete]').forEach(input =>
+        input.addEventListener('change', () => {
+          const widget = this.layout().find(w => w.id === input.dataset.discrete);
+          const index = Number(input.value);
+          if (!widget || !widget.buttons[index]) return;
+          const button = document.createElement('button');
+          button.dataset.send = widget.buttons[index];
+          void this.send(button).then(() => this.render());
+        }),
+      );
       root
         .querySelectorAll<HTMLButtonElement>('[data-send]')
         .forEach(button => button.addEventListener('click', () => void this.send(button)));
@@ -157,13 +205,32 @@ export class HomeManagerRfRemote extends HTMLElement {
     const id = button.dataset.send!;
     const name = (remote && buttonById(remote, id)?.name) ?? t('Botón');
     const live = this.root.querySelector<HTMLElement>('.live')!;
+    if (this.preview) {
+      live.textContent = t('Vista previa: no se envían comandos.');
+      return;
+    }
     button.classList.remove('sent', 'failed');
+    button.disabled = true;
     try {
       await this.onPress?.(id);
+      for (const widget of this.layout())
+        if (widget.buttons.includes(id)) this.sentSteps.set(widget.id, widget.buttons.indexOf(id));
       button.classList.add('sent');
       live.classList.remove('error');
       live.textContent = t('Enviado: {name}', { name: rfText(name) });
       window.setTimeout(() => button.classList.remove('sent'), 600);
+      const cycle = this.layout().find(w => w.id === button.dataset.cycle);
+      if (cycle && remote) {
+        const next = buttonById(
+          remote,
+          cycle.buttons[((this.sentSteps.get(cycle.id) ?? -1) + 1) % cycle.buttons.length],
+        );
+        if (next) {
+          button.dataset.send = next.id;
+          button.setAttribute('aria-label', `${cycle.label ?? ''} ${next.name}`.trim());
+          button.innerHTML = `${icon(cycle.icon ?? next.icon)}<span>${e(rfText(cycle.label ?? next.name))}</span>`;
+        }
+      }
     } catch (error) {
       button.classList.add('failed');
       live.classList.add('error');
@@ -171,6 +238,15 @@ export class HomeManagerRfRemote extends HTMLElement {
         name,
         message: (error as { message?: string })?.message ?? '',
       });
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  updateIndicators(): void {
+    for (const piece of this.layout()) {
+      const output = this.root.querySelector<HTMLOutputElement>(`[data-reading="${piece.id}"]`);
+      if (output) output.textContent = readingValue(piece, this.readValues?.());
     }
   }
 

@@ -81,6 +81,7 @@ await build({
     'src/model/alert-settings.ts',
     'src/model/activity.ts',
     'src/model/plan-import.ts',
+    'src/model/control-layout.ts',
     'src/shell/runtime-feed.ts',
   ],
   outbase: 'src',
