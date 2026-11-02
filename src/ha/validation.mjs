@@ -310,7 +310,7 @@ function shape(configuration) {
     fields(
       device.display,
       ['label', 'icon'],
-      ['size', 'pinned', 'archetype', 'show', 'category', 'alerts', 'highlight'],
+      ['size', 'pinned', 'archetype', 'show', 'category', 'alerts', 'highlight', 'modules', 'layer'],
       `${path}.display`,
     );
     text(device.display.label, `${path}.display.label`);
@@ -321,6 +321,19 @@ function shape(configuration) {
     if (Object.hasOwn(device.display, 'show')) one(device.display.show, SYMBOL_SHOW, `${path}.display.show`);
     if (Object.hasOwn(device.display, 'category'))
       one(device.display.category, DEVICE_CATEGORIES, `${path}.display.category`);
+    if (Object.hasOwn(device.display, 'modules')) {
+      const modules = device.display.modules;
+      if (!Array.isArray(modules) || modules.length > 7 || new Set(modules).size !== modules.length)
+        invalid(`${path}.display.modules`, 'unique module list required');
+      for (const module of modules)
+        one(
+          module,
+          ['device', 'indicators', 'gestures', 'control', 'pinned', 'native', 'rules'],
+          `${path}.display.modules`,
+        );
+    }
+    if (Object.hasOwn(device.display, 'layer'))
+      one(device.display.layer, ['controls', 'sensors', 'energy', 'infrastructure'], `${path}.display.layer`);
     if (Object.hasOwn(device.display, 'alerts')) alertRules(device.display.alerts, `${path}.display.alerts`);
     if (Object.hasOwn(device.display, 'highlight') && typeof device.display.highlight !== 'boolean')
       invalid(`${path}.display.highlight`, 'boolean required');

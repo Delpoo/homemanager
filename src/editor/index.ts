@@ -62,6 +62,8 @@ import { connectBody, connectStyles } from './connect-home.js';
 import { bindingIssues, deviceCatalog, pickerReadings, type DeviceSelection } from '../model/device-catalog.js';
 import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
+import { MODULES, MODULE_LABELS, modulesOf, moduleChoices, type ModuleId } from '../model/modules.js';
+import { presentationOf } from '../model/archetype.js';
 import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
 import type { AlertEditor } from '../ui/alert-editor.js';
@@ -477,7 +479,12 @@ export class HomeManagerEditor extends HTMLElement {
   }
   private deviceFingerprint(): string {
     const form = this.root.querySelector<HTMLFormElement>('#device-form');
-    return JSON.stringify({ fields: form ? [...new FormData(form)] : [], sheet: this.sheet, alerts: this.alertDraft });
+    return JSON.stringify({
+      fields: form ? [...new FormData(form)] : [],
+      sheet: this.sheet,
+      modules: this.moduleDraft,
+      alerts: this.alertDraft,
+    });
   }
   private revertDevice(): void {
     if (!this.openedConfiguration || !this._selectedDeviceId) return;
@@ -774,6 +781,8 @@ export class HomeManagerEditor extends HTMLElement {
     const key = selected?.id ?? '';
     if (!this.sheet || this.sheet.key !== key) {
       this.sheet = sheetFromDevice(selected, key, configuration);
+      this.moduleDraft = selected?.display.modules ? [...selected.display.modules] : undefined;
+      this.moduleUndo = undefined;
       this.alertDraft = alertSettingsDraft(selected);
     }
     const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
@@ -858,9 +867,9 @@ export class HomeManagerEditor extends HTMLElement {
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></div>
       ${input('x', t('Posición X'), snapToGrid(device?.position.x ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), snapToGrid(device?.position.y ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}
-      <div class="field">${help(t('Panel nativo'), t('Un panel con acciones fijas definido en Ajustes del plano. Se muestra junto a los controles.'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></div>`;
+`;
     const category = this.sheetCategory(device);
-    const sections = sectionsOf(category);
+    const sections = { show: true, controls: true, remote: true };
     const show = `<div data-section="show"${sections.show ? '' : ' hidden'}>${uiSegmented(
       t('Qué muestra el símbolo'),
       'show',
@@ -869,21 +878,16 @@ export class HomeManagerEditor extends HTMLElement {
         { value: 'value', label: t('Valor') },
         { value: 'both', label: t('Los dos') },
       ],
-      device?.display.show ?? 'value',
+      device?.display.show ??
+        (device ? (presentationOf(device, this._hass).archetype === 'meter' ? 'value' : 'icon') : 'icon'),
     )}</div>`;
-    const categoryBody = uiChoices(
-      t('Categoría'),
-      'category',
-      CATEGORIES.map(value => ({ value, ...categoryInfo(value) })),
-      category,
-    );
     const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>`;
     return `<form id="device-form"><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
-      <div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${show}</div>
-      <details class="section sheet-category" id="device-category"${this.openSections.has('device-category') ? ' open' : ''}><summary>${esc(t('Categoría'))}<small>${esc(categoryInfo(category).label)}</small></summary><div class="section-body">${categoryBody}</div></details>
-      ${this.section('device-binding', t('Dispositivo de Home Assistant'), binding)}${this.section('device-alerts', t('Avisos'), '<homemanager-alert-editor></homemanager-alert-editor>')}${remotes ? `<div data-section="remote"${sections.remote ? '' : ' hidden'}>${this.section('device-remote', t('Control RF en el panel'), remotes)}</div>` : ''}</form>
-      <div data-section="controls"${sections.controls ? '' : ' hidden'}>${this.section('device-controls-section', t('Controles'), `<div class="ctl-host">${this.controlsSection()}</div>`)}</div>
+      <div class="size-host">${renderSymbolSize(this.sheet!.size)}</div><label>${esc(t('Capa'))}<select name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label></div>
+
+      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', '<homemanager-alert-editor></homemanager-alert-editor>', device)}${this.moduleBlock('gestures', `<p>${esc(t('Al tocar'))}: ${esc(t('Configurar en Control'))}</p>`, device)}</form>
+      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', `<p>${esc(t('Elegí hasta tres atajos en Control.'))}</p>`, device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -899,33 +903,68 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** Linking another entity proposes its category, unless the person already chose one. */
   private proposeCategory(entityId: string): void {
-    const choices = this.root.querySelector<HTMLFieldSetElement>('#device-form .k-choices');
-    if (!choices || choices.hasAttribute('data-chosen') || !entityId) return;
-    const kind = suggestPresentation(entityId, this._hass?.states[entityId]).kind;
-    const category = categoryOf(
-      { id: 'new', roomId: null, kind, display: { label: '', icon: '' }, bindings: { entityId } },
+    // Binding suggestions do not hide independent modules.
+    this.configureAlerts();
+  }
+  private moduleDraft?: ModuleId[];
+  private moduleUndo?: ModuleId[];
+  private moduleDevice(device = this.device()): Device {
+    const base =
+      device ??
+      ({
+        id: 'new',
+        roomId: null,
+        kind: 'other',
+        position: { x: 0.5, y: 0.5 },
+        mobility: 'editable',
+        display: { label: '', icon: 'mdi:shape' },
+        bindings: { entityId: null, primaryAction: null, advancedPopupId: null },
+        state: { value: 'unknown', confidence: 'unknown' },
+      } as Device);
+    return {
+      ...base,
+      display: { ...base.display, ...(this.moduleDraft ? { modules: this.moduleDraft } : {}) },
+      bindings: { ...base.bindings, controls: this.sheet?.controls ?? base.bindings.controls },
+    };
+  }
+  private moduleBlock(id: ModuleId, body: string, device?: Device): string {
+    const active = modulesOf(this.moduleDevice(device), this._hass).includes(id);
+    return `<div data-module="${id}"${active ? '' : ' hidden'}>${this.section(({ device: 'device-binding', rules: 'device-alerts', control: 'device-controls-section' } as Partial<Record<ModuleId, string>>)[id] ?? 'module-' + id, t(MODULE_LABELS[id]), `${body}<button type="button" data-command="module-remove" data-module-id="${id}">${esc(t('Quitar módulo'))}</button>`)}</div>`;
+  }
+  private moduleMenu(device?: Device): string {
+    return `<details class="section module-menu"><summary>${esc(t('+ Agregar'))}</summary><div class="section-body">${moduleChoices(
+      this.moduleDevice(device),
       this._hass,
-    );
-    const radio = choices.querySelector<HTMLInputElement>(`input[value="${category}"]`);
-    if (radio) radio.checked = true;
-    this.applySections(category);
+    )
+      .map(
+        choice =>
+          `<button type="button" data-command="module-add" data-module-id="${choice.id}"${choice.present || choice.reason ? ' disabled' : ''}>${esc(t(MODULE_LABELS[choice.id]))} · ${esc(t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar')))}</button>`,
+      )
+      .join(
+        '',
+      )}</div></details><button type="button" data-command="module-undo"${this.moduleUndo ? '' : ' hidden'}>${esc(t('Deshacer cambio de módulo'))}</button>`;
   }
-  /** Shows only the chosen category's sections; hidden ones keep their data until saved. */
-  private applySections(category: Category): void {
-    const sections = sectionsOf(category);
-    for (const [name, visible] of Object.entries(sections))
-      for (const node of this.root.querySelectorAll<HTMLElement>(`[data-section="${name}"]`)) node.hidden = !visible;
-    this.configureAlerts(category);
+  private updateModules(): void {
+    const active = modulesOf(this.moduleDevice(), this._hass);
+    for (const node of this.root.querySelectorAll<HTMLElement>('[data-module]'))
+      node.hidden = !active.includes(node.dataset.module as ModuleId);
+    for (const button of this.root.querySelectorAll<HTMLButtonElement>('[data-command="module-add"]')) {
+      const choice = moduleChoices(this.moduleDevice(), this._hass).find(c => c.id === button.dataset.moduleId)!;
+      button.disabled = choice.present || !!choice.reason;
+      button.textContent =
+        t(MODULE_LABELS[choice.id]) + ' · ' + t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar'));
+    }
+    const undo = this.root.querySelector<HTMLElement>('[data-command="module-undo"]');
+    if (undo) undo.hidden = !this.moduleUndo;
   }
+
   private alertDraft?: AlertSettingsDraft;
   private configureAlerts(category?: Category): void {
     const editor = this.root.querySelector<AlertEditor>('homemanager-alert-editor');
     if (!editor || !this.alertDraft) return;
     const get = (name: string) =>
       this.root.querySelector<HTMLInputElement>(`#device-form [name="${name}"]`)?.value ?? '';
-    const chosen =
-      category ??
-      (this.root.querySelector<HTMLInputElement>('#device-form [name="category"]:checked')?.value as Category);
+    const chosen = category ?? this.sheetCategory(this.device());
     editor.configure(
       this.alertDraft,
       {
@@ -1514,6 +1553,44 @@ export class HomeManagerEditor extends HTMLElement {
         case 'restore-plan':
           void this.restorePlan(button.dataset.plan!);
           break;
+        case 'module-add': {
+          const id = button.dataset.moduleId as ModuleId;
+          this.moduleUndo = modulesOf(this.moduleDevice(), this._hass);
+          this.moduleDraft = [...new Set([...this.moduleUndo, id])];
+          if (id === 'indicators') {
+            const field = this.root.querySelector<HTMLInputElement>('[name="show"][value="both"]');
+            if (field) field.checked = true;
+          }
+          this.updateModules();
+          break;
+        }
+        case 'module-remove': {
+          const id = button.dataset.moduleId as ModuleId;
+          void confirmDialog(this.root, {
+            title: t('¿Quitar módulo?'),
+            confirm: t('Quitar módulo'),
+            message: t(
+              'Se quita el bloque de la ficha y se conservan sus datos y acciones. Podés volver a agregarlo o deshacer.',
+            ),
+            trigger: button,
+          }).then(ok => {
+            if (!ok) return;
+            this.moduleUndo = modulesOf(this.moduleDevice(), this._hass);
+            this.moduleDraft = this.moduleUndo.filter(m => m !== id);
+            this.updateModules();
+            this.schedulePreview();
+          });
+          break;
+        }
+        case 'module-undo': {
+          const previous = this.moduleUndo;
+          if (previous) {
+            this.moduleUndo = this.moduleDraft;
+            this.moduleDraft = previous;
+            this.updateModules();
+          }
+          break;
+        }
         case 'room-add-zone':
           this.emit(
             upsertRoom(this.configuration, {
@@ -1558,14 +1635,6 @@ export class HomeManagerEditor extends HTMLElement {
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (!this.config) return;
-    if (target.getAttribute('name') === 'category' && target.closest('#device-form')) {
-      // Chosen by the person: a new entity no longer proposes another one.
-      target.closest('fieldset')?.setAttribute('data-chosen', '');
-      this.applySections(target.value as Category);
-      const label = this.root.querySelector('#device-category summary small');
-      if (label) label.textContent = categoryInfo(target.value as Category).label;
-      return;
-    }
     if (target.hasAttribute('data-room-icon')) {
       const index = target.dataset.roomIcon!;
       const hidden = this.root.querySelector<HTMLInputElement>(`[name="room-icon-${index}"]`);
@@ -1623,7 +1692,7 @@ export class HomeManagerEditor extends HTMLElement {
   /** Validated configuration from the same fields for preview and explicit confirmation. */
   private deviceChange(form: HTMLFormElement): { next: Configuration; device: Device } {
     const data = new FormData(form);
-    if (!this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid())
+    if (this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid() === false)
       throw new Error(t('Revisá los límites y la duración de los avisos.'));
     let alertDisplay: ReturnType<typeof alertSettingsDisplay>;
     try {
@@ -1665,12 +1734,14 @@ export class HomeManagerEditor extends HTMLElement {
         ...(held.size !== 'm' ? { size: held.size } : {}),
         ...(held.pinned.length ? { pinned: held.pinned } : {}),
         ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
-        ...(sectionsOf(category).show
+        ...(value(data, 'show')
           ? { show: value(data, 'show') as NonNullable<Device['display']['show']> }
           : previous?.display.show
             ? { show: previous.display.show }
             : {}),
-        category,
+        ...(previous?.display.category ? { category: previous.display.category } : {}),
+        ...(this.moduleDraft ? { modules: [...this.moduleDraft] } : {}),
+        ...(value(data, 'layer') ? { layer: value(data, 'layer') as NonNullable<Device['display']['layer']> } : {}),
         ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
           ? { alerts: alertDisplay.alerts }
           : {}),

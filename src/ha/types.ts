@@ -106,6 +106,8 @@ export interface Device {
     /** Optional body content. Meters default to value; all other archetypes to icon. */
     show?: SymbolShow;
     category?: DeviceCategory;
+    modules?: import('../model/modules.js').ModuleId[];
+    layer?: import('../model/types.js').SymbolLayer;
     /** Up to four reading conditions. No runtime observation is persisted here. */
     alerts?: AlertRuleConfig[];
     /** Presence is highlighted only when explicitly enabled. */

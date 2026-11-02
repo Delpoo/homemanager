@@ -637,3 +637,24 @@ export const en: Record<string, string> = {
   'Usá minúsculas, números y guiones para el nombre del hogar.':
     'Use lowercase letters, numbers and hyphens for the home name.',
 };
+
+Object.assign(en, {
+  Dispositivo: 'Device',
+  Indicadores: 'Indicators',
+  Gestos: 'Gestures',
+  Control: 'Control',
+  'Junto al símbolo': 'Beside the symbol',
+  Reglas: 'Rules',
+  'Necesita un control': 'Needs a control',
+  'Ya está': 'Already added',
+  Agregar: 'Add',
+  '+ Agregar': '+ Add',
+  Capa: 'Layer',
+  'Quitar módulo': 'Remove module',
+  '¿Quitar módulo?': 'Remove module?',
+  'Se quita el bloque de la ficha y se conservan sus datos y acciones. Podés volver a agregarlo o deshacer.':
+    'The block is removed from the sheet. Its data and actions are kept. You can add it again or undo.',
+  'Deshacer cambio de módulo': 'Undo module change',
+  'Elegí hasta tres atajos en Control.': 'Choose up to three shortcuts in Control.',
+  'Configurar en Control': 'Configure in Control',
+});

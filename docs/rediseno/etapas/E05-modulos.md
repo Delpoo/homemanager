@@ -67,3 +67,13 @@ Todo lo de la ficha. Un plano con categorías guardadas se ve y se comporta igua
 - [ ] Validación igual en JavaScript, Python y esquema.
 
 ## Registro
+
+### 2026-11-02 — Codex — implementación local
+- **Hecho:** módulos independientes, base sin grilla de categorías, capa editable y vista previa; quitar un bloque confirma la conservación de sus datos/acciones y permite deshacer. No se borran categorías ni arquetipos.
+- **Decisión:** `display.modules` opcional recuerda bloques vacíos y su selección; los datos existentes se conservan. Sin módulos explícitos, lectura compatible: switch/equipment/remote → dispositivo, gestos, control, reglas; meter/plant → dispositivo, indicadores, gestos, reglas; alert/presence/infrastructure → dispositivo, gestos, reglas. Datos de paneles y atajos agregan sus bloques. Las categorías son sugerencias, nunca permisos.
+- **0.10:** asociación de áreas en `connect-home` conserva vínculos y propone desde entidades; no agrega ni impone categorías. No requiere otra migración.
+- **Aceptación:** 1 cumplido (modelo abierto, dependencia de atajos con motivo); 2 cumplido (prueba de navegador sin radios de categoría); 3 cumplido (ocho categorías, prueba sin mutación/presentación conservada); 4 cumplido (guardado conserva ambos campos); 5 cumplido (navegador comprueba borrador actualizado al agregar); 6 cumplido (quitar/confirmar/deshacer en navegador); 7 implementación coordinada en JS/Python/esquema, prueba Python y CI pendientes del cierre.
+- **Inventario E05:** F-021 capa editable; F-029/F-031/F-097 controles, toque y alfileres conservados; F-034 agrupación intacta; F-041 sustituida por base y módulos; F-043/F-062/F-063/F-064 selector y asociación intactos; F-044 espacio en base; F-045 indicadores; F-047/F-048 avisos sin veto por categoría; F-049 control RF; F-050/F-051/F-053 opciones avanzadas; F-052 módulo nativo; F-056/F-057 pie y creación conservados; F-061 permisos intactos; F-081 referencias pendientes; F-120 sincronización intacta; F-121 campos opcionales; F-123 acciones/fuentes/TTL intactos; F-132/F-133/F-134/F-135/F-136/F-137 áreas y edición conservadas. 33 filas cotejadas con código; recorridos focales de navegador, no recorrido físico completo.
+- **Comprobaciones:** check 258 pruebas y caso de ficha previa aprobados; caso nuevo de módulos aprobado tras corregir la copia de campos en upsertDevice. Capturas y recorrido de contrato conjunto al final del lote.
+- **Falta:** cierre/CI del lote, auditor independiente y validación del propietario. Teléfono y lector físicos no probados.
+- **Dónde quedó:** `chatgpt/rediseno-lote-2`, commit E05; PR al cerrar el lote.

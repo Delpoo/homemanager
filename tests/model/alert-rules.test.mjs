@@ -176,11 +176,11 @@ test('an alarm level replaces the default critical alert instead of duplicating 
   assert.equal(alerts[0].message, 'Fuga detectada');
 });
 
-test('changing category keeps configuration intact while hidden rule types stay inactive', () => {
+test('categories no longer gate associated configured alerts', () => {
   const { device, hass } = plant();
   const original = structuredClone(device.display.alerts);
   device.display.category = 'switch';
-  assert.deepEqual(alertsOf(device, hass, now), []);
+  assert.equal(alertsOf(device, hass, now).length, 1);
   assert.deepEqual(device.display.alerts, original);
   device.display.category = 'plant';
   assert.equal(alertsOf(device, hass, now).length, 1);

@@ -71,9 +71,7 @@ export function plantAlertSuggestions(device: ModelDevice, hass?: ModelHass): Al
     });
 }
 export function settingApplies(setting: AlertSetting, category: Category): boolean {
-  return setting.reading.startsWith('binary_sensor.')
-    ? category === 'alert' || category === 'presence'
-    : category === 'plant' || category === 'meter';
+  return true;
 }
 
 /** Validate editable values without mutating the draft. Disabled suggestions never enter the contract. */

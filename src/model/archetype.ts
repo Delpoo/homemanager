@@ -101,7 +101,12 @@ export function presentationOf(device: ModelDevice, hass?: ModelHass) {
         : archetype === 'sensor' || archetype === 'meter'
           ? 'sensors'
           : 'controls';
-  return { archetype, layer, cool: device.kind === 'ac', level: levelOf(device, entity) };
+  return {
+    archetype,
+    layer: device.display.layer ?? layer,
+    cool: device.kind === 'ac',
+    level: levelOf(device, entity),
+  };
 }
 
 function levelOf(device: ModelDevice, entity?: ModelEntity): number | null {

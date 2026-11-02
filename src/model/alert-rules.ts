@@ -29,13 +29,10 @@ export function alertReading(device: ModelDevice, reading: string, hass?: ModelH
 }
 
 function applicable(device: ModelDevice, rule: AlertRuleConfig, hass?: ModelHass): boolean {
-  const category = categoryOf(device, hass);
-  if (!['alert', 'presence', 'plant', 'meter'].includes(category)) return false;
   if (!['alert', 'warning'].includes(rule.level)) return false;
   const binary = rule.reading.startsWith('binary_sensor.');
   const bounds = rule.below !== undefined || rule.above !== undefined;
-  if (binary) return !bounds && (category === 'alert' || category === 'presence');
-  return bounds && (category === 'plant' || category === 'meter');
+  return binary ? !bounds : bounds;
 }
 
 function condition(rule: AlertRuleConfig, source: ModelEntity | undefined): 'below' | 'above' | 'on' | null {
