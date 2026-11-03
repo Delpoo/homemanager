@@ -26,6 +26,39 @@ async function setup(page) {
 }
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80"><rect width="100" height="80" fill="#335577"/></svg>';
+
+test('changing theme during upload keeps the image in its original mode', async ({ page }) => {
+  const card = await setup(page);
+  await page.evaluate(() => {
+    const h = window.testHarness,
+      original = h.hass.callWS;
+    h.hass.callWS = async message => {
+      if (message.type === 'homemanager/image/put')
+        await new Promise(resolve => {
+          window.finishUpload = resolve;
+        });
+      return original(message);
+    };
+    h.card.hass = { ...h.hass };
+  });
+  await openCardMenu(page);
+  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card.locator('[data-command=settings]').click();
+  const editor = card.locator('homemanager-plan-views-editor');
+  await editor.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
+  await editor.getByLabel('Nombre', { exact: true }).fill('Original mode');
+  const source = await card.evaluate(c => c.draft.architecture.content);
+  await editor
+    .locator('[data-image]')
+    .setInputFiles({ name: 'mode.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(source) });
+  await page.waitForFunction(() => window.finishUpload);
+  await editor.locator('[data-mode]').selectOption('dark');
+  await page.evaluate(() => window.finishUpload());
+  await editor.getByRole('button', { name: 'Guardar alternativa', exact: true }).click();
+  await expect.poll(() => card.evaluate(c => c.draft.planViews?.length)).toBe(1);
+  expect(await card.evaluate(c => !!c.draft.planViews[0].light)).toBe(true);
+  expect(await card.evaluate(c => c.draft.planViews[0].dark)).toBeUndefined();
+});
 test('alternative editor checks framing, keeps positions and supports duplicate/order/remove and discard', async ({
   page,
 }) => {

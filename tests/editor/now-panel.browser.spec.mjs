@@ -1,5 +1,33 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
+
+test('shortcut destination matches its label and choosing a target replaces the other target', async ({ page }) => {
+  await page.goto('/tests/browser/fixtures/card.html');
+  await page.waitForFunction(() => window.testHarnessReady);
+  await page.evaluate(() => {
+    const h = window.testHarness,
+      c = structuredClone(h.original);
+    c.configuration.nowPanels = {
+      home: [{ id: 'shortcut', type: 'shortcut', deviceId: 'synthetic-light', roomId: 'office' }],
+    };
+    h.card.setConfig(c);
+    h.card.hass = { ...h.hass };
+  });
+  const card = page.locator('homemanager-card');
+  await expect(card.locator('homemanager-insights [data-now-room]')).toHaveCount(0);
+  await expect(card.locator('homemanager-insights')).toContainText('Luz de prueba');
+  await openCardMenu(page);
+  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card.locator('[data-command=settings]').click();
+  await card.locator('[data-settings=now-section]').click();
+  const panel = card.locator('homemanager-now-panel-editor');
+  await panel.locator('[data-type]').selectOption('shortcut');
+  await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
+  await panel.locator('[data-field=roomId]').selectOption('living');
+  expect(await card.evaluate(c => c.draft.nowPanels.home[0].deviceId)).toBeUndefined();
+  await panel.locator('[data-field=deviceId]').selectOption('synthetic-light');
+  expect(await card.evaluate(c => c.draft.nowPanels.home[0].roomId)).toBeUndefined();
+});
 test('Now editor previews selected readings, orders blocks, saves and permits a separate wall list', async ({
   page,
 }) => {

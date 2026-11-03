@@ -40,7 +40,7 @@ export class NowPanelEditor extends HTMLElement {
         id,
         name: personName(state.attributes.friendly_name) || id.split('.')[1].replaceAll('_', ' '),
       }));
-    this.root.innerHTML = `<style>:host{display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}*{box-sizing:border-box}button,input,select{font:inherit;min-height:44px;max-width:100%;padding:8px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink)}label{display:grid;gap:6px;margin:10px 0}.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;padding:8px;border:1px solid var(--hm-line);border-radius:10px}.row>b{flex:1}.preview{padding:12px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px}fieldset{min-width:0}</style><label>${e(t('Configuración del panel'))}<select data-mode aria-label="${e(t('Configuración del panel'))}"><option value="home"${this.mode === 'home' ? ' selected' : ''}>${e(t('Casa'))}</option><option value="wall"${this.mode === 'wall' ? ' selected' : ''}>${e(t('Modo pared'))}</option></select></label><p>${e(t('Sin personalizar se conservan las secciones automáticas. El modo pared puede usar otra lista.'))}</p><button type="button" data-reset>${e(t('Usar panel automático'))}</button>${blocks.map(b => `<div class="row"><b>${e(b.title || t(BLOCK_NAMES[b.type]))}</b><button type="button" data-edit="${e(b.id)}">${e(t('Editar'))}</button><button type="button" data-move="${e(b.id)}" data-offset="-1">${e(t('Subir'))}</button><button type="button" data-move="${e(b.id)}" data-offset="1">${e(t('Bajar'))}</button><button type="button" data-remove="${e(b.id)}">${e(t('Quitar'))}</button></div>`).join('')}<label>${e(t('Agregar bloque'))}<select data-type>${Object.entries(
+    this.root.innerHTML = `<style>:host{display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}*{box-sizing:border-box}button,input,select{font:inherit;min-height:44px;max-width:100%;padding:8px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink)}label{display:grid;gap:6px;margin:10px 0}.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;padding:8px;border:1px solid var(--hm-line);border-radius:10px}.row>b{flex:1}.preview{padding:12px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px}fieldset{min-width:0}</style><label>${e(t('Configuración del panel'))}<select data-mode aria-label="${e(t('Configuración del panel'))}"><option value="home"${this.mode === 'home' ? ' selected' : ''}>${e(t('Casa'))}</option><option value="wall"${this.mode === 'wall' ? ' selected' : ''}>${e(t('Modo pared'))}</option></select></label><p>${e(t('Sin personalizar se conservan las secciones automáticas. El modo pared puede usar otra lista.'))}</p><button type="button" data-reset>${e(t(this.mode === 'wall' && this.config.nowPanels?.home !== undefined ? 'Usar panel de Casa' : 'Usar panel automático'))}</button>${blocks.map(b => `<div class="row"><b>${e(b.title || t(BLOCK_NAMES[b.type]))}</b><button type="button" data-edit="${e(b.id)}">${e(t('Editar'))}</button><button type="button" data-move="${e(b.id)}" data-offset="-1">${e(t('Subir'))}</button><button type="button" data-move="${e(b.id)}" data-offset="1">${e(t('Bajar'))}</button><button type="button" data-remove="${e(b.id)}">${e(t('Quitar'))}</button></div>`).join('')}<label>${e(t('Agregar bloque'))}<select data-type>${Object.entries(
       BLOCK_NAMES,
     )
       .map(([type, name]) => `<option value="${type}">${e(t(name))}</option>`)
@@ -83,7 +83,14 @@ export class NowPanelEditor extends HTMLElement {
                 )}</p></section>`,
             )
             .join('')
-        : e(t(this.config.nowPanels ? 'Nada por mostrar en este espacio' : 'Se conservan las secciones automáticas.'))
+        : e(
+            t(
+              this.config.nowPanels?.home !== undefined ||
+                (this.mode === 'wall' && this.config.nowPanels?.wall !== undefined)
+                ? 'Nada por mostrar en este espacio'
+                : 'Se conservan las secciones automáticas.',
+            ),
+          )
     }</div>`;
     this.root.querySelector<HTMLSelectElement>('[data-mode]')!.onchange = ev => {
       this.mode = (ev.target as HTMLSelectElement).value as 'home' | 'wall';
@@ -138,6 +145,10 @@ export class NowPanelEditor extends HTMLElement {
           } else if (['deviceId', 'controlId', 'roomId', 'title'].includes(key)) {
             if (field.value) (block as unknown as Record<string, string>)[key] = field.value;
             else delete (block as unknown as Record<string, string>)[key];
+            if (block.type === 'shortcut' && field.value) {
+              if (key === 'deviceId') delete block.roomId;
+              if (key === 'roomId') delete block.deviceId;
+            }
           }
           this.write(next);
         }),
