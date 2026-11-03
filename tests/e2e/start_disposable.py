@@ -11,7 +11,8 @@ root = Path(sys.argv[1]).resolve()
 if root.exists():
     raise SystemExit("Use a new disposable directory")
 root.mkdir(parents=True)
-shutil.copytree("custom_components/homemanager", root / "custom_components/homemanager", ignore=shutil.ignore_patterns("__pycache__"))
+component = sys.argv[2] if len(sys.argv) > 2 else "custom_components/homemanager"
+shutil.copytree(component, root / "custom_components/homemanager", ignore=shutil.ignore_patterns("__pycache__"))
 (root / "configuration.yaml").write_text('''homeassistant:
   name: HomeManager disposable test
   time_zone: UTC

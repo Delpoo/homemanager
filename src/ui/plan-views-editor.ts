@@ -104,10 +104,11 @@ export class PlanViewsEditor extends HTMLElement {
   private async upload(file: File) {
     if (!this.edit) return;
     const pending = this.edit;
+    const mode = this.mode;
     const { data, box } = await fileImage(file);
     const saved = await putImage(this.hass, this.scope, data);
     if (this.edit !== pending) return;
-    this.edit[this.mode] = { ...saved, scope: this.scope, box };
+    this.edit[mode] = { ...saved, scope: this.scope, box };
     this.urls[saved.sha256] = imageUrl(data);
     this.message = alignedBox(box, this.base())
       ? ''

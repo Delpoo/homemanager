@@ -294,4 +294,5 @@ export const enShell: Record<string, string> = {
   '{count} dispositivos agregados al borrador. Movelos a su lugar y guardá el plano.':
     '{count} devices added to the draft. Move them into place and save the plan.',
   'Crear un área y vincular': 'Create one area and link',
+  'Usar panel de Casa': 'Use Home panel',
 };
