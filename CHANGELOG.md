@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0-beta.2 — candidata, sin publicar
+
+Rediseño completo E01–E13. Conserva beta.1 y agrega módulos independientes, gestos configurables, Reglas editables, iconos y color compartidos; diseñador común RF/HA y aprendizaje guiado; alternativas claras/oscuras del plano; Ahora editable y navegación de PC/modo pared.
+
+Los controles, acciones y datos anteriores se conservan. Enviar RF no confirma el estado físico. Las reglas funcionan durante la sesión; las imágenes de alternativas no siguen archivos externos y no se purgan al quitar una alternativa. Para trasladar imágenes se utiliza la copia con imágenes.
+
+Antes de actualizar o volver atrás: [procedimiento de prueba y recuperación](docs/release-beta2.md). Auditoría independiente, ensayo completo de actualización/restauración y pruebas físicas pendientes. Esta candidata no acredita aprobación funcional ni publicación.
+
 Versionado [SemVer](https://semver.org/lang/es/). La versión vive en `package.json` y se replica en `custom_components/homemanager/manifest.json`; `tests/versioning.test.mjs` falla si divergen o si esta lista no empieza por la versión actual. Las releases las publica sólo el propietario (ver [docs/versioning.md](docs/versioning.md)).
 
 ## 0.11.0-beta.1 — beta
