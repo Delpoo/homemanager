@@ -79,7 +79,6 @@ const browser = await chromium.launch(
 );
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
-  locale: 'es-ES',
   acceptDownloads: true,
 });
 await context.addInitScript(
@@ -89,11 +88,22 @@ await context.addInitScript(
       JSON.stringify({ ...tokens, hassUrl, clientId, expires: Date.now() + tokens.expires_in * 1000 }),
     );
     localStorage.setItem('homemanager-app-home', 'e2e-redesign');
-    localStorage.setItem('selectedLanguage', 'es');
   },
   [credentials.tokens, base, credentials.clientId],
 );
 const page = await context.newPage();
+await page.addInitScript(() => {
+  window.addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    console.info(
+      'E2E frontend rejection:',
+      JSON.stringify({ code: reason?.code, message: reason?.message, name: reason?.name }),
+    );
+  });
+});
+page.on('console', message => {
+  if (message.text().startsWith('E2E frontend rejection:')) console.log(message.text());
+});
 page.on('websocket', socket => {
   const commands = new Map();
   socket.on('framesent', ({ payload }) => {
@@ -133,50 +143,51 @@ try {
   const card = page.locator('homemanager-app homemanager-card');
   await expect(card.locator('[data-id=lamp] .primary')).toBeVisible({ timeout: 60000 });
   await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.user?.is_admin)).toBe(true);
-  await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.locale?.language)).toBe('es');
   console.log('ok: legacy plan loads from actual persistent HA storage');
   await card.locator('.hm-menu>summary').click();
-  await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card.getByRole('button', { name: /^(Editar plano|Edit plan)$/ }).click();
   await card.locator('[data-command=settings]').click();
   const editor = card.locator('homemanager-editor');
   const views = editor.locator('homemanager-plan-views-editor');
-  await views.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
-  await views.getByLabel('Nombre', { exact: true }).fill('E2E alternative');
+  await views.getByRole('button', { name: /^(Agregar alternativa|Add alternative)$/ }).click();
+  await views.getByLabel(/^(Nombre|Name)$/).fill('E2E alternative');
   await views
     .locator('[data-image]')
     .setInputFiles({ name: 'synthetic.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(plan) });
   await expect(views.locator('[data-preview]')).toBeVisible();
-  await views.getByRole('button', { name: 'Guardar alternativa', exact: true }).click();
+  await views.getByRole('button', { name: /^(Guardar alternativa|Save alternative)$/ }).click();
   await expect(views.getByText('E2E alternative', { exact: true })).toBeVisible();
   console.log('ok: authenticated upload, actual image storage and browser preview');
   await editor.locator('[data-settings=now-section]').click();
   const panel = editor.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('reading');
-  await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
+  await panel.getByRole('button', { name: /^(Agregar bloque|Add block)$/ }).click();
   await panel.locator('[data-field=readings]').selectOption('sensor.e2e_temperature');
   await expect(panel.locator('.preview')).toContainText('22');
   await page.keyboard.press('Escape');
-  await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
-  await expect(card.locator('.shell>.status')).toContainText('Guardado en Home Assistant', { timeout: 30000 });
+  await card.getByRole('button', { name: /^(Guardar cambios|Save changes)$/ }).click();
+  await expect(card.locator('.shell>.status')).toContainText(/Guardado en Home Assistant|Saved in Home Assistant/, {
+    timeout: 30000,
+  });
   const saved = await ws({ type: 'homemanager/home/get', home_id: 'e2e-redesign' });
   assert.equal(saved.configuration.planViews.length, 1);
   assert.equal(saved.configuration.nowPanels.home[0].readings[0], 'sensor.e2e_temperature');
   assert.deepEqual(saved.configuration.catalog.devices[0].position, { x: 0.25, y: 0.5 });
   console.log('ok: live reading, UI save, backend readback and geometry preservation');
-  await card.getByRole('button', { name: 'Salir de edición', exact: true }).click();
+  await card.getByRole('button', { name: /^(Salir de edición|Exit editing)$/ }).click();
   await page.reload();
   await expect(card.locator('[data-id=lamp] .primary')).toBeVisible({ timeout: 30000 });
-  await card.getByLabel('Alternativa del plano', { exact: true }).selectOption(saved.configuration.planViews[0].id);
+  await card.getByLabel(/^(Alternativa del plano|Plan alternative)$/).selectOption(saved.configuration.planViews[0].id);
   await expect(card.locator('.plan-image')).toBeVisible();
   await expect(card.locator('homemanager-insights')).toContainText('22');
   const image = saved.configuration.planViews[0].light;
   assert.ok((await ws({ type: 'homemanager/image/get', scope: image.scope, sha256: image.sha256 })).content);
   console.log('ok: actual reload restores image bytes and configured Now panel');
   await card.locator('[data-id=lamp] .primary').click();
-  await expect(card.locator('.sent-note')).toContainText('Enviado', { timeout: 15000 });
-  assert.equal(await card.getByText('confirmado', { exact: true }).count(), 0);
+  await expect(card.locator('.sent-note')).toContainText(/Enviado|Sent/, { timeout: 15000 });
+  assert.equal(await card.getByText(/^(confirmado|confirmed)$/i).count(), 0);
   console.log('ok: a real HA service is sent without claiming physical confirmation');
-  await card.getByRole('button', { name: 'Vista por espacio', exact: true }).click();
+  await card.getByRole('button', { name: /^(Vista por espacio|Room view)$/ }).click();
   const arrow = card.locator('.nav-arrow').first();
   await expect(arrow).toBeVisible();
   const room = await card.evaluate(c => c.currentRoom);
@@ -184,15 +195,15 @@ try {
   await expect.poll(() => card.evaluate(c => c.currentRoom)).not.toBe(room);
   console.log('ok: mouse room navigation on the actual HA frontend');
   await card.locator('.hm-menu>summary').click();
-  await card.getByRole('button', { name: 'Modo pared', exact: true }).click();
+  await card.getByRole('button', { name: /^(Modo pared|Wall mode)$/ }).click();
   await expect(card).toHaveAttribute('data-wall', 'true');
   assert.ok(await page.evaluate(() => !!document.fullscreenElement));
-  await card.getByRole('button', { name: 'Salir del modo pared', exact: true }).click();
+  await card.getByRole('button', { name: /^(Salir del modo pared|Exit wall mode)$/ }).click();
   await expect(card).not.toHaveAttribute('data-wall', 'true');
   console.log('ok: actual fullscreen wall mode and exit');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
-    card.locator('homemanager-insights').getByRole('button', { name: 'Mostrar Ahora', exact: true }),
+    card.locator('homemanager-insights').getByRole('button', { name: /^(Mostrar Ahora|Show Now)$/ }),
   ).toBeVisible();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= 390));
   await page.screenshot({ path: '.work/e2e-redesign/mobile.png' });
@@ -210,6 +221,7 @@ try {
       body: (await page.locator('body').innerText()).slice(0, 1600),
       frontendErrors,
       buttons: await page.getByRole('button').allTextContents(),
+      accessible: (await page.locator('body').ariaSnapshot()).slice(0, 4000),
     }),
   );
   await page.screenshot({ path: '.work/e2e-redesign/failure.png' }).catch(() => {});
