@@ -74,7 +74,7 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await field(page, 'Posición X').fill('0.61');
   await field(page, 'Posición Y').fill('0.73');
   await chooseAnyEntity(page, 'fan.not_configured_yet');
-  await button(page, 'Guardar dispositivo').click();
+  await button(page, 'Crear').click();
   const first = (await current(page)).catalog.devices.find(device => device.id === 'test-portatil');
   expect(first).toMatchObject({
     roomId: 'office',

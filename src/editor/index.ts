@@ -84,6 +84,7 @@ import { editorSheetStyles } from '../ui/editor-components.js';
 import { restoreEditedDevice } from '../model/editor-session.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { fieldErrorStyles, showFieldErrors } from './field-errors.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
@@ -130,7 +131,7 @@ const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyl
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 .palette{display:flex;flex-wrap:wrap;gap:4px}.palette button{padding:0 8px}.symbol-color>summary{min-height:44px;line-height:44px;cursor:pointer}.symbol-color small{font-size:12px;color:var(--hm-muted)}
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
-const css = cssBase + editorSheetStyles;
+const css = cssBase + editorSheetStyles + fieldErrorStyles;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
@@ -192,6 +193,8 @@ export class HomeManagerEditor extends HTMLElement {
   private _selectedDeviceId: string | null = null;
   private _embedded = false;
   private adding = false;
+  /** What the new-device sheet held when it opened: Cancel asks only after a change. */
+  private newFingerprint = '';
   private allowFixedPosition = false;
   private openedConfiguration?: Configuration;
   private previewQueued = false;
@@ -302,7 +305,11 @@ export class HomeManagerEditor extends HTMLElement {
         this.surface
       ) {
         event.stopPropagation();
-        this.closeSurface();
+        if (this.adding) {
+          // The same Esc would otherwise close the question it opens.
+          event.preventDefault();
+          setTimeout(() => void this.cancelNew());
+        } else this.closeSurface();
       }
     });
     this.root.addEventListener(
@@ -475,7 +482,17 @@ export class HomeManagerEditor extends HTMLElement {
     if (!this._embedded || this.surface !== 'device') return true;
     const form = this.root.querySelector<HTMLFormElement>('#device-form');
     if (!form) return true;
-    if (!form.reportValidity()) return false;
+    // A new symbol is created only with Crear: anything else either drops an untouched
+    // sheet or asks to finish it, so nothing appears in the draft by accident.
+    if (this.adding && !close) {
+      if (this.deviceFingerprint() === this.newFingerprint) {
+        this.discardNew();
+        return true;
+      }
+      this.notice(t('Tocá Crear o Cancelar para terminar el dispositivo nuevo.'));
+      return false;
+    }
+    if (!showFieldErrors(form)) return false;
     try {
       if (!this.adding && this.deviceFingerprint() === this.previewFingerprint) {
         this.dispatchEvent(new CustomEvent('homemanager-preview-finish', { bubbles: true, composed: true }));
@@ -659,6 +676,26 @@ export class HomeManagerEditor extends HTMLElement {
       this.configuration,
     );
   }
+  /** Leaves a new symbol without a trace: nothing reaches the draft or its undo history. */
+  private discardNew(): void {
+    this.adding = false;
+    this.newFingerprint = '';
+    this.closeSurface(false);
+  }
+  /** Cancel, × and Esc while creating: asks once only if something was written or chosen. */
+  private async cancelNew(trigger?: HTMLElement): Promise<void> {
+    if (
+      this.deviceFingerprint() !== this.newFingerprint &&
+      !(await confirmDialog(this.root, {
+        title: t('¿Descartar el dispositivo nuevo?'),
+        message: t('Lo que escribiste o elegiste para este dispositivo se pierde.'),
+        confirm: t('Descartar'),
+        trigger,
+      }))
+    )
+      return;
+    if (this.adding) this.discardNew();
+  }
   closeSurface(commit = true): void {
     if (commit && !this.flushDevice()) return;
     this.surface = null;
@@ -809,7 +846,7 @@ export class HomeManagerEditor extends HTMLElement {
     const handle = this._embedded
       ? `<button class="sheet-handle" type="button" data-command="sheet-expand" aria-label="${esc(this.expanded ? t('Reducir ficha') : t('Ampliar ficha'))}" aria-expanded="${this.expanded}"><span aria-hidden="true"></span></button>`
       : '';
-    const device = `${handle}${header(selected?.display.label ?? t('Dispositivo vacío'), selected?.display.icon ?? 'mdi:circle-outline')}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}</div>`;
+    const device = `${handle}${header(selected?.display.label ?? t('Dispositivo vacío'), selected?.display.icon ?? 'mdi:circle-outline')}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${this.adding ? `<button type="button" data-command="cancel-new">${esc(t('Cancelar'))}</button><span class="spacer"></span><button type="submit" form="device-form" class="primary">${esc(t('Crear'))}</button>` : `${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}`}</div>`;
     const add = `${handle}${header(t('Agregar dispositivo'))}<div class="sheet-body"><div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}</div>`;
     const settings =
       this.surface === 'settings'
@@ -949,7 +986,7 @@ export class HomeManagerEditor extends HTMLElement {
         (device ? (presentationOf(device, this._hass).archetype === 'meter' ? 'value' : 'icon') : 'icon'),
     )}</div>`;
     const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>`;
-    return `<form id="device-form"><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
+    return `<form id="device-form" novalidate><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
       <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div><label>${esc(t('Capa'))}<select name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label></div>
 
@@ -1560,7 +1597,8 @@ export class HomeManagerEditor extends HTMLElement {
           this.openSettings();
           break;
         case 'close':
-          this.closeSurface();
+          if (this.adding) void this.cancelNew(button);
+          else this.closeSurface();
           break;
         case 'from-entity':
           this.pickDevice(true);
@@ -1572,7 +1610,11 @@ export class HomeManagerEditor extends HTMLElement {
           this.sheet = undefined;
           this.allowFixedPosition = false;
           this.render();
+          this.newFingerprint = this.deviceFingerprint();
           this.root.querySelector<HTMLInputElement>('[name=label]')?.focus();
+          break;
+        case 'cancel-new':
+          void this.cancelNew(button);
           break;
         case 'move':
           if (this._selectedDeviceId) {
@@ -1993,6 +2035,7 @@ export class HomeManagerEditor extends HTMLElement {
         return;
       }
       if (formId === 'device-form') {
+        if (!showFieldErrors(form)) return;
         this.applyDeviceForm(form, true);
       } else if (formId === 'action-form') {
         const targets = value(data, 'targets')

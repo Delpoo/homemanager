@@ -234,7 +234,7 @@ test('new unbound icons can be added and removed entirely through the editor', a
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
   await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
-  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
+  await page.getByRole('button', { name: 'Crear', exact: true }).click();
   await expect
     .poll(async () => Boolean((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added')))
     .toBe(true);

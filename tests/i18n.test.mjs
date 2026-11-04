@@ -32,6 +32,7 @@ test('every user-facing string has an English translation with the same variable
     ...(await load('src/i18n/en-rf.ts')).enRf,
     ...(await load('src/i18n/en-controls.ts')).enControls,
     ...(await load('src/i18n/en-shell.ts')).enShell,
+    ...(await load('src/i18n/en-plan012.ts')).enPlan012,
   };
   const missing = [...keys].filter(key => !Object.hasOwn(en, key));
   assert.deepEqual(missing, [], `Missing English translations:\n${missing.join('\n')}`);
@@ -43,7 +44,7 @@ test('every user-facing string has an English translation with the same variable
 test('language follows Home Assistant and falls back to readable text', async () => {
   globalThis.__homemanagerLanguage = undefined;
   const i18n = await import(
-    `data:text/javascript;base64,${Buffer.from(transformSync(readFileSync(path.join(root, 'src/i18n/index.ts'), 'utf8').replace("import { en } from './en.js';", "const en = { 'Encuadrar {label}': 'Show {label}' };").replace("import { enRf } from './en-rf.js';", 'const enRf = {};').replace("import { enControls } from './en-controls.js';", 'const enControls = {};').replace("import { enShell } from './en-shell.js';", 'const enShell = {};'), { loader: 'ts', format: 'esm' }).code).toString('base64')}`
+    `data:text/javascript;base64,${Buffer.from(transformSync(readFileSync(path.join(root, 'src/i18n/index.ts'), 'utf8').replace("import { en } from './en.js';", "const en = { 'Encuadrar {label}': 'Show {label}' };").replace("import { enRf } from './en-rf.js';", 'const enRf = {};').replace("import { enControls } from './en-controls.js';", 'const enControls = {};').replace("import { enShell } from './en-shell.js';", 'const enShell = {};').replace("import { enPlan012 } from './en-plan012.js';", 'const enPlan012 = {};'), { loader: 'ts', format: 'esm' }).code).toString('base64')}`
   );
   assert.equal(i18n.t('Encuadrar {label}', { label: 'Sala' }), 'Show Sala');
   i18n.setLanguage(i18n.languageFromHass({ locale: { language: 'es-AR' } }));
