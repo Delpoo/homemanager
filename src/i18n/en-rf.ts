@@ -215,4 +215,12 @@ export const enRf: Record<string, string> = {
   'Vinculados: {entities}': 'Linked: {entities}',
   'Esta señal no coincide con las de este control. ¿Es del mismo control?':
     'This signal does not match this remote. Is it from the same remote?',
+  '«{button}» reconocido': '“{button}” recognized',
+  '«{button}» recibido, falta repetir': '“{button}” received, repeat needed',
+  '{frames} señal(es). Mantené pulsado «{button}» un momento o pulsalo otra vez.':
+    '{frames} signal(s). Hold “{button}” for a moment or press it again.',
+  'Acercá el control a {receiver} y pulsá «{button}» otra vez, o probá con otro receptor.':
+    'Bring the remote closer to {receiver} and press “{button}” again, or try another receiver.',
+  'Pulsá «{button}» en el control': 'Press “{button}” on the remote',
+  'Apuntá a {receiver}. Mantené pulsado un momento.': 'Point at {receiver}. Hold it for a moment.',
 };

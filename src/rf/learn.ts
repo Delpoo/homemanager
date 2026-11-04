@@ -218,6 +218,8 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
   private renderListen(): string {
     const c = this.candidate;
     const receiver = this.transmitterName(this.listen);
+    // Guided mode always names the chosen button; free mode accepts any (#64).
+    const chosen = this.guided ? this.target.trim() : '';
     let dot = this.listening ? 'on' : '',
       title: string,
       detail: string;
@@ -226,19 +228,32 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
       detail = '';
     } else if (c?.confirmed) {
       dot = 'ok';
-      title = t('Señal reconocida');
+      title = chosen ? t('«{button}» reconocido', { button: chosen }) : t('Señal reconocida');
       detail =
         c.confirmed_by === 'frames'
           ? t('{frames} señales iguales en una pulsación.', { frames: c.burst_frames })
           : t('La misma señal en {bursts} pulsaciones.', { bursts: c.bursts });
     } else if (c) {
       dot = 'warn';
-      title = t('Recibido, falta repetir');
-      detail = t('{frames} señal(es). Mantené pulsado un momento o pulsalo otra vez.', { frames: c.frames });
+      title = chosen ? t('«{button}» recibido, falta repetir', { button: chosen }) : t('Recibido, falta repetir');
+      detail = chosen
+        ? t('{frames} señal(es). Mantené pulsado «{button}» un momento o pulsalo otra vez.', {
+            frames: c.frames,
+            button: chosen,
+          })
+        : t('{frames} señal(es). Mantené pulsado un momento o pulsalo otra vez.', { frames: c.frames });
     } else if (Date.now() - this.noiseAt < NOISE_MS) {
       dot = 'warn';
       title = t('Llega señal, pero no se reconoce');
-      detail = t('Acercá el control a {receiver} o probá con otro receptor.', { receiver });
+      detail = chosen
+        ? t('Acercá el control a {receiver} y pulsá «{button}» otra vez, o probá con otro receptor.', {
+            receiver,
+            button: chosen,
+          })
+        : t('Acercá el control a {receiver} o probá con otro receptor.', { receiver });
+    } else if (chosen) {
+      title = t('Pulsá «{button}» en el control', { button: chosen });
+      detail = t('Apuntá a {receiver}. Mantené pulsado un momento.', { receiver });
     } else {
       title = t('Pulsá un botón del control');
       detail = t('Cualquiera, en el orden que quieras. Escucha {receiver}.', { receiver });

@@ -12,7 +12,12 @@ test('editing exposes guided learning; evidence is real, one target is retained,
   expect(await calls(page, 'homemanager/rf/capture')).toEqual([]);
   await learn.getByLabel('Botón que querés aprender', { exact: true }).fill('Temporizador de prueba');
   await learn.getByRole('button', { name: 'Empezar', exact: true }).click();
+  // Guided mode asks for that very button, never "any, in any order" (#64).
+  await expect(learn.getByText('Pulsá «Temporizador de prueba» en el control', { exact: true })).toBeVisible();
+  await expect(learn.getByText(/Apuntá a .+\. Mantené pulsado un momento\./)).toBeVisible();
+  await expect(learn.getByText(/en el orden que quieras/)).toHaveCount(0);
   await page.evaluate(() => window.rfServer.heard({ burst_frames: 2, frames: 2, bursts: 1 }));
+  await expect(learn.getByText('«Temporizador de prueba» recibido, falta repetir', { exact: true })).toBeVisible();
   await expect(learn.locator('progress').first()).toHaveAttribute('value', '2');
   await expect(learn.getByText(/Señales iguales en esta pulsación: 2/)).toBeVisible();
   await expect(learn.getByRole('button', { name: 'Probar', exact: true })).toHaveCount(0);
@@ -20,6 +25,7 @@ test('editing exposes guided learning; evidence is real, one target is retained,
     window.rfServer.heard({ burst_frames: 1, frames: 3, bursts: 2, confirmed: true, confirmed_by: 'presses' }),
   );
   await expect(learn.getByText(/La misma señal en 2 pulsaciones/)).toBeVisible();
+  await expect(learn.getByText('«Temporizador de prueba» reconocido', { exact: true })).toBeVisible();
   await expect(learn.getByLabel('Nombre del botón')).toHaveValue('Temporizador de prueba');
   await page.evaluate(() => window.rfServer.heard({ candidate_id: 'other', confirmed: true, confirmed_by: 'frames' }));
   await expect(learn.getByLabel('Nombre del botón')).toHaveValue('Temporizador de prueba');
