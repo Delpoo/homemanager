@@ -1,12 +1,23 @@
 # Estado del rediseño
 
-**Modo de trabajo vigente:** [modo-continuo.md](modo-continuo.md), instrucción del propietario; reemplaza LEEME sólo en sus puntos explícitos.
+**Modo de trabajo vigente:** [plan-0.12.md](plan-0.12.md) (issue #99), instrucción del propietario del 2026-11-04; reemplaza a [modo-continuo.md](modo-continuo.md) y a LEEME sólo en sus puntos explícitos.
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** lote 4 autorizado: E11, E12 y E13 en chatgpt/rediseno-lote-4. Base main d2c8a24 adelantada a la base validada del lote 3 (#56, remoto 4cdb847; árbol local a88c8aa idéntico). PR propio al cierre, dependiente de #55 y #56 todavía sin fusionar. Subidas, evidencias y CI autorizadas; sin fusiones, versiones ni casa real.
+**Siguiente paso:** plan 0.12 ([plan-0.12.md](plan-0.12.md)): lotes A a F de corrido, Claude implementa desde el 2026-11-05. Sin fusiones, versiones ni casa real.
 
 **Versión de prueba:** E00–E04 publicadas en `v0.11.0-beta.1` (PR #52 fusionado por squash y pre-release comprobados en GitHub). Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
+
+## Plan 0.12
+
+| Lote | Tareas | Estado | Rama / PR | Actualizado | Falta |
+|---|---|---|---|---|---|
+| A | #88 · #89 · #64 · #63 | en curso | `claude/plan012-lote-a` | 2026-11-05 | Todo |
+| B | #70 · #61 · #90 · #59 · #76 | pendiente | — | — | — |
+| C | #71 · #91 · #92 · #93 · #94 · #95 | pendiente | — | — | — |
+| D | #96 · #97 · #73 | pendiente | — | — | — |
+| E | #62 · #60 · #72 · #98 · #75 · #74 · #65 · #66 | pendiente | — | — | — |
+| F | #77 · #78 · #67 · #68 | pendiente | — | — | — |
 
 ## Etapas
 
@@ -96,6 +107,7 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-11-05 · Claude · plan 0.12 · Lote A empezado desde main 97d4ad4 por pedido del propietario («comenza vos a implementar todo»). Plan copiado en plan-0.12.md.
 - 2026-10-31 · ChatGPT · E00 · Cierre actualizado: main 764a9e0 (#50) integrado; 137 funciones, 40 con capturas históricas, 51 comandos y 12 aperturas. Check (248) y formato pasan; navegador pendiente de auditoría. Misma parada antes de E01.
 - 2026-10-31 · ChatGPT · E00 · Terminada para revisión en PR #49: 131 funciones (40 con capturas históricas además de código), 49 comandos literales y 12 aperturas de ventanas. Check (239) y formato pasan; navegador no aprobado. Seis destinos a validar antes de E01. Reporte en entregas/E00-2026-10-31.md.
 - 2026-10-31 · ChatGPT · E00 · Retomada por instrucción del propietario, con guías fa97550 y main 7f192e3 integrados. Se distingue código, captura y app; E00 no requiere maqueta.
