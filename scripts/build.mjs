@@ -85,6 +85,7 @@ await build({
     'src/model/plan-import.ts',
     'src/model/control-layout.ts',
     'src/model/learning-progress.ts',
+    'src/model/draft-backup.ts',
     'src/shell/runtime-feed.ts',
   ],
   outbase: 'src',

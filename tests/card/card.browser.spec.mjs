@@ -227,6 +227,65 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await expect(save(page)).toHaveAttribute('data-dirty', 'false');
 });
 
+test('unsaved edits survive a reload in this browser and are offered back (#89)', async ({ page }) => {
+  const backupKeys = () =>
+    page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('homemanager:draft:')));
+  await begin(page);
+  await select(page);
+  await setX(page, 0.41);
+  await expect.poll(backupKeys).toHaveLength(1);
+  // Reloading with unsaved edits asks first; accepting leaves the copy behind.
+  let asked = '';
+  page.once('dialog', dialog => {
+    asked = dialog.type();
+    void dialog.accept();
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.testHarnessReady);
+  expect(asked).toBe('beforeunload');
+  await expect(page.locator('homemanager-card .status')).toContainText('cambios sin guardar');
+  await openCardMenu(page);
+  await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  const offer = page.getByRole('region', { name: /^Tenés cambios sin guardar del/ });
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'Recuperar', exact: true }).click();
+  const light = (await draft(page)).catalog.devices.find(device => device.id === 'synthetic-light');
+  expect(light.position.x).toBeCloseTo(0.41);
+  // Saving clears the copy.
+  await save(page).click();
+  await expect(save(page)).toHaveAttribute('data-dirty', 'false');
+  await expect.poll(backupKeys).toHaveLength(0);
+});
+
+test('a copy older than the saved plan warns before recovering, and discarding drops it (#89)', async ({ page }) => {
+  await begin(page);
+  await select(page);
+  await setX(page, 0.43);
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('homemanager:draft:'))))
+    .toBe(true);
+  page.once('dialog', dialog => void dialog.accept());
+  // Someone else saves meanwhile.
+  await page.evaluate(() =>
+    window.testHarness.mutateRemote(dashboard => {
+      dashboard.views[0].cards[0].configuration.catalog.devices[2].display.label = 'Guardado por otra persona';
+    }),
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.testHarnessReady);
+  await openCardMenu(page);
+  await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  const offer = page.getByRole('region', { name: /^Tenés cambios sin guardar del/ });
+  await expect(offer).toContainText('El plano cambió en Home Assistant');
+  // Nothing was applied before choosing.
+  expect((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-light').position.x).toBeCloseTo(0.25);
+  await offer.getByRole('button', { name: 'Descartar', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('homemanager:draft:'))))
+    .toBe(false);
+  expect((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-light').position.x).toBeCloseTo(0.25);
+});
+
 test('new unbound icons can be added and removed entirely through the editor', async ({ page }) => {
   await begin(page);
   await page.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();

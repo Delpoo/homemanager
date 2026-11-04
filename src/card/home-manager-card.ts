@@ -87,6 +87,11 @@ export class HomeManagerCard extends HTMLElement {
   future: Configuration[] = [];
   /** A live sheet edit is one undo step, never a persisted physical state. */
   editorPreviewBase?: Configuration;
+  /** Recovery copy (#89): pending write, an open offer, and the note shown once. */
+  backupTimer?: ReturnType<typeof setTimeout>;
+  backupOffer = false;
+  backupNoted = false;
+  private unloadGuard = (event: BeforeUnloadEvent) => editing.beforeUnload(this, event);
   box: ViewBox = { x: 0, y: 0, width: 1000, height: 700 };
   camera: Camera = { x: 0, y: 0, scale: 1 };
   fitted?: { camera: Camera; width: number };
@@ -197,6 +202,7 @@ export class HomeManagerCard extends HTMLElement {
     if (!this.adapter) this.refreshState();
     this.updateControls();
     this.updateShell();
+    editing.noteDraftBackup(this);
     if (this.home && this.homeState === 'idle' && this.isConnected) void this.loadHome();
   }
   get hass(): Hass | undefined {
@@ -246,6 +252,7 @@ export class HomeManagerCard extends HTMLElement {
     void renderPlanChoice(this);
   };
   connectedCallback() {
+    window.addEventListener('beforeunload', this.unloadGuard);
     document.addEventListener('fullscreenchange', this.wallChanged);
     document.addEventListener('homemanager-theme-change', this.planThemeChanged);
     document.addEventListener('homemanager-layers-change', this.syncLayerChoice);
@@ -275,6 +282,9 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   disconnectedCallback() {
+    // Leaving the page keeps the unsaved edits in this browser for later.
+    editing.flushDraftBackup(this);
+    window.removeEventListener('beforeunload', this.unloadGuard);
     document.removeEventListener('fullscreenchange', this.wallChanged);
     document.removeEventListener('homemanager-theme-change', this.planThemeChanged);
     document.removeEventListener('homemanager-layers-change', this.syncLayerChoice);

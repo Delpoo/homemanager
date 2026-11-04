@@ -1,5 +1,5 @@
 import { HomeManagerEditor, LovelaceConfigurationStore } from '../editor/index.js';
-import { t } from '../i18n/index.js';
+import { getLanguage, t } from '../i18n/index.js';
 import { VERSION } from '../version.js';
 import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
@@ -7,6 +7,7 @@ import { clone, escapeHTML as e, type CardConfig, type Configuration } from './t
 import { cameraForEditedDevice } from '../model/editor-session.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { backupKey, browserStorage, clearBackup, readBackup, writeBackup } from '../model/draft-backup.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 function commitPreview(card: HomeManagerCard): void {
@@ -17,6 +18,93 @@ function commitPreview(card: HomeManagerCard): void {
   if (card.history.length > 40) card.history.shift();
   card.future = [];
   card.updateControls();
+}
+/** Where this card's recovery copy lives: per home (or card) and per Home Assistant user. */
+export function draftBackupKey(card: HomeManagerCard): string {
+  return backupKey({
+    homeId: card.home?.homeId,
+    cardId: card.config?.card_id,
+    dashboard: card.config?.dashboard_path ?? (card.hass ? currentDashboardPath(card.hass) : undefined),
+    userId: card.hass?.user?.id,
+  });
+}
+/** Writes (or clears) the recovery copy now; called when leaving the page. */
+export function flushDraftBackup(card: HomeManagerCard): void {
+  clearTimeout(card.backupTimer);
+  card.backupTimer = undefined;
+  if (!card.editing || card.backupOffer) return;
+  const storage = browserStorage(),
+    key = draftBackupKey(card);
+  if (card.dirty && card.draft) writeBackup(storage, key, card.draft, card.saved);
+  else clearBackup(storage, key);
+}
+/** A short pause after each change, so typing does not write on every key. */
+function scheduleDraftBackup(card: HomeManagerCard): void {
+  // Throttled, not debounced: Home Assistant refreshes often and must not starve the write.
+  if (!card.editing || card.backupOffer || card.backupTimer) return;
+  card.backupTimer = setTimeout(() => flushDraftBackup(card), 400);
+}
+/** Offered once when editing starts: recover the unsaved copy or drop it. */
+function offerDraftBackup(card: HomeManagerCard): void {
+  const storage = browserStorage(),
+    key = draftBackupKey(card);
+  const backup = readBackup(storage, key, card.saved);
+  if (!backup || JSON.stringify(backup.draft) === JSON.stringify(card.saved)) {
+    clearBackup(storage, key);
+    return;
+  }
+  card.backupOffer = true;
+  const when = new Date(backup.savedAt).toLocaleString(getLanguage());
+  const finish = () => {
+    card.backupOffer = false;
+    scheduleDraftBackup(card);
+  };
+  card.dialog(
+    t('Tenés cambios sin guardar del {date}', { date: when }),
+    `<p>${e(t('Quedaron en este navegador cuando saliste de la edición sin guardar. Podés recuperarlos en el borrador o descartarlos.'))}</p>${
+      backup.stale
+        ? `<p class="warning">${e(t('El plano cambió en Home Assistant después de esa copia. Si la recuperás, revisá el borrador antes de guardar: tus cambios reemplazan los nuevos. Deshacer vuelve al plano actual.'))}</p>`
+        : ''
+    }`,
+    [
+      {
+        label: t('Recuperar'),
+        action: () => {
+          finish();
+          card.change(structuredClone(backup.draft));
+          card.status(t('Cambios recuperados en el borrador. Guardá para conservarlos.'));
+        },
+      },
+      {
+        label: t('Descartar'),
+        action: () => {
+          card.backupOffer = false;
+          clearBackup(storage, key);
+        },
+      },
+    ],
+  );
+}
+/** Before closing or reloading the tab with unsaved edits, the browser asks. */
+export function beforeUnload(card: HomeManagerCard, event: BeforeUnloadEvent): void {
+  if (!card.editing || !card.dirty) return;
+  flushDraftBackup(card);
+  event.preventDefault();
+  event.returnValue = '';
+}
+/** Outside the editor, a note says there is an unsaved copy to recover. */
+export function noteDraftBackup(card: HomeManagerCard): void {
+  if (card.editing || card.backupNoted || !card.config || !card.hass?.user?.is_admin) return;
+  // Checked once per card: Home Assistant updates hass on every state change.
+  card.backupNoted = true;
+  let present = false;
+  try {
+    present = !!browserStorage()?.getItem(draftBackupKey(card));
+  } catch {
+    present = false;
+  }
+  if (!present) return;
+  card.status(t('Tenés cambios sin guardar en este navegador. Entrá a editar el plano para recuperarlos.'));
 }
 export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
@@ -32,6 +120,7 @@ export async function toggleEdit(this: HomeManagerCard) {
         return;
       this.discard();
     }
+    flushDraftBackup(this);
     this.editing = false;
     this.stopPlacing();
     this.editor?.closeSurface();
@@ -83,6 +172,7 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.fit(null);
     this.renderMarkers();
     this.updateShell();
+    offerDraftBackup(this);
     this.offerFirstSpace();
     this.status(
       this.home?.revision === null ? `Hogar nuevo: «${this.home.homeId}» se creará en la integración al guardar.` : '',
@@ -363,6 +453,7 @@ export function updateControls(this: HomeManagerCard) {
   this.updateSelection();
   this.positionEditor();
   this.insights?.update(this);
+  scheduleDraftBackup(this);
 }
 
 export function status(this: HomeManagerCard, message: string) {
