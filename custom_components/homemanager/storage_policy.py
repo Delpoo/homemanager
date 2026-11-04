@@ -39,4 +39,11 @@ def disk_sizes(directory: Path) -> dict[str, int]:
 def check_quota(sizes: dict[str, int]) -> None:
     count = sum(key.startswith((PLAN_STORAGE_KEY_PREFIX, "homemanager.images.")) for key in sizes)
     if count > MAX_PLAN_STORES or sum(sizes.values()) > MAX_TOTAL_STORAGE_BYTES:
+        # Say what fills it: plan images, or plans and their histories (#63).
+        if image_bytes(sizes) * 2 > sum(sizes.values()):
+            raise ModelError("storage_quota", "HomeManager storage quota reached: plan images use most of it; remove unused plan alternatives and save the plan")
         raise ModelError("storage_quota", "HomeManager storage quota reached; purge a retained deleted-home history or reduce the plan")
+
+
+def image_bytes(sizes: dict[str, int]) -> int:
+    return sum(size for key, size in sizes.items() if key.startswith("homemanager.images."))

@@ -79,3 +79,73 @@ def test_valid_static_png_and_jpeg():
         image=image_data(raw)
         assert image['format']==raw['format']
         assert image['content']==raw['content']
+
+
+# --- #63: images no saved plan shows are cleaned up -------------------------
+def _with_views(images):
+    cases = json.loads((Path(__file__).parents[1] / 'fixtures' / 'plan-views.json').read_text())
+    views = [{"id": f"v{i}", "name": f"Vista {i}", "light": {"scope": "example", "sha256": sha, "format": "svg", "box": [0, 0, 100, 80]}} for i, sha in enumerate(images)]
+    return {**deepcopy(cases['base']), **({"planViews": views} if views else {})}
+
+
+async def _stored(hass):
+    return ((await Store(hass, STORAGE_VERSION, scope_key('example'), atomic_writes=True).async_load()) or {"images": {}})["images"]
+
+
+async def test_replacing_an_image_and_saving_keeps_a_single_image(hass):
+    store = HomeManagerStore(hass)
+    await store.async_load()
+    first = await put_image(store, 'example', raw())
+    home = await store.async_save('casa-ficticia', None, _with_views([first['sha256']]), None, None)
+    second = await put_image(store, 'example', raw(SVG.replace('10', '12')))
+    # Uploaded but not saved yet: a draft may still need it.
+    assert set(await _stored(hass)) == {first['sha256'], second['sha256']}
+    await store.async_save('casa-ficticia', home.revision, _with_views([second['sha256']]), None, None)
+    assert set(await _stored(hass)) == {second['sha256']}
+    assert (await get_image(store, 'example', second['sha256']))['sha256'] == second['sha256']
+
+
+async def test_an_image_another_home_uses_is_never_removed(hass):
+    store = HomeManagerStore(hass)
+    await store.async_load()
+    shared = await put_image(store, 'example', raw())
+    await store.async_save('casa-a', None, _with_views([shared['sha256']]), None, None)
+    home_b = await store.async_save('casa-b', None, _with_views([shared['sha256']]), None, None)
+    await store.async_save('casa-b', home_b.revision, _with_views([]), None, None)
+    assert set(await _stored(hass)) == {shared['sha256']}
+
+
+async def test_an_unsaved_upload_waits_and_old_unused_images_go(hass):
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+    from custom_components.homemanager.images import prune_images, UNSAVED_GRACE
+    store = HomeManagerStore(hass)
+    await store.async_load()
+    fresh = await put_image(store, 'example', raw())
+    await store.async_save('casa-ficticia', None, _with_views([]), None, None)
+    assert set(await _stored(hass)) == {fresh['sha256']}
+    async with store._lock:
+        await prune_images(store, [], dt_util.utcnow() + UNSAVED_GRACE + timedelta(minutes=1))
+    # The scope emptied: its file is gone and no longer counts for the quota.
+    assert await Store(hass, STORAGE_VERSION, scope_key('example'), atomic_writes=True).async_load() is None
+    assert 'homemanager.images.example' not in store._sizes
+
+
+async def test_deleting_and_purging_a_home_removes_its_images(hass):
+    store = HomeManagerStore(hass)
+    await store.async_load()
+    image = await put_image(store, 'example', raw())
+    home = await store.async_save('casa-ficticia', None, _with_views([image['sha256']]), None, None)
+    await store.async_delete('casa-ficticia', home.revision)
+    # Kept while the deleted home's history is kept.
+    assert set(await _stored(hass)) == {image['sha256']}
+    await store.async_purge_history('casa-ficticia')
+    assert await Store(hass, STORAGE_VERSION, scope_key('example'), atomic_writes=True).async_load() is None
+
+
+async def test_quota_message_names_images_when_they_fill_it():
+    from custom_components.homemanager.storage_policy import check_quota
+    with pytest.raises(ModelError, match='plan images use most of it'):
+        check_quota({'homemanager.homes': 1000, 'homemanager.images.example': MAX_TOTAL_STORAGE_BYTES})
+    with pytest.raises(ModelError, match='purge a retained'):
+        check_quota({'homemanager.homes': MAX_TOTAL_STORAGE_BYTES, 'homemanager.images.example': 1000})

@@ -20,4 +20,6 @@ export const enPlan012: Record<string, string> = {
     'Changes recovered into the draft. Save to keep them.',
   'Tenés cambios sin guardar en este navegador. Entrá a editar el plano para recuperarlos.':
     'You have unsaved changes in this browser. Edit the plan to recover them.',
+  'Se alcanzó el límite de almacenamiento: las imágenes del plano ocupan la mayor parte. Quitá las alternativas que no uses y guardá el plano para liberarlas.':
+    'Storage limit reached: plan images take most of it. Remove the alternatives you do not use and save the plan to free them.',
 };
