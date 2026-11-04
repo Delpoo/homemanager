@@ -12,7 +12,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 
 | Lote | Tareas | Estado | Rama / PR | Actualizado | Falta |
 |---|---|---|---|---|---|
-| A | #88 · #89 · #64 · #63 | en curso | `claude/plan012-lote-a` | 2026-11-05 | Todo |
+| A | #88 · #89 · #64 · #63 | en revisión | `claude/plan012-lote-a` · PR del lote A | 2026-11-05 | Pruebas de la integración en CI (sin entorno local); capturas al cierre del plan; validación del propietario |
 | B | #70 · #61 · #90 · #59 · #76 | pendiente | — | — | — |
 | C | #71 · #91 · #92 · #93 · #94 · #95 | pendiente | — | — | — |
 | D | #96 · #97 · #73 | pendiente | — | — | — |
@@ -107,6 +107,7 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-11-05 · Claude · plan 0.12 · Lote A terminado: cancelar un dispositivo nuevo (#88), copia de recuperación del borrador (#89), texto guiado RF (#64) y limpieza de imágenes (#63). Check 289, navegador 488 aprobadas y 4 omitidas. pytest sólo en CI: Home Assistant no se instala en este Windows.
 - 2026-11-05 · Claude · plan 0.12 · Lote A empezado desde main 97d4ad4 por pedido del propietario («comenza vos a implementar todo»). Plan copiado en plan-0.12.md.
 - 2026-10-31 · ChatGPT · E00 · Cierre actualizado: main 764a9e0 (#50) integrado; 137 funciones, 40 con capturas históricas, 51 comandos y 12 aperturas. Check (248) y formato pasan; navegador pendiente de auditoría. Misma parada antes de E01.
 - 2026-10-31 · ChatGPT · E00 · Terminada para revisión en PR #49: 131 funciones (40 con capturas históricas además de código), 49 comandos literales y 12 aperturas de ventanas. Check (239) y formato pasan; navegador no aprobado. Seis destinos a validar antes de E01. Reporte en entregas/E00-2026-10-31.md.
