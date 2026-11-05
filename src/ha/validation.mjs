@@ -486,7 +486,7 @@ function shape(configuration) {
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold', 'layout'],
+      ['quickActions', 'remoteId', 'irRemoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold', 'layout'],
       `${path}.bindings`,
     );
     if (Object.hasOwn(device.bindings, 'layout'))
@@ -511,6 +511,9 @@ function shape(configuration) {
         if (key === 'entityId') entity(device.bindings[key], `${path}.bindings.${key}`);
         else id(device.bindings[key], `${path}.bindings.${key}`);
       }
+    const infrared = device.bindings.irRemoteId;
+    if (infrared != null && (typeof infrared !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(infrared)))
+      invalid(`${path}.bindings.irRemoteId`, 'invalid infrared remote ID');
     if (Object.hasOwn(device.bindings, 'quickActions')) {
       const quick = device.bindings.quickActions;
       if (!Array.isArray(quick) || quick.length > 4)

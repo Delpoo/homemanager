@@ -473,7 +473,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 if "forMinutes" in rule and rule["forMinutes"] < 0:
                     _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings", "hold", "layout"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "irRemoteId", "controls", "tap", "deviceId", "readings", "hold", "layout"})
         if "layout" in bindings:
             validate_control_layout(bindings["layout"])
         if "deviceId" in bindings:
@@ -493,6 +493,9 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for name in ("entityId", "primaryAction", "advancedPopupId", "remoteId"):
             if bindings.get(name) is not None:
                 (_entity if name == "entityId" else _id)(bindings[name])
+        if (infrared := bindings.get("irRemoteId")) is not None:
+            if not isinstance(infrared, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", infrared):
+                _fail()
         if "quickActions" in bindings:
             # Up to four actions offered when the icon is held (contract V2, optional).
             if not isinstance(bindings["quickActions"], list) or len(bindings["quickActions"]) > 4:

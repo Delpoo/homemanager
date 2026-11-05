@@ -92,6 +92,7 @@ export function upsertDevice(
   if (input.bindings.entityId) entity(input.bindings.entityId);
   for (const key of [input.bindings.primaryAction, input.bindings.advancedPopupId, input.bindings.remoteId ?? null])
     if (key !== null) stableKey(key, t('Referencia'));
+  if (input.bindings.irRemoteId && !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(input.bindings.irRemoteId)) fail(t('Referencia inválida.'));
   const quick = input.bindings.quickActions;
   if (quick && quick.length > 4) fail(t('Un dispositivo tiene como máximo 4 accesos rápidos.'));
   for (const item of quick ?? []) {
@@ -143,6 +144,7 @@ export function upsertDevice(
           }
         : {}),
       ...(input.bindings.remoteId ? { remoteId: input.bindings.remoteId } : {}),
+      ...(input.bindings.irRemoteId ? { irRemoteId: input.bindings.irRemoteId } : {}),
       ...(input.bindings.controls ? { controls: structuredClone(input.bindings.controls) } : {}),
       ...(input.bindings.layout ? { layout: structuredClone(input.bindings.layout) } : {}),
       ...(input.bindings.tap !== undefined ? { tap: structuredClone(input.bindings.tap) } : {}),

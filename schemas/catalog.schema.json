@@ -558,6 +558,9 @@
                 }
               ]
             },
+            "irRemoteId": {
+              "anyOf": [{ "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$" }, { "type": "null" }]
+            },
             "controls": {
               "type": "array",
               "maxItems": 8,

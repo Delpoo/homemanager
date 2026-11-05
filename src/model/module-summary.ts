@@ -80,6 +80,7 @@ export function moduleSummary(id: ModuleId, device: ModelDevice, context: Summar
     case 'control': {
       const count = b.controls?.length ?? 0;
       if (b.remoteId && !count) return { key: 'Control RF' };
+      if (b.irRemoteId && !count) return { key: 'Control IR' };
       return count === 1
         ? { key: '1 control' }
         : count
