@@ -4,9 +4,9 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** el propietario prueba la beta del plan 0.12 con la lista de [plan-0.12.md](plan-0.12.md) y decide si se fusiona y publica v0.12.0-beta.1. Hasta entonces: sin fusiones, versiones ni casa real.
+**Siguiente paso:** el propietario prueba `v0.12.0-beta.1` con la lista de [plan-0.12.md](plan-0.12.md) y anota lo que haya que corregir.
 
-**Versión de prueba:** E00–E13 publicadas en `v0.11.0-beta.2` (#58). Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
+**Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) y el plan 0.12 en `v0.12.0-beta.1` (#104), publicada a pedido del propietario el 2026-11-05 para probarla. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
 ## Plan 0.12
 
