@@ -131,11 +131,17 @@ function symbolLook(display, path) {
       entity(value.entity, `${where}.entity`);
       if (seen.has(value.entity)) invalid(where, 'each reading once');
       seen.add(value.entity);
-      if (Object.hasOwn(value, 'decimals') && (!Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 3))
+      if (
+        Object.hasOwn(value, 'decimals') &&
+        (!Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 3)
+      )
         invalid(`${where}.decimals`, '0 to 3 decimals');
       if (Object.hasOwn(value, 'unit') && typeof value.unit !== 'boolean') invalid(`${where}.unit`, 'boolean required');
       if (Object.hasOwn(value, 'dot') && typeof value.dot !== 'boolean') invalid(`${where}.dot`, 'boolean required');
-      if (Object.hasOwn(value, 'label') && (typeof value.label !== 'string' || !value.label.trim() || value.label.length > 16))
+      if (
+        Object.hasOwn(value, 'label') &&
+        (typeof value.label !== 'string' || !value.label.trim() || value.label.length > 16)
+      )
         invalid(`${where}.label`, 'short label required');
       if (Object.hasOwn(value, 'size')) one(value.size, ['s', 'm', 'l'], `${where}.size`);
       if (Object.hasOwn(value, 'color')) hex(value.color, `${where}.color`);
@@ -149,13 +155,15 @@ function symbolLook(display, path) {
       }
     });
   }
-  if (Object.hasOwn(display, 'valuePlace')) one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
+  if (Object.hasOwn(display, 'valuePlace'))
+    one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
   if (Object.hasOwn(display, 'scale')) range(display.scale, 0.5, 2.5, `${path}.scale`);
   if (Object.hasOwn(display, 'roomScale')) range(display.roomScale, 0.5, 2.5, `${path}.roomScale`);
   if (Object.hasOwn(display, 'opacity')) range(display.opacity, 0, 100, `${path}.opacity`);
   if (Object.hasOwn(display, 'shape')) one(display.shape, ['circle', 'pill', 'dot', 'icon'], `${path}.shape`);
   // #95: a drawing or a shortcut that needs no device link.
-  if (Object.hasOwn(display, 'standalone') && display.standalone !== true) invalid(`${path}.standalone`, 'true or absent');
+  if (Object.hasOwn(display, 'standalone') && display.standalone !== true)
+    invalid(`${path}.standalone`, 'true or absent');
 }
 /** Plan 0.12 (#97): links that may open, and Home Assistant pages. Never javascript:, data: or file:. */
 const BLOCKED_SCHEMES = /^(?:javascript|data|file|vbscript|about|blob|chrome|ms-[a-z-]+):/i;
@@ -184,7 +192,8 @@ function gestureAction(binding, at, choose) {
   if (binding.action === 'url') {
     link(binding.url, `${at}.url`);
     if (Object.hasOwn(binding, 'mobileUrl')) link(binding.mobileUrl, `${at}.mobileUrl`);
-    if (Object.hasOwn(binding, 'fallback')) one(binding.fallback, ['screen', 'panel', 'more-info', 'navigate'], `${at}.fallback`);
+    if (Object.hasOwn(binding, 'fallback'))
+      one(binding.fallback, ['screen', 'panel', 'more-info', 'navigate'], `${at}.fallback`);
     if (Object.hasOwn(binding, 'fallbackPath')) {
       if (binding.fallback !== 'navigate') invalid(at, 'fallbackPath only belongs to a navigate fallback');
       haPath(binding.fallbackPath, `${at}.fallbackPath`);
@@ -196,8 +205,12 @@ function gestureAction(binding, at, choose) {
     options.forEach((item, index) => {
       const where = `${at}.options[${index}]`;
       fields(item, ['label', 'do'], ['icon'], where);
-      if (typeof item.label !== 'string' || !item.label.trim() || item.label.length > 40) invalid(`${where}.label`, 'short label');
-      if (Object.hasOwn(item, 'icon') && (typeof item.icon !== 'string' || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.icon)))
+      if (typeof item.label !== 'string' || !item.label.trim() || item.label.length > 40)
+        invalid(`${where}.label`, 'short label');
+      if (
+        Object.hasOwn(item, 'icon') &&
+        (typeof item.icon !== 'string' || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.icon))
+      )
         invalid(`${where}.icon`, 'mdi icon');
       gestureAction(item.do, `${where}.do`, false);
     });
@@ -211,7 +224,8 @@ function one(value, values, path) {
   if (!values.includes(value)) invalid(path, 'unsupported value');
 }
 function alertRules(value, path) {
-  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, `array of at most ${MAX_ALERT_RULES} alert rules required`);
+  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES)
+    invalid(path, `array of at most ${MAX_ALERT_RULES} alert rules required`);
   value.forEach((rule, index) => {
     const at = `${path}[${index}]`;
     fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes', 'enabled'], at);
@@ -572,7 +586,8 @@ function shape(configuration) {
   if (Object.hasOwn(configuration, 'symbolSizes')) {
     const sizes = configuration.symbolSizes;
     fields(sizes, ['house', 'room', 'min', 'max'], [], 'configuration.symbolSizes');
-    for (const key of ['house', 'room', 'min', 'max']) between(sizes[key], 0.5, 2.5, `configuration.symbolSizes.${key}`);
+    for (const key of ['house', 'room', 'min', 'max'])
+      between(sizes[key], 0.5, 2.5, `configuration.symbolSizes.${key}`);
   }
   // Plan 0.12 (#60): the automatic rules' switches and limits. Absent: as before.
   if (Object.hasOwn(configuration, 'baseRules')) {
@@ -584,7 +599,8 @@ function shape(configuration) {
     if (Object.hasOwn(rules, 'battery')) {
       fields(rules.battery, [], ['enabled', 'below'], 'configuration.baseRules.battery');
       toggle(rules.battery, 'configuration.baseRules.battery.enabled');
-      if (Object.hasOwn(rules.battery, 'below')) between(rules.battery.below, 1, 100, 'configuration.baseRules.battery.below');
+      if (Object.hasOwn(rules.battery, 'below'))
+        between(rules.battery.below, 1, 100, 'configuration.baseRules.battery.below');
     }
     if (Object.hasOwn(rules, 'unavailable')) {
       fields(rules.unavailable, [], ['enabled', 'minutes'], 'configuration.baseRules.unavailable');
@@ -600,12 +616,20 @@ function shape(configuration) {
   if (Object.hasOwn(configuration, 'initialView')) {
     const view = configuration.initialView;
     fields(view, ['room', 'x', 'y', 'zoom'], ['planView'], 'configuration.initialView');
-    if (view.room !== null && (typeof view.room !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.room) || view.room.length > 64))
+    if (
+      view.room !== null &&
+      (typeof view.room !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.room) || view.room.length > 64)
+    )
       invalid('configuration.initialView.room', 'space id or null required');
     between(view.x, -1, 2, 'configuration.initialView.x');
     between(view.y, -1, 2, 'configuration.initialView.y');
     between(view.zoom, 0.5, 16, 'configuration.initialView.zoom');
-    if (Object.hasOwn(view, 'planView') && (typeof view.planView !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.planView) || view.planView.length > 64))
+    if (
+      Object.hasOwn(view, 'planView') &&
+      (typeof view.planView !== 'string' ||
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.planView) ||
+        view.planView.length > 64)
+    )
       invalid('configuration.initialView.planView', 'plan view id required');
   }
   if (Object.hasOwn(configuration, 'nowPanels')) {

@@ -158,7 +158,7 @@ export const en: Record<string, string> = {
     'Explicit relocation enabled for this fixed device during this editing session.',
   'No se pudo ejecutar la acción.': 'The action could not be run.',
   'Detalles del dispositivo': 'Device details',
-  'Panel nativo pendiente: {id}': 'Native panel pending: {id}',
+  'Panel avanzado pendiente: {id}': 'Advanced panel pending: {id}',
   'Vinculá una entidad o un panel en el editor para controlar este dispositivo.':
     'Link an entity or a panel in the editor to control this device.',
   'Acción pendiente.': 'Action pending.',
@@ -241,7 +241,7 @@ export const en: Record<string, string> = {
   'Espacios ({count})': 'Spaces ({count})',
   'Fuente de estado': 'State source',
   'Acciones lógicas': 'Logical actions',
-  'Paneles nativos': 'Native panels',
+  'Paneles avanzados': 'Advanced panels',
   'No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.':
     'Missing references never run. Logical references must be resolved before the final save.',
   'Importar y exportar': 'Import and export',
@@ -268,7 +268,7 @@ export const en: Record<string, string> = {
   'Posición X': 'Position X',
   'Posición Y': 'Position Y',
   'Entidad del dispositivo': 'Device entity',
-  'Panel nativo': 'Native panel',
+  'Panel avanzado': 'Advanced panel',
   'Sin panel': 'No panel',
   'Corregir ubicación fija': 'Correct fixed location',
   'Seleccioná un icono para declarar su fuente.': 'Select a device to declare its source.',
@@ -725,7 +725,7 @@ Object.assign(en, {
 Object.assign(en, {
   'Abrir el control completo': 'Open full control',
   'Abrir su pantalla': 'Open its screen',
-  'Abrir panel nativo': 'Open native panel',
+  'Abrir panel avanzado': 'Open advanced panel',
   Nada: 'Nothing',
   'Al mantener': 'On hold',
   'Mayús+Enter ejecuta mantener. El menú contextual siempre abre el control.':

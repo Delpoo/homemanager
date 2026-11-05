@@ -37,7 +37,7 @@ async function section(page, title) {
     'Plano y espacios': 'rooms-section',
     Espacios: 'rooms-section',
     'Acciones lógicas': 'actions-section',
-    'Paneles nativos': 'panels-section',
+    'Paneles avanzados': 'panels-section',
     'Referencias pendientes': 'pending-section',
     Copias: 'import-section',
   };
@@ -237,7 +237,7 @@ test('action editor defines explicit service targets and rejects raw command dat
   expect(await page.evaluate(() => window.editorTest.calls)).toEqual([]);
 });
 test('native panel rows preserve typed metadata when adding/removing controls', async ({ page }) => {
-  await section(page, 'Paneles nativos');
+  await section(page, 'Paneles avanzados');
   await field(page, 'ID de panel').fill('test-new-panel');
   await field(page, 'Título del panel').fill('Controls typed before adding rows');
   await button(page, 'Agregar control').click();
@@ -380,7 +380,7 @@ test('a slower earlier file cannot replace the latest import preview', async ({ 
   expect((await current(page)).catalog.devices[0].display.label).toBe('Latest selected file');
 });
 test('editor stays inside the mobile/desktop viewport and primary controls have touch targets', async ({ page }) => {
-  await section(page, 'Paneles nativos');
+  await section(page, 'Paneles avanzados');
   await button(page, 'Agregar control').click();
   const result = await editor(page).evaluate(element => {
     const root = element.shadowRoot;

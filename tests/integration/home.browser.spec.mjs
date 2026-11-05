@@ -39,6 +39,8 @@ async function setup(page) {
       homes,
       calls,
       retained,
+      /** Space in use, to test the low-space warning (#75). */
+      storageBytes: 1024,
       /** The drawing file kept in the config folder, and the last version settled per home. */
       file: null,
       seen: new Map(),
@@ -59,7 +61,7 @@ async function setup(page) {
       switch (message.type) {
         case 'homemanager/storage/status':
           if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
-          return { bytes: 1024, retained_home_ids: [...retained] };
+          return { bytes: server.storageBytes, limit: 64 * 1048576, retained_home_ids: [...retained] };
         case 'homemanager/history/purge':
           if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
           if (message.confirm !== true || homes.has(message.home_id)) throw fail('home_in_use', 'Home is active');
@@ -171,6 +173,25 @@ test("an integration-backed card loads its home and follows other editors' revis
   expect(
     await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length),
   ).toBe(0);
+});
+
+test('saving with almost no space left says so and where to free it (#75)', async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base);
+    window.homeServer.storageBytes = 60 * 1048576;
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
+  });
+  await openCardMenu(page);
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click();
+  await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz con poco espacio');
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
+  await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  await expect(card(page).locator('.shell > .status')).toContainText('Queda poco espacio');
+  await expect(card(page).locator('.shell > .status')).toContainText('Almacenamiento');
 });
 
 test('saving goes through the revision check and a conflict keeps the draft', async ({ page }) => {

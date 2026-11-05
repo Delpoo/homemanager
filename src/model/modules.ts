@@ -10,7 +10,7 @@ export const MODULE_LABELS: Record<ModuleId, string> = {
   gestures: 'Gestos',
   control: 'Control',
   pinned: 'Junto al símbolo',
-  native: 'Panel nativo',
+  native: 'Panel avanzado',
   rules: 'Reglas',
 };
 

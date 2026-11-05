@@ -274,7 +274,7 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
     const admin = this._hass?.user?.is_admin === true;
     this.dialog(
       d.display.label,
-      `<p>${e(d.bindings.advancedPopupId ? t('Panel nativo pendiente: {id}', { id: d.bindings.advancedPopupId }) : t('Este símbolo todavía no está conectado a un dispositivo.'))}</p>${admin ? '' : `<p>${e(t('Pedile a quien administra que lo vincule.'))}</p>`}`,
+      `<p>${e(d.bindings.advancedPopupId ? t('Panel avanzado pendiente: {id}', { id: d.bindings.advancedPopupId }) : t('Este símbolo todavía no está conectado a un dispositivo.'))}</p>${admin ? '' : `<p>${e(t('Pedile a quien administra que lo vincule.'))}</p>`}`,
       admin
         ? [
             {

@@ -11,6 +11,7 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { closeConfiguration } from './settings-screen.js';
 import { currentView, saveLocalView } from './initial-view.js';
 import { backupKey, browserStorage, clearBackup, readBackup, writeBackup } from '../model/draft-backup.js';
+import { STORAGE_WARNING } from '../editor/storage-section.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 function commitPreview(card: HomeManagerCard): void {
@@ -446,6 +447,7 @@ export async function save(this: HomeManagerCard, reviewed = false) {
       if (!this.homeUnsubscribe && this._hass) this.watchHome(this.home);
     }
     this.status(t('Guardado en Home Assistant.'));
+    void warnLowStorage(this);
     this.linkedSaved(next);
     this.activity.record({ type: 'saved', id: String(Date.now()), at: Date.now() });
     this.dispatchEvent(
@@ -508,6 +510,24 @@ export function updateControls(this: HomeManagerCard) {
 }
 
 const statusTimers = new WeakMap<HomeManagerCard, ReturnType<typeof setTimeout>>();
+/** After saving, say so when the space is almost full (#75), before the limit stops a save. */
+async function warnLowStorage(card: HomeManagerCard): Promise<void> {
+  if (!card.hass?.callWS) return;
+  try {
+    const { bytes, limit } = await card.hass.callWS<{ bytes: number; limit?: number }>({
+      type: 'homemanager/storage/status',
+    });
+    if (bytes / (limit || 64 * 1048576) >= STORAGE_WARNING)
+      card.status(
+        t(
+          'Guardado en Home Assistant. Queda poco espacio: liberalo en Configuración › Mantenimiento › Almacenamiento.',
+        ),
+      );
+  } catch {
+    // Without the status the save still stands; Storage shows the error.
+  }
+}
+
 export function status(this: HomeManagerCard, message: string) {
   const host = this.root.querySelector('.status');
   if (!host) return;

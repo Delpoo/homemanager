@@ -331,3 +331,42 @@ test('the space window opens the editor on that zone; a space with no shape star
   await expect(button(page, 'Nueva zona')).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page).locator('.zones-draw')).toBeVisible();
 });
+
+test('«Fusionar formas de este espacio» turns an SVG zone of three shapes into one L of the app, and undoes (#98)', async ({
+  page,
+}) => {
+  // Synthetic plan: the office zone is a group of three rectangles drawn as an L.
+  await page.route('**/tests/browser/fixtures/harness.js', async route => {
+    const body = (await (await route.fetch()).text()).replace(
+      '<rect id="room-office" x="500" y="355" width="470" height="305" fill="#dce8e8" stroke="#415d51"/>',
+      '<g id="room-office" fill="#dce8e8" stroke="#415d51"><rect x="500" y="355" width="235" height="150"/><rect x="500" y="505" width="235" height="155"/><rect x="735" y="355" width="235" height="150"/></g>',
+    );
+    await route.fulfill({ body, contentType: 'text/javascript' });
+  });
+  await page.goto('/tests/browser/fixtures/card.html');
+  await page.waitForFunction(() => window.testHarnessReady);
+  await begin(page);
+  await openEditor(page);
+  await pick(page).selectOption('office');
+  // The editor measures the zone: an L is two rectangles, whatever the drawing used.
+  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
+  const adopt = button(page, 'Fusionar formas de este espacio');
+  await expect(adopt).toBeEnabled();
+  await adopt.click();
+  await expect(adopt).toBeDisabled();
+  await button(page, 'Deshacer').click();
+  await expect(adopt).toBeEnabled();
+  await adopt.click();
+  await button(page, 'Aplicar').click();
+  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
+  const office = await room(page, 'office');
+  expect(office.shapeSource).toBe('app');
+  expect(office.rects).toHaveLength(2);
+  // Still an L: the bottom right corner belongs to no rectangle.
+  const inside = (x, y) => office.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height);
+  expect(inside(0.6, 0.5)).toBe(true);
+  expect(inside(0.85, 0.85)).toBe(false);
+  // One undo step for the whole editor, like any other zone edit.
+  await button(page, 'Deshacer').click();
+  expect((await room(page, 'office')).shapeSource).not.toBe('app');
+});

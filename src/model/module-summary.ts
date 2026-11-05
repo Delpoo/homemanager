@@ -47,7 +47,7 @@ function gestureName(binding: GestureBinding | undefined, context: SummaryContex
     case 'panel':
       return { key: 'control completo' };
     case 'native':
-      return { key: 'panel nativo' };
+      return { key: 'panel avanzado' };
     default:
       return { key: 'nada' };
   }

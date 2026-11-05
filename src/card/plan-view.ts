@@ -374,7 +374,7 @@ export function refreshState(this: HomeManagerCard) {
           {
             screen: 'Abrir su pantalla',
             panel: 'Abrir el control completo',
-            native: 'Abrir panel nativo',
+            native: 'Abrir panel avanzado',
             none: 'Nada',
             'more-info': 'Abrir la ficha de Home Assistant',
             navigate: 'Abrir una página de Home Assistant',

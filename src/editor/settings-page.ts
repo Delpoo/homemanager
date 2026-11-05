@@ -58,7 +58,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
   { id: 'import-section', title: () => t('Copias'), icon: 'mdi:swap-vertical' },
   { id: 'actions-section', title: () => t('Acciones lógicas'), icon: 'mdi:link-variant' },
-  { id: 'panels-section', title: () => t('Paneles nativos'), icon: 'mdi:view-list-outline' },
+  { id: 'panels-section', title: () => t('Paneles avanzados'), icon: 'mdi:view-list-outline' },
   { id: 'pending-section', title: () => t('Referencias pendientes'), icon: 'mdi:alert-outline' },
   { id: 'help-section', title: () => t('Ayuda'), icon: 'mdi:help-circle-outline' },
   // Reached from a symbol's sheet only; #73 merges it into one designer.

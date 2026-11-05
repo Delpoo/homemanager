@@ -207,7 +207,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
   }
   if (!(await sheet.locator('#module-native').evaluate(d => d.open)))
     await sheet.locator('#module-native > summary').click();
-  await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
+  await page.getByLabel('Panel avanzado', { exact: true }).selectOption('synthetic-spare-panel');
   await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closed the sheet; "Más opciones" stays open when it is opened again.
   await select(page);

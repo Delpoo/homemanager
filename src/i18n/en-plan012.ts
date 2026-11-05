@@ -86,7 +86,7 @@ export const enPlan012: Record<string, string> = {
   '{name}': '{name}',
   'control completo': 'full control',
   pantalla: 'screen',
-  'panel nativo': 'native panel',
+  'panel avanzado': 'advanced panel',
   nada: 'nothing',
   'acción principal': 'main action',
   'Control RF': 'RF control',
@@ -346,4 +346,7 @@ export const enPlan012: Record<string, string> = {
   'su acción principal': 'its main action',
   'abre su pantalla': 'opens its screen',
   'abre el control completo': 'opens the full control',
+  'Guardado en Home Assistant. Queda poco espacio: liberalo en Configuración › Mantenimiento › Almacenamiento.':
+    'Saved in Home Assistant. Space is running low: free some in Settings › Maintenance › Storage.',
+  'Fusionar formas de este espacio': 'Merge this space’s shapes',
 };

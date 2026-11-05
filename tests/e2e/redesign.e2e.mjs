@@ -148,8 +148,10 @@ try {
   await card.getByRole('button', { name: /^(Editar plano|Edit plan)$/ }).click();
   await card.locator('[data-command=settings]').click();
   const editor = card.locator('homemanager-editor');
+  // Plan 0.12: every Settings section is a page of its own (#70) and adding is a card (#72).
+  await showSection(editor, 'views-section');
   const views = editor.locator('homemanager-plan-views-editor');
-  await views.getByRole('button', { name: /^(Agregar alternativa|Add alternative)$/ }).click();
+  await views.getByRole('button', { name: /^(\+ Agregar alternativa|\+ Add alternative)$/ }).click();
   await views.getByLabel(/^(Nombre|Name)$/).fill('E2E alternative');
   await views
     .locator('[data-image]')
@@ -194,12 +196,12 @@ try {
   await arrow.click();
   await expect.poll(() => card.evaluate(c => c.currentRoom)).not.toBe(room);
   console.log('ok: mouse room navigation on the actual HA frontend');
-  await card.getByRole('button', { name: /^(Modo pared|Wall mode)$/ }).click();
-  await expect(card).toHaveAttribute('data-wall', 'true');
-  assert.ok(await page.evaluate(() => !!document.fullscreenElement));
-  await card.getByRole('button', { name: /^(Salir del modo pared|Exit wall mode)$/ }).click();
-  await expect(card).not.toHaveAttribute('data-wall', 'true');
-  console.log('ok: actual fullscreen wall mode and exit');
+  // Plan 0.12 (#61): full screen replaced wall mode.
+  await card.getByRole('button', { name: /^(Pantalla completa|Full screen)$/ }).click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+  await card.getByRole('button', { name: /^(Salir de pantalla completa|Exit full screen)$/ }).click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+  console.log('ok: actual full screen and exit');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     card.locator('homemanager-insights').getByRole('button', { name: /^(Mostrar Ahora|Show Now)$/ }),

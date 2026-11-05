@@ -16,8 +16,8 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 | B | #70 · #61 · #90 · #59 · #76 | en revisión | `claude/plan012-lote-b` · [#101](https://github.com/Delpoo/homemanager/pull/101) | 2026-11-05 | Validación del propietario; teléfono y tablet reales |
 | C | #71 · #91 · #92 · #93 · #94 · #95 | en revisión | `claude/plan012-lote-c` · [#102](https://github.com/Delpoo/homemanager/pull/102) | 2026-11-05 | Validación del propietario; la alternativa del plano no se guarda con la vista inicial |
 | D | #96 · #97 · #73 | en revisión | `claude/plan012-lote-d` · PR de lotes D a F | 2026-11-05 | Apps en teléfonos reales (#97); diseño único: revisión del propietario (#73) |
-| E | #62 · #60 · #72 · #98 · #75 · #74 · #65 · #66 | en revisión | `claude/plan012-lote-d` · PR de lotes D a F | 2026-11-05 | «Fusionar formas de este espacio» (#98) y aviso de cuota al guardar (#75) quedan para después |
-| F | #77 · #78 · #67 · #68 | en revisión | `claude/plan012-lote-d` · PR de lotes D a F | 2026-11-05 | Glosario: revisión del propietario (#78); quitar el editor de avisos sin uso (#68) |
+| E | #62 · #60 · #72 · #98 · #75 · #74 · #65 · #66 | en revisión | `claude/plan012-lote-d` · PR de lotes D a F | 2026-11-05 | Validación del propietario |
+| F | #77 · #78 · #67 · #68 | en revisión | `claude/plan012-lote-d` · PR de lotes D a F | 2026-11-05 | Validación del propietario; si una palabra no se entiende, se cambia en el glosario y en la app (#78) |
 
 ## Etapas
 

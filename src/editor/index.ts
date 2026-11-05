@@ -75,8 +75,6 @@ import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js
 import type { ControlHost } from '../ui/control-view.js';
 import { RulesEditor } from '../ui/rules-editor.js';
 import { rulesForSymbol } from '../model/visual-rules.js';
-import type { AlertEditor } from '../ui/alert-editor.js';
-import '../ui/alert-editor.js';
 import type { Category } from '../model/types.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
 import { tokens } from '../ui/theme.js';
@@ -1276,7 +1274,7 @@ export class HomeManagerEditor extends HTMLElement {
       <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
 
       <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
+      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1304,7 +1302,6 @@ export class HomeManagerEditor extends HTMLElement {
         if (field) field.checked = true;
       }
     }
-    this.configureAlerts();
   }
   private moduleDraft?: ModuleId[];
   private moduleUndo?: ModuleId[];
@@ -1390,25 +1387,6 @@ export class HomeManagerEditor extends HTMLElement {
     if (createFor) this.rulesView?.createFor(createFor);
   }
   private alertDraft?: AlertSettingsDraft;
-  private configureAlerts(category?: Category): void {
-    const editor = this.root.querySelector<AlertEditor>('homemanager-alert-editor');
-    if (!editor || !this.alertDraft) return;
-    const get = (name: string) =>
-      this.root.querySelector<HTMLInputElement>(`#device-form [name="${name}"]`)?.value ?? '';
-    const chosen = category ?? this.sheetCategory(this.device());
-    editor.configure(
-      this.alertDraft,
-      {
-        id: this.device()?.id ?? 'new',
-        roomId: get('roomId') || null,
-        kind: get('kind'),
-        display: { label: get('label'), icon: get('icon'), category: chosen },
-        bindings: { entityId: get('entityId') || null, ...(get('deviceId') ? { deviceId: get('deviceId') } : {}) },
-      },
-      chosen,
-      this._hass,
-    );
-  }
   /** Sheet model of the device being edited (controls, tap, pins, size). */
   private sheet?: SheetModel;
   private gesturesForm(): string {
@@ -1419,7 +1397,7 @@ export class HomeManagerEditor extends HTMLElement {
     const select = (gesture: 'tap' | 'hold', label: string, binding: GestureBinding | undefined) =>
       `<label class="field">${esc(t(label))}<select data-gesture="${gesture}" aria-label="${esc(t(label))}">${option('', this.automaticGesture(gesture), value(binding))}${[
         ['@screen', 'Abrir su pantalla'],
-        ['@native', 'Abrir panel nativo'],
+        ['@native', 'Abrir panel avanzado'],
         ['@more-info', 'Abrir la ficha de Home Assistant'],
         ['@navigate', 'Abrir una página de Home Assistant'],
         ['@url', 'Abrir un enlace o una app'],
@@ -1471,7 +1449,6 @@ export class HomeManagerEditor extends HTMLElement {
     this.wirePickers();
   }
   private wirePickers(): void {
-    this.configureAlerts();
     for (const button of this.root.querySelectorAll<HTMLButtonElement>('[data-action=binding],[data-action=pick-new]'))
       button.onclick = () => this.pickDevice(button.dataset.action === 'pick-new');
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
@@ -2343,8 +2320,6 @@ export class HomeManagerEditor extends HTMLElement {
   /** Validated configuration from the same fields for preview and explicit confirmation. */
   private deviceChange(form: HTMLFormElement): { next: Configuration; device: Device } {
     const data = new FormData(form);
-    if (this.root.querySelector<AlertEditor>('homemanager-alert-editor')?.valid() === false)
-      throw new Error(t('Revisá los límites y la duración de los avisos.'));
     let alertDisplay: ReturnType<typeof alertSettingsDisplay>;
     try {
       alertDisplay = alertSettingsDisplay(this.alertDraft ?? { rules: [] });

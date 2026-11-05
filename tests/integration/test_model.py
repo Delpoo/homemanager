@@ -64,7 +64,7 @@ def test_08_registry_readings_round_trip_and_07_is_unchanged() -> None:
 
 @pytest.mark.parametrize(("field", "invalid"), [
     *[("deviceId", value) for value in ("", None, False, 1, {}, [], "device.id", "device/id", " bad", "bad\n", "constructor", "x" * 241)],
-    *[("readings", value) for value in (None, False, "sensor.a", {}, [None], ["sensor.all"], ["sensor.a\n"], ["sensor.a", "sensor.a"], ["sensor.a", "sensor.b", "sensor.c", "sensor.d"], ["light.sample"])],
+    *[("readings", value) for value in (None, False, "sensor.a", {}, [None], ["sensor.all"], ["sensor.a\n"], ["sensor.a", "sensor.a"], [f"sensor.r{n}" for n in range(32)], ["light.sample"])],
 ])
 def test_08_rejects_malformed_registry_readings(field, invalid) -> None:
     value = presentation_configuration()

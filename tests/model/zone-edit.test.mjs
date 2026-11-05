@@ -5,7 +5,9 @@ import {
   MAX_RECTS,
   addRect,
   addZone,
+  adoptZone,
   applyDraft,
+  canAdoptZone,
   deviceMoves,
   mergeZones,
   newZoneId,
@@ -234,4 +236,26 @@ test('a snap never leaves a rectangle below the minimum nor past the plan', () =
   assert.deepEqual(snapRect(thin, [{ x: 0.505, y: 0, width: 0.1, height: 0.1 }], 'w'), thin);
   const rect = snapRect({ x: 0.3333335, y: 0, width: 0.6666665, height: 0.5 }, [], 'move');
   assert.equal(rect.x + rect.width <= 1, true);
+});
+
+test('an SVG zone of several shapes can become one shape of the app, keeping its L (#98)', () => {
+  const rooms = [
+    { id: 'l', label: 'Espacio L' },
+    { id: 'one', label: 'Espacio uno' },
+  ];
+  const copies = {
+    l: { x: 0, y: 0, width: 1, height: 1, rects: [left, right] },
+    one: { x: 0.5, y: 0.5, width: 0.5, height: 0.5 },
+  };
+  const draft = startDraft(rooms, copies);
+  const [l, one] = draft.zones;
+  assert.equal(canAdoptZone(l), true);
+  assert.equal(canAdoptZone(one), false, 'a single shape has nothing to merge');
+  const adopted = adoptZone(draft, 'l');
+  assert.equal(canAdoptZone(adopted.zones[0]), false, 'once is enough');
+  assert.deepEqual(adoptZone(draft, 'one'), draft);
+  const next = applyDraft({ rooms: structuredClone(rooms), catalog: { devices: [] } }, adopted, []);
+  assert.equal(next.rooms[0].shapeSource, 'app');
+  assert.deepEqual(next.rooms[0].rects, [left, right]);
+  assert.equal(next.rooms[1].shapeSource, undefined, 'the other space keeps following the SVG');
 });
