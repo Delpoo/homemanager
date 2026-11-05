@@ -244,7 +244,12 @@ function statusText(issue: StatusIssue): { title: string; detail: string; fix: s
     case 'unknown-state':
       return { title: issue.label, detail: t('Home Assistant no sabe su estado'), fix: t('Ver dispositivo') };
     case 'remote-missing':
-      return { title: issue.label, detail: t('Usa un control RF que ya no existe'), fix: t('Elegir control') };
+      return {
+        title: issue.label,
+        detail:
+          issue.source === 'ir' ? t('Usa un control IR que ya no existe') : t('Usa un control RF que ya no existe'),
+        fix: t('Elegir control'),
+      };
     case 'view-image':
       return {
         title: issue.name,

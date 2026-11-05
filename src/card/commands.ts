@@ -4,6 +4,7 @@ import { commandLabel } from '../model/control-capabilities.js';
 import { archetypeOf } from '../model/archetype.js';
 import { t } from '../i18n/index.js';
 import { airStamp, onAir, rf } from '../integration/rf.js';
+import { drawIr, remotes } from '../integration/remotes.js';
 import { openPanel, reasonText } from '../panels/native-panel.js';
 import { ControlView, type ControlHost } from '../ui/control-view.js';
 import { confidenceLabel } from './card-helpers.js';
@@ -269,7 +270,9 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
   const panel = d.bindings.advancedPopupId ? this.draft.panels[d.bindings.advancedPopupId] : undefined;
   const entityId = d.bindings.entityId;
   const remoteId = this.remoteOf(d);
-  if (!panel && !entityId && !remoteId && !controlsOf(d).length) {
+  const fromIrEntity = entityId ? this._hass?.states[entityId]?.attributes?.homemanager_ir_remote : undefined;
+  const irRemoteId = d.bindings.irRemoteId ?? (typeof fromIrEntity === 'string' ? fromIrEntity : null);
+  if (!panel && !entityId && !remoteId && !irRemoteId && !controlsOf(d).length) {
     // An unlinked symbol says so, and lets an administrator link it right away (#76).
     const admin = this._hass?.user?.is_admin === true;
     this.dialog(
@@ -352,6 +355,36 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
                 this.feed.noteCommandResult(token, { ok: false }, Date.now());
                 this.updateShell();
                 throw error;
+              }
+            },
+          }
+        : undefined,
+    irRemote:
+      irRemoteId && this._hass
+        ? {
+            load: async () => {
+              const remote = (await remotes.library(this._hass!)).find(item => item.id === irRemoteId);
+              return remote ? drawIr(remote) : undefined;
+            },
+            press: async buttonId => {
+              if (this.editing || !this._hass) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
+              const token = this.feed.prepareCommand(
+                id,
+                `ir-remote-${buttonId}`,
+                this._hass,
+                Date.now(),
+                buttonId,
+                entityId ?? undefined,
+              );
+              try {
+                const result = await remotes.press(this._hass, irRemoteId, buttonId);
+                this.feed.noteCommandResult(token, { ok: true }, Date.now());
+                return result;
+              } catch (error) {
+                this.feed.noteCommandResult(token, { ok: false }, Date.now());
+                throw error;
+              } finally {
+                this.updateShell();
               }
             },
           }

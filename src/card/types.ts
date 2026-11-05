@@ -65,6 +65,7 @@ export interface Device {
     quickActions?: QuickAction[];
     /** RF remote drawn in the device panel (V2, optional). */
     remoteId?: string | null;
+    irRemoteId?: string | null;
     /** The device's controls, shown in its panel (V2, optional). */
     controls?: DeviceControl[];
     layout?: import('../model/control-layout.js').ControlPiece[];
@@ -136,7 +137,11 @@ export interface Hass {
   panels?: Record<string, { component_name?: string; config?: { mode?: string } }>;
   connection?: {
     connected?: boolean;
-    subscribeMessage?(callback: (message: unknown) => void, subscription: Record<string, unknown>): Promise<() => void>;
+    subscribeMessage?(
+      callback: (message: unknown) => void,
+      subscription: Record<string, unknown>,
+      options?: { resubscribe?: boolean; preCheck?: () => boolean },
+    ): Promise<() => void>;
   };
   config?: { components?: string[] };
   /** Registries exposed by HA's frontend: used to show and match areas. */

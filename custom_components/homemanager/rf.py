@@ -40,6 +40,7 @@ from .const import DOMAIN
 from .model import ModelError
 from .rf_codec import decode, summarize
 from .rf_model import Library, Remote, fingerprint, migrate_remote_v1, validate_layout
+from .signals import prepare_rf, sample
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,6 +87,8 @@ class Candidate:
     burst_frames: int = 0
     best_burst: int = 0
     last_seen: float = 0.0
+    observation: dict[str, Any] | None = None
+    trials: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def pulse_us(self) -> int:
@@ -189,6 +192,7 @@ class RfManager:
         self.library = Library()
         self._locks: dict[str, asyncio.Lock] = {}
         self._candidates: dict[str, Candidate] = {}
+        self._unknown_samples: dict[str, tuple[float, dict[str, Any]]] = {}
         self._listeners: set[Callable[[], None]] = set()
         # Entities built from remotes (rf_entity.py), by unique id.
         self.entities: dict[str, Any] = {}
@@ -197,6 +201,7 @@ class RfManager:
         # Last echo of each remote: {"at", "result": heard|not_heard|unverified, "by"}.
         self.echoes: dict[str, dict[str, Any]] = {}
         self._echo_tasks: set[asyncio.Task[None]] = set()
+        self.on_learned: Callable[[str, str, str, Candidate], None] | None = None
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
@@ -330,6 +335,8 @@ class RfManager:
                 raise ModelError("invalid_code", "the captured code uses another protocol than this remote")
             code = candidate.bits
         button = await self._commit(lambda: self.library.get(remote_id).put_button(button_id, raw, code, role))
+        if candidate_id is not None and self.on_learned is not None:
+            self.on_learned(remote_id, button.button_id, fingerprint(button.code), candidate)
         return button.public()
 
     async def async_delete_button(self, remote_id: str, button_id: str) -> None:
@@ -357,12 +364,61 @@ class RfManager:
         # One transmission at a time per transmitter: a second press waits
         # instead of interleaving its frames with the first one.
         async with self._locks.setdefault(transmitter, asyncio.Lock()):
-            await self.hass.services.async_call(
-                "esphome",
-                f"{transmitter}_{SEND_ACTION}",
-                {"code": bits, "protocol": protocol, "pulse_length": pulse_us, "repeats": repeats, "wait_us": wait_us},
-                blocking=True,
-            )
+            await self._dispatch(transmitter, protocol, bits, pulse_us, repeats, wait_us)
+
+    async def _dispatch(self, transmitter: str, protocol: int, bits: str, pulse_us: int, repeats: int, wait_us: int) -> None:
+        await self.hass.services.async_call(
+            "esphome",
+            f"{transmitter}_{SEND_ACTION}",
+            {"code": bits, "protocol": protocol, "pulse_length": pulse_us, "repeats": repeats, "wait_us": wait_us},
+            blocking=True,
+        )
+
+    async def async_diagnose(self, remote: Remote, bits: str, transmitter: str,
+                             receivers: dict[str, str]) -> dict[str, Any]:
+        """Observe only receivers with registry identity, after dispatch begins."""
+        self._require(transmitter, SEND_ACTION)
+        devices = {tag: self._device(node) for tag, node in receivers.items()}
+        assigned = {device.id: tag for tag, device in devices.items() if device is not None}
+        emitter_device = self._device(transmitter)
+        if len(assigned) != sum(device is not None for device in devices.values()) or (
+            emitter_device is not None and any(device is not None and (device.id == emitter_device.id) != (tag == "self")
+                                              for tag, device in devices.items())
+        ):
+            raise ModelError("invalid_receiver", "select distinct physical receivers")
+        ready: set[str] = set()
+        blocks: dict[str, list[dict[str, Any]]] = {tag: [] for tag in receivers}
+        armed = False
+
+        @callback
+        def received(event: Event) -> None:
+            tag = assigned.get(event.data.get("device_id"))
+            if not armed or tag not in ready or len(blocks[tag]) >= 4:
+                return
+            values = str(event.data.get("timings", "")).split(",", MAX_TIMINGS)
+            try:
+                timings = [int(value) for value in values[:MAX_TIMINGS] if value.strip()]
+            except ValueError:
+                return
+            if timings and all(abs(value) <= 2_000_000 for value in timings):
+                blocks[tag].append(sample(timings, receivers[tag], at=event.time_fired.isoformat(),
+                                          integrity="possibly_truncated" if len(timings) >= 1500 else "received"))
+
+        unlisten = self.hass.bus.async_listen(RAW_EVENT, received) if receivers else None
+        try:
+            async with self._locks.setdefault(transmitter, asyncio.Lock()):
+                for tag, node in receivers.items():
+                    if devices[tag] and await self._open_echo_window(node):
+                        ready.add(tag)
+                armed = True
+                await self._dispatch(transmitter, remote.protocol, bits, remote.pulse_us, remote.repeats, remote.wait_us)
+                if ready:
+                    await asyncio.sleep(ECHO_WAIT_SECONDS)
+        finally:
+            if unlisten is not None:
+                unlisten()
+        return {tag: {"receiver": node, "status": "observed" if blocks[tag] else "not_observed" if tag in ready else "indeterminate",
+                      "blocks": blocks[tag]} for tag, node in receivers.items()}
 
     async def async_press(self, remote_id: str, button_id: str) -> dict[str, Any]:
         remote = self.library.get(remote_id)
@@ -387,20 +443,20 @@ class RfManager:
         devices = {node: self._device(node) for node in nodes}
         echo = _Echo(self, code, {device.id: (device.name_by_user or device.name or node) for node, device in devices.items() if device})
 
-        async def open_window(node: str) -> bool:
-            if self._learning.get(node):
-                return True
-            try:
-                async with asyncio.timeout(ECHO_OPEN_TIMEOUT_SECONDS):
-                    await self.hass.services.async_call("esphome", f"{node}_{CAPTURE_ACTION}", {"seconds": ECHO_WINDOW_SECONDS}, blocking=True)
-                return True
-            except Exception:  # noqa: BLE001 - an echo never blocks or fails a press
-                _LOGGER.debug("Could not open an echo window on %s", node)
-                return False
-
-        opened = await asyncio.gather(*(open_window(node) for node in nodes))
+        opened = await asyncio.gather(*(self._open_echo_window(node) for node in nodes))
         echo.listening = any(opened) and bool(echo.receivers)
         return echo
+
+    async def _open_echo_window(self, node: str) -> bool:
+        if self._learning.get(node):
+            return True
+        try:
+            async with asyncio.timeout(ECHO_OPEN_TIMEOUT_SECONDS):
+                await self.hass.services.async_call("esphome", f"{node}_{CAPTURE_ACTION}", {"seconds": ECHO_WINDOW_SECONDS}, blocking=True)
+            return True
+        except Exception:  # An echo never blocks or fails a press.
+            _LOGGER.debug("Could not open an echo window on %s", node)
+            return False
 
     def _report_echo(self, remote_id: str, result: str, by: str | None) -> None:
         self.echoes[remote_id] = {"at": datetime.now(UTC).isoformat(timespec="milliseconds"), "result": result, "by": by}
@@ -427,6 +483,8 @@ class RfManager:
         if "pulse_us" not in settings:
             trial.pulse_us = candidate.pulse_us
         await self._send(trial.transmitter, trial.protocol, candidate.bits, trial.pulse_us, trial.repeats, trial.wait_us)
+        candidate.trials = [*candidate.trials[-5:], {"at": datetime.now(UTC).isoformat(), "kind": "send", "status": "sent",
+                                                   "emitter": trial.transmitter, "settings": trial.settings()}]
         return {"result": "sent", **trial.settings()}
 
     # Capturing ----------------------------------------------------------
@@ -443,7 +501,20 @@ class RfManager:
         for key in [key for key, item in self._candidates.items() if item.last_seen < limit]:
             del self._candidates[key]
 
-    async def async_capture(self, transmitter: str, seconds: int, report: Callable[[dict[str, Any]], None], done: Callable[[], None]) -> Callable[[], None]:
+    def candidate_evidence(self, candidate_id: str, *, include_trial: bool) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        if unknown := self._unknown_samples.get(candidate_id):
+            if unknown[0] > _now():
+                return unknown[1], None
+            self._unknown_samples.pop(candidate_id, None)
+        candidate = self._candidate(candidate_id)
+        original = ({**candidate.observation, "receptions": {"frames": candidate.frames, "presses": candidate.bursts}}
+                    if candidate.observation else None)
+        if include_trial and candidate.trials:
+            trial = candidate.trials[-1]
+            return original, prepare_rf(candidate.bits, trial["settings"], at=trial["at"])
+        return original, None
+
+    async def async_capture(self, transmitter: str, seconds: int, report: Callable[[dict[str, Any]], None], done: Callable[[], None], *, diagnostics: bool = False) -> Callable[[], None]:
         """Listens for `seconds`. Reports `{"candidate": ...}` for every heard code
         as it accumulates frames and presses, and `{"noise": n}` when signals
         arrive that no supported protocol explains. Returns a stop function
@@ -467,15 +538,27 @@ class RfManager:
             frames = decode(timings)
             reading = summarize(frames)
             now = _now()
+            attributable = device_id is not None and event.data.get("device_id") == device_id
+            integrity = "possibly_truncated" if len(timings) >= 1500 else "received" if attributable else "unattributed"
             if reading is None:
                 noise["count"] += 1
                 if now - noise["reported"] >= NOISE_INTERVAL_SECONDS:
                     noise["reported"] = now
-                    report({"noise": noise["count"]})
+                    response: dict[str, Any] = {"noise": noise["count"]}
+                    if diagnostics and timings and all(abs(value) <= 2_000_000 for value in timings):
+                        if len(self._unknown_samples) >= 16:
+                            self._unknown_samples.pop(next(iter(self._unknown_samples)))
+                        signal_id = secrets.token_hex(8)
+                        self._unknown_samples[signal_id] = (now + 120, sample(timings, transmitter if attributable else None,
+                                                                               at=event.time_fired.isoformat(), integrity=integrity))
+                        response["signal_id"] = signal_id
+                    report(response)
                 return
             candidate = heard.get((reading.protocol, reading.bits))
             if candidate is None:
                 candidate = Candidate(secrets.token_hex(8), transmitter, reading.protocol, reading.bits)
+                candidate.observation = sample(timings, transmitter if attributable else None, at=event.time_fired.isoformat(),
+                                               integrity=integrity)
                 heard[(reading.protocol, reading.bits)] = candidate
                 self._candidates[candidate.candidate_id] = candidate
             if now - candidate.last_seen > BURST_GAP_SECONDS:

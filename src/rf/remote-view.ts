@@ -2,7 +2,8 @@ import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { installPanelComponents } from '../ui/panel-components.js';
 import { rfRemoteStyles, rfText, remoteCell, remoteWidget, positionRemoteWidget } from '../ui/rf-components.js';
-import type { RfButton, RfRemote, RfWidget } from '../integration/rf.js';
+import type { RfButton, RfWidget } from '../integration/rf.js';
+import type { DrawableRemote } from './layout.js';
 import { COLUMNS, MAX_HEIGHT, MAX_ROWS, buttonById, layoutOf, place, rows } from './layout.js';
 import { icon } from './catalog.js';
 import { readingValue } from '../model/control-layout.js';
@@ -21,7 +22,7 @@ const GAP = 10;
 
 export class HomeManagerRfRemote extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
-  private _remote: RfRemote | null = null;
+  private _remote: DrawableRemote | null = null;
   private _editing = false;
   private drag: {
     id: string;
@@ -59,12 +60,12 @@ export class HomeManagerRfRemote extends HTMLElement {
     );
   }
 
-  set remote(remote: RfRemote | null) {
+  set remote(remote: DrawableRemote | null) {
     if (remote?.id !== this._remote?.id) this.sentSteps.clear();
     this._remote = remote;
     this.render();
   }
-  get remote(): RfRemote | null {
+  get remote(): DrawableRemote | null {
     return this._remote;
   }
   set editing(editing: boolean) {
@@ -104,12 +105,12 @@ export class HomeManagerRfRemote extends HTMLElement {
     this.bind();
   }
 
-  private name(widget: RfWidget, remote: RfRemote): string {
+  private name(widget: RfWidget, remote: DrawableRemote): string {
     if (widget.label) return rfText(widget.label);
     return widget.buttons.map(id => buttonById(remote, id)?.name ?? t('Botón')).join(' / ');
   }
 
-  private renderWidget(remote: RfRemote, widget: RfWidget): string {
+  private renderWidget(remote: DrawableRemote, widget: RfWidget): string {
     const buttons = widget.buttons.map(id => buttonById(remote, id)).filter((item): item is RfButton => !!item);
     const send = (button: RfButton, inner: string, label = button.name) =>
       `<button type="button" data-send="${e(button.id)}" aria-label="${e(rfText(label))}">${inner}</button>`;

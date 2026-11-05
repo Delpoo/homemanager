@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from .const import DOMAIN, LINKED_PLAN_FOLDER
 from .model import ModelError, RevisionConflict
 from .plan_link import read_linked
+from .remotes import DATA_REMOTES
 from .store import HomeManagerStore
 
 HOME_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -52,8 +53,20 @@ def _read_allowed(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
+    websocket_api.async_register_command(hass, ws_remotes_library)
     for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge, ws_image_get, ws_image_put, ws_images_prune, ws_history_trim):
         websocket_api.async_register_command(hass, command)
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/library"})
+@callback
+def ws_remotes_library(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    if not _read_allowed(hass, connection, msg["id"]):
+        return
+    if (remotes := hass.data.get(DATA_REMOTES)) is None:
+        connection.send_error(msg["id"], "not_loaded", "the HomeManager integration is not loaded")
+        return
+    connection.send_result(msg["id"], remotes.public())
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemanager/homes"})

@@ -27,6 +27,7 @@ import {
   type NativePanel,
 } from '../card/types.js';
 import { rf, type RfRemote } from '../integration/rf.js';
+import { remotes as remoteLibrary, type IrRemote } from '../integration/remotes.js';
 import { serviceLabel, suggestControls } from '../card/device-controls.js';
 import {
   moveRoom,
@@ -560,7 +561,10 @@ export class HomeManagerEditor extends HTMLElement {
   /** Last storage share seen, so Home status can warn from 80 % (#74, #75). */
   storageShare?: number;
   private homeStatus(): StatusIssue[] {
-    return homeStatus(this.configuration, this._hass, { storageShare: this.storageShare });
+    return homeStatus(this.configuration, this._hass, {
+      storageShare: this.storageShare,
+      ...(this.irRemotes ? { irRemotes: new Set(this.irRemotes.map(item => item.id)) } : {}),
+    });
   }
   /** A Home status button opens the right place (#74). */
   private statusAction(issue: StatusIssue): void {
@@ -1238,12 +1242,18 @@ export class HomeManagerEditor extends HTMLElement {
     const panels = Object.keys(this.configuration.panels);
     const panelId = device?.bindings.advancedPopupId ?? '';
     const remoteId = device?.bindings.remoteId ?? '';
+    const irRemoteId = device?.bindings.irRemoteId ?? '';
     const help = (label: string, text: string) =>
       `<span class="field-title">${esc(label)}${helpTip(label, text)}</span>`;
     const icon = device?.display.icon ?? 'mdi:lightbulb-outline';
     const remotes = this.remotes.length
       ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se dibuja en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
       : '';
+    const infrared = this.irRemotes ?? [];
+    const irField =
+      infrared.length || irRemoteId
+        ? `<label class="field">${esc(t('Control IR en el panel'))}<select form="device-form" name="irRemoteId" aria-label="${esc(t('Control IR en el panel'))}">${option('', t('Automático'), irRemoteId)}${irRemoteId && !infrared.some(item => item.id === irRemoteId) ? option(irRemoteId, irRemoteId, irRemoteId) : ''}${infrared.map(item => option(item.id, item.name, irRemoteId)).join('')}</select></label>`
+        : '';
     // Layer is advanced: the automatic choice follows the device (#71).
     const layerField = `<label class="field">${esc(t('Capa'))}<select form="device-form" name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label>`;
     const currentLayer = device ? presentationOf(device, this._hass).layer : undefined;
@@ -1282,7 +1292,7 @@ export class HomeManagerEditor extends HTMLElement {
       <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
 
       <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
+      ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1541,6 +1551,7 @@ export class HomeManagerEditor extends HTMLElement {
   /** RF remotes, to choose the one a device's panel draws. Admins only, like
    * the editor itself; without the RF manager the list stays empty. */
   private remotes: RfRemote[] = [];
+  private irRemotes?: IrRemote[];
   private loadRemotes(): void {
     const hass = this._hass;
     if (!hass?.callWS || hass.user?.is_admin !== true) return;
@@ -1550,12 +1561,25 @@ export class HomeManagerEditor extends HTMLElement {
         if (library.remotes.length && this.surface === 'device') this.render();
       })
       .catch(() => undefined);
+    void remoteLibrary
+      .library(hass)
+      .then(items => {
+        if (this._hass?.connection !== hass.connection) return;
+        this.irRemotes = items;
+        if (items.length && this.surface === 'device') this.render();
+      })
+      .catch(() => undefined);
   }
   private remoteOf(entityId: string | null): string | null {
     const entity = entityId ? this._hass?.states[entityId] : undefined;
     const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
     const chosen = this.root.querySelector<HTMLSelectElement>('#device-form [name=remoteId], [name=remoteId]')?.value;
     return chosen || this.device()?.bindings.remoteId || (typeof fromEntity === 'string' ? fromEntity : null);
+  }
+  private irRemoteOf(entityId: string | null): string | null {
+    const fromEntity = entityId ? this._hass?.states[entityId]?.attributes?.homemanager_ir_remote : undefined;
+    const chosen = this.root.querySelector<HTMLSelectElement>('[name=irRemoteId]')?.value;
+    return chosen || this.device()?.bindings.irRemoteId || (typeof fromEntity === 'string' ? fromEntity : null);
   }
   /** What a step can do without writing an action by hand: the simple services
    * of the device's entity, and for an RF remote also its other parts (a light
@@ -1572,6 +1596,11 @@ export class HomeManagerEditor extends HTMLElement {
           found.push({ value: `new:${domain}.${service}:${id}`, label: serviceLabel(service, domain), group });
     };
     if (entityId) add(entityId);
+    const infrared = this.irRemoteOf(entityId);
+    if (infrared) {
+      for (const [id, state] of Object.entries(this._hass?.states ?? {}))
+        if (id !== entityId && state.attributes?.homemanager_ir_remote === infrared) add(id);
+    }
     const remote = this.remoteOf(entityId);
     if (remote) {
       const remoteName = this.remotes.find(item => item.id === remote)?.name ?? '';
@@ -2077,6 +2106,17 @@ export class HomeManagerEditor extends HTMLElement {
               );
               break;
             }
+            const infrared = device && this.irRemoteOf(device.bindings.entityId);
+            if (infrared && this.appContext) {
+              this.dispatchEvent(
+                new CustomEvent('homemanager-shell-command', {
+                  detail: { command: 'rf', irRemoteId: infrared },
+                  bubbles: true,
+                  composed: true,
+                }),
+              );
+              break;
+            }
             // Opening the visual designer explicitly materializes the read migration.
             // A legacy primary action must remain a visible, executable piece.
             if (device && device.bindings.controls === undefined) {
@@ -2294,7 +2334,7 @@ export class HomeManagerEditor extends HTMLElement {
       this.proposeCategory(target.value);
       return;
     }
-    if (target.getAttribute('name') === 'remoteId') {
+    if (['remoteId', 'irRemoteId'].includes(target.getAttribute('name') ?? '')) {
       this.refreshSuggestions();
       return;
     }
@@ -2366,6 +2406,9 @@ export class HomeManagerEditor extends HTMLElement {
       ((KINDS as readonly string[]).includes(suggested) ? suggested : CATEGORY_KIND[category])) as Device['kind'];
     // Without RF remotes the field is not shown: keep what the device had.
     const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
+    const irRemoteId = data.has('irRemoteId')
+      ? value(data, 'irRemoteId') || null
+      : (previous?.bindings.irRemoteId ?? null);
     const device: Device = {
       id,
       display: {
@@ -2411,6 +2454,7 @@ export class HomeManagerEditor extends HTMLElement {
         primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
         advancedPopupId: value(data, 'panelId') || null,
         ...(remoteId ? { remoteId } : {}),
+        ...(irRemoteId ? { irRemoteId } : {}),
         ...(keepControls
           ? {
               ...(previous.bindings.controls ? { controls: clone(previous.bindings.controls) } : {}),

@@ -143,6 +143,7 @@ export class HomeManagerApp extends HTMLElement {
     this.root.querySelector<HTMLElement>('.card-host')!.hidden = rfTab || this.creating;
     const host = this.root.querySelector<HTMLElement>('.rf-host')!;
     host.hidden = !rfTab;
+    if (!rfTab) this.rfElement?.stopIrCapture();
     if (rfTab && !this.rfElement) {
       this.rfElement = document.createElement('homemanager-rf') as HomeManagerRf;
       if (this._hass) this.rfElement.hass = this._hass;
@@ -176,8 +177,8 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId } = (
-      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string }>
+    const { command, homeId, remoteId, irRemoteId } = (
+      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string; irRemoteId?: string }>
     ).detail;
     if (command === 'home' && homeId) {
       this.select(homeId);
@@ -202,6 +203,7 @@ export class HomeManagerApp extends HTMLElement {
     this.applyTab();
     // From a symbol's Control › Design: straight to that remote's design (#73).
     if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId);
+    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId);
     if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
   };
   /** The same menu remains usable while the RF manager or empty view is open. */

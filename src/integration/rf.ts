@@ -78,7 +78,7 @@ export interface RfCandidate {
   fingerprint: string;
   known_as: string[];
 }
-export type RfCaptureEvent = { candidate?: RfCandidate; noise?: number; done?: boolean };
+export type RfCaptureEvent = { candidate?: RfCandidate; noise?: number; done?: boolean; signal_id?: string };
 
 /** Roles each part kind accepts (rf_model.ROLES). */
 export const ROLES: Record<PartKind, string[]> = {
@@ -172,6 +172,7 @@ export const rf = {
     transmitter: string,
     seconds: number,
     listener: (event: RfCaptureEvent) => void,
+    diagnostics = false,
   ): Promise<() => void> {
     const connection = hass.connection;
     if (!connection?.subscribeMessage) return Promise.reject(new Error('not connected'));
@@ -179,6 +180,7 @@ export const rf = {
       type: 'homemanager/rf/capture',
       transmitter,
       seconds,
+      ...(diagnostics ? { diagnostics: true } : {}),
     });
   },
 };

@@ -6,7 +6,7 @@ export type StatusIssue =
   | { kind: 'unlinked'; deviceId: string; label: string }
   | { kind: 'offline'; deviceId: string; label: string }
   | { kind: 'unknown-state'; deviceId: string; label: string }
-  | { kind: 'remote-missing'; deviceId: string; label: string }
+  | { kind: 'remote-missing'; deviceId: string; label: string; source?: 'ir' }
   | { kind: 'view-image'; viewId: string; name: string; mode: 'light' | 'dark' }
   | { kind: 'rule-target'; ruleId: string; name: string }
   | { kind: 'storage'; percent: number };
@@ -16,7 +16,7 @@ export interface StatusConfiguration {
     devices: {
       id: string;
       display: { label: string; standalone?: true };
-      bindings: { entityId: string | null; deviceId?: string; remoteId?: string | null };
+      bindings: { entityId: string | null; deviceId?: string; remoteId?: string | null; irRemoteId?: string | null };
     }[];
   };
   planViews?: { id: string; name: string; light?: unknown; dark?: unknown }[];
@@ -37,20 +37,22 @@ export const STATUS_ORDER: StatusIssue['kind'][] = [
 export function homeStatus(
   configuration: StatusConfiguration,
   hass: ModelHass | undefined,
-  extra: { remotes?: ReadonlySet<string>; storageShare?: number } = {},
+  extra: { remotes?: ReadonlySet<string>; irRemotes?: ReadonlySet<string>; storageShare?: number } = {},
 ): StatusIssue[] {
   const issues: StatusIssue[] = [];
   const devices = configuration.catalog.devices;
   for (const device of devices) {
     const { label } = device.display;
-    const { entityId, deviceId, remoteId } = device.bindings;
-    if (!entityId && !deviceId && !remoteId && !device.display.standalone)
+    const { entityId, deviceId, remoteId, irRemoteId } = device.bindings;
+    if (!entityId && !deviceId && !remoteId && !irRemoteId && !device.display.standalone)
       issues.push({ kind: 'unlinked', deviceId: device.id, label });
     const state = entityId ? hass?.states[entityId]?.state : undefined;
     if (state === 'unavailable') issues.push({ kind: 'offline', deviceId: device.id, label });
     else if (state === 'unknown') issues.push({ kind: 'unknown-state', deviceId: device.id, label });
     if (remoteId && extra.remotes && !extra.remotes.has(remoteId))
       issues.push({ kind: 'remote-missing', deviceId: device.id, label });
+    if (irRemoteId && extra.irRemotes && !extra.irRemotes.has(irRemoteId))
+      issues.push({ kind: 'remote-missing', deviceId: device.id, label, source: 'ir' });
   }
   for (const view of configuration.planViews ?? [])
     for (const mode of ['light', 'dark'] as const)

@@ -1,7 +1,16 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
-import type { RfRemote, RfWidget, WidgetType } from '../integration/rf.js';
-import { WIDGET_BUTTONS, WIDGET_SIZE, layoutOf, place, add, uniqueId, rows } from '../rf/layout.js';
+import type { RfWidget, WidgetType } from '../integration/rf.js';
+import {
+  WIDGET_BUTTONS,
+  WIDGET_SIZE,
+  layoutOf,
+  place,
+  add,
+  uniqueId,
+  rows,
+  type DrawableRemote,
+} from '../rf/layout.js';
 import { widgetLabel, widgetHelp } from '../rf/catalog.js';
 import { HomeManagerRfRemote } from '../rf/remote-view.js';
 import { installPanelComponents } from './panel-components.js';
@@ -12,7 +21,7 @@ import { confirmDialog } from './confirm-dialog.js';
 
 export interface DesignerOptions {
   key: string;
-  remote: RfRemote;
+  remote: DrawableRemote;
   controls?: { id: string; label: string }[];
   renderContent?: (piece: RfWidget) => HTMLElement | null;
   readValues?: HomeManagerRfRemote['readValues'];
@@ -25,7 +34,7 @@ export interface DesignerOptions {
 export class ControlDesigner extends HTMLElement {
   private root = this.attachShadow({ mode: 'open' });
   private options?: DesignerOptions;
-  private remote?: RfRemote;
+  private remote?: DrawableRemote;
   private history: (RfWidget[] | null)[] = [];
   private draft?: RfWidget;
   private isNew = false;
