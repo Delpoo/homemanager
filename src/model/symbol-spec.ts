@@ -143,7 +143,7 @@ export function symbolSpec(
     opacity: device.display.opacity ?? null,
     link: device.display.standalone
       ? null
-      : device.bindings.entityId || device.bindings.deviceId || device.bindings.remoteId
+      : device.bindings.entityId || device.bindings.deviceId || device.bindings.remoteId || device.bindings.irRemoteId
         ? 'linked'
         : 'unlinked',
   };

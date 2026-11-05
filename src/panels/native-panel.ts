@@ -14,7 +14,7 @@ import { tokens } from '../ui/theme.js';
 import { ControlView, controlViewStyles, type ControlHost } from '../ui/control-view.js';
 import { stepLabel } from '../card/device-controls.js';
 import { commandFor, entityControls, humanize, type Command, type Control } from './controls.js';
-import type { RfRemote } from '../integration/rf.js';
+import type { DrawableRemote } from '../rf/layout.js';
 import '../rf/remote-view.js';
 import type { HomeManagerRfRemote } from '../rf/remote-view.js';
 
@@ -22,6 +22,7 @@ export interface PanelAvailability {
   available: boolean;
   reason?: string;
 }
+type RemotePanelSource = { load: () => Promise<DrawableRemote | undefined>; press: (buttonId: string) => Promise<unknown> };
 export interface PanelOptions {
   /** On a wide screen, the side column where Now lives: the plan stays in view (#59). */
   dock?: HTMLElement;
@@ -43,7 +44,8 @@ export interface PanelOptions {
   /** Corrects the assumed on/off state of an RF entity without sending anything. */
   onAssume?: (isOn: boolean) => Promise<unknown>;
   /** An RF remote drawn as designed in Controles RF; its keys send codes. */
-  rfRemote?: { load: () => Promise<RfRemote | undefined>; press: (buttonId: string) => Promise<unknown> };
+  rfRemote?: RemotePanelSource;
+  irRemote?: RemotePanelSource;
   /** The device's own controls (pulsador, ciclo, deslizador…), drawn full size. */
   controls?: DeviceControl[];
   controlHost?: ControlHost;
@@ -245,7 +247,8 @@ export class HomeManagerPanel extends HTMLElement {
     this.root.innerHTML = `<style>${css}</style><homemanager-task-screen aria-labelledby="panel-title" aria-describedby="panel-device"><div class="head"><span class="glyph" aria-hidden="true">${glyph}</span><div class="titles"><h2 id="panel-title">${escapeHTML(title)}</h2><p class="device" id="panel-device">${escapeHTML(subtitle || this.device.display.label)}</p></div><button type="button" class="close" aria-label="${escapeHTML(t('Cerrar panel'))}">×</button></div><div class="body"><div class="remote group" hidden></div><div class="own group" hidden></div><details class="additional-controls"${this.device?.bindings.layout || this.options?.controls?.length || this.device.bindings.remoteId ? '' : ' open'}><summary>${escapeHTML(t('Lecturas y más controles'))}</summary><div class="state"><div class="value"></div><div class="confidence"></div><p class="hint"></p></div><div class="auto group" hidden></div><div class="custom group" hidden></div></details><p class="status" role="status" aria-live="polite"></p></div></homemanager-task-screen>`;
     this.renderCustom();
     this.renderAuto(true);
-    this.renderRemote();
+    this.renderRemote(this.options?.rfRemote, false);
+    this.renderRemote(this.options?.irRemote, true);
     this.renderOwn();
     this.root.querySelector('.close')!.addEventListener('click', () => this.close());
     // The press that opened the panel ends with a click on the backdrop: skip it,
@@ -273,21 +276,25 @@ export class HomeManagerPanel extends HTMLElement {
   }
   /** Before the other controls: for an RF device, its remote is the main control.
    * Its keys live in the remote's own shadow root, so Tab order stays natural. */
-  private renderRemote(): void {
-    const source = this.options?.rfRemote;
+  private renderRemote(source: RemotePanelSource | undefined, infrared: boolean): void {
     const host = this.root.querySelector<HTMLElement>('.remote');
     if (!source || !host) return;
     void source
       .load()
       .then(remote => {
         if (!remote || this.closed || !host.isConnected) return;
-        host.innerHTML = `<p class="group-title">${escapeHTML(t('Control remoto'))}</p>`;
+        const block = document.createElement('section');
+        block.innerHTML = `<p class="group-title">${escapeHTML(t(infrared ? 'Control IR' : 'Control remoto'))}</p>`;
         const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
         view.onPress = source.press;
+        if (infrared) view.estimated = false;
         view.readValues = () => this.options?.controlHost?.hass()?.states ?? {};
         view.remote = remote;
-        this.rfDesignView = view;
-        host.append(view);
+        if (infrared) this.irDesignView = view;
+        else this.rfDesignView = view;
+        block.append(view);
+        if (infrared) host.append(block);
+        else host.prepend(block);
         host.hidden = false;
         const extras = this.root.querySelector<HTMLDetailsElement>('.additional-controls');
         if (extras) {
@@ -301,6 +308,7 @@ export class HomeManagerPanel extends HTMLElement {
   private views: ControlView[] = [];
   private designView?: HomeManagerRfRemote;
   private rfDesignView?: HomeManagerRfRemote;
+  private irDesignView?: HomeManagerRfRemote;
   private renderOwn(): void {
     const host = this.root.querySelector<HTMLElement>('.own');
     const controls = this.options?.controls ?? [];
@@ -654,6 +662,7 @@ export class HomeManagerPanel extends HTMLElement {
   private renderState(): void {
     this.designView?.updateIndicators();
     this.rfDesignView?.updateIndicators();
+    this.irDesignView?.updateIndicators();
     const value = this.root.querySelector<HTMLElement>('.value'),
       confidence = this.root.querySelector<HTMLElement>('.confidence'),
       hint = this.root.querySelector<HTMLElement>('.hint');

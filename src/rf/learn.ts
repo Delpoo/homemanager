@@ -7,6 +7,7 @@ import { ROLES, rf, type RfAbout, type RfCandidate, type RfRemote, type RfTransm
 import { buttonSuggestions, icon, roleLabel } from './catalog.js';
 import { learningProgress } from '../model/learning-progress.js';
 import { learningPanelStyles } from '../ui/learning-components.js';
+import { SignalPreview } from '../ui/signal-workbench.js';
 
 /** Learning buttons, in any order. The receiver listens while this panel is
  * open; each code heard is shown as it arrives, with why it is or is not
@@ -34,6 +35,7 @@ const NOISE_MS = 3000;
 
 export class HomeManagerRfLearn extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
+  private readonly signal = new SignalPreview();
   hass?: Hass;
   /** The remote buttons are added to; null while it is a draft. */
   remote: RfRemote | null = null;
@@ -50,6 +52,7 @@ export class HomeManagerRfLearn extends HTMLElement {
   /** An always-visible panel is idle until the user starts a capture. */
   prepare(receiver: string): void {
     this.stop();
+    this.readings.clear();
     this.listen = receiver;
     this.target = '';
     this.reset();
@@ -61,6 +64,9 @@ export class HomeManagerRfLearn extends HTMLElement {
   private until = 0;
   private stopCapture: (() => void) | null = null;
   private candidate: RfCandidate | null = null;
+  private unclassified = '';
+  private readonly readings = new Map<string, RfCandidate>();
+  private chosenReading = '';
   private noiseAt = 0;
   private name = '';
   private glyph = '';
@@ -77,6 +83,7 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   /** Starts listening with this receiver. */
   start(receiver: string): void {
+    this.readings.clear();
     this.listen = receiver;
     this.until = Date.now() + LISTEN_MS;
     this.reset();
@@ -104,6 +111,8 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   private reset(): void {
     this.candidate = null;
+    this.unclassified = '';
+    this.chosenReading = '';
     this.trial = null;
     this.attempts = [];
     this.name = '';
@@ -139,9 +148,15 @@ export class HomeManagerRfLearn extends HTMLElement {
           if (Date.now() < this.until) void this.capture();
         } else if (event.noise) {
           this.noiseAt = Date.now();
+          this.unclassified = event.signal_id ?? '';
           window.setTimeout(() => this.isConnected && this.render(), NOISE_MS + 50);
         } else if (event.candidate) {
           const next = event.candidate;
+          if (!this.guided && next.confirmed) {
+            this.readings.set(next.candidate_id, next);
+            if (this.readings.size > 8) this.readings.delete(this.readings.keys().next().value!);
+          }
+          if (this.chosenReading && this.chosenReading !== next.candidate_id) { this.render(); return; }
           if (this.guided && this.candidate?.confirmed && this.candidate.candidate_id !== next.candidate_id) return;
           // A code under test stays; another code replaces an untested one.
           if (this.trial && this.candidate?.candidate_id !== next.candidate_id) return;
@@ -152,7 +167,7 @@ export class HomeManagerRfLearn extends HTMLElement {
           this.candidate = next;
         }
         this.render();
-      });
+      }, true);
     } catch (error) {
       this.listening = false;
       this.report(error);
@@ -203,11 +218,18 @@ export class HomeManagerRfLearn extends HTMLElement {
     const help = !available
       ? `<p class="notice">${e(t('No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.'))}</p><button type="button" data-open-devices>${e(t('Abrir Equipos RF'))}</button>`
       : '';
+    const queue = !this.guided && (this.readings.size > 1 || (!this.candidate && this.readings.size > 0))
+      ? `<label>${e(t('Capturas pendientes'))}<select name="reading"><option value="">${e(t('Última lectura'))}</option>${[...this.readings.values()].map((item, index) => `<option value="${e(item.candidate_id)}"${this.chosenReading === item.candidate_id ? ' selected' : ''}>${e(t('Captura {count}', { count: index + 1 }))} · ${item.nbits} ${e(t('bits'))}</option>`).join('')}</select></label>` : '';
     this.root.innerHTML = `<section class="sheet" aria-labelledby="learn-title"><div class="head"><h3 id="learn-title">${e(t('Aprender botones'))}</h3>${panelIconAction(t('Listo'), 'data-command="close"', 'mdi:check')}</div>
 <button type="button" data-command="learning-mode" aria-pressed="${!this.guided}">${e(this.guided ? t('Modo libre') : t('Modo guiado'))}</button>${help}${guide}
 <label>${e(t('Escucha'))}<select name="listen">${options}</select></label>
-${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</section>`;
+${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.unclassified ? '<div data-signal-preview></div>' : ''}${status}</section>`;
     this.bind();
+    const signalId = this.candidate?.candidate_id ?? this.unclassified;
+    if (signalId && this.hass) {
+      this.root.querySelector('[data-signal-preview]')?.append(this.signal);
+      this.signal.configure(this.hass, { source: 'rf', candidate_id: signalId });
+    }
     if (focused) {
       const field = this.root.querySelector<HTMLInputElement>(`[name="${CSS.escape(focused)}"]`);
       field?.focus();
@@ -297,7 +319,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
     const badge = c.confirmed
       ? `<span class="badge ok">✓ ${e(t('Lista para aprender'))}</span>`
       : `<span class="badge warn">${e(t('Sin confirmar'))}</span>`;
-    const details = `<details class="signal-details"><summary>${e(t('Detalles de la señal'))}</summary><p class="muted">${e(t('Tipo {protocol} · tamaño {bits} · pulso medido de la señal: {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p></details>`;
+    const details = `<details class="signal-details"><summary>${e(t('Detalles de la señal'))}</summary><p class="muted">${e(t('Tipo {protocol} · tamaño {bits} · pulso medido de la señal: {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p></details><div data-signal-preview></div>`;
     const known = c.known_as.length
       ? `<p class="muted">${e(t('Ya está guardado como: {names}', { names: c.known_as.map(value => rfText(value)).join(', ') }))}</p>`
       : '';
@@ -328,6 +350,13 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
 
   private bind(): void {
     const root = this.root;
+    root.querySelector<HTMLSelectElement>('[name=reading]')?.addEventListener('change', event => {
+      const selected = (event.target as HTMLSelectElement).value;
+      this.reset();
+      this.chosenReading = selected;
+      this.candidate = selected ? this.readings.get(selected) ?? null : [...this.readings.values()].at(-1) ?? null;
+      this.render();
+    });
     root
       .querySelectorAll<HTMLButtonElement>('[data-command]')
       .forEach(button => button.addEventListener('click', () => void this.command(button.dataset.command!)));
@@ -532,6 +561,7 @@ ${this.renderListen()}${this.candidate ? this.renderCandidate() : ''}${status}</
     );
     this.target = '';
     if (this.guided) this.stop();
+    this.readings.delete(c.candidate_id);
     this.reset();
     this.say(t('«{name}» guardado. Pulsá el siguiente botón.', { name }) + note);
     this.onSaved?.(remote.id);

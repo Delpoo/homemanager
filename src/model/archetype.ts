@@ -71,8 +71,8 @@ export function archetypeOf(device: ModelDevice, hass?: ModelHass): Archetype {
   if (device.display.category) return CATEGORY_ARCHETYPE[device.display.category];
   if (device.display.archetype) return device.display.archetype;
   const entity = entityOf(device, hass);
-  const remote = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
-  if (device.bindings.remoteId || (typeof remote === 'string' && remote.length > 0)) return 'remote';
+  const remote = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button ?? entity?.attributes?.homemanager_ir_remote;
+  if (device.bindings.remoteId || device.bindings.irRemoteId || (typeof remote === 'string' && remote.length > 0)) return 'remote';
   const domain = device.bindings.entityId?.split('.')[0];
   if (device.kind === 'sensor') {
     if (domain === 'binary_sensor') return 'sensor';

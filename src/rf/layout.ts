@@ -1,5 +1,7 @@
 import type { RfButton, RfPart, RfRemote, RfWidget, WidgetType } from '../integration/rf.js';
 
+export type DrawableRemote = Pick<RfRemote, 'id' | 'buttons' | 'parts' | 'layout'>;
+
 /** Grid of the remote designer: same limits as rf_model.py, which validates
  * every saved layout. Widgets never overlap: placing one pushes the widgets it
  * lands on further down. */

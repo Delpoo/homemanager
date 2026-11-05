@@ -186,3 +186,20 @@ async def test_capture_cleans_up_on_cancel_disconnect_and_native_error(setup_pro
         await proxy.async_capture(receiver_id)
     assert error.value.code == "ir_receiver_unavailable"
     assert "upstream" not in str(error.value)
+
+
+async def test_diagnostic_observes_invalid_signs_without_making_them_learnable(setup_proxy) -> None:
+    proxy, runtime, client, _, receiver, _ = setup_proxy
+    [device] = proxy.devices()["receivers"]
+    ready = asyncio.Event()
+    armed = False
+    observe = asyncio.create_task(proxy.async_observe(device["id"], ready, lambda: armed, 0.5, limit=1))
+    await ready.wait()
+    client.receive(receiver.key, receiver.device_id, [120, -100])
+    assert not observe.done()
+    armed = True
+    client.receive(receiver.key, receiver.device_id, [500, 300, -800])
+    [observed] = await observe
+    assert observed["timings_us"] == [500, 300, -800]
+    assert observed["integrity"] == "suspect"
+    assert not client.callbacks and not runtime.disconnect_callbacks

@@ -65,6 +65,7 @@ export interface Device {
     quickActions?: QuickAction[];
     /** RF remote drawn in the device panel (V2, optional). */
     remoteId?: string | null;
+    irRemoteId?: string | null;
     /** The device's controls, shown in its panel (V2, optional). */
     controls?: DeviceControl[];
     layout?: import('../model/control-layout.js').ControlPiece[];

@@ -27,6 +27,7 @@ import { icon, kindLabel, roleLabel } from './catalog.js';
 import { uiEmpty, uiNotice } from '../ui/components.js';
 import { iconLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { openSignal } from '../ui/signal-workbench.js';
 import './remote-view.js';
 import './learn.js';
 import './devices.js';
@@ -107,6 +108,11 @@ export class HomeManagerRf extends HTMLElement {
 
   stopIrCapture(): void {
     this.infrared.stopCapture();
+  }
+
+  openIrRemote(remoteId: string): void {
+    this.show('ir');
+    this.infrared.openRemote(remoteId);
   }
 
   private async load(): Promise<void> {
@@ -287,7 +293,7 @@ export class HomeManagerRf extends HTMLElement {
       ? remote.buttons
           .map(
             button =>
-              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: button.name }), 'name="button-icon" clearable')}<button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
+              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: button.name }), 'name="button-icon" clearable')}<div class="row"><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button>${panelIconAction(t('Ficha técnica de {name}', { name: button.name }), `data-signal="${e(button.id)}"`, 'mdi:file-document-outline')}</div><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
           )
           .join('')
       : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
@@ -357,6 +363,9 @@ export class HomeManagerRf extends HTMLElement {
     root
       .querySelectorAll<HTMLButtonElement>('[data-open]')
       .forEach(button => button.addEventListener('click', () => this.open(button.dataset.open!)));
+    root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button => button.addEventListener('click', () => {
+      if (remote && this._hass) openSignal(this._hass, { source: 'rf', remote_id: remote.id, button_id: button.dataset.signal! });
+    }));
     root.querySelectorAll<HTMLInputElement>('[data-rf-icon]').forEach(picker =>
       picker.addEventListener('change', () => {
         if (picker.dataset.rfIcon === 'new') this.newRemote.icon = picker.value || null;

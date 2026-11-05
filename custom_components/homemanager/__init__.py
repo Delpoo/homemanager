@@ -20,6 +20,8 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .diagnostic_websocket import async_register as async_register_diagnostics
+from .diagnostics import DATA_DIAGNOSTICS, Diagnostics
 from .ir import DATA_IR, IrManager
 from .ir_websocket import async_register as async_register_ir
 from .plan_link import ensure_folder
@@ -48,10 +50,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     remotes = RemotesLibrary(hass, rf)
     await remotes.async_load()
     hass.data[DATA_REMOTES] = remotes
-    hass.data[DATA_IR] = IrManager(hass, remotes)
+    ir = IrManager(hass, remotes)
+    hass.data[DATA_IR] = ir
+    diagnostics = Diagnostics(hass, rf, ir, remotes)
+    await diagnostics.async_load()
+    hass.data[DATA_DIAGNOSTICS] = diagnostics
+    rf.on_learned = diagnostics.on_rf_learned
     async_register(hass)
     async_register_rf(hass)
     async_register_ir(hass)
+    async_register_diagnostics(hass)
     await _async_register_frontend(hass)
     await _async_update_options(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
@@ -67,8 +75,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         frontend.remove_extra_js_url(hass, url)
     if store := hass.data.pop(DOMAIN, None):
         store.async_close()
-    hass.data.pop(DATA_RF, None)
+    if rf := hass.data.pop(DATA_RF, None):
+        rf.on_learned = None
     hass.data.pop(DATA_REMOTES, None)
+    if diagnostics := hass.data.pop(DATA_DIAGNOSTICS, None):
+        await diagnostics.async_close()
     if ir := hass.data.pop(DATA_IR, None):
         await ir.async_close()
     # Websocket commands and the static route cannot be unregistered in HA; they

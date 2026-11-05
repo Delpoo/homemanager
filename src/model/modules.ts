@@ -20,7 +20,7 @@ export function modulesOf(device: ModelDevice, hass?: ModelHass): ModuleId[] {
   const sections = sectionsOf(categoryOf(device, hass));
   const found = new Set<ModuleId>(['device', 'gestures', 'rules']);
   if (sections.show || device.display.show === 'value' || device.display.show === 'both') found.add('indicators');
-  if (sections.controls || device.bindings.controls?.length || device.bindings.remoteId) found.add('control');
+  if (sections.controls || device.bindings.controls?.length || device.bindings.remoteId || device.bindings.irRemoteId) found.add('control');
   if (device.display.pinned?.length) found.add('pinned');
   if (device.bindings.advancedPopupId) found.add('native');
   return MODULES.filter(id => found.has(id));
@@ -36,7 +36,7 @@ export function moduleChoices(device: ModelDevice, hass?: ModelHass) {
     reason:
       id === 'pinned' &&
       !device.bindings.controls?.length &&
-      !device.bindings.remoteId &&
+      !device.bindings.remoteId && !device.bindings.irRemoteId &&
       !deviceActions(device, hass).length
         ? 'Necesita un control'
         : null,

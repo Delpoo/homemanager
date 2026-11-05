@@ -205,6 +205,26 @@ def validate_layout(raw: Any, buttons: Container[str]) -> list[dict[str, Any]] |
     return widgets
 
 
+def append_layout_button(layout: list[dict[str, Any]], button_id: str) -> list[dict[str, Any]]:
+    """A newly learned button appears at the bottom of a designed remote."""
+    taken = {widget["id"] for widget in layout}
+    row = max((widget["y"] + widget["h"] for widget in layout), default=0)
+    if row >= MAX_ROWS or len(layout) >= MAX_WIDGETS:
+        return layout
+    return [*layout, {"id": slug(f"b-{button_id}", taken), "type": "button", "x": 0, "y": row,
+                      "w": 1, "h": 1, "buttons": [button_id], "label": None, "icon": None}]
+
+
+def remove_layout_button(layout: list[dict[str, Any]], button_id: str) -> list[dict[str, Any]]:
+    """Keep widgets that still have enough buttons after the deletion."""
+    kept = []
+    for widget in layout:
+        used = [button for button in widget["buttons"] if button != button_id]
+        if len(used) >= WIDGETS[widget["type"]][0]:
+            kept.append({**widget, "buttons": used})
+    return kept
+
+
 @dataclass
 class Remote:
     remote_id: str
@@ -304,16 +324,8 @@ class Remote:
         if part is not None:
             part.roles[role["role"]] = button.button_id  # type: ignore[index]
         if previous is None and self.layout is not None:
-            self._append_widget(button.button_id)
+            self.layout = append_layout_button(self.layout, button.button_id)
         return button
-
-    def _append_widget(self, button_id: str) -> None:
-        """A newly learned button appears at the bottom of a designed remote."""
-        taken = {widget["id"] for widget in self.layout or []}
-        row = max((widget["y"] + widget["h"] for widget in self.layout or []), default=0)
-        if row >= MAX_ROWS or len(self.layout or []) >= MAX_WIDGETS:
-            return
-        self.layout = [*(self.layout or []), {"id": slug(f"b-{button_id}", taken), "type": "button", "x": 0, "y": row, "w": 1, "h": 1, "buttons": [button_id], "label": None, "icon": None}]
 
     def delete_button(self, button_id: str) -> None:
         if button_id not in self.buttons:
@@ -322,13 +334,7 @@ class Remote:
         for part in self.parts.values():
             part.roles = {role: button for role, button in part.roles.items() if button != button_id}
         if self.layout is not None:
-            # Widgets that keep enough buttons survive without the deleted one.
-            kept = []
-            for widget in self.layout:
-                used = [button for button in widget["buttons"] if button != button_id]
-                if len(used) >= WIDGETS[widget["type"]][0]:
-                    kept.append({**widget, "buttons": used})
-            self.layout = kept
+            self.layout = remove_layout_button(self.layout, button_id)
 
     def put_parts(self, raw: list[dict[str, Any]]) -> None:
         """Replaces all parts. Entries without an id are new parts."""
