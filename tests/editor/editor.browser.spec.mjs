@@ -1,4 +1,4 @@
-import { openAdvanced, openFirstSection } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
@@ -33,9 +33,16 @@ async function section(page, title) {
     await button(page, 'Configuración').click();
     await openFirstSection(page);
   }
-  if (['Acciones lógicas', 'Paneles nativos', 'Referencias pendientes'].includes(title))
-    await openAdvanced(editor(page));
-  await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
+  const ids = {
+    'Plano y espacios': 'rooms-section',
+    Espacios: 'rooms-section',
+    'Acciones lógicas': 'actions-section',
+    'Paneles nativos': 'panels-section',
+    'Referencias pendientes': 'pending-section',
+    Copias: 'import-section',
+  };
+  if (ids[title]) await showSection(editor(page), ids[title]);
+  else await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');

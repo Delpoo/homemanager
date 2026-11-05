@@ -219,7 +219,7 @@ export const settingsPageStyles = `
 .settings-nav button ha-icon{--mdc-icon-size:20px;flex:none}.settings-nav button span:first-of-type{flex:1}
 .settings-nav button[aria-current=page]{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-ink);font-weight:600}
 .settings-group-box{display:grid;gap:2px;margin-bottom:8px}.settings-group{display:block;padding:6px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hm-muted)}
-.settings-advanced>summary{list-style:none;cursor:pointer;min-height:32px;display:flex;align-items:center}.settings-advanced>summary::-webkit-details-marker{display:none}.settings-advanced>summary::after{content:'▸';margin-left:auto;padding-right:12px;color:var(--hm-muted)}.settings-advanced[open]>summary::after{content:'▾'}
+.settings-advanced>summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center}.settings-advanced>summary::-webkit-details-marker{display:none}.settings-advanced>summary::after{content:'▸';margin-left:auto;padding-right:12px;color:var(--hm-muted)}.settings-advanced[open]>summary::after{content:'▾'}
 .settings-chev{display:none}.settings-list{display:none}
 .settings-badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hm-surface-2,var(--hm-line));color:var(--hm-muted)}.settings-badge.warn{background:color-mix(in srgb,var(--hm-warn) 18%,transparent);color:var(--hm-warn)}
 .settings-content{overflow:auto;padding:18px 22px 24px;display:grid;align-content:start;gap:14px}
@@ -239,7 +239,7 @@ export const settingsPageStyles = `
 .settings-page[data-view=list] .settings-content,.settings-page[data-view=section] .settings-nav{display:none}
 .settings-nav{border-right:0;padding:10px 12px}
 .settings-nav button{min-height:52px;color:var(--hm-ink)}.settings-nav button[aria-current=page]{background:transparent;font-weight:400}.settings-chev{display:inline-flex;color:var(--hm-muted)}
-.settings-list{display:inline-flex;align-items:center;gap:8px;justify-self:start;border:0;background:transparent;color:var(--hm-accent);padding:0;min-height:40px}
+.settings-list{display:inline-flex;align-items:center;gap:8px;justify-self:start;border:0;background:transparent;color:var(--hm-accent);padding:0;min-height:44px}
 .settings-content{padding:14px 14px 20px}
 .plan-thumb{width:110px;height:80px}
 }

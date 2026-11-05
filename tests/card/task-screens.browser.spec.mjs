@@ -88,6 +88,8 @@ test('settings is a page; sections and Back keep fields without saving', async (
   await expect(field).toHaveValue('accion-pendiente');
   await screen(page, 'Configuración').locator('.task-back').click();
   await settings(page);
+  // On a phone Settings opens on its list again (#70).
+  await showSection(editor(page), 'actions-section');
   await expect(field).toHaveValue('accion-pendiente');
   expect(
     await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length),

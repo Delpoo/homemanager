@@ -13,6 +13,9 @@ test('two real touch points zoom the SVG while keeping normalized device coordin
     window.testHarness.card.getDraftConfiguration().catalog.devices.map(d => d.position),
   );
   const stage = page.locator('homemanager-card').locator('.architecture');
+  // Wait until the plan is framed: a pinch before that would be undone by the first fit.
+  await expect.poll(() => stage.evaluate(node => getComputedStyle(node).transform)).not.toBe('none');
+  await page.waitForTimeout(300);
   const initial = await stage.evaluate(node => new DOMMatrix(getComputedStyle(node).transform).a);
   const box = await page.getByRole('group', { name: 'Plano interactivo' }).boundingBox();
   const x = box.x + box.width / 2,

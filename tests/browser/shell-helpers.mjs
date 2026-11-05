@@ -21,6 +21,9 @@ export async function chooseTheme(page, scope, value) {
 /** Logical actions, native panels and pending references are folded under Advanced (#70). */
 export async function openAdvanced(scope) {
   const advanced = scope.locator('.settings-advanced').first();
+  // On a phone the section list may be closed behind the open section.
+  const list = scope.locator('[data-command=settings-list]').first();
+  if (!(await advanced.isVisible()) && (await list.isVisible())) await list.click();
   if (!(await advanced.evaluate(node => node.open))) await advanced.locator('summary').click();
 }
 /** Opens a Settings section from any view: on a phone it first goes back to the list (#70). */

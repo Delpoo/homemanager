@@ -129,7 +129,7 @@ export function valuesChange(draft: ValuesDraft, target: HTMLElement): ValuesDra
 
 export const valuesEditorStyles = `
 .values-editor{display:grid;gap:8px}.value-row{border:1px solid var(--hm-line);border-radius:10px;padding:6px 10px}.value-row[data-chosen=true]{background:var(--hm-surface)}
-.value-row-head{display:flex;align-items:center;gap:6px}.value-row-head .check{flex:1;margin:0}.value-move{min-height:36px;min-width:36px;padding:0}
-.value-look>summary{cursor:pointer;min-height:36px;line-height:36px;font-size:12px;color:var(--hm-accent)}
+.value-row-head{display:flex;align-items:center;gap:6px}.value-row-head .check{flex:1;margin:0}.value-move{min-height:44px;min-width:44px;padding:0}
+.value-look>summary{cursor:pointer;min-height:44px;line-height:44px;font-size:12px;color:var(--hm-accent)}
 .value-ranges{border:1px solid var(--hm-line);border-radius:8px;margin:8px 0 0;padding:6px 10px}.range-row{display:flex;gap:6px;align-items:end;margin:4px 0}.range-row label{flex:1;display:grid;gap:4px;font-size:12px}.range-row input[type=color]{width:52px;padding:2px}
 `;

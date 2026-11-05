@@ -215,11 +215,11 @@ test('plan settings and field help open without cluttering the map, and Move use
   const settings = editor(page).getByRole('region', { name: 'Configuración' });
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.
+  await expect(settings.getByRole('listitem')).toHaveCount(3);
   const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
   await openAdvanced(settings);
   for (const name of ['Plano y espacios', 'Acciones lógicas', 'Paneles nativos', 'Referencias pendientes', 'Copias'])
     await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) }).first()).toBeVisible();
-  await expect(settings.getByRole('listitem')).toHaveCount(3);
   await page.keyboard.press('Escape');
   await select(page);
   await openDeviceSections(page, ['device-binding']);

@@ -49,6 +49,8 @@ test('dock opens and previews without saving, then reverts this device', async (
     expect(result.viewport.right).toBeLessThanOrEqual(result.dock.left + 1);
   } else {
     expect(result.dock.height).toBeLessThanOrEqual(result.viewport.height * 0.55 + 1);
+    // The sheet now opens with Base and its headings (#71): bring the size into view first.
+    await editor.getByRole('button', { name: 'Grande', exact: true }).scrollIntoViewIfNeeded();
     const size = await editor.getByRole('button', { name: 'Grande', exact: true }).boundingBox();
     const footer = await editor.locator('.sheet-tools').boundingBox();
     expect(size.y + size.height).toBeLessThanOrEqual(footer.y);
