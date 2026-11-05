@@ -71,7 +71,10 @@ export function deviceScreen(
     icon: device.display.icon,
   });
   const all =
-    catalog?.readings.map(item => ({ ...item, value: friendlyState(hass?.states[item.entityId], hass) })) ??
+    // A device's current options (a mode, say) stay readable; they are also its actions (#91, #96).
+    catalog?.readings
+      .concat(catalog.actions.filter(item => /^(?:select|number|input_select|input_number)\./.test(item.entityId)))
+      .map(item => ({ ...item, value: friendlyState(hass?.states[item.entityId], hass) })) ??
     (primary && usefulEntity(primary, hass) && (!registryId || inferred === registryId) ? [reading(primary)] : []);
   const channels = new Map<number, ChannelReading>();
   const channelIds = new Set<string>();

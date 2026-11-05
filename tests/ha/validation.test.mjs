@@ -101,7 +101,8 @@ test('0.8 JS and schema reject malformed registry IDs and unsafe additional-read
       ['sensor.all'],
       ['sensor.a\n'],
       ['sensor.a', 'sensor.a'],
-      ['sensor.a', 'sensor.b', 'sensor.c', 'sensor.d'],
+      // No fixed limit of three any more (#91): the safe ceiling is 31 besides the main one.
+      Array.from({ length: 32 }, (_, index) => `sensor.r${index}`),
     ].map(value => ['readings', value]),
   ];
   for (const [field, value] of invalid) {
