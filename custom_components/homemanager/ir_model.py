@@ -14,12 +14,12 @@ from .rf_model import ID, MAX_BUTTONS, MAX_DESCRIPTION, _icon, _int, _optional_t
 MAX_TIMINGS = 4096
 MAX_DURATION_US = 2_000_000
 MAX_CARRIER_HZ = 1_000_000
-EMITTER = re.compile(r"(?:infrared\.[a-z0-9_]{1,246}|[a-f0-9]{32})")
+EMITTER = re.compile(r"(?:infrared\.[a-z0-9_]{1,246}|(?:esphome:)?[a-f0-9]{32})")
 
 
 def _emitter(value: Any) -> str:
     if not isinstance(value, str) or not EMITTER.fullmatch(value):
-        raise ModelError("invalid_ir", "emitter must identify an infrared entity")
+        raise ModelError("invalid_ir", "emitter must identify an infrared transmitter")
     return value
 
 
