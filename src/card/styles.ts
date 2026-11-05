@@ -11,7 +11,7 @@ import { editorDockStyles } from '../ui/editor-components.js';
 
 export const styles = `${tokens}${iconButtonStyles}${fabStyles}${controlViewStyles}${alertComponentStyles}
 :host{display:block}
-.shell{height:var(--hm-shell-height,auto);box-sizing:border-box;grid-template-rows:auto auto minmax(0,1fr);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
+.shell{position:relative;height:var(--hm-shell-height,auto);box-sizing:border-box;grid-template-rows:auto auto minmax(0,1fr);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:var(--hm-radius);overflow:hidden;box-shadow:var(--ha-card-box-shadow,none);display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:"header header" "edit edit" "rooms workspace" "selection selection" "status status"}
 .header{display:flex;align-items:center;gap:8px;padding:10px 10px 6px 16px}
 h1{font-size:18px;line-height:1.3;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logo{font-size:20px;color:var(--hm-accent)}
@@ -91,10 +91,11 @@ dt{font-weight:600}dd{margin:0}
 .workspace > .editor{position:absolute;z-index:6;left:16px;top:16px;width:340px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);overflow:auto;border-radius:18px;overscroll-behavior:contain}
 .editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
 .is-editing .header [data-command=edit],.is-editing .header [data-command=configuration]{display:none}
-.is-editing .editor-wrap{border-top:0;background:var(--hm-edit-soft)}.is-editing .editbar{background:var(--hm-edit-soft);border-bottom:3px solid var(--hm-edit)}
-.edit-title{display:flex;align-items:baseline;gap:4px;min-width:0;margin-right:auto;color:var(--hm-ink);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.edit-title b{color:var(--hm-edit-ink)}
-.is-editing .viewport{box-shadow:inset 0 0 0 3px var(--hm-edit)}
-@media(max-width:650px){.edit-title{flex-basis:100%;order:-1;padding:0 4px 2px}.edit-count{overflow:hidden;text-overflow:ellipsis}}
+.is-editing .editor-wrap{border-top:0;background:var(--hm-edit-soft)}.is-editing .editbar{background:var(--hm-edit-soft);border-bottom:1px solid color-mix(in srgb,var(--hm-edit) 45%,var(--hm-line))}
+.edit-title.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.editbar [data-command=save]{position:relative}.editbar [data-command=save][data-count]::after{content:attr(data-count);position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--hm-edit);color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.is-editing .viewport{box-shadow:inset 0 0 0 2px var(--hm-edit)}
+
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
 
 .architecture>.room-highlight{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:none;overflow:visible}

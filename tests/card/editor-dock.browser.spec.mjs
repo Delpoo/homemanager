@@ -1,4 +1,4 @@
-import { openFirstSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -112,9 +112,15 @@ test('advanced fields stay available and invalid drafts cannot overwrite the pla
     )
     .toBe(0.4);
   await editor.locator('[name=label]').fill('');
+  // 0.13: touching another symbol never traps the person; the broken change is not kept.
   await page.locator('homemanager-card').evaluate(node => node.select('lamp'));
-  await expect(editor.locator('[name=label]')).toHaveValue('');
-  expect(await page.locator('homemanager-card').evaluate(node => node.selected)).toBe('fan');
+  await expect(editor.locator('[name=label]')).toHaveValue('Luz Living');
+  expect(await page.locator('homemanager-card').evaluate(node => node.selected)).toBe('lamp');
+  expect(
+    await page
+      .locator('homemanager-card')
+      .evaluate(node => node.draft.catalog.devices.find(d => d.id === 'fan').display.label),
+  ).not.toBe('');
   await editor.locator('[name=label]').fill('Nombre válido');
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
   await expect(editor).toBeHidden();
@@ -159,7 +165,7 @@ test('settings and fullscreen remain reachable while the dock is open', async ({
   await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
   await expect(card.locator('homemanager-editor [name=label]')).toBeVisible();
   await page.evaluate(() => document.exitFullscreen());
-  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card);
   await openFirstSection(page);
   await expect(card.getByRole('region', { name: 'Configuración', exact: true })).toBeVisible();
 });

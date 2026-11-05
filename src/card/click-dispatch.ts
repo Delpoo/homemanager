@@ -1,5 +1,7 @@
 import { toggleFullscreen } from './fullscreen.js';
 import { openConfiguration } from './settings-screen.js';
+import { closeNavMenu, toggleNavMenu } from '../shell/nav-menu.js';
+import type { SettingsSection } from '../editor/settings-page.js';
 import { applyInitialView } from './initial-view.js';
 import * as layerView from '../shell/layers.js';
 import { showActivity, showAlerts } from '../shell/activity-view.js';
@@ -8,6 +10,10 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import type { RoomId } from './types.js';
 import type { HomeManagerCard } from './home-manager-card.js';
 export function onCardClick(this: HomeManagerCard, event: Event): void {
+  if ((event.target as Element).closest('[data-nav-close]')) {
+    closeNavMenu(this.root);
+    return;
+  }
   const target = (event.target as Element).closest<HTMLElement>('button');
   if (!target) return;
   if (target.classList.contains('cluster')) {
@@ -91,6 +97,13 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     case 'exit':
     case 'edit':
       void this.toggleEdit();
+      break;
+    case 'nav-menu':
+      toggleNavMenu(this.root, this.hass?.user?.is_admin === true, this.config?.title || 'HomeManager');
+      break;
+    case 'nav-open':
+      closeNavMenu(this.root);
+      void openConfiguration(this, target.dataset.section as SettingsSection);
       break;
     case 'all':
       this.fit(null);

@@ -195,7 +195,11 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor = document.createElement('homemanager-editor') as HomeManagerEditor;
   this.editor.embedded = true;
   this.editor.roomView = id => this.roomViewFor(id);
-  this.editor.editZones = () => this.startZoneEdit();
+  this.editor.editZones = () => {
+    // Settings opened from outside edit mode would end it on close: zones keep it on.
+    this.configuring = false;
+    this.startZoneEdit();
+  };
   this.editor.linkedReview = () => void this.reviewLinkedPlan();
   this.editor.homeId = this.home?.homeId;
   this.editor.appContext = this.shellContext;
@@ -493,6 +497,13 @@ export function updateControls(this: HomeManagerCard) {
   if (discard) discard.disabled = this.saving || !this.dirty;
   // The amber strip says how many changes are waiting (#90).
   const count = this.root.querySelector('.edit-count');
+  // 0.13: the count is a badge on Save; the strip itself has no text (the amber says enough).
+  const badge = this.root.querySelector<HTMLElement>('[data-command=save]');
+  if (badge) {
+    const pending = unsavedCount(this.history.length, this.editing && this.dirty);
+    if (pending) badge.dataset.count = String(pending);
+    else delete badge.dataset.count;
+  }
   if (count) {
     const pending = unsavedCount(this.history.length, this.editing && this.dirty);
     count.textContent = pending

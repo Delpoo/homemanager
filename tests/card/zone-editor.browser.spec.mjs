@@ -1,4 +1,4 @@
-import { openFirstSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: living on the left; kitchen top right; office bottom right. Zones in the SVG.
@@ -24,7 +24,7 @@ const begin = async page => {
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 const openEditor = async page => {
-  await button(page, 'Configuración').click();
+  await openSettings(page);
   await openFirstSection(page);
   await card(page).locator('homemanager-editor').getByRole('button', { name: 'Editar zonas', exact: true }).click();
   await expect(card(page).locator('.zones-bar')).toBeVisible();

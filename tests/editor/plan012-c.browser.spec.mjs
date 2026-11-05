@@ -94,10 +94,12 @@ test('outside editing the link mark follows Show link: unlinked by default, alwa
 
 test('the initial view is saved, ⌂ returns to it and it opens after a reload (#94)', async ({ page }) => {
   await card(page).getByRole('button', { name: 'Salir de edición', exact: true }).click();
+  // Leaving edit mode gives the plan its room back; zoom once it has settled.
+  await page.waitForTimeout(600);
   await card(page).getByRole('button', { name: 'Acercar', exact: true }).click();
   await card(page).getByRole('button', { name: 'Acercar', exact: true }).click();
   await page.waitForTimeout(500);
-  const saved = await page.evaluate(() => ({ ...window.testHarness.card.camera }));
+  const fitted = await page.evaluate(() => window.testHarness.card.baseScale);
   await card(page).locator('.hm-tools [data-command=configuration]').click();
   const settings = card(page).locator('homemanager-editor');
   await settings.locator('[data-settings="view-section"]').click();
@@ -106,7 +108,10 @@ test('the initial view is saved, ⌂ returns to it and it opens after a reload (
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
   await page.waitForTimeout(500);
   await card(page).getByRole('button', { name: 'Vista inicial', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeCloseTo(saved.scale, 3);
+  // 0.13: Settings sits beside the plan, so what is saved is what that narrower plan showed.
+  await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeGreaterThan(fitted * 1.2);
+  await page.waitForTimeout(500);
+  const saved = await page.evaluate(() => ({ ...window.testHarness.card.camera }));
   await page.reload();
   await page.waitForFunction(() => window.testHarnessReady);
   await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeCloseTo(saved.scale, 3);

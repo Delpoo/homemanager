@@ -1,4 +1,4 @@
-import { openCardMenu, showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for custom_components/homemanager. It mirrors the websocket
@@ -130,8 +130,7 @@ test('New home can be cancelled or left through Plan without losing the previous
   // New home lives in Settings › Homes; leaving it is Cancel or the ← of the bar (#70).
   for (const exit of ['Cancelar', 'Volver']) {
     const settings = homeCard.getByRole('region', { name: 'Configuración', exact: true });
-    if (!(await settings.isVisible()))
-      await homeCard.getByRole('button', { name: 'Configuración', exact: true }).click();
+    if (!(await settings.isVisible())) await openSettings(homeCard);
     await openFirstSection(page);
     await showSection(homeCard.locator('homemanager-editor'), 'homes-section');
     await homeCard.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
@@ -249,7 +248,7 @@ test('a missing home is created by the first administrator save', async ({ page 
   await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(async () => {
@@ -545,7 +544,7 @@ test('nobody but an administrator looks at the file, and never while editing', a
 test('plan settings say where the file goes and offer a version that is still open', async ({ page }) => {
   await openHome(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   const editor = card(page).locator('homemanager-editor');
   await showSection(editor, 'import-section');
@@ -554,7 +553,7 @@ test('plan settings say where the file goes and offer a version that is still op
   await expect(box).toContainText('Todavía no hay ningún archivo');
   await putFile(page, SHA_A, NO_ZONE);
   await editor.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   await showSection(editor, 'import-section');
   await expect(box).toContainText('sin aplicar');

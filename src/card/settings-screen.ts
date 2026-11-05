@@ -4,11 +4,12 @@ import { appearanceBody } from '../editor/settings-page.js';
 import { helpBody } from '../shell/help.js';
 import { setShowLink } from '../shell/show-link.js';
 import type { HomeManagerCard } from './home-manager-card.js';
+import type { SettingsSection } from '../editor/settings-page.js';
 
 /** ⚙ Settings (#70): one page outside edit mode. An administrator gets every section,
  * backed by a draft of the plan that only shows Guardar when something changed; anyone
  * else gets Appearance and Help. */
-export async function openConfiguration(card: HomeManagerCard): Promise<void> {
+export async function openConfiguration(card: HomeManagerCard, section?: SettingsSection): Promise<void> {
   if (card.hass?.user?.is_admin !== true) {
     card.dialog(
       t('Configuración'),
@@ -33,7 +34,7 @@ export async function openConfiguration(card: HomeManagerCard): Promise<void> {
     // Entered only to edit settings: leaving Settings leaves editing too.
     card.configuring = true;
   }
-  card.editor?.openSettings();
+  card.editor?.openSettings(section);
   card.positionEditor();
 }
 
@@ -49,4 +50,4 @@ export async function closeConfiguration(card: HomeManagerCard): Promise<void> {
   }
 }
 
-export const configurationStyles = `.shell.is-configuring .editor-wrap,.shell.is-configuring .rooms{display:none}@media(max-width:650px){.shell.sheet-open .rooms{display:none}}`;
+export const configurationStyles = `.shell.is-configuring .editor-wrap{display:none}.shell.is-configuring .viewport{box-shadow:none}.shell.is-configuring .edit-add{display:none}@media(max-width:650px){.shell.sheet-open .rooms{display:none}}`;

@@ -63,6 +63,8 @@ export const tokens = `
   --hm-edit:#F0B455;--hm-edit-ink:#F7CD86;--hm-edit-soft:color-mix(in srgb,#F0B455 16%,var(--hm-bg));
 }}
 *{box-sizing:border-box}
+/* 0.13: thin, quiet scrollbars instead of the system's black bar. */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--hm-muted) 45%,transparent) transparent}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;min-height:var(--hm-touch);border-radius:var(--hm-radius-sm);border:1px solid var(--hm-line);background:var(--hm-bg);padding:0 14px}

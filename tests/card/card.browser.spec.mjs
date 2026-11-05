@@ -1,4 +1,4 @@
-import { openAdvanced, openCardMenu, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openCardMenu, openFirstSection, showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile } from 'node:fs/promises';
@@ -174,7 +174,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
 }) => {
   await begin(page);
   await select(page);
-  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(page);
   await openFirstSection(page);
   await showSection(page.locator('homemanager-editor'), 'actions-section');
   await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
@@ -448,7 +448,7 @@ test('keyboard movement stays normalized and undo restores the previous persiste
 
 test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
-  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(page);
   await openFirstSection(page);
   await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(() => {
@@ -546,7 +546,7 @@ test('space navigation comes from the instance configuration', async ({ page }) 
   const nav = page.getByRole('navigation', { name: 'Espacios' });
   expect(
     await nav.getByRole('button').evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label'))),
-  ).toEqual(['Encuadrar todo', 'Encuadrar Comedor', 'Encuadrar Cocina', 'Encuadrar Garage']);
+  ).toEqual(['Menú', 'Encuadrar todo', 'Encuadrar Comedor', 'Encuadrar Cocina', 'Encuadrar Garage']);
   await page.getByRole('button', { name: 'Encuadrar Garage', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Encuadrar Garage', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -558,7 +558,7 @@ test('an old JSON cannot silently take links away or bring spaces back', async (
   await begin(page);
   const before = await draft(page);
   const linked = before.catalog.devices.find(item => item.bindings.entityId);
-  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(page);
   await openFirstSection(page);
   await showSection(page.locator('homemanager-editor'), 'import-section');
   const old = structuredClone(before);

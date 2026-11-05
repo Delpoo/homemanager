@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { chromium, expect } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -146,7 +146,7 @@ try {
   await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.user?.is_admin)).toBe(true);
   console.log('ok: legacy plan loads from actual persistent HA storage');
   await card.getByRole('button', { name: /^(Editar plano|Edit plan)$/ }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   const editor = card.locator('homemanager-editor');
   // Plan 0.12: every Settings section is a page of its own (#70) and adding is a card (#72).
   await showSection(editor, 'views-section');

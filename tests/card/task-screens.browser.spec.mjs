@@ -1,4 +1,4 @@
-import { openAdvanced, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openFirstSection, showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -41,7 +41,7 @@ async function begin(page, fixture = 'card') {
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
 }
 async function settings(page) {
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   await expect(screen(page, 'Configuración')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);

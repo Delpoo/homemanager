@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
@@ -44,7 +44,7 @@ test('changing theme during upload keeps the image in its original mode', async 
   });
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
@@ -69,7 +69,7 @@ test('alternative editor checks framing, keeps positions and supports duplicate/
   const before = await card.evaluate(c => structuredClone(c.draft));
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
@@ -173,7 +173,7 @@ test('copy with images exports bytes and imports only after backing up the curre
   }, svg);
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');

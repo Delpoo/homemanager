@@ -1,3 +1,4 @@
+import { closeNavMenu } from '../shell/nav-menu.js';
 import { exitFullscreen } from './fullscreen.js';
 import { t } from '../i18n/index.js';
 import { LONG_PRESS_MS, reducedMotion } from './card-helpers.js';
@@ -323,6 +324,10 @@ export function zoom(this: HomeManagerCard, factor: number) {
 export function key(this: HomeManagerCard, event: KeyboardEvent) {
   if (this.zoneEdit) {
     this.zoneKey(event);
+    return;
+  }
+  if (event.key === 'Escape' && this.root.querySelector('.nav-drawer')) {
+    closeNavMenu(this.root);
     return;
   }
   if (event.key === 'Escape' && this.placing) {

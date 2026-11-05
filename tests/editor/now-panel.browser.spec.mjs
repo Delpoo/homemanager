@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { openCardMenu, showSection } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection, openSettings } from '../browser/shell-helpers.mjs';
 
 test('shortcut destination matches its label and choosing a target replaces the other target', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -18,7 +18,7 @@ test('shortcut destination matches its label and choosing a target replaces the 
   await expect(card.locator('homemanager-insights')).toContainText('Luz de prueba');
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   await showSection(card, 'now-section');
   const panel = card.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('shortcut');
@@ -34,7 +34,7 @@ test('Now editor previews selected readings, orders blocks and saves', async ({ 
   const card = page.locator('homemanager-card');
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   const editor = card.locator('homemanager-editor');
   await showSection(editor, 'now-section');
   const panel = editor.locator('homemanager-now-panel-editor');

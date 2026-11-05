@@ -1,4 +1,4 @@
-import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -15,7 +15,7 @@ const begin = async page => {
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 const openDiagnosis = async page => {
-  await button(page, 'Configuración').click();
+  await openSettings(page);
   await openFirstSection(page);
   await showSection(editor(page), 'health-section');
   return editor(page).getByRole('region', { name: 'Configuración' });

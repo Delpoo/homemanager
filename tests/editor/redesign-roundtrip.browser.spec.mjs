@@ -1,4 +1,4 @@
-import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
@@ -42,7 +42,7 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await editor.getByLabel('Color libre', { exact: true }).dispatchEvent('change');
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
   // Rules live only in Settings since #70.
-  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card);
   await openFirstSection(page);
   await showSection(editor, 'rules-section');
   const rules = card.locator('homemanager-rules-editor');

@@ -349,4 +349,14 @@ export const enPlan012: Record<string, string> = {
   'Guardado en Home Assistant. Queda poco espacio: liberalo en Configuración › Mantenimiento › Almacenamiento.':
     'Saved in Home Assistant. Space is running low: free some in Settings › Maintenance › Storage.',
   'Fusionar formas de este espacio': 'Merge this space’s shapes',
+  'Claro u oscuro': 'Light or dark',
+  'Modo claro': 'Light mode',
+  'Modo oscuro': 'Dark mode',
+  'Cambiar o crear casa': 'Switch or create a home',
+  Casas: 'Homes',
+  'Nueva casa': 'New home',
+  Menú: 'Menu',
+  'Los cambios de {name} tenían un error y no se aplicaron.':
+    'The changes to {name} had an error and were not applied.',
+  'Las imágenes PNG o JPG van en Alternativas del plano.': 'PNG or JPG images go in Plan alternatives.',
 };

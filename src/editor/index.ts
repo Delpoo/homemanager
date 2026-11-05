@@ -443,7 +443,14 @@ export class HomeManagerEditor extends HTMLElement {
   /** A different symbol cannot silently discard an invalid field. */
   selectDevice(id: string | null): boolean {
     if (id === this._selectedDeviceId && (id === null || this.surface === 'device')) return true;
-    if (id !== this._selectedDeviceId && !this.flushDevice()) return false;
+    let reverted: string | undefined;
+    if (id !== this._selectedDeviceId && !this.flushDevice()) {
+      // A new symbol still asks to be finished; anything else never traps the person (0.13):
+      // the symbol with an error goes back to what it was, and the next one opens.
+      if (this.adding || !id) return false;
+      reverted = this.device()?.display.label;
+      this.revertDevice();
+    }
     this.surface = id ? 'device' : null;
     this._selectedDeviceId = id;
     this.adding = false;
@@ -452,6 +459,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.openedConfiguration = this.config ? clone(this.configuration) : undefined;
 
     this.render();
+    if (reverted) this.notice(t('Los cambios de {name} tenían un error y no se aplicaron.', { name: reverted }));
     return true;
   }
   get selectedDeviceId(): string | null {
@@ -1902,8 +1910,9 @@ export class HomeManagerEditor extends HTMLElement {
           this.linkedReview?.();
           break;
         case 'zones-edit':
-          this.closeSurface();
+          // Zones are edited in edit mode: say so before Settings closes (0.13).
           this.editZones?.();
+          this.closeSurface();
           break;
         case 'settings-import':
           this.settingsSection = 'import-section';
@@ -2527,7 +2536,11 @@ export class HomeManagerEditor extends HTMLElement {
       if (file.size > 5 * 1024 * 1024) throw new Error(t('El archivo excede 5 MiB.'));
       const source = await file.text();
       if (generation !== this.importGeneration) return;
-      this.previewImport(source, /\.svg$/i.test(file.name) || file.type === 'image/svg+xml');
+      // 0.13: the content decides, not the name or the type the browser guessed.
+      if (/^(\x89PNG|\xFF\xD8\xFF)/.test(source.slice(0, 4)) || /^image\/(png|jpe?g)$/.test(file.type))
+        throw new Error(t('Las imágenes PNG o JPG van en Alternativas del plano.'));
+      const svg = /^\s*(<\?xml|<svg|<!--|<!doctype svg)/i.test(source) || /\.svg$/i.test(file.name);
+      this.previewImport(source, svg);
     } catch (error) {
       if (generation === this.importGeneration) this.notice(error instanceof Error ? error.message : String(error));
     }

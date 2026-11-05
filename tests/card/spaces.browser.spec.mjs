@@ -1,4 +1,4 @@
-import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -104,7 +104,7 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
   );
   await begin(page);
   const upload = async () => {
-    await button(page, 'Configuración').click();
+    await openSettings(page);
     await openFirstSection(page);
     await showSection(editor(page), 'import-section');
     const svg = (await draft(page)).architecture.content;
@@ -136,7 +136,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   page,
 }) => {
   await begin(page);
-  await button(page, 'Configuración').click();
+  await openSettings(page);
   await openFirstSection(page);
   const settings = editor(page).getByRole('region', { name: 'Configuración' });
   const ids = async () => (await draft(page)).rooms.map(room => room.id);
@@ -172,7 +172,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
 
 test('an L-shaped zone of the SVG becomes two rectangles, and its hole belongs to the neighbour', async ({ page }) => {
   await begin(page);
-  await button(page, 'Configuración').click();
+  await openSettings(page);
   await openFirstSection(page);
   await showSection(editor(page), 'import-section');
   // viewBox 10 20 1000 700. Living is an L: full left column, top right part. Office fills the hole.
