@@ -18,6 +18,7 @@ browsers can tell buttons apart without being able to replay them.
 
 from __future__ import annotations
 
+from collections.abc import Container
 from dataclasses import dataclass, field
 import hashlib
 import re
@@ -150,7 +151,7 @@ class Part:
         return {"id": self.part_id, **self.as_dict()}
 
 
-def _widget(raw: Any, buttons: dict[str, Button], taken: set[str]) -> dict[str, Any]:
+def _widget(raw: Any, buttons: Container[str], taken: set[str]) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise ModelError("invalid_layout", "a widget must be an object")
     kind = raw.get("type")
@@ -188,7 +189,7 @@ def _widget(raw: Any, buttons: dict[str, Button], taken: set[str]) -> dict[str, 
     }
 
 
-def validate_layout(raw: Any, buttons: dict[str, Button]) -> list[dict[str, Any]] | None:
+def validate_layout(raw: Any, buttons: Container[str]) -> list[dict[str, Any]] | None:
     """Checks a designed layout. Overlaps are the designer's business, bounds and
     button references are not: a widget never points at a missing button."""
     if raw is None:
