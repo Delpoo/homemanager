@@ -43,7 +43,7 @@ let DEV = [
   dev({ id: 'cortina', name: 'Cortina', icon: 'mdiCurtains', sp: 'dorm', x: 560, y: 90, c: '#6F6BB8', value: 'Abierta', mods: ['device', 'values'], readings: ['Posición'] }),
   dev({ id: 'vent', name: 'Ventilador', icon: 'mdiCeilingFan', sp: 'dorm', x: 650, y: 210, linked: false, mods: [] }),
   dev({ id: 'aire2', name: 'Aire oficina', icon: 'mdiAirConditioner', sp: 'oficina', x: 875, y: 270, c: '#4F8FBF', linked: false, mods: [] }),
-  dev({ id: 'router', name: 'Router', icon: 'mdiRouterWireless', sp: 'oficina', x: 880, y: 110, layer: 'infra', c: '#5F6E66', shape: 'rounded' }),
+  dev({ id: 'router', name: 'Router', icon: 'mdiRouterWireless', sp: 'oficina', x: 880, y: 110, layer: 'infra', c: '#5F6E66', shape: 'rounded', mods: ['device', 'values'], readings: ['Conexión'] }),
   dev({ id: 'term', name: 'Termohigrómetro', icon: 'mdiThermometer', sp: 'bano', x: 560, y: 440, c: '#3E9C9C', value: '27 °C · 48 %', mods: ['device', 'values'], readings: ['Temperatura', 'Humedad'] }),
   dev({ id: 'medidor', name: 'Medidor', icon: 'mdiMeterElectricOutline', sp: 'cocina', x: 110, y: 600, layer: 'infra', c: '#D98B1F', value: '1,24 kW', shape: 'rounded', mods: ['device', 'values'], readings: ['Potencia'] }),
   dev({ id: 'rep', name: 'Repetidor', icon: 'mdiAccessPointNetwork', sp: 'cocina', x: 230, y: 450, layer: 'infra', linked: false, c: '#5F6E66', shape: 'dot', mods: [] }),
@@ -76,7 +76,7 @@ const AUTOS = [
 const ICON_CHOICES = ['mdiAirConditioner', 'mdiCeilingLight', 'mdiLightbulbOutline', 'mdiFan', 'mdiCeilingFan', 'mdiTelevision', 'mdiRobotVacuum', 'mdiCurtains', 'mdiDoorSliding', 'mdiThermometer', 'mdiWaterPercent', 'mdiSproutOutline', 'mdiRouterWireless', 'mdiAccessPointNetwork', 'mdiMeterElectricOutline', 'mdiSpeaker', 'mdiCctv', 'mdiWashingMachine', 'mdiFridgeOutline', 'mdiLockOutline', 'mdiMotionSensor', 'mdiSmokeDetectorVariant', 'mdiPowerSocketEu', 'mdiDesk'];
 const MODS = {
   device: { icon: 'mdiLinkVariant', t: 'Dispositivo', w: 'Dispositivo', sum: d => (d.linked ? `${d.readings.length} lecturas` : 'Sin vincular') },
-  values: { icon: 'mdiNumeric', t: 'Valores en el plano', w: 'Valores', sum: d => (d.value ? `Muestra ${d.value}` : 'No muestra nada') },
+  values: { icon: 'mdiGauge', t: 'Indicadores', w: 'Indicadores', sum: d => `${(d.fx || []).filter(f => f.on).map(f => FX[f.t].t).join(' · ') || 'Ninguno'}` },
   gestures: { icon: 'mdiGestureTap', t: 'Gestos', w: 'Gestos', sum: () => 'Tocar: prender · Mantener: control' },
   control: { icon: 'mdiTuneVariant', t: 'Control', w: 'Control', sum: () => 'Automático' },
   shortcuts: { icon: 'mdiLightningBoltOutline', t: 'Atajos', w: 'Atajos', sum: () => '2 atajos junto al símbolo' },
@@ -91,6 +91,7 @@ const S = {
   open: { aire: 'values' }, pop: null, planTool: 'select', planSel: [], renaming: null, gallery: false, wset: null,
   sizes: { house: 80, room: 120, min: 60, max: 160 }, iv: { z: 1, c: [500, 350] }, ivLocal: false, link: 'unlinked', grid: 'normal', showVals: true,
   alertEdit: false, guide: 0, cmp: 'lt', sev: 'warn', opts: { badge: true, ring: true, bar: true, now: true }, autoEdit: null,
+  nav: false, fxSel: {}, rf: { view: null, src: 'ir', listening: false, left: 15, tests: {}, sheet: 'sig', el: 'e1', heard: false },
   filter: 'all', dirty: 0, moving: false, activity: 'Cortina · Abierta · hace 2 min', drawing: null, mergeFirst: null,
 };
 let ORIG = null, UNDO = [], REDO = [], lastMark = { k: '', t: 0 };
@@ -108,25 +109,34 @@ const SP = id => SPACES.find(s => s.id === id);
 /* ——— Pantallas para revisar ——— */
 const SCREENS = [
   ['Principal', [['inicio', 'Inicio'], ['casas', 'Casas']]],
-  ['Editar', [['simbolo', 'Símbolo'], ['plano', 'Plano'], ['ahora', 'Ahora'], ['vista', 'Tamaño y vista']]],
-  ['Ajustes', [['alertas', 'Alertas'], ['alerta-nueva', 'Nueva alerta'], ['guia', 'Guía'], ['automatizaciones', 'Automatizaciones'], ['automatizacion', 'Automatización'], ['controles', 'Controles RF'], ['estado', 'Estado'], ['datos', 'Datos'], ['ayuda', 'Ayuda']]],
+  ['Editar', [['simbolo', 'Símbolo'], ['indicadores', 'Indicadores del símbolo'], ['plano', 'Plano'], ['ahora', 'Ahora'], ['vista', 'Tamaño y vista']]],
+  ['Controles', [['controles', 'Controles'], ['equipos', 'Equipos'], ['control', 'Un control'], ['nuevo-control', '1 · Nuevo control'], ['aprender', '2 · Aprender'], ['probar', '3 · Probar'], ['disenador', '4 · Diseñar'], ['ficha', 'Ficha técnica']]],
+  ['Ajustes', [['alertas', 'Alertas'], ['alerta-nueva', 'Nueva alerta'], ['guia', 'Guía'], ['automatizaciones', 'Automatizaciones'], ['automatizacion', 'Automatización'], ['estado', 'Estado'], ['datos', 'Datos'], ['ayuda', 'Ayuda']]],
 ];
 const PRESET = {
   casas: { homes: true }, simbolo: { mode: 'edit', tool: 'sym', sel: 'aire' }, plano: { mode: 'edit', tool: 'plan' },
   ahora: { mode: 'edit', tool: 'now' }, vista: { mode: 'edit', tool: 'view' }, alertas: { set: 'alertas' },
   'alerta-nueva': { set: 'alertas', alertEdit: true }, guia: { set: 'alertas', alertEdit: true, guide: 1 },
   automatizaciones: { set: 'auto' }, automatizacion: { set: 'auto', autoEdit: 'dormir' }, controles: { set: 'rf' },
+  indicadores: { mode: 'edit', tool: 'sym', sel: 'cortina' }, equipos: { set: 'rf', rfv: 'devices' }, control: { set: 'rf', rfv: 'remote' },
+  'nuevo-control': { set: 'rf', rfv: 'new' }, aprender: { set: 'rf', rfv: 'learn' }, probar: { set: 'rf', rfv: 'test' }, disenador: { set: 'rf', rfv: 'design' }, ficha: { set: 'rf', rfv: 'sheet' },
   estado: { set: 'estado' }, datos: { set: 'datos' }, ayuda: { set: 'ayuda' },
 };
 function go(id) {
   if (!PRESET[id] && id !== 'inicio') id = 'inicio';
   Object.assign(S, { mode: 'view', tool: null, sel: null, set: null, homes: false, alertEdit: false, guide: 0, autoEdit: null,
-    gallery: false, wset: null, pop: null, zoom: 1, center: [500, 350], room: null, planSel: [], planTool: 'select', moving: false }, PRESET[id] || {});
+    gallery: false, wset: null, pop: null, zoom: 1, center: [500, 350], room: null, planSel: [], planTool: 'select', moving: false, nav: false }, PRESET[id] || {});
+  stopLearn(); S.rf.view = PRESET[id]?.rfv ?? null; S.rf.tests = {};
+  if (id === 'indicadores') S.open.cortina = 'values';
+  if (S.rf.view === 'learn') { LEARNED = []; startLearn(); }
+  if (S.rf.view === 'test') LEARNED = SUGG.slice(0, 4).map((n, i) => ({ id: 'b' + i, name: n, seed: i + 3, ok: true }));
   if (S.mode === 'edit' && !ORIG) ORIG = snap();
   S.screen = id; render();
+  if (id === 'indicadores') setTimeout(() => document.querySelector('.mod.open')?.scrollIntoView({ block: 'start' }));
 }
 function screenOf() {
-  if (S.mode === 'edit') return { sym: 'simbolo', plan: 'plano', now: 'ahora', view: 'vista' }[S.tool];
+  if (S.mode === 'edit') return S.tool === 'sym' && S.sel && S.open[S.sel] === 'values' ? 'indicadores' : { sym: 'simbolo', plan: 'plano', now: 'ahora', view: 'vista' }[S.tool];
+  if (S.set === 'rf') return { devices: 'equipos', remote: 'control', new: 'nuevo-control', learn: 'aprender', test: 'probar', design: 'disenador', sheet: 'ficha' }[S.rf.view] || 'controles';
   if (S.set === 'alertas') return S.guide ? 'guia' : S.alertEdit ? 'alerta-nueva' : 'alertas';
   if (S.set === 'auto') return S.autoEdit ? 'automatizacion' : 'automatizaciones';
   if (S.set) return { rf: 'controles', estado: 'estado', datos: 'datos', ayuda: 'ayuda' }[S.set];
@@ -137,11 +147,9 @@ function screenOf() {
 function render() {
   S.screen = screenOf();
   if (location.hash.slice(1) !== S.screen) { try { history.replaceState(null, '', '#' + S.screen); } catch {} }
-  renderReview(); renderTop(); renderRail(); renderStage(); renderSide(); renderPops(); renderNotes(); renderGuide();
+  renderReview(); renderTop(); renderRail(); renderStage(); renderSide(); renderPops(); renderNotes(); renderGuide(); renderNav();
 }
 function renderReview() {
-  $('#screens').innerHTML = SCREENS.map(([g, list]) => `<span class="grp">${g}</span>` + list.map(([id, n]) =>
-    `<button type="button" data-act="go:${id}" aria-current="${S.screen === id}">${n}</button>`).join('')).join('');
   $('#notes-btn').setAttribute('aria-pressed', S.notes);
   $('#screen-sel').innerHTML = SCREENS.map(([g, list]) => `<optgroup label="${g}">` + list.map(([id, n]) => `<option value="${id}" ${S.screen === id ? 'selected' : ''}>${n}</option>`).join('') + '</optgroup>').join('');
 }
@@ -162,7 +170,7 @@ function renderTop() {
   }
 }
 function renderRail() {
-  $('#rail').innerHTML = ib('room:all', 'mdiHomeOutline', 'Toda la casa', !S.room ? 'on' : '') + SPACES.map(s => ib('room:' + s.id, s.icon, s.name, S.room === s.id ? 'on' : '')).join('');
+  $('#rail').innerHTML = ib('navopen', 'mdiMenu', 'Menú') + '<span class="railsep"></span>' + ib('room:all', 'mdiHomeOutline', 'Toda la casa', !S.room ? 'on' : '') + SPACES.map(s => ib('room:' + s.id, s.icon, s.name, S.room === s.id ? 'on' : '')).join('');
 }
 function curvePct(z) {
   const t = clamp((z - 1) / (ZR - 1), 0, 1);
@@ -207,8 +215,9 @@ function symbolsHTML() {
   return DEV.filter(d => S.layers[d.layer]).map(d => {
     const px = 44 * (d.size / 100) * k;
     const showLink = S.mode === 'edit' ? !d.linked : S.link !== 'never' && !d.linked;
-    const cls = ['sym', S.sel === d.id ? 'sel' : '', showLink ? 'unlinked' : '', S.link === 'always' && d.linked && S.mode === 'view' ? 'linkmark' : '', d.alert ? 'alerting' : ''].join(' ');
-    return `<button type="button" class="${cls}" data-act="sym:${d.id}" data-tip="${esc(d.name)}" aria-label="${esc(d.name)}" data-shape="${d.shape}" style="left:${d.x / 10}%;top:${d.y / 7}%;--px:${px.toFixed(1)};--k:${(1 / z).toFixed(3)};--c:${d.c};--o:${d.op}">${ic(d.icon)}${d.value && S.showVals && d.mods.includes('values') ? `<span class="val">${esc(d.value)}</span>` : ''}${d.alert ? `<span class="bdg">${ic('mdiExclamationThick')}</span>` : ''}</button>`;
+    const fs = fxStyle(d);
+    const cls = ['sym', fs.includes('--bc') ? 'bordered' : '', S.sel === d.id ? 'sel' : '', showLink ? 'unlinked' : '', S.link === 'always' && d.linked && S.mode === 'view' ? 'linkmark' : '', d.alert ? 'alerting' : ''].join(' ');
+    return `<button type="button" class="${cls}" data-act="sym:${d.id}" data-tip="${esc(d.name)}" aria-label="${esc(d.name)}" data-shape="${d.shape}" style="left:${d.x / 10}%;top:${d.y / 7}%;--px:${px.toFixed(1)};--k:${(1 / z).toFixed(3)};--c:${d.c};--o:${d.op};${fs}">${ic(d.icon)}${fxHTML(d)}${d.value && S.showVals && fxOn(d, 'label') ? `<span class="val">${esc(d.value)}</span>` : ''}${d.alert ? `<span class="bdg">${ic('mdiExclamationThick')}</span>` : ''}</button>`;
   }).join('');
 }
 const PTOOLS = [
@@ -220,6 +229,7 @@ const PTOOLS = [
 function renderStage() {
   const st = $('#stage');
   st.className = 'stage' + (S.mode === 'edit' ? ' edit' : '');
+  if (S.set === 'rf' && S.rf.view === 'design') { st.innerHTML = designerStage(); return; }
   const c = S.center, z = S.zoom;
   let bottom = '';
   if (S.mode === 'edit' && S.tool === 'plan') {
@@ -259,6 +269,8 @@ function modBody(id, d) {
            <div class="chips">${d.readings.map(r => `<span class="chip">${esc(r)}<button type="button" data-tip="Quitar lectura" aria-label="Quitar">${ic('mdiClose', 'sm')}</button></span>`).join('')}<button type="button" class="chip add" data-tip="Agregar lectura">${ic('mdiPlus', 'sm')}</button></div>`
         : `<button type="button" class="chip add" data-act="link-dev">${ic('mdiLinkVariantPlus', 'sm')} Vincular</button>`;
     case 'values':
+      return indicBody(d);
+    case 'values-old':
       return `<div class="chips">${(d.readings.length ? d.readings : ['Estado']).map((r, i) => `<span class="chip" style="${i === 0 ? 'border-color:var(--brand);color:var(--brand)' : ''};padding-right:10px">${i === 0 ? ic('mdiCheck', 'sm') : ''}${esc(r)}</span>`).join('')}</div>
         <div class="row wide" style="grid-template-columns:24px auto 1fr">${ic('mdiDecimal')}<div class="seg">${['0', '0,0', '0,00'].map((v, i) => `<button type="button" class="ib ${i === 0 ? 'on' : ''}" style="width:auto;padding:0 10px;font-size:13px" data-tip="Decimales">${v}</button>`).join('')}</div><span></span></div>
         <div class="row wide">${ic('mdiPaletteSwatchVariant')}<span class="name">Colores por rango</span><button type="button" class="switch" role="switch" aria-checked="false" data-act="sw" aria-label="Colores por rango"></button></div>`;
@@ -392,8 +404,9 @@ function viewPanel() {
 }
 
 /* ——— Ajustes ——— */
-const TABS = [['alertas', 'mdiBellOutline', 'Alertas'], ['auto', 'mdiRobotOutline', 'Automatizaciones'], ['rf', 'mdiRemote', 'Controles RF'], ['estado', 'mdiStethoscope', 'Estado de la casa'], ['datos', 'mdiDatabaseOutline', 'Datos y copias'], ['ayuda', 'mdiHelpCircleOutline', 'Ayuda']];
+const TABS = [['alertas', 'mdiBellOutline', 'Alertas'], ['auto', 'mdiRobotOutline', 'Automatizaciones'], ['rf', 'mdiRemote', 'Controles'], ['estado', 'mdiStethoscope', 'Estado de la casa'], ['datos', 'mdiDatabaseOutline', 'Datos y copias'], ['ayuda', 'mdiHelpCircleOutline', 'Ayuda']];
 function settingsPanel() {
+  if (S.set === 'rf') return rfPanel();
   const title = TABS.find(t => t[0] === S.set)[2];
   let extra = '', body = '';
   if (S.set === 'alertas') {
@@ -533,6 +546,15 @@ const NOTES = {
   inicio: ['Pantalla principal', ['La casa se elige arriba a la izquierda: ya no es una sección de Ajustes.', '☀/🌙 cambia claro u oscuro con un toque.', '⚙ sólo aparece fuera de la edición: editar y ajustar son cosas distintas.', 'Dos filtros: Dispositivos e Infraestructura.', 'Sin cadenita encima del icono: un aro punteado marca lo no vinculado.', 'Atajos de automatizaciones (Dormir, Salir) arriba de Ahora.'], ['¿La marca de vínculo se ve en la pantalla normal o sólo al editar?']],
   casas: ['Casas', ['Cambiar, crear, duplicar, renombrar y borrar casa desde el selector de arriba.', 'Todo lo demás (Ajustes, Editar) es de la casa elegida.'], []],
   simbolo: ['Ficha del símbolo', ['Icono y nombre en el título: se editan ahí mismo (lápiz al pasar el mouse).', 'Espacio debajo del nombre.', 'Infraestructura es un interruptor visible, no «Capa: auto».', 'Tamaño y fondo con número en %, y el plano cambia en vivo.', 'Sin Small/Medium/Large: sólo el %.', 'Forma con dibujos; color con paletas de 10 colores, un selector libre y Mi paleta.', 'Los módulos son subtítulos, sin cajas ni la palabra «Módulos».', '«Agregar» suma un módulo nuevo; lo que ya está no se repite.', 'Tocar otro símbolo cambia la ficha (hoy se queda trabada).', '«Origen del estado» desaparece: sale del dispositivo vinculado.'], ['¿Cuántos atajos junto al símbolo? Hoy son 3.']],
+  indicadores: ['Indicadores del símbolo', ['Elementos que muestran datos sobre el símbolo: anillo, borde, color del icono, LED, número y etiqueta.', 'Cada uno toma una lectura y elige un color fijo, por rango de valores o por estado.', 'El anillo muestra un valor entre un mínimo y un máximo: la cortina al 75 % llena tres cuartos.', 'El control «probar valor» mueve el dato y el plano cambia en vivo.', 'Sirve igual para cualquier sensor o dispositivo: no está pensado para un caso solo.'], ['¿Qué otros elementos querés? (barra, icono que cambia según estado, animación al prender…)']],
+  controles: ['Controles RF / IR', ['Una lista para RF e IR, con su etiqueta.', 'Arriba, los equipos ESPHome y lo que pueden hacer.', '+ abre el asistente de cuatro pasos.'], []],
+  equipos: ['Equipos', ['Qué puede hacer cada equipo: enviar o recibir RF e IR.', 'Probar recepción y el YAML para ESPHome con iconos.', '★ marca el receptor por defecto.'], []],
+  control: ['Un control', ['Vista previa del diseño; tocarla abre el diseñador.', 'Botones aprendidos con su forma de onda: enviar, volver a aprender (conserva vínculos) y ficha técnica.'], []],
+  'nuevo-control': ['1 · Nuevo control', ['Nombre, tipo con dibujo, señal IR o RF y qué equipo escucha y cuál envía.'], ['¿Agregamos plantillas por marca (Mitsubishi, Philips…)?']],
+  aprender: ['2 · Aprender', ['El receptor late mientras escucha; el anillo cuenta los 15 segundos.', 'Cada botón aparece como tarjeta con su forma de onda y un nombre sugerido.', 'Punto verde: reconocida; naranja: pulsalo otra vez.', 'La portadora (38 kHz estimada) queda plegada, editable.', 'En la maqueta los botones llegan solos para ver la animación.'], []],
+  probar: ['3 · Probar', ['▶ envía; después, 👍 o 👎 si el aparato reaccionó.', 'Si no reaccionó: ajustes rápidos de pulso, repeticiones y emisor.', 'Comprobaciones opcionales con iconos: auto-eco, receptor B, cámara, comparar.'], []],
+  disenador: ['4 · Diseñar', ['El control se arma en grande, sobre el plano: arrastrar para ordenar, tocar para editar.', 'Elementos: botón, encender/apagar, bajar/subir, pasos, opciones y texto.', 'Cada elemento elige ancho, icono, etiqueta y qué botones aprendidos usa.', 'Abajo, el símbolo del plano donde se abre.'], []],
+  ficha: ['Ficha técnica', ['Lo técnico sigue: portadora, protocolo, bits, tramas, duración, emisor.', 'Línea de tiempo con captura y envío superpuestos, zoom y exportar.', 'Histograma de pulsos y pausas, y resultados de eco, receptor B y cámara.'], []],
   plano: ['Plano y espacios', ['Una sola pantalla: imágenes, espacios y herramientas de dibujo.', 'Imágenes en conjuntos claro/oscuro; la ★ marca el principal.', 'Herramientas abajo, como en la app de Roborock: dibujar, agregar parte, dividir, unir, renombrar, borrar.', 'Al elegir un espacio se ve sólo su borde exterior.', '«Crear esta área en Home Assistant» en cada espacio y «Traer áreas» arriba reemplazan la sección Conectar.', 'Se eliminan «Agregar espacio sin dibujarlo» y «Revisar espacios contra el plano».'], ['¿Dividir con una línea dibujada a mano (como Roborock) o en mitades?']],
   ahora: ['Panel Ahora', ['Se edita en el mismo lugar, viendo el resultado real.', 'Bloques con arrastrar, ancho, ajustes y quitar: sólo iconos.', '+ abre una galería de bloques con dibujo.', '↺ vuelve al panel estándar.', 'Cada bloque elige qué mostrar con buscador y casillas, y su estilo (lista, mosaico, gráfico).'], ['¿Qué otros bloques querés? (cámara, clima exterior, escenas…)']],
   vista: ['Tamaño y vista', ['Un tamaño para la casa entera y otro al ver un espacio; en el medio crece de forma lineal.', 'La curva muestra cómo cambia; el control de zoom permite probarlo en vivo.', 'Cada símbolo tiene su % propio sobre esto (en su ficha).', 'Vista inicial con el marco dibujado; 📌 guarda lo que ves.', 'Marca de vínculo y cuadrícula viven acá, en editar.'], []],
@@ -668,7 +690,7 @@ function act(a, b, c, el) {
     case 'filter': S.filter = b; break;
     case 'tips': S.tips = !S.tips; el.setAttribute('aria-checked', S.tips); hideTip(); return;
     case 'sw': el.setAttribute('aria-checked', el.getAttribute('aria-checked') !== 'true'); return;
-    default: return;
+    default: { const r = actRF(a, b, c, el); if (r === true) break; return; }
   }
   render();
 }
@@ -696,6 +718,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.bind; if (!k) return;
+  if (inputRF(k, el, el.value)) return;
   const d = D(), v = el.value;
   const pair = (id) => document.querySelectorAll(`[data-bind="${k}"]`).forEach(x => { if (x !== el) x.value = v; });
   if (k === 'size' || k === 'op') { mark(k); d[k] = clamp(Number(v) || 0, k === 'op' ? 0 : 40, 200); pair(); renderStage(); }
@@ -714,7 +737,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.dataset.bind === 'spname') { S.renaming = null; renderSide(); renderStage(); }
-  if (e.key === 'Escape') { S.pop = null; S.homes = false; S.gallery = false; S.wset = null; S.guide = 0; S.confirmExit = false; renderPops(); renderGuide(); }
+  if (e.key === 'Escape') { S.nav = false; renderNav(); S.pop = null; S.homes = false; S.gallery = false; S.wset = null; S.guide = 0; S.confirmExit = false; renderPops(); renderGuide(); }
 });
 /* Dibujar en el plano */
 document.addEventListener('pointerdown', e => {
@@ -763,4 +786,3 @@ document.addEventListener('scroll', hideTip, true);
 addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== S.screen) go(h); });
 addEventListener('resize', () => { renderPops(); renderGuide(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => render());
-go(location.hash.slice(1) || 'inicio');

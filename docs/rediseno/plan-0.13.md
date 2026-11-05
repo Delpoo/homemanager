@@ -33,6 +33,7 @@
 
 | Hoy (0.12) | En 0.13 |
 |---|---|
+| — | Menú ☰ arriba del carril de espacios: abre a la izquierda todas las secciones de Editar y Ajustes; cada una se abre en el panel de la derecha |
 | Ajustes › Hogares | Selector de casa arriba a la izquierda: cambiar, crear, duplicar, renombrar, borrar |
 | Ajustes › Apariencia (claro/oscuro) | Botón ☀/🌙 en la barra principal |
 | Ajustes › Apariencia (capas, vínculo, cuadrícula) | Editar › Tamaño y vista |
@@ -52,6 +53,8 @@
 | Filtros: controles, energía, sensores, infraestructura… | Dos: Dispositivos e Infraestructura |
 | Ficha: «Capa: auto», «Origen del estado» | Interruptor «Infraestructura»; el estado sale del dispositivo vinculado |
 | Ficha: tamaño Small/Medium/Large | Sólo %, con número y vista en vivo |
+| Ficha: «Valores en el plano» | **Indicadores**: anillo, borde, color del icono, LED, número y etiqueta, cada uno con su lectura y color fijo, por rango o por estado |
+| Controles RF (pantalla actual) + Remotes de #107 | Controles RF/IR con el mismo estilo: equipos, asistente Control → Aprender → Probar → Diseñar, ficha técnica y diseñador nuevo |
 
 ## Lotes
 
@@ -62,12 +65,14 @@ Cada lote cierra con la prueba visual contra la maqueta.
 | **0 · Aprobación** | El propietario revisa la maqueta y contesta las decisiones de abajo. |
 | **1 · Base** | <ul><li>Colores con buen contraste.</li><li>Botón-icono con ayuda al pasar el mouse, que se puede apagar.</li><li>Panel lateral único: Ajustes deja de ser pantalla completa.</li><li>Barra principal: casa, ☀/🌙, ✎, ⛶, ⚙.</li><li>Barra de edición ámbar sin texto, con borde limpio.</li><li>Dos filtros y la nueva marca de vínculo.</li><li>Se quitan los 41 textos aclaratorios y los 98 botones con palabras pasan a iconos.</li><li>Arreglos de errores: importar reconoce el archivo por su contenido y acepta JSON / SVG / PNG / JPG (hoy da «Unexpected token <»); tocar otro símbolo cambia la ficha; Editar zonas sólo existe dentro de Editar.</li></ul> |
 | **2 · Ficha del símbolo** | <ul><li>Icono y nombre editables en el título; espacio debajo.</li><li>Interruptor Infraestructura.</li><li>Tamaño y fondo en %; forma con dibujos.</li><li>Paletas de 10 colores, color libre y Mi paleta.</li><li>Módulos como subtítulos, «Agregar» sin repetir y botones del pie con iconos.</li></ul> |
+| **2b · Indicadores** | <ul><li>Sistema genérico de elementos visuales sobre el símbolo: anillo con mínimo y máximo, borde, color del icono, LED, número arriba o abajo, etiqueta.</li><li>Cada elemento toma una lectura y elige color fijo, por rango de valores o por estado, con colores editables.</li><li>Vista previa grande con «probar valor» y el plano en vivo.</li><li>Sirve para cualquier sensor o dispositivo.</li><li>Campo nuevo opcional en el contrato, validado en los tres lugares.</li></ul> |
 | **3 · Plano y espacios** | <ul><li>Herramientas abajo, como Roborock: elegir, dibujar, agregar parte, dividir, unir, renombrar, borrar y deshacer.</li><li>Conjuntos de imágenes claro/oscuro con principal.</li><li>Traer y crear áreas de Home Assistant.</li><li>Contorno exterior al elegir un espacio.</li></ul> |
 | **4 · Ahora** | <ul><li>Editor de bloques en el mismo panel: arrastrar, ancho, ajustes y quitar.</li><li>Galería de bloques, estilo lista, mosaico o gráfico.</li><li>Selector con buscador; ↺ vuelve al estándar.</li></ul> |
 | **5 · Tamaño y vista** | <ul><li>Tamaño para la casa y para un espacio, que crece de forma lineal con el zoom.</li><li>Un % por símbolo encima de eso.</li><li>Curva y zoom de prueba.</li><li>Vista inicial con marco; marca de vínculo y cuadrícula.</li></ul> |
 | **6 · Alertas** | <ul><li>Cambia el nombre.</li><li>Armado en frase, cómo se ve y dónde.</li><li>Vista previa con el valor actual.</li><li>Guía de cinco pasos.</li><li>Las alertas incluidas aparte.</li></ul> |
 | **7 · Automatizaciones** | <ul><li>Lista con ★ «en la pantalla principal».</li><li>Pasos Cuando → Hacer → Comprobar → Si falla.</li><li>«Comprobar» usa el consumo de energía (coordinar con el módulo que el propietario arma con ChatGPT): reenvía hasta N veces y no reenvía si el medidor no responde.</li><li>«Si falla» dispara una alerta.</li></ul> |
 | **8 · Mantenimiento y ayuda** | <ul><li>Estado de la casa con filtros.</li><li>Datos y copias.</li><li>Controles RF.</li><li>Ayuda con buscador, temas y estados.</li></ul> |
+| **8b · Controles RF/IR** | <ul><li>Base funcional: el PR #107 (incluye #105 y #106), revisado y fusionado antes como candidato único.</li><li>Lista RF e IR con etiqueta y equipos ESPHome con lo que pueden hacer.</li><li>Asistente de cuatro pasos con animación: el receptor late, la cuenta de 15 s, cada botón aparece con su forma de onda y un nombre sugerido.</li><li>Probar con 👍/👎 y ajustes rápidos (pulso, repeticiones, emisor); comprobaciones opcionales: auto-eco, receptor B, cámara.</li><li>Ficha técnica con portadora, protocolo, tramas, línea de tiempo captura/envío e histograma.</li><li>Diseñador nuevo: el control en grande sobre el plano, elementos que se arrastran y se editan al costado.</li><li>Se conserva todo lo técnico y los vínculos; volver a aprender no rompe nada.</li></ul> |
 | **9 · Avanzado** | <ul><li>Llevar Acciones lógicas y Paneles avanzados a su nuevo lugar y quitar la sección.</li><li>Los datos guardados siguen siendo válidos: sólo cambia dónde se editan.</li></ul> |
 | **Cierre** | <ul><li>Prueba de punta a punta en un Home Assistant desechable.</li><li>Capturas comparadas.</li><li>Beta para el propietario.</li></ul> |
 
@@ -80,6 +85,9 @@ Cada lote cierra con la prueba visual contra la maqueta.
 5. ¿«Alertas» está bien como nombre para lo que hoy es «Reglas»?
 6. ¿Las automatizaciones viven en HomeManager o se crean como automatizaciones de Home Assistant?
 7. Avanzado: ¿de acuerdo con llevar Acciones lógicas a Automatizaciones, Paneles avanzados al Diseñador y Referencias a Estado, y quitar la sección?
+8. Indicadores: ¿qué otros elementos querés? (barra, icono que cambia según el estado, animación al prender…)
+9. Controles: ¿revisamos y fusionamos primero #107 como base, y después le ponemos el diseño nuevo? (recomendado)
+10. ¿Plantillas por marca al crear un control (Mitsubishi, Philips…)?
 
 ## Qué no cambia
 
