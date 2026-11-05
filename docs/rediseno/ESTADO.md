@@ -4,7 +4,7 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** el propietario prueba `v0.12.0-beta.1` con la lista de [plan-0.12.md](plan-0.12.md) y anota lo que haya que corregir.
+**Siguiente paso:** plan 0.13 ([plan-0.13.md](plan-0.13.md)): el propietario revisa la [maqueta](maqueta-0.13/index.html) y contesta las decisiones. No se programa 0.13 hasta que la apruebe.
 
 **Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) y el plan 0.12 en `v0.12.0-beta.1` (#104), publicada a pedido del propietario el 2026-11-05 para probarla. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
@@ -107,6 +107,7 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-11-05 · Claude · plan 0.13 · Al probar v0.12.0-beta.1 el propietario pidió un rediseño mayor. Maqueta interactiva de todas las pantallas y plan por lotes con prueba visual obligatoria.
 - 2026-11-05 · Claude · plan 0.12 · Lotes B a F implementados de corrido (decisión 12 de #99): Configuración ⚙, pantalla completa, modo edición ámbar, paneles al costado, ficha y valores del símbolo, atajos a programas, gestos a apps, Estado de la casa, almacenamiento, reglas base agrupadas, Ahora editable, ayuda y glosario. PR #100 a #102 y el de los lotes D a F, sin fusionar. Auditoría del 2026-11-04 en #69 y #79; decisiones del propietario en #99.
 - 2026-11-05 · Claude · plan 0.12 · Lote A terminado: cancelar un dispositivo nuevo (#88), copia de recuperación del borrador (#89), texto guiado RF (#64) y limpieza de imágenes (#63). Check 289, navegador 488 aprobadas y 4 omitidas. pytest sólo en CI: Home Assistant no se instala en este Windows.
 - 2026-11-05 · Claude · plan 0.12 · Lote A empezado desde main 97d4ad4 por pedido del propietario («comenza vos a implementar todo»). Plan copiado en plan-0.12.md.
