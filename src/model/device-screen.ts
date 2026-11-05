@@ -52,6 +52,7 @@ export function deviceScreen(
   activity: readonly ActivityEntry[] = [],
   panels: Record<string, { controls: readonly { actionId: string; label: string }[] }> = {},
   context: AlertContext = {},
+  baseRules?: import('./base-rules.js').BaseRules,
 ): DeviceScreen {
   const primary = device.bindings.entityId;
   const rawEntity = primary ? hass?.states[primary] : undefined;
@@ -71,7 +72,10 @@ export function deviceScreen(
     icon: device.display.icon,
   });
   const all =
-    catalog?.readings.map(item => ({ ...item, value: friendlyState(hass?.states[item.entityId], hass) })) ??
+    // A device's current options (a mode, say) stay readable; they are also its actions (#91, #96).
+    catalog?.readings
+      .concat(catalog.actions.filter(item => /^(?:select|number|input_select|input_number)\./.test(item.entityId)))
+      .map(item => ({ ...item, value: friendlyState(hass?.states[item.entityId], hass) })) ??
     (primary && usefulEntity(primary, hass) && (!registryId || inferred === registryId) ? [reading(primary)] : []);
   const channels = new Map<number, ChannelReading>();
   const channelIds = new Set<string>();
@@ -213,7 +217,7 @@ export function deviceScreen(
       id: control.actionId,
       label: personName(control.label, 'Acción'),
     })),
-    alerts: alertsOf(device, hass, now, context),
+    alerts: alertsOf(device, hass, now, context, baseRules),
     diagnosis,
     issues: bindingIssues(device.bindings, hass).map(issue => issue.code),
     activity: activity

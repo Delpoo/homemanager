@@ -18,9 +18,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import MAX_HOMES, MAX_PLAN_HISTORY, MAX_PLAN_STORES, MAX_SUBSCRIPTIONS_PER_CONNECTION, MAX_SUBSCRIPTIONS_TOTAL, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY, STORAGE_MINOR_VERSION, STORAGE_VERSION
+from .const import MAX_HOMES, MAX_PLAN_HISTORY, MAX_PLAN_STORES, MAX_TOTAL_STORAGE_BYTES, MAX_SUBSCRIPTIONS_PER_CONNECTION, MAX_SUBSCRIPTIONS_TOTAL, PLAN_STORAGE_KEY_PREFIX, STORAGE_KEY, STORAGE_MINOR_VERSION, STORAGE_VERSION
 from .model import Home, Homes, ModelError, PlanVersion, plan_digest, record_plan, validate_home_id
-from .storage_policy import check_quota, disk_sizes, encoded_size
+from .storage_policy import check_quota, disk_sizes, encoded_size, image_bytes
 from .svg import validate_svg
 
 _LOGGER = logging.getLogger(__name__)
@@ -139,8 +139,20 @@ class HomeManagerStore:
                 raise ModelError("storage_error", "HomeManager could not save; reload before retrying") from error
             self.state = candidate
             self._sizes = sizes
+            await self._prune_images()
             self._notify(home_id, home.revision)
             return home
+
+    async def _prune_images(self) -> None:
+        """After a committed save or purge: drop images no current plan shows (#63).
+        Best effort: a failure here never turns a committed save into an error."""
+        from .images import prune_images
+        configurations = [home.configuration for home in self.state.homes.values()]
+        configurations += [raw.get("configuration") for raw in self._quarantined.values() if isinstance(raw, dict)]
+        try:
+            await prune_images(self, configurations)
+        except Exception:
+            _LOGGER.warning("HomeManager could not check its plan images; nothing was removed")
 
     async def async_mark_linked_seen(self, home_id: str, sha256: str) -> None:
         """Not an edit of the home: no new revision, and nobody needs to reload."""
@@ -168,7 +180,49 @@ class HomeManagerStore:
     async def async_storage_status(self) -> dict[str, Any]:
         sizes = await self._usage()
         retained = sorted(key.removeprefix(PLAN_STORAGE_KEY_PREFIX) for key in sizes if key.startswith(PLAN_STORAGE_KEY_PREFIX) and key.removeprefix(PLAN_STORAGE_KEY_PREFIX) not in self.state.homes and key.removeprefix(PLAN_STORAGE_KEY_PREFIX) not in self._quarantined)
-        return {"bytes": sum(sizes.values()), "retained_home_ids": retained[:MAX_PLAN_STORES]}
+        # Plan 0.12 (#75): what takes the space, by kind. Optional fields.
+        active = {f"{PLAN_STORAGE_KEY_PREFIX}{home_id}" for home_id in self.state.homes}
+        plans = sum(size for key, size in sizes.items() if key in active)
+        retained_bytes = sum(size for key, size in sizes.items() if key.startswith(PLAN_STORAGE_KEY_PREFIX) and key not in active)
+        rf_file = Path(self.hass.config.path(".storage")) / "homemanager.rf"
+        try:
+            rf_bytes = await self.hass.async_add_executor_job(lambda: rf_file.stat().st_size if rf_file.is_file() and not rf_file.is_symlink() else 0)
+        except OSError:
+            rf_bytes = 0
+        return {
+            "bytes": sum(sizes.values()),
+            "image_bytes": image_bytes(sizes),
+            "retained_home_ids": retained[:MAX_PLAN_STORES],
+            "breakdown": {"homes": sizes.get(STORAGE_KEY, 0), "plans": plans, "images": image_bytes(sizes), "retained": retained_bytes, "rf": rf_bytes},
+            "limit": MAX_TOTAL_STORAGE_BYTES,
+        }
+
+    async def async_prune_images_now(self) -> int:
+        """Explicit cleanup (#75): every image no saved plan shows, also recent uploads."""
+        from datetime import timedelta
+        from .images import UNSAVED_GRACE, prune_images
+        async with self._lock:
+            configurations = [home.configuration for home in self.state.homes.values()]
+            configurations += [raw.get("configuration") for raw in self._quarantined.values() if isinstance(raw, dict)]
+            return await prune_images(self, configurations, dt_util.utcnow() + UNSAVED_GRACE + timedelta(seconds=1))
+
+    async def async_trim_history(self, home_id: str, keep: int) -> int:
+        """Keeps the newest plan versions of a home; the current one always stays (#75)."""
+        validate_home_id(home_id)
+        if not 2 <= keep <= MAX_PLAN_HISTORY:
+            raise ModelError("invalid_request", "keep between 2 and the history limit")
+        async with self._lock:
+            plans = await self.async_plans(home_id)
+            if len(plans) <= keep:
+                return 0
+            kept = plans[-keep:]
+            data = {"plans": [vars(item) for item in kept]}
+            try:
+                await self._plan_store(home_id).async_save(data)
+            except Exception as error:
+                raise ModelError("storage_error", "HomeManager could not trim the plan history") from error
+            self._sizes[f"{PLAN_STORAGE_KEY_PREFIX}{home_id}"] = encoded_size(data)
+            return len(plans) - keep
 
     async def async_purge_history(self, home_id: str) -> None:
         validate_home_id(home_id)
@@ -182,6 +236,7 @@ class HomeManagerStore:
                 await self._store.async_save(self._document(self.state, self._sizes))
             except Exception as error:
                 raise ModelError("storage_error", "HomeManager could not purge the retained history") from error
+            await self._prune_images()
 
     @callback
     def async_subscribe(self, home_id: str, listener: Listener, connection_id: int | None = None) -> Callable[[], None]:

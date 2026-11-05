@@ -1,3 +1,4 @@
+import { openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -45,8 +46,8 @@ test('a space with its own shape is on the rail, is framed and highlighted witho
 });
 
 test('an own shape is not reported as a space without a zone in plan settings', async ({ page }) => {
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await expect(card(page).locator('homemanager-editor .plan-conflicts')).toHaveCount(0);
 });

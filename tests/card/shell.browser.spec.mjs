@@ -1,3 +1,4 @@
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir } from 'node:fs/promises';
 const card = page => page.locator('homemanager-card');
@@ -9,7 +10,8 @@ test.beforeEach(async ({ page }) => {
 test('shell is compact, branded, accessible, and reserves health marks for problems', async ({ page }, testInfo) => {
   const host = card(page);
   await expect(host.locator('.header')).toBeVisible();
-  await expect(host.getByRole('button', { name: 'Editar plano', exact: true })).toBeHidden();
+  // One tap away since #70.
+  await expect(host.getByRole('button', { name: 'Editar plano', exact: true })).toBeVisible();
   await expect(host.locator('[data-id=temperature] .value')).toHaveText('23,4°');
   await expect(host.locator('[data-id=lamp] .symbol-ring')).toHaveCount(1);
   await expect(host.locator('[data-id=lamp] .symbol-health')).toHaveCount(0);
@@ -25,10 +27,11 @@ test('shell is compact, branded, accessible, and reserves health marks for probl
   });
   expect(boxes.brand.toLowerCase()).toBe('#4f7a5a');
   if (testInfo.project.name === 'mobile') expect(boxes.header + boxes.rail).toBeLessThanOrEqual(120);
-  await host.locator('.hm-menu > summary').click();
   await expect(host.getByRole('button', { name: 'Editar plano', exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(host.locator('.hm-menu')).not.toHaveAttribute('open', '');
+  // No ⋮ menu any more: edit, full screen and settings are one tap away (#70).
+  await expect(host.locator('.hm-menu')).toHaveCount(0);
+  await expect(host.getByRole('button', { name: 'Configuración', exact: true })).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Pantalla completa', exact: true })).toBeVisible();
   await page.evaluate(() => {
     const h = window.testHarness.hass;
     h.themes = { darkMode: true };
@@ -36,7 +39,6 @@ test('shell is compact, branded, accessible, and reserves health marks for probl
     window.testHarness.card.hass = { ...h };
   });
   await expect(host).toHaveAttribute('data-theme', 'dark');
-  await host.locator('.hm-menu > summary').click();
   await expect(host.getByRole('button', { name: 'Editar plano', exact: true })).toHaveCount(0);
 });
 
@@ -67,7 +69,6 @@ test('the panel fits its window beside the HA sidebar, also while editing', asyn
     expect(box.shellBottom).toBeLessThanOrEqual(box.window);
   };
   await expectFit();
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.editor-wrap')).toBeVisible();
   await expectFit();
@@ -140,7 +141,6 @@ test('capture activity and height evidence next to the mockup', async ({ page },
     await expect(card(page).locator('.activity')).toContainText('Enviado');
     await shot(theme, 'activity');
     await open(theme);
-    await card(page).locator('.hm-menu > summary').click();
     await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
     await expect(card(page).locator('.editor-wrap')).toBeVisible();
     await shot(theme, 'edit');
@@ -178,8 +178,7 @@ test('critical alerts propagate to the symbol, room and pill, and the pill frame
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'off', { device_class: 'moisture' }),
   );
-  await expect(card(page).locator('.alert-pill')).toBeVisible();
-  await expect(card(page).locator('.alert-pill')).toHaveAttribute('data-active', 'false');
+  await expect(card(page).locator('.alert-pill')).toBeHidden();
 });
 
 test('activity shows exact send/air/error vocabulary and retains one row per command', async ({ page }) => {
@@ -235,12 +234,12 @@ test('capture the five requested visual scenarios and the import review', async 
   await card(page).getByRole('button', { name: 'Ventilador Living', exact: true }).click();
   await expect(card(page).locator('.activity')).toContainText('Enviado');
   await shot('activity');
-  await card(page).locator('.hm-menu > summary').click();
   await shot('menu');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   const editor = card(page).locator('homemanager-editor');
-  await editor.locator('[data-settings="import-section"]').click();
+  await showSection(editor, 'import-section');
   await editor.getByLabel('Importar JSON o SVG', { exact: true }).setInputFiles({
     name: 'joined.svg',
     mimeType: 'image/svg+xml',

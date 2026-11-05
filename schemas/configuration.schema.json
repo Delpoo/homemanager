@@ -399,6 +399,7 @@
               "type": {
                 "enum": [
                   "alerts",
+                  "climate",
                   "reading",
                   "readings",
                   "active",
@@ -470,6 +471,7 @@
               "type": {
                 "enum": [
                   "alerts",
+                  "climate",
                   "reading",
                   "readings",
                   "active",
@@ -519,6 +521,128 @@
                 "maxLength": 240,
                 "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
               }
+            }
+          }
+        }
+      }
+    },
+    "symbolSizes": {
+      "$comment": "Plan 0.12 #94: symbol size for the whole house and the per-space view, and its limits.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "house",
+        "room",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "house": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "room": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "min": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        }
+      }
+    },
+    "initialView": {
+      "$comment": "Plan 0.12 #94: the view the plan opens with.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "room",
+        "x",
+        "y",
+        "zoom"
+      ],
+      "properties": {
+        "room": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "x": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 2
+        },
+        "y": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 2
+        },
+        "zoom": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 16
+        },
+        "planView": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      }
+    },
+    "baseRules": {
+      "$comment": "Plan 0.12 #60: switches and limits of the automatic rules; absent means battery below 15 %, offline 10 minutes, safety on.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "battery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "below": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "unavailable": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minutes": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1440
+            }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
             }
           }
         }
@@ -733,7 +857,11 @@
             "climate",
             "switch",
             "button",
-            "script"
+            "script",
+            "scene",
+            "vacuum",
+            "select",
+            "input_button"
           ]
         },
         "service": {
@@ -915,6 +1043,83 @@
             "properties": {
               "service": {
                 "const": "turn_on"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "scene"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "vacuum"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "start",
+                  "pause",
+                  "stop",
+                  "return_to_base",
+                  "locate",
+                  "clean_spot"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "select"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "select_option"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "input_button"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "press"
+                ]
               }
             }
           }

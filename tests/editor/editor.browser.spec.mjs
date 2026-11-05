@@ -1,3 +1,4 @@
+import { openAdvanced, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
@@ -28,10 +29,20 @@ async function section(page, title) {
       await editor(page).locator('#device-options > summary').click();
     await editor(page).locator('summary').filter({ hasText: title }).click();
     return;
-  } else if (!(await editor(page).getByRole('region', { name: 'Ajustes del plano' }).isVisible())) {
-    await button(page, 'Ajustes del plano').click();
+  } else if (!(await editor(page).getByRole('region', { name: 'Configuración' }).isVisible())) {
+    await button(page, 'Configuración').click();
+    await openFirstSection(page);
   }
-  await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
+  const ids = {
+    'Plano y espacios': 'rooms-section',
+    Espacios: 'rooms-section',
+    'Acciones lógicas': 'actions-section',
+    'Paneles avanzados': 'panels-section',
+    'Referencias pendientes': 'pending-section',
+    Copias: 'import-section',
+  };
+  if (ids[title]) await showSection(editor(page), ids[title]);
+  else await editor(page).locator('.settings-nav button').filter({ hasText: title }).click();
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -74,7 +85,7 @@ test('add/edit a complete device emits a persistent draft without calling HA', a
   await field(page, 'Posición X').fill('0.61');
   await field(page, 'Posición Y').fill('0.73');
   await chooseAnyEntity(page, 'fan.not_configured_yet');
-  await button(page, 'Guardar dispositivo').click();
+  await button(page, 'Crear').click();
   const first = (await current(page)).catalog.devices.find(device => device.id === 'test-portatil');
   expect(first).toMatchObject({
     roomId: 'office',
@@ -226,7 +237,7 @@ test('action editor defines explicit service targets and rejects raw command dat
   expect(await page.evaluate(() => window.editorTest.calls)).toEqual([]);
 });
 test('native panel rows preserve typed metadata when adding/removing controls', async ({ page }) => {
-  await section(page, 'Paneles nativos');
+  await section(page, 'Paneles avanzados');
   await field(page, 'ID de panel').fill('test-new-panel');
   await field(page, 'Título del panel').fill('Controls typed before adding rows');
   await button(page, 'Agregar control').click();
@@ -277,7 +288,7 @@ test('deletion requires confirmation and keeps reusable panels/actions', async (
 test('JSON import shows summary before mutation; export contains configuration and unknown states only', async ({
   page,
 }) => {
-  await section(page, 'Importar y exportar');
+  await section(page, 'Copias');
   const config = await current(page);
   config.catalog.devices[0].display.label = 'Imported test label';
   config.catalog.devices[0].state = { value: 'on', confidence: 'confirmed' };
@@ -313,7 +324,7 @@ test('JSON import shows summary before mutation; export contains configuration a
   );
 });
 test('SVG import sanitizes dangerous content and changed viewBox requires a backup before apply', async ({ page }) => {
-  await section(page, 'Importar y exportar');
+  await section(page, 'Copias');
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><script>window.bad=true</script><rect id="room-living" width="200" height="100" onclick="alert(1)"/></svg>';
   await field(page, 'Importar JSON o SVG').setInputFiles({
@@ -338,7 +349,7 @@ test('SVG import sanitizes dangerous content and changed viewBox requires a back
   expect(await page.evaluate(() => window.bad)).toBeUndefined();
 });
 test('a slower earlier file cannot replace the latest import preview', async ({ page }) => {
-  await section(page, 'Importar y exportar');
+  await section(page, 'Copias');
   await page.evaluate(() => {
     const editor = window.editorTest.editor,
       input = editor.shadowRoot.querySelector('#import-file');
@@ -369,7 +380,7 @@ test('a slower earlier file cannot replace the latest import preview', async ({ 
   expect((await current(page)).catalog.devices[0].display.label).toBe('Latest selected file');
 });
 test('editor stays inside the mobile/desktop viewport and primary controls have touch targets', async ({ page }) => {
-  await section(page, 'Paneles nativos');
+  await section(page, 'Paneles avanzados');
   await button(page, 'Agregar control').click();
   const result = await editor(page).evaluate(element => {
     const root = element.shadowRoot;
@@ -436,7 +447,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   expect(await page.evaluate(() => window.editorTest.calls)).toEqual([]);
 });
 test('replacing the plan detects zones and keeps devices on the same drawing point', async ({ page }) => {
-  await section(page, 'Importar y exportar');
+  await section(page, 'Copias');
   // Same drawing extended 500 units to the right: viewBox origin is unchanged, width doubles.
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 2000 700"><rect id="room-living" x="30" y="40" width="440" height="620"/><g id="room-studio"><title>Estudio</title><rect x="1100" y="40" width="400" height="400"/></g></svg>';
@@ -466,7 +477,7 @@ test('replacing the plan detects zones and keeps devices on the same drawing poi
 });
 
 test('importing a complete JSON keeps its own positions even when its plan has another viewBox', async ({ page }) => {
-  await section(page, 'Importar y exportar');
+  await section(page, 'Copias');
   const config = await current(page);
   config.architecture.content =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect id="room-living" width="200" height="300"/></svg>';

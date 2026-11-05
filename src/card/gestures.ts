@@ -1,8 +1,13 @@
+import { exitFullscreen } from './fullscreen.js';
 import { t } from '../i18n/index.js';
 import { LONG_PRESS_MS, reducedMotion } from './card-helpers.js';
 import { spaceAt, zoomCamera } from './geometry.js';
 import { clone } from './types.js';
-import { snapToGrid } from '../model/room-shapes.js';
+import { keyStep, snapToStep } from '../model/move-grid.js';
+import { gridStep, showMoveGrid } from './move-grid.js';
+
+/** On a touch screen a symbol moves only after a press this long (#90). */
+const EDIT_HOLD_MS = 400;
 
 import type { HomeManagerCard } from './home-manager-card.js';
 export function point(this: HomeManagerCard, event: { clientX: number; clientY: number }) {
@@ -56,15 +61,36 @@ export function pointerDown(this: HomeManagerCard, event: PointerEvent) {
       this.pointers.delete(event.pointerId);
       return;
     }
-    this.gesture = {
-      kind: 'device',
-      id: d.id,
-      start: p,
-      position: { ...d.position },
-      before: clone(this.draft!),
-      moved: false,
+    const startDrag = (from: { x: number; y: number }) => {
+      this.gesture = {
+        kind: 'device',
+        id: d.id,
+        start: from,
+        position: { ...d.position },
+        before: clone(this.draft!),
+        moved: false,
+      };
+      marker.classList.add('dragging');
+      showMoveGrid(this, true);
     };
-    marker.classList.add('dragging');
+    if (event.pointerType === 'touch') {
+      // A finger first pans the plan; holding still on the symbol picks it up.
+      clearTimeout(this.editHold?.timer);
+      this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera }, at: performance.now() };
+      this.editHold = {
+        id: d.id,
+        x: event.clientX,
+        y: event.clientY,
+        timer: setTimeout(() => {
+          const hold = this.editHold;
+          this.editHold = undefined;
+          if (!hold || !this.pointers.has(event.pointerId) || this.pointers.size !== 1) return;
+          this.camera = { ...(this.gesture?.kind === 'pan' ? this.gesture.camera : this.camera) };
+          startDrag(this.pointers.get(event.pointerId)!);
+          navigator.vibrate?.(12);
+        }, EDIT_HOLD_MS),
+      };
+    } else startDrag(p);
   } else if (this.pointers.size === 2) {
     this.beginPinch();
   } else this.gesture = { kind: 'pan', x: p.x, y: p.y, camera: { ...this.camera }, at: performance.now() };
@@ -86,6 +112,10 @@ export function pointerMove(this: HomeManagerCard, event: PointerEvent) {
     clearTimeout(this.longPress.timer);
     this.longPress = undefined;
   }
+  if (this.editHold && Math.hypot(event.clientX - this.editHold.x, event.clientY - this.editHold.y) > 8) {
+    clearTimeout(this.editHold.timer);
+    this.editHold = undefined;
+  }
   if (!this.pointers.has(event.pointerId) || !this.gesture) return;
   const p = this.point(event);
   this.pointers.set(event.pointerId, p);
@@ -96,10 +126,13 @@ export function pointerMove(this: HomeManagerCard, event: PointerEvent) {
     const dx = p.x - g.start.x,
       dy = p.y - g.start.y;
     if (Math.hypot(dx, dy) > 3) g.moved = true;
+    // Cell by cell on the grid; Alt (Option) moves freely.
+    const step = gridStep();
     d.position = {
-      x: snapToGrid(g.position.x + dx / this.camera.scale / this.box.width),
-      y: snapToGrid(g.position.y + dy / this.camera.scale / this.box.height),
+      x: snapToStep(g.position.x + dx / this.camera.scale / this.box.width, step, event.altKey),
+      y: snapToStep(g.position.y + dy / this.camera.scale / this.box.height, step, event.altKey),
     };
+    showMoveGrid(this, true);
     this.updateControls();
   } else if (g.kind === 'pan') this.camera = { ...g.camera, x: g.camera.x + p.x - g.x, y: g.camera.y + p.y - g.y };
   else if (this.pointers.size >= 2 && g.distance > 0) {
@@ -123,11 +156,18 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
     clearTimeout(this.longPress.timer);
     this.longPress = undefined;
   }
+  const hold = this.editHold;
+  if (hold) {
+    clearTimeout(hold.timer);
+    this.editHold = undefined;
+  }
   const g = this.gesture;
   if (g?.kind === 'pan' && this.pointers.size === 1) {
     const p = this.point(event);
     const still = Math.hypot(p.x - g.x, p.y - g.y) < 6;
-    if (!still && this.swipeNav({ x: p.x - g.x, y: p.y - g.y }, performance.now() - g.at)) {
+    // A short tap on a symbol while editing selects it; it never moves it.
+    if (hold && still) this.select(hold.id);
+    else if (!still && this.swipeNav({ x: p.x - g.x, y: p.y - g.y }, performance.now() - g.at)) {
       // A swipe in room view travels (or bounces); it is not a pan.
     } else if (still && this.zoneEdit) this.tapZone(p);
     else if (still && this.placing) this.place(this.placing, p);
@@ -147,6 +187,7 @@ export function pointerUp(this: HomeManagerCard, event: PointerEvent) {
   this.pointers.delete(event.pointerId);
   if (this.viewport.hasPointerCapture(event.pointerId)) this.viewport.releasePointerCapture(event.pointerId);
   if (g?.kind === 'device') {
+    showMoveGrid(this, false);
     if (g.moved) {
       this.history.push(g.before);
       if (this.history.length > 40) this.history.shift();
@@ -289,6 +330,12 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     this.stopPlacing();
     return;
   }
+  // The window-filling fallback leaves with Escape too, like native full screen (#61).
+  if (event.key === 'Escape' && this.dataset.fullscreen === 'window') {
+    event.preventDefault();
+    void exitFullscreen(this);
+    return;
+  }
   const target = event.composedPath()[0] as HTMLElement;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
   const held = target.closest?.('.marker');
@@ -323,12 +370,18 @@ export function key(this: HomeManagerCard, event: KeyboardEvent) {
     event.preventDefault();
     const next = clone(this.draft!);
     const device = next.catalog.devices.find(x => x.id === d.id)!;
-    const step = event.shiftKey ? 0.01 : 0.002;
-    device.position.x = snapToGrid(
+    // One grid cell per arrow (five with Shift), landing on the grid (#90).
+    const grid = gridStep(),
+      step = keyStep(grid, event.shiftKey);
+    device.position.x = snapToStep(
       d.position.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0),
+      grid,
+      event.altKey,
     );
-    device.position.y = snapToGrid(
+    device.position.y = snapToStep(
       d.position.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0),
+      grid,
+      event.altKey,
     );
     this.selected = d.id;
     this.change(next);

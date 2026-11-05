@@ -6,7 +6,6 @@ const editor = page => card(page).locator('homemanager-editor');
 async function start(page) {
   await page.goto('/tests/browser/fixtures/picker.html');
   await page.waitForFunction(() => window.pickerHarnessReady);
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
@@ -43,28 +42,28 @@ test('device-first search groups 15 devices and 91 entities without technical vi
   await host.getByRole('searchbox').fill('Cocina');
   await expect(host.getByRole('button', { name: /Medidor de energía/ })).toBeVisible();
   await host.getByRole('button', { name: /Medidor de energía/ }).click();
-  await expect(host.getByRole('radio', { name: /Potencia total/ })).toBeChecked();
+  // One list, each reading once; the suggested one comes checked as the main one (#91).
+  await expect(host.getByRole('checkbox', { name: /Potencia total/ })).toBeChecked();
   await page.evaluate(() => {
     window.testHarness.hass.states['sensor.energy_meter_6ch_total_power'].state = '1.82';
     window.testHarness.card.hass = { ...window.testHarness.hass };
   });
-  await expect(host.getByRole('radio', { name: /Potencia total/ })).toHaveAccessibleName(/1,82/);
-  await cleanText(page);
-  await host.locator('.k-fold > summary').click();
+  await expect(host.getByRole('checkbox', { name: /Potencia total/ })).toHaveAccessibleName(/1,82/);
   const text = await cleanText(page);
   expect(text).toContain('Canal 6 · Potencia');
   expect(text).not.toContain('DO NOT SHOW');
   await host.getByRole('checkbox', { name: /Canal 1 · Potencia/ }).check();
   await host.getByRole('checkbox', { name: /Canal 2 · Potencia/ }).check();
   await host.getByRole('checkbox', { name: /Canal 3 · Potencia/ }).check();
-  await expect(host.getByRole('checkbox', { name: /Canal 4 · Potencia/ })).toBeDisabled();
+  // No fixed limit of three any more.
+  await host.getByRole('checkbox', { name: /Canal 4 · Potencia/ }).check();
   await host.getByRole('button', { name: 'Vincular', exact: true }).click();
   const device = await page.evaluate(() =>
     window.testHarness.card
       .getDraftConfiguration()
       .catalog.devices.find(device => device.bindings.deviceId === 'meter-six'),
   );
-  expect(device.bindings.readings).toHaveLength(3);
+  expect(device.bindings.readings).toHaveLength(4);
   expect(device.bindings.entityId).toBe('sensor.energy_meter_6ch_total_power');
   expect(device.state).toEqual({ value: 'unknown', confidence: 'unknown' });
 });

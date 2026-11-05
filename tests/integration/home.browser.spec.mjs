@@ -1,4 +1,4 @@
-import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for custom_components/homemanager. It mirrors the websocket
@@ -39,6 +39,8 @@ async function setup(page) {
       homes,
       calls,
       retained,
+      /** Space in use, to test the low-space warning (#75). */
+      storageBytes: 1024,
       /** The drawing file kept in the config folder, and the last version settled per home. */
       file: null,
       seen: new Map(),
@@ -59,7 +61,7 @@ async function setup(page) {
       switch (message.type) {
         case 'homemanager/storage/status':
           if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
-          return { bytes: 1024, retained_home_ids: [...retained] };
+          return { bytes: server.storageBytes, limit: 64 * 1048576, retained_home_ids: [...retained] };
         case 'homemanager/history/purge':
           if (!hass.user.is_admin) throw fail('unauthorized', 'Unauthorized');
           if (message.confirm !== true || homes.has(message.home_id)) throw fail('home_in_use', 'Home is active');
@@ -125,13 +127,17 @@ test('New home can be cancelled or left through Plan without losing the previous
   await page.evaluate(() => {
     window.previousHomeCard = document.querySelector('homemanager-app').shadowRoot.querySelector('homemanager-card');
   });
-  for (const exit of ['Cancelar', 'Plano']) {
-    await openCardMenu(page);
-    await app.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
+  // New home lives in Settings › Homes; leaving it is Cancel or the ← of the bar (#70).
+  for (const exit of ['Cancelar', 'Volver']) {
+    const settings = homeCard.getByRole('region', { name: 'Configuración', exact: true });
+    if (!(await settings.isVisible()))
+      await homeCard.getByRole('button', { name: 'Configuración', exact: true }).click();
+    await openFirstSection(page);
+    await showSection(homeCard.locator('homemanager-editor'), 'homes-section');
+    await homeCard.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
     await expect(app.getByLabel('Nombre del hogar', { exact: true })).toBeVisible();
     await app.getByLabel('Nombre del hogar', { exact: true }).fill('sin-crear');
     await expect(homeCard).toBeHidden();
-    if (exit === 'Plano') await openCardMenu(page);
     await app.getByRole('button', { name: exit, exact: true }).click();
     await expect(app.getByLabel('Nombre del hogar', { exact: true })).toBeHidden();
     await expect(homeCard).toBeVisible();
@@ -167,6 +173,25 @@ test("an integration-backed card loads its home and follows other editors' revis
   expect(
     await page.evaluate(() => window.testHarness.wsCalls.filter(call => call.type === 'lovelace/config/save').length),
   ).toBe(0);
+});
+
+test('saving with almost no space left says so and where to free it (#75)', async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    window.homeServer.put('casa', window.homeServer.base);
+    window.homeServer.storageBytes = 60 * 1048576;
+    window.testHarness.card.setConfig({ type: 'custom:homemanager-card', card_id: 'plano', home_id: 'casa' });
+  });
+  await openCardMenu(page);
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Luz de prueba', exact: true }).click();
+  await card(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Luz con poco espacio');
+  await card(page)
+    .getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })
+    .click();
+  await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  await expect(card(page).locator('.shell > .status')).toContainText('Queda poco espacio');
+  await expect(card(page).locator('.shell > .status')).toContainText('Almacenamiento');
 });
 
 test('saving goes through the revision check and a conflict keeps the draft', async ({ page }) => {
@@ -224,8 +249,9 @@ test('a missing home is created by the first administrator save', async ({ page 
   await openCardMenu(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await card(page).getByText('Importar y exportar', { exact: true }).click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(async () => {
     const editor = window.testHarness.card.shadowRoot.querySelector('homemanager-editor');
     const input = editor.shadowRoot.querySelector('#import-file'),
@@ -241,7 +267,7 @@ test('a missing home is created by the first administrator save', async ({ page 
   await download;
   await card(page).getByRole('button', { name: 'Aplicar importación al borrador', exact: true }).click();
   await card(page)
-    .getByRole('region', { name: 'Ajustes del plano' })
+    .getByRole('region', { name: 'Configuración' })
     .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).click();
@@ -269,7 +295,8 @@ test('the card editor moves an inline plan into the integration and keeps only t
   });
   expect(events).toBe(0);
   const editor = page.locator('homemanager-editor');
-  await editor.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await editor.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await editor.locator('summary').filter({ hasText: 'Mover a la integración HomeManager' }).click();
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
@@ -327,8 +354,11 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
     app.hass = window.testHarness.hass;
   });
   await expect(app.locator('homemanager-card').locator('h1')).toHaveText('Mi casa');
-  await openCardMenu(page);
-  await expect(app.getByLabel('Hogar', { exact: true })).toHaveValue('mi-casa');
+  // Homes are chosen in Settings › Homes (#70).
+  await app.locator('homemanager-card .hm-tools [data-command=configuration]').click();
+  await showSection(app.locator('homemanager-editor'), 'homes-section');
+  await expect(app.getByLabel('Hogar que se muestra', { exact: true })).toHaveValue('mi-casa');
+  await app.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
   await expect(
     app.locator('homemanager-card').getByRole('button', { name: 'Luz de prueba', exact: true }),
   ).toBeVisible();
@@ -338,7 +368,6 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   await page.evaluate(() => {
     document.querySelector('homemanager-app').narrow = true;
   });
-  await openCardMenu(page);
   await app.getByRole('button', { name: 'Menú de Home Assistant', exact: true }).click();
   expect(await toggled).toBe(true);
 });
@@ -351,9 +380,9 @@ test('storage maintenance requires explicit confirmation before purging retained
     app.hass = window.testHarness.hass;
   });
   const app = page.locator('homemanager-app');
-  await openCardMenu(page);
-  await app.getByRole('button', { name: 'Almacenamiento', exact: true }).click();
-  const dialog = app.getByRole('region', { name: 'Almacenamiento', exact: true });
+  // Without a home, ⚙ still reaches Storage (#70).
+  await app.locator('.hm-tools [data-command=configuration]').click();
+  const dialog = app.getByRole('region', { name: 'Configuración', exact: true });
   await expect(dialog.getByText('deleted-home', { exact: false })).toBeVisible();
   await dialog.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
   await app.getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
@@ -506,7 +535,6 @@ test('nobody but an administrator looks at the file, and never while editing', a
   await page.evaluate(() => {
     window.testHarness.hass.user.is_admin = true;
   });
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Guardar cambios', exact: true }).waitFor();
   await look(page);
@@ -516,18 +544,19 @@ test('nobody but an administrator looks at the file, and never while editing', a
 
 test('plan settings say where the file goes and offer a version that is still open', async ({ page }) => {
   await openHome(page);
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   const editor = card(page).locator('homemanager-editor');
-  await editor.locator('[data-settings="import-section"]').click();
+  await showSection(editor, 'import-section');
   const box = editor.locator('.linked-box');
   await expect(box).toContainText('/config/homemanager/casa.svg');
   await expect(box).toContainText('Todavía no hay ningún archivo');
   await putFile(page, SHA_A, NO_ZONE);
   await editor.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await editor.locator('[data-settings="import-section"]').click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(editor, 'import-section');
   await expect(box).toContainText('sin aplicar');
   await box.getByRole('button', { name: 'Revisar', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Revisar cambios', exact: true })).toBeVisible();

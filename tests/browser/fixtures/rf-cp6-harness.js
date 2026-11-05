@@ -34,5 +34,8 @@ document.querySelector('#mount').replaceChildren(app);
 app.hass = hass;
 await new Promise(requestAnimationFrame);
 await new Promise(requestAnimationFrame);
-app.shadowRoot.querySelector('[data-app-command=rf]').click();
+// RF opens from Settings since #70; the fixture asks the panel directly.
+app.shadowRoot.dispatchEvent(
+  new CustomEvent('homemanager-shell-command', { detail: { command: 'rf' }, bubbles: true, composed: true }),
+);
 window.cp6Ready = true;

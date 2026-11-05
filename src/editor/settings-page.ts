@@ -1,24 +1,39 @@
 import { t } from '../i18n/index.js';
 import '../shell/layer-choice.js';
+import '../ui/theme-choice.js';
+import { showLink } from '../shell/show-link.js';
 import { escapeHTML as esc, type Configuration } from '../card/types.js';
 import { uiButton, uiIcon, uiStatus } from '../ui/components.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
 import { isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
+import type { StatusIssue } from '../model/home-status.js';
 
-/** Plan settings as a page (mockup §9): sections on the left, problems on top, spaces as a list. */
+/** Settings as one page (#70): grouped sections on the left (a list first on a phone),
+ * problems on top, spaces as a list. */
 export type SettingsSection =
   | 'designer-section'
+  | 'rooms-section'
+  | 'views-section'
+  | 'connect-section'
+  | 'homes-section'
   | 'now-section'
+  | 'appearance-section'
+  | 'view-section'
+  | 'controls-section'
   | 'rules-section'
   | 'health-section'
-  | 'rooms-section'
-  | 'connect-section'
+  | 'storage-section'
+  | 'import-section'
   | 'actions-section'
   | 'panels-section'
   | 'pending-section'
-  | 'import-section';
+  | 'help-section';
 export interface SettingsPage {
   section: SettingsSection;
+  /** On a phone: the list of sections, or the open section. */
+  view: 'list' | 'section';
+  /** Sections this person and this setup can use. */
+  available: ReadonlySet<SettingsSection>;
   problems: number;
   /** Problems the diagnosis found. */
   health: number;
@@ -28,18 +43,62 @@ export interface SettingsPage {
   bodies: Record<SettingsSection, string>;
 }
 
-const SECTIONS: { id: SettingsSection; title: () => string; icon: string }[] = [
-  { id: 'designer-section', title: () => t('Diseñador de controles'), icon: 'mdi:remote' },
-  { id: 'now-section', title: () => t('Editar Ahora'), icon: 'mdi:view-dashboard-outline' },
-  { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
+type SectionInfo = { id: SettingsSection; title: () => string; icon: string };
+const SECTIONS: SectionInfo[] = [
   { id: 'rooms-section', title: () => t('Plano y espacios'), icon: 'mdi:floor-plan' },
-  { id: 'connect-section', title: () => t('Conectar mi casa'), icon: 'mdi:home-automation' },
-  { id: 'health-section', title: () => t('Diagnóstico'), icon: 'mdi:stethoscope' },
+  { id: 'views-section', title: () => t('Alternativas del plano'), icon: 'mdi:layers-outline' },
+  { id: 'connect-section', title: () => t('Conectar con Home Assistant'), icon: 'mdi:home-automation' },
+  { id: 'homes-section', title: () => t('Hogares'), icon: 'mdi:home-switch-outline' },
+  { id: 'now-section', title: () => t('Panel Ahora'), icon: 'mdi:view-dashboard-outline' },
+  { id: 'appearance-section', title: () => t('Apariencia'), icon: 'mdi:palette-outline' },
+  { id: 'view-section', title: () => t('Tamaño y vista inicial'), icon: 'mdi:magnify-plus-outline' },
+  { id: 'controls-section', title: () => t('Controles RF'), icon: 'mdi:remote' },
+  { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
+  { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
+  { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
+  { id: 'import-section', title: () => t('Copias'), icon: 'mdi:swap-vertical' },
   { id: 'actions-section', title: () => t('Acciones lógicas'), icon: 'mdi:link-variant' },
-  { id: 'panels-section', title: () => t('Paneles nativos'), icon: 'mdi:view-list-outline' },
+  { id: 'panels-section', title: () => t('Paneles avanzados'), icon: 'mdi:view-list-outline' },
   { id: 'pending-section', title: () => t('Referencias pendientes'), icon: 'mdi:alert-outline' },
-  { id: 'import-section', title: () => t('Importar y exportar'), icon: 'mdi:swap-vertical' },
+  { id: 'help-section', title: () => t('Ayuda'), icon: 'mdi:help-circle-outline' },
+  // Reached from a symbol's sheet only; #73 merges it into one designer.
+  { id: 'designer-section', title: () => t('Diseñador de controles'), icon: 'mdi:remote' },
 ];
+const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: true }[] = [
+  { title: () => t('Mi casa'), sections: ['rooms-section', 'views-section', 'connect-section', 'homes-section'] },
+  { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
+  { title: () => t('Controles'), sections: ['controls-section'] },
+  { title: () => t('Reglas'), sections: ['rules-section'] },
+  { title: () => t('Mantenimiento'), sections: ['health-section', 'storage-section', 'import-section'] },
+  { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section', 'pending-section'], advanced: true },
+  { title: () => t('Ayuda'), sections: ['help-section'] },
+];
+/** One line under each section's title saying what it is for (#77). */
+const PURPOSE: Record<SettingsSection, string> = {
+  'rooms-section': 'El dibujo de tu casa y sus espacios: nombres, formas y orden.',
+  'views-section': 'Otras imágenes del mismo plano, por ejemplo una clara y una oscura.',
+  'connect-section': 'Une cada espacio con un área de Home Assistant y suma sus dispositivos.',
+  'homes-section': 'Elegí qué hogar se muestra o empezá uno nuevo.',
+  'now-section': 'Qué muestra el panel Ahora, al costado del plano.',
+  'appearance-section': 'Claro u oscuro, qué capas se ven y cómo se mueven los símbolos. Sólo en este navegador.',
+  'view-section': 'Cuánto crecen los símbolos con el zoom y en qué vista abre el plano.',
+  'controls-section': 'Controles infrarrojos y de radio que aprendiste.',
+  'rules-section': 'Avisos y resaltados cuando una lectura pasa un límite. Nunca envían comandos.',
+  'health-section': 'Lo que no está funcionando y cómo arreglarlo.',
+  'storage-section': 'Cuánto ocupa HomeManager en Home Assistant y cómo liberar espacio.',
+  'import-section': 'Copias del plano para guardar, mover o volver atrás.',
+  'actions-section': 'Acciones guardadas que usan los controles. Para usuarios avanzados.',
+  'panels-section':
+    'Pantallas de controles armadas a mano para un dispositivo. Se usan cuando el control automático no alcanza.',
+  'pending-section': 'Símbolos que apuntan a algo que todavía no existe en Home Assistant.',
+  'help-section': 'Cómo se usa HomeManager y qué significa cada cosa.',
+  'designer-section': 'Cómo se ve el control de un símbolo.',
+};
+/** Where a fresh Settings page opens: the first section this person can use. */
+export function firstSection(available: ReadonlySet<SettingsSection>): SettingsSection {
+  return GROUPS.flatMap(group => group.sections).find(id => available.has(id)) ?? 'help-section';
+}
+export const settingsTitle = (id: SettingsSection) => SECTIONS.find(section => section.id === id)!.title();
 
 export function settingsPage(page: SettingsPage): string {
   const badge = (id: SettingsSection) =>
@@ -50,12 +109,48 @@ export function settingsPage(page: SettingsPage): string {
         : id === 'pending-section'
           ? `<span class="settings-badge${page.pending ? ' warn' : ''}">${page.pending}</span>`
           : '';
-  const nav = SECTIONS.map(
-    section =>
-      `<button type="button" data-settings="${section.id}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}<span>${esc(section.title())}</span>${badge(section.id)}</button>`,
-  ).join('');
+  const button = (section: SectionInfo) =>
+    `<button type="button" data-settings="${section.id}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}<span>${esc(section.title())}</span>${badge(section.id)}<span class="settings-chev" aria-hidden="true">${uiIcon('mdi:chevron-right')}</span></button>`;
+  const nav = GROUPS.map(group => {
+    const items = group.sections
+      .filter(id => page.available.has(id))
+      .map(id => button(SECTIONS.find(section => section.id === id)!))
+      .join('');
+    if (!items) return '';
+    const heading = `<span class="settings-group">${esc(group.title())}</span>`;
+    return group.advanced
+      ? `<details class="settings-advanced"${group.sections.includes(page.section) ? ' open' : ''}><summary>${heading}</summary>${items}</details>`
+      : `<div class="settings-group-box" role="group" aria-label="${esc(group.title())}">${heading}${items}</div>`;
+  }).join('');
   const current = SECTIONS.find(section => section.id === page.section)!;
-  return `<div class="settings-page"><nav class="settings-nav" aria-label="${esc(t('Secciones de ajustes'))}">${nav}</nav><div class="settings-content">${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title">${esc(current.title())}</h3>${page.bodies[page.section]}</section></div></div>`;
+  return `<div class="settings-page" data-view="${page.view}"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content"><button type="button" class="settings-list" data-command="settings-list">${uiIcon('mdi:arrow-left')}<span>${esc(t('Todas las secciones'))}</span></button>${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title">${esc(current.title())}</h3><p class="section-purpose">${esc(t(PURPOSE[page.section]))}</p>${page.bodies[page.section] ?? ''}</section></div></div>`;
+}
+
+/** Light and dark, which layers the plan shows and, for editors, the grid: per browser. */
+export function appearanceBody(grid?: number): string {
+  const steps: [number, string][] = [
+    [0, t('Sin cuadrícula')],
+    [0.005, t('Fina (0,5 %)')],
+    [0.01, t('Normal (1 %)')],
+    [0.025, t('Gruesa (2,5 %)')],
+  ];
+  const gridField =
+    grid === undefined
+      ? ''
+      : `<label class="field">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label><p class="note">${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}</p>`;
+  const link = showLink();
+  const linkField = `<label class="field">${esc(t('Mostrar vínculo'))}<select data-show-link>${(
+    [
+      ['unlinked', t('Sólo en símbolos sin vincular')],
+      ['always', t('Siempre')],
+      ['never', t('Nunca')],
+    ] as const
+  )
+    .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
+    .join(
+      '',
+    )}</select></label><p class="note">${esc(t('Una cadena chica en la esquina del símbolo dice si está conectado a un dispositivo. En modo edición se ve siempre.'))}</p>`;
+  return `<p class="note">${esc(t('Se guarda en este navegador: no cambia lo que ven las demás personas.'))}</p><homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */
@@ -79,7 +174,7 @@ export function spacesList(configuration: Configuration, zoneIds: ReadonlySet<st
 }
 
 export function planCard(content: string, zones: number, rooms: number): string {
-  return `<div class="plan-card"><div class="plan-thumb" aria-hidden="true">${content}</div><div class="plan-info"><b>${esc(t('Plano de la casa'))}</b><span class="k-sub">${esc(t('{zones} zonas · {rooms} espacios', { zones, rooms }))}</span><div class="plan-actions">${uiButton(t('Reemplazar plano'), 'settings-import', 'secondary', 'mdi:upload')}</div></div></div><homemanager-layer-choice></homemanager-layer-choice>`;
+  return `<div class="plan-card"><div class="plan-thumb" aria-hidden="true">${content}</div><div class="plan-info"><b>${esc(t('Plano de la casa'))}</b><span class="k-sub">${esc(t('{zones} zonas · {rooms} espacios', { zones, rooms }))}</span><div class="plan-actions">${uiButton(t('Reemplazar plano'), 'settings-import', 'secondary', 'mdi:upload')}</div></div></div>`;
 }
 
 /** What a row says about a problem, and what its button does. */
@@ -119,19 +214,62 @@ function issueText(
       };
   }
 }
-export function healthBody(health: PlanHealth, roomName: (id: string | null) => string): string {
+/** What a home-status row says (#74), and what its button does. */
+function statusText(issue: StatusIssue): { title: string; detail: string; fix: string } {
+  switch (issue.kind) {
+    case 'unlinked':
+      return { title: issue.label, detail: t('Todavía no está conectado a un dispositivo'), fix: t('Vincular') };
+    case 'offline':
+      return {
+        title: issue.label,
+        detail: t('No responde: Home Assistant lo ve sin conexión'),
+        fix: t('Ver dispositivo'),
+      };
+    case 'unknown-state':
+      return { title: issue.label, detail: t('Home Assistant no sabe su estado'), fix: t('Ver dispositivo') };
+    case 'remote-missing':
+      return { title: issue.label, detail: t('Usa un control RF que ya no existe'), fix: t('Elegir control') };
+    case 'view-image':
+      return {
+        title: issue.name,
+        detail: issue.mode === 'light' ? t('Falta la imagen clara') : t('Falta la imagen oscura'),
+        fix: t('Abrir alternativas'),
+      };
+    case 'rule-target':
+      return { title: issue.name, detail: t('La regla apunta a algo que ya no existe'), fix: t('Abrir Reglas') };
+    case 'storage':
+      return {
+        title: t('Almacenamiento'),
+        detail: t('Está al {percent} %: conviene liberar espacio', { percent: issue.percent }),
+        fix: t('Abrir almacenamiento'),
+      };
+  }
+}
+export function healthBody(
+  health: PlanHealth,
+  roomName: (id: string | null) => string,
+  status: readonly StatusIssue[] = [],
+): string {
   const { plan, issues } = health;
   const safe = issues.filter(isSafeFix).length;
-  const summary = `<div class="health-plan"><b>${esc(plan.title ?? t('Plano sin título'))}</b><span class="k-sub">${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</span></div>`;
-  if (!issues.length)
-    return `${summary}<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>`;
+  // The drawing's identity is technical: it stays folded at the end (#74).
+  const summary = `<details class="health-tech"><summary>${esc(t('Datos técnicos del plano'))}</summary><p class="k-sub">${esc(plan.title ?? t('Plano sin título'))} · ${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</p></details>`;
+  const statusRows = status
+    .map((issue, index) => {
+      const text = statusText(issue);
+      return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="status-action" data-status="${index}">${esc(text.fix)}</button></div>`;
+    })
+    .join('');
+  if (!issues.length && !status.length)
+    return `<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada símbolo funciona, cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>${summary}`;
+  if (!issues.length) return `<div class="k-list health-list">${statusRows}</div>${summary}`;
   const rows = issues
     .map((issue, index) => {
       const text = issueText(issue, roomName);
       return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="health-action" data-issue="${index}">${esc(text.fix)}</button></div>`;
     })
     .join('');
-  return `${summary}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>`;
+  return `${statusRows ? `<div class="k-list health-list">${statusRows}</div>` : ''}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>${summary}`;
 }
 
 export const settingsPageStyles = `
@@ -145,9 +283,12 @@ export const settingsPageStyles = `
 .settings-nav button{display:flex;align-items:center;gap:10px;justify-content:flex-start;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:12px;background:transparent;color:var(--hm-muted);font-size:14px;text-align:left}
 .settings-nav button ha-icon{--mdc-icon-size:20px;flex:none}.settings-nav button span:first-of-type{flex:1}
 .settings-nav button[aria-current=page]{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-ink);font-weight:600}
+.settings-group-box{display:grid;gap:2px;margin-bottom:8px}.settings-group{display:block;padding:6px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hm-muted)}
+.settings-advanced>summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center}.settings-advanced>summary::-webkit-details-marker{display:none}.settings-advanced>summary::after{content:'▸';margin-left:auto;padding-right:12px;color:var(--hm-muted)}.settings-advanced[open]>summary::after{content:'▾'}
+.settings-chev{display:none}.settings-list{display:none}.section-purpose{margin:-8px 0 0;color:var(--hm-muted);font-size:13px;line-height:1.5}
 .settings-badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hm-surface-2,var(--hm-line));color:var(--hm-muted)}.settings-badge.warn{background:color-mix(in srgb,var(--hm-warn) 18%,transparent);color:var(--hm-warn)}
 .settings-content{overflow:auto;padding:18px 22px 24px;display:grid;align-content:start;gap:14px}
-.settings-section{display:grid;gap:14px;min-width:0}.settings-section>h3{margin:0;font-size:18px}
+.settings-section{display:grid;gap:14px;min-width:0;max-width:720px}/* #66: a reading width on wide monitors */.settings-section>h3{margin:0;font-size:18px}
 .plan-card{display:flex;gap:16px;align-items:center;padding:14px;border:1px solid var(--hm-line);border-radius:16px;background:var(--hm-surface)}
 .plan-thumb{flex:none;width:160px;height:110px;border-radius:12px;overflow:hidden;background:var(--hm-bg);display:grid;place-items:center}.plan-thumb svg{width:100%;height:100%}
 .plan-info{display:grid;gap:6px;min-width:0}.plan-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -159,8 +300,11 @@ export const settingsPageStyles = `
 @media(max-width:720px){
 .settings-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}
 .settings-page{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
-.settings-nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--hm-line);padding:8px}
-.settings-nav button{width:auto;flex:none;white-space:nowrap}
+.settings-page{grid-template-rows:minmax(0,1fr)}
+.settings-page[data-view=list] .settings-content,.settings-page[data-view=section] .settings-nav{display:none}
+.settings-nav{border-right:0;padding:10px 12px}
+.settings-nav button{min-height:52px;color:var(--hm-ink)}.settings-nav button[aria-current=page]{background:transparent;font-weight:400}.settings-chev{display:inline-flex;color:var(--hm-muted)}
+.settings-list{display:inline-flex;align-items:center;gap:8px;justify-self:start;border:0;background:transparent;color:var(--hm-accent);padding:0;min-height:44px}
 .settings-content{padding:14px 14px 20px}
 .plan-thumb{width:110px;height:80px}
 }

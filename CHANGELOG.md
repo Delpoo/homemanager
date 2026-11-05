@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.11.0-beta.2 — candidata, sin publicar
+## 0.12.0-beta.1 — beta
+
+Plan 0.12 (#99): las observaciones del propietario y las auditorías del 2026-11-04, en seis lotes.
+
+- **Más claro y seguro al editar:** Cancelar al crear un dispositivo, copia de recuperación si se cierra la página, modo edición en ámbar con cuadrícula y mantener pulsado en el teléfono, y aviso cuando queda poco espacio al guardar.
+- **Configuración ⚙:** secciones agrupadas que dicen para qué sirven, Estado de la casa con lo que no funciona, Almacenamiento con limpieza de imágenes e historial, reglas base en una fila por tipo, Ahora editable, alternativas del plano rediseñadas, y ayuda con índice y glosario.
+- **Símbolos:** ficha con base y módulos, todas las lecturas que quieras, formato de valores (decimales, colores, rangos), tamaño, transparencia y forma, tamaño según el zoom y vista inicial ⌂, y marca de vinculado.
+- **Controles:** atajos a los programas del robot y escenas, gestos que abren apps, páginas o eligen entre varias, y diseñador con piezas visibles. Pantalla completa ⛶ reemplaza al modo pared.
+- **Espacios:** el resaltado sigue sólo el contorno exterior y «Fusionar formas de este espacio» en Editar zonas.
+
+Se conservan los datos y controles anteriores. «Panel nativo» ahora se llama «Panel avanzado». Enviar RF no confirma el estado físico. Sin probar: teléfono y tablet reales, apps reales desde un gesto, y actualizar y volver atrás en una casa real. Antes de actualizar, guardar una copia completa de Home Assistant ([procedimiento](docs/release-beta2.md)).
+
+## 0.11.0-beta.2 — beta
 
 Rediseño completo E01–E13. Conserva beta.1 y agrega módulos independientes, gestos configurables, Reglas editables, iconos y color compartidos; diseñador común RF/HA y aprendizaje guiado; alternativas claras/oscuras del plano; Ahora editable y navegación de PC/modo pared.
 

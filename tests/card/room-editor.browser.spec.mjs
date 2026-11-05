@@ -11,17 +11,18 @@ const button = (page, name) =>
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const room = async (page, id) => (await draft(page)).rooms.find(item => item.id === id);
 const begin = async page => {
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 // The synthetic V1 card is relabelled once it is edited: read each label from the draft.
 const openSpace = async (page, id) => {
   const label = (await room(page, id)).label;
-  await card(page)
+  const rail = card(page)
     .locator('.rooms')
-    .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
-    .click();
+    .getByRole('button', { name: `Encuadrar ${label}`, exact: true });
+  // With Settings open the rail is hidden (#70): the same space opens from its list.
+  if (await rail.isVisible()) await rail.click();
+  else await card(page).locator(`homemanager-editor [data-command=room-open][data-room="${id}"]`).click();
   const dialog = page.getByRole('region', { name: label, exact: true });
   await expect(dialog).toBeVisible();
   return dialog;
@@ -47,6 +48,8 @@ test('a space sets its framing, skipping and which arrows it shows, and the room
   await kitchen.getByRole('checkbox', { name: 'Saltear al navegar' }).check();
   await kitchen.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await room(page, 'kitchen')).nav).toEqual({ skip: true });
+  // Back from Settings to the edit bar (#70).
+  await card(page).locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
   await button(page, 'Guardar cambios').click();
   await expect(button(page, 'Guardar cambios')).toHaveAttribute('data-dirty', 'false');
   await button(page, 'Salir de edición').click();

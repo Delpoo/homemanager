@@ -1,4 +1,5 @@
 import { categoryOf, sectionsOf } from './category.js';
+import { deviceActions } from './device-actions.js';
 import type { ModelDevice, ModelHass } from './types.js';
 
 export const MODULES = ['device', 'indicators', 'gestures', 'control', 'pinned', 'native', 'rules'] as const;
@@ -9,7 +10,7 @@ export const MODULE_LABELS: Record<ModuleId, string> = {
   gestures: 'Gestos',
   control: 'Control',
   pinned: 'Junto al símbolo',
-  native: 'Panel nativo',
+  native: 'Panel avanzado',
   rules: 'Reglas',
 };
 
@@ -31,7 +32,13 @@ export function moduleChoices(device: ModelDevice, hass?: ModelHass) {
   return MODULES.map(id => ({
     id,
     present: present.includes(id),
+    // A device with programs or actions needs no designed control first (#96).
     reason:
-      id === 'pinned' && !device.bindings.controls?.length && !device.bindings.remoteId ? 'Necesita un control' : null,
+      id === 'pinned' &&
+      !device.bindings.controls?.length &&
+      !device.bindings.remoteId &&
+      !deviceActions(device, hass).length
+        ? 'Necesita un control'
+        : null,
   }));
 }

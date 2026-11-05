@@ -73,7 +73,7 @@ export const en: Record<string, string> = {
   'Cargando…': 'Loading…',
   'El ID del hogar debe ser kebab-case (minúsculas, números y guiones).':
     'The home ID must be kebab-case (lowercase letters, numbers and hyphens).',
-  Configuración: 'Configuration',
+  Configuración: 'Settings',
   '{field}: texto vacío o demasiado largo.': '{field}: empty or too long.',
   '{field}: ID kebab-case no válido.': '{field}: invalid kebab-case ID.',
   'Documento demasiado profundo.': 'Document nested too deeply.',
@@ -158,7 +158,7 @@ export const en: Record<string, string> = {
     'Explicit relocation enabled for this fixed device during this editing session.',
   'No se pudo ejecutar la acción.': 'The action could not be run.',
   'Detalles del dispositivo': 'Device details',
-  'Panel nativo pendiente: {id}': 'Native panel pending: {id}',
+  'Panel avanzado pendiente: {id}': 'Advanced panel pending: {id}',
   'Vinculá una entidad o un panel en el editor para controlar este dispositivo.':
     'Link an entity or a panel in the editor to control this device.',
   'Acción pendiente.': 'Action pending.',
@@ -241,7 +241,7 @@ export const en: Record<string, string> = {
   'Espacios ({count})': 'Spaces ({count})',
   'Fuente de estado': 'State source',
   'Acciones lógicas': 'Logical actions',
-  'Paneles nativos': 'Native panels',
+  'Paneles avanzados': 'Advanced panels',
   'No se ejecutan referencias ausentes. Las referencias lógicas deben resolverse antes del guardado definitivo.':
     'Missing references never run. Logical references must be resolved before the final save.',
   'Importar y exportar': 'Import and export',
@@ -268,7 +268,7 @@ export const en: Record<string, string> = {
   'Posición X': 'Position X',
   'Posición Y': 'Position Y',
   'Entidad del dispositivo': 'Device entity',
-  'Panel nativo': 'Native panel',
+  'Panel avanzado': 'Advanced panel',
   'Sin panel': 'No panel',
   'Corregir ubicación fija': 'Correct fixed location',
   'Seleccioná un icono para declarar su fuente.': 'Select a device to declare its source.',
@@ -682,9 +682,6 @@ export const en: Record<string, string> = {
   'Editar Ahora': 'Edit Now',
   'Configuración del panel': 'Panel configuration',
   Casa: 'Home',
-  'Modo pared': 'Wall mode',
-  'Sin personalizar se conservan las secciones automáticas. El modo pared puede usar otra lista.':
-    'Without customization the automatic sections are kept. Wall mode can use another list.',
   'Usar panel automático': 'Use automatic panel',
   'Agregar bloque': 'Add block',
   'Editar bloque': 'Edit block',
@@ -698,7 +695,6 @@ export const en: Record<string, string> = {
   'Un control': 'A control',
   'Acceso directo': 'Shortcut',
   'Se conservan las secciones automáticas.': 'The automatic sections are kept.',
-  'Salir del modo pared': 'Exit wall mode',
   'El encuadre del plano cambió. Revisá la alternativa en Ajustes.':
     'The plan framing changed. Review the alternative in Settings.',
   'Primero se descarga una copia actual con imágenes. Después se reemplaza el borrador; podés descartar los cambios antes de guardar el hogar.':
@@ -729,7 +725,7 @@ Object.assign(en, {
 Object.assign(en, {
   'Abrir el control completo': 'Open full control',
   'Abrir su pantalla': 'Open its screen',
-  'Abrir panel nativo': 'Open native panel',
+  'Abrir panel avanzado': 'Open advanced panel',
   Nada: 'Nothing',
   'Al mantener': 'On hold',
   'Mayús+Enter ejecuta mantener. El menú contextual siempre abre el control.':

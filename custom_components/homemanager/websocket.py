@@ -52,7 +52,7 @@ def _read_allowed(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge, ws_image_get, ws_image_put):
+    for command in (ws_homes, ws_home_get, ws_home_save, ws_home_delete, ws_home_subscribe, ws_plans, ws_plan_get, ws_plan_linked, ws_plan_linked_seen, ws_storage_status, ws_history_purge, ws_image_get, ws_image_put, ws_images_prune, ws_history_trim):
         websocket_api.async_register_command(hass, command)
 
 
@@ -240,6 +240,32 @@ async def ws_history_purge(hass: HomeAssistant, connection: websocket_api.Active
         _error(connection, msg["id"], error)
         return
     connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/images/prune", vol.Required("confirm"): vol.All(bool, True)})
+@websocket_api.async_response
+async def ws_images_prune(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Plan 0.12 (#75): removes the plan images no saved plan shows."""
+    try:
+        removed = await _store(hass).async_prune_images_now()
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+        return
+    connection.send_result(msg["id"], {"removed": removed})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/history/trim", vol.Required("home_id"): HOME_ID, vol.Required("keep"): vol.All(int, vol.Range(min=2, max=10)), vol.Required("confirm"): vol.All(bool, True)})
+@websocket_api.async_response
+async def ws_history_trim(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Plan 0.12 (#75): keeps only the newest plan versions of a home."""
+    try:
+        removed = await _store(hass).async_trim_history(msg["home_id"], msg["keep"])
+    except ModelError as error:
+        _error(connection, msg["id"], error)
+        return
+    connection.send_result(msg["id"], {"removed": removed})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemanager/image/get", vol.Required("scope"): HOME_ID, vol.Required("sha256"): str})

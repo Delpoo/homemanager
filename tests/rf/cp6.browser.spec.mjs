@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { setup, ceiling } from '../browser/rf-helpers.mjs';
@@ -58,7 +59,9 @@ async function home(page, dark, existing) {
   );
   const app = page.locator('homemanager-app');
   if (existing) {
-    await app.locator('homemanager-card .hm-menu > summary').click();
+    // New home is in Settings › Homes since #70.
+    await app.locator('homemanager-card .hm-tools [data-command=configuration]').click();
+    await showSection(app.locator('homemanager-editor'), 'homes-section');
     await app.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
   }
   await expect(app.getByRole('textbox', { name: 'Nombre del hogar', exact: true })).toBeVisible();
@@ -241,11 +244,13 @@ test('RF follows the global theme choice and cancellation restores logical focus
   await page.waitForFunction(() => window.cp6Ready);
   const app = page.locator('homemanager-app');
   const initial = await page.evaluate(() => structuredClone(window.rfServer.library));
+  // Appearance lives in Settings (#70); RF opens again from Settings › Controls.
   const choose = async value => {
-    const menu = app.locator('.hm-menu');
-    await menu.locator('summary').click();
-    await menu.getByRole('combobox', { name: 'Apariencia' }).selectOption(value);
-    await menu.locator('summary').click();
+    // Without a home yet, ⚙ opens the basic Settings: Appearance, RF and Storage.
+    await app.locator('.hm-tools:visible [data-command=configuration]').click();
+    const settings = app.getByRole('region', { name: 'Configuración', exact: true });
+    await settings.locator('homemanager-theme-choice').getByRole('combobox').selectOption(value);
+    await settings.getByRole('button', { name: 'Abrir controles RF', exact: true }).click();
   };
   const background = () =>
     rf(page)

@@ -13,6 +13,9 @@ test('two real touch points zoom the SVG while keeping normalized device coordin
     window.testHarness.card.getDraftConfiguration().catalog.devices.map(d => d.position),
   );
   const stage = page.locator('homemanager-card').locator('.architecture');
+  // Wait until the plan is framed: a pinch before that would be undone by the first fit.
+  await expect.poll(() => stage.evaluate(node => getComputedStyle(node).transform)).not.toBe('none');
+  await page.waitForTimeout(300);
   const initial = await stage.evaluate(node => new DOMMatrix(getComputedStyle(node).transform).a);
   const box = await page.getByRole('group', { name: 'Plano interactivo' }).boundingBox();
   const x = box.x + box.width / 2,
@@ -56,6 +59,8 @@ test('a real touch drag in edit mode creates a saveable draft without executing 
   const before = await page.evaluate(() => window.testHarness.card.getDraftConfiguration().catalog.devices[0].position);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  // A finger picks a symbol up after a short hold (#90); a quick swipe pans instead.
+  await page.waitForTimeout(550);
   for (let n = 1; n <= 6; n++)
     await cdp.send('Input.dispatchTouchEvent', {
       type: 'touchMove',

@@ -28,7 +28,7 @@ export async function chooseAnyEntity(page, entityId, { adding = false } = {}) {
   }
   const host = picker(page);
   const back = host.locator('.task-back');
-  if (await host.locator('[name=primary],[data-advanced=true]').count()) await back.click();
+  if (await host.locator('[name=reading],[data-advanced=true]').count()) await back.click();
   await host.getByRole('button', { name: 'Buscar cualquier entidad', exact: true }).click();
   await host.getByRole('searchbox').fill(entityId);
   await host.getByRole('button', { name: 'Usar esta entidad', exact: true }).click();

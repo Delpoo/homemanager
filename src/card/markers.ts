@@ -13,8 +13,19 @@ export function renderSymbol(spec: SymbolSpec): string {
     ? `<span class="symbol-ring" data-tone="${spec.ring.tone}" style="--level:${spec.ring.level ?? 1}" aria-hidden="true"></span>`
     : '';
   const icon = spec.body.icon ? `<ha-icon icon="${escape(spec.body.icon)}" aria-hidden="true"></ha-icon>` : '';
-  const value = spec.body.value
-    ? `<span class="value" title="${escape(spec.body.fullValue ?? spec.body.value)}">${escape(spec.body.value)}</span>`
+  const value = spec.values?.length
+    ? ''
+    : spec.body.value
+      ? `<span class="value" title="${escape(spec.body.fullValue ?? spec.body.value)}">${escape(spec.body.value)}</span>`
+      : '';
+  // Chosen readings (#92): each says what it is, never cut without its full text at hand.
+  const values = spec.values?.length
+    ? `<span class="values" data-place="${spec.place}">${spec.values
+        .map(
+          item =>
+            `<span class="value" data-size="${item.size}" title="${escape(item.full)}"${item.color && /^#[0-9a-fA-F]{6}$/.test(item.color) ? ` style="color:${item.color}"` : ''}>${item.dot && /^#[0-9a-fA-F]{6}$/.test(item.dot) ? `<span class="value-dot" style="background:${item.dot}" aria-hidden="true"></span>` : ''}${item.label ? `<span class="value-label">${escape(item.label)}</span>` : ''}${escape(item.text)}</span>`,
+        )
+        .join('')}</span>`
     : '';
   const badge = spec.badge
     ? `<span class="symbol-badge" data-level="${spec.badge.level}"${spec.badge.color && /^#[0-9a-fA-F]{6}$/.test(spec.badge.color) ? ` style="background:${spec.badge.color}"` : ''}>${spec.badge.count}</span>`
@@ -22,7 +33,13 @@ export function renderSymbol(spec: SymbolSpec): string {
   const health = spec.health
     ? `<span class="symbol-health" data-health="${spec.health}" aria-hidden="true">${spec.health === 'unavailable' ? '<ha-icon icon="mdi:minus" aria-hidden="true"></ha-icon>' : ''}</span>`
     : '';
-  return `${ring}<span class="symbol-body">${icon}${value}</span>${badge}${health}${spec.archetype === 'remote' ? '<span class="remote-mark" aria-hidden="true"></span>' : ''}${spec.tag ? `<span class="symbol-tag">${escape(spec.tag)}</span>` : ''}`;
+  // #95: a small chain in the free lower-left corner; whether it shows is the card's call.
+  const link = spec.link
+    ? `<span class="symbol-link" data-link="${spec.link}" aria-hidden="true"><ha-icon icon="${spec.link === 'linked' ? 'mdi:link-variant' : 'mdi:link-variant-off'}"></ha-icon></span>`
+    : '';
+  const inside = spec.place === 'inside' ? values : '';
+  const outside = spec.place === 'inside' ? '' : values;
+  return `${ring}<span class="symbol-body">${icon}${value}${inside}</span>${outside}${link}${badge}${health}${spec.archetype === 'remote' ? '<span class="remote-mark" aria-hidden="true"></span>' : ''}${spec.tag ? `<span class="symbol-tag">${escape(spec.tag)}</span>` : ''}`;
 }
 
 export interface ScreenPoint {

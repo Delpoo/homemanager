@@ -36,6 +36,8 @@ export interface RegistryEntity {
   original_name?: string | null;
   has_entity_name?: boolean;
   entity_category?: string | null;
+  /** Decimals chosen in Home Assistant for a numeric sensor. */
+  display_precision?: number | null;
   hidden?: boolean;
   hidden_by?: string | null;
   disabled?: boolean;
@@ -67,6 +69,16 @@ export interface ModelDevice {
     highlight?: boolean;
     color?: string;
     disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
+    /** Plan 0.12 (#92): readings shown on the symbol, in order, and how each looks. */
+    values?: import('./value-style.js').ValueStyle[];
+    valuePlace?: 'inside' | 'beside' | 'below';
+    /** Plan 0.12 (#93, #94): free size, size in the per-space view, background opacity (%) and shape. */
+    scale?: number;
+    roomScale?: number;
+    opacity?: number;
+    shape?: 'circle' | 'pill' | 'dot' | 'icon';
+    /** #95: needs no device link (a drawing, a shortcut). */
+    standalone?: true;
   };
   bindings: {
     entityId: string | null;

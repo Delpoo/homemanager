@@ -1,4 +1,6 @@
-import { toggleWallMode } from './wall-mode.js';
+import { toggleFullscreen } from './fullscreen.js';
+import { openConfiguration } from './settings-screen.js';
+import { applyInitialView } from './initial-view.js';
 import * as layerView from '../shell/layers.js';
 import { showActivity, showAlerts } from '../shell/activity-view.js';
 import { t } from '../i18n/index.js';
@@ -23,6 +25,9 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     }
     if (this.editing) {
       this.select(id);
+      // The link mark opens the Device module (#95).
+      if ((event.target as Element).closest('.symbol-link'))
+        requestAnimationFrame(() => this.editor?.openSection('device-binding'));
       return;
     }
     if (target.closest('.pins')) return;
@@ -48,7 +53,7 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     return;
   }
   // The top menu stays reachable: it must not drop zones that are not applied yet.
-  if (this.zoneEdit && ['plan-settings', 'edit', 'exit', 'settings'].includes(command)) {
+  if (this.zoneEdit && ['configuration', 'edit', 'exit', 'settings'].includes(command)) {
     this.status(t('Terminá de editar las zonas: Aplicar o Cancelar.'));
     return;
   }
@@ -70,17 +75,9 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     case 'alerts':
       showAlerts.call(this);
       break;
-    case 'rules':
-      void (async () => {
-        if (!this.editing) await this.toggleEdit();
-        if (this.editing) this.editor?.openRules();
-      })();
-      break;
-    case 'plan-settings':
-      void (async () => {
-        if (!this.editing) await this.toggleEdit();
-        if (this.editing) this.editor?.openSettings();
-      })();
+    case 'configuration':
+      this.editorFocus = target;
+      void openConfiguration(this);
       break;
     case 'add-device':
       this.editorFocus = target;
@@ -97,6 +94,10 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
       break;
     case 'all':
       this.fit(null);
+      break;
+    case 'home-view':
+      // ⌂ returns to the saved initial view, or the whole plan without one (#94).
+      if (!applyInitialView(this)) this.fit(null);
       break;
     case 'room-view':
       this.toggleRoomView();
@@ -116,13 +117,8 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     case 'out':
       this.zoom(1 / 1.3);
       break;
-    case 'wall':
-      void toggleWallMode(this);
-      break;
     case 'fullscreen':
-      void (this.root.querySelector('.shell') as HTMLElement)
-        .requestFullscreen?.()
-        .catch(() => this.status(t('El navegador no permite pantalla completa.')));
+      void toggleFullscreen(this);
       break;
     case 'info':
       this.info();

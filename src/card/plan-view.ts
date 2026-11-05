@@ -1,3 +1,4 @@
+import { symbolScale } from '../model/symbol-scale.js';
 import { renderPlanChoice } from './plan-views.js';
 import { resolveGesture } from '../model/gestures.js';
 import { t } from '../i18n/index.js';
@@ -102,6 +103,12 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
 
 /** A height-only resize (edit bar, status line) must not undo a camera the person moved. */
 export function refit(this: HomeManagerCard) {
+  // Settings over the plan changes its width, not the view the person chose (#94).
+  if (this.configuring) {
+    const r = this.viewport.getBoundingClientRect();
+    if (r.width && r.height) this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
+    return;
+  }
   if (this.editing && this.selected && this.editor?.surfaceMode === 'device') {
     this.frameAboveSheet();
     return;
@@ -194,7 +201,7 @@ export function renderMarkers(this: HomeManagerCard) {
     .filter(d => this.editing || this.enabledLayers.has(layer(d, this._hass)))
     .map(
       d =>
-        `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}" data-id="${e(d.id)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}"></button>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,
+        `<div class="marker size-${e(d.display.size ?? 'm')} ${d.id === this.selected ? 'selected' : ''} ${this.editing && (d.mobility !== 'fixed' || this.fixedPermit === d.id) ? 'editable' : ''}${this.editing && !this.enabledLayers.has(layer(d, this._hass)) ? ' layer-hidden' : ''}" data-id="${e(d.id)}"><button type="button" class="primary" aria-label="${e(d.display.label)}" aria-keyshortcuts="Shift+Enter" title="${e(d.display.label)}"></button>${pinnedControls(d).length ? '<div class="pins"></div>' : ''}</div>`,
     )
     .join('');
   this.mountPins();
@@ -266,6 +273,20 @@ export function positionMarkers(this: HomeManagerCard) {
     if (!d) continue;
     const point = this.screen(d.position);
     marker.classList.toggle('dim', this.currentRoom !== null && d.roomId !== this.currentRoom);
+    // #94: the size follows the view and the zoom when the plan says so; else it stays fixed.
+    const scale = symbolScale(
+      this.roomView ? 'room' : 'house',
+      this.camera.scale / (this.baseScale || 1),
+      this.draft.symbolSizes,
+      d,
+    );
+    if (scale === null) {
+      marker.style.removeProperty('--hm-symbol-scale');
+      marker.removeAttribute('data-scaled');
+    } else {
+      marker.style.setProperty('--hm-symbol-scale', String(scale));
+      marker.setAttribute('data-scaled', '');
+    }
     marker.style.left = `${point.x}px`;
     marker.style.top = `${point.y}px`;
   }
@@ -296,7 +317,15 @@ export function refreshState(this: HomeManagerCard) {
     const d = this.draft?.catalog.devices.find(d => d.id === m.dataset.id);
     if (!d) return;
     const state = this.runtime.states[d.id];
-    const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext, this.feed.ruleResults);
+    const spec = symbolSpec(
+      d,
+      this._hass,
+      Date.now(),
+      state,
+      this.feed.alertContext,
+      this.feed.ruleResults,
+      this.draft?.baseRules,
+    );
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
     m.toggleAttribute('data-custom-color', !!spec.color);
@@ -306,6 +335,15 @@ export function refreshState(this: HomeManagerCard) {
     }
     m.dataset.active = String(!!spec.ring);
     m.dataset.archetype = spec.archetype;
+    m.dataset.shape = spec.shape;
+    m.dataset.link = spec.link ?? 'none';
+    // Free size and background opacity (#93): only when chosen, so old plans look the same.
+    if (spec.scale !== null) m.style.setProperty('--hm-symbol-scale', String(spec.scale));
+    else m.style.removeProperty('--hm-symbol-scale');
+    m.toggleAttribute('data-scaled', spec.scale !== null);
+    if (spec.opacity !== null) m.style.setProperty('--hm-symbol-opacity', `${spec.opacity}%`);
+    else m.style.removeProperty('--hm-symbol-opacity');
+    m.toggleAttribute('data-opacity', spec.opacity !== null);
     m.dataset.highlight = String(spec.highlight);
     const visualColor = this.feed.ruleResults.find(
       result =>
@@ -336,8 +374,12 @@ export function refreshState(this: HomeManagerCard) {
           {
             screen: 'Abrir su pantalla',
             panel: 'Abrir el control completo',
-            native: 'Abrir panel nativo',
+            native: 'Abrir panel avanzado',
             none: 'Nada',
+            'more-info': 'Abrir la ficha de Home Assistant',
+            navigate: 'Abrir una página de Home Assistant',
+            url: 'Abrir un enlace o una app',
+            choose: 'Elegir entre varias opciones',
           } as const
         )[choice.action],
       );
@@ -350,7 +392,7 @@ export function refreshState(this: HomeManagerCard) {
     );
     main.setAttribute(
       'aria-description',
-      `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}. ${t('Tocar: {action}. Mantener: {hold}. Menú contextual: control completo.', { action, hold: holdAction })}`,
+      `${confidenceLabel(confidence)}: ${stateText(state?.value ?? 'unknown')}. ${t('Tocar: {action}. Mantener: {hold}. Menú contextual: control completo.', { action, hold: holdAction })}${spec.link === 'unlinked' ? ` ${t('Sin vincular.')}` : ''}`,
     );
     // A cycle shows the icon of the step it is in (for example on or off).
     const current = tap?.type === 'cycle' ? this.cycleCurrent(d, tap) : -1;

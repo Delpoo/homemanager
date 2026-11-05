@@ -1,17 +1,20 @@
+import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 const rules = page => page.locator('homemanager-rules-editor');
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/alerts.html');
   await page.waitForFunction(() => window.alertHarnessReady);
-  await card(page).locator('.hm-menu > summary').click();
-  await card(page).getByRole('button', { name: 'Reglas', exact: true }).click();
+  // Rules live only in Settings since #70.
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(card(page).locator('homemanager-editor'), 'rules-section');
   await expect(rules(page)).toBeVisible();
 });
 test('one rules screen creates, edits, disables, deletes and undoes a rule with no symbols', async ({ page }) => {
   await rules(page).getByRole('button', { name: '+ Nueva regla', exact: true }).click();
   await rules(page).getByLabel('Nombre de la regla', { exact: true }).fill('Condición de prueba');
-  await rules(page).getByLabel('Lecturas del grupo', { exact: true }).selectOption(['sensor.test_soil']);
+  await rules(page).locator('input[data-check-field=sources][value="sensor.test_soil"]').check();
   await expect(rules(page).getByLabel('Menos de', { exact: true })).toHaveValue('');
   await rules(page).getByLabel('Menos de', { exact: true }).fill('50');
   await expect(rules(page).locator('output')).toContainText('Se cumple ahora');
@@ -39,8 +42,10 @@ test('legacy notices keep both bounds and level; base rules can be disabled', as
   const first = rules(page).locator('[data-edit^="legacy:plant:"]').first();
   await first.click();
   await expect(rules(page).getByLabel('Menos de', { exact: true })).toHaveValue(String(before[0].below));
-  const toggle = rules(page).locator('[data-toggle="base:plant:unavailable"]');
-  await toggle.uncheck();
+  // Base rules are one row per type (#60): this symbol is excluded from Offline.
+  await rules(page).locator('[data-edit="base:unavailable"]').click();
+  await rules(page).locator('input[data-check-field="base-devices"][value="plant"]').uncheck();
+  await rules(page).locator('[data-base-apply]').click();
   await expect
     .poll(() =>
       card(page).evaluate(

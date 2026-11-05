@@ -118,6 +118,14 @@ export function upsertDevice(
       ...(input.display.alerts !== undefined ? { alerts: structuredClone(input.display.alerts) } : {}),
       ...(input.display.highlight !== undefined ? { highlight: input.display.highlight } : {}),
       ...(input.display.disabledBaseRules ? { disabledBaseRules: [...input.display.disabledBaseRules] } : {}),
+      // Plan 0.12 (#92, #93, #94, #95): kept exactly as chosen.
+      ...(input.display.values?.length ? { values: structuredClone(input.display.values) } : {}),
+      ...(input.display.valuePlace ? { valuePlace: input.display.valuePlace } : {}),
+      ...(input.display.scale !== undefined ? { scale: input.display.scale } : {}),
+      ...(input.display.roomScale !== undefined ? { roomScale: input.display.roomScale } : {}),
+      ...(input.display.opacity !== undefined ? { opacity: input.display.opacity } : {}),
+      ...(input.display.shape ? { shape: input.display.shape } : {}),
+      ...(input.display.standalone ? { standalone: true as const } : {}),
     },
     bindings: {
       entityId: input.bindings.entityId,

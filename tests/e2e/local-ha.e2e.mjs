@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 // End-to-end check against a REAL, DISPOSABLE Home Assistant running the
 // HomeManager integration. Never point it at a real installation: it creates a
 // home, saves dashboards and switches the `light.e2e_*` test entities.
@@ -160,7 +161,7 @@ async function importFile(name, content, type) {
 }
 async function save() {
   // Plan settings (import) is a modal sheet since 0.5: close it to reach Save.
-  const settings = card.getByRole('region', { name: 'Ajustes del plano' });
+  const settings = card.getByRole('region', { name: 'Configuración' });
   if (await settings.isVisible()) await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
   // The previous save's message may still be on screen: wait for a new revision.
   const before = (await ws({ type: 'homemanager/home/get', home_id: 'e2e-casa' })).result?.revision ?? 0;
@@ -170,9 +171,9 @@ async function save() {
   await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
 }
 async function openImport() {
-  if (!(await card.getByRole('region', { name: 'Ajustes del plano' }).isVisible()))
-    await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await card.locator('[data-settings="import-section"]').click();
+  if (!(await card.getByRole('region', { name: 'Configuración' }).isVisible()))
+    await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await showSection(card, 'import-section');
 }
 
 await step('the sidebar panel is registered and served by the integration', async () => {
@@ -193,7 +194,6 @@ await step('an administrator creates a home and imports a plan with its devices'
   await app.getByLabel('Nombre del hogar', { exact: true }).fill('e2e-casa');
   await app.getByRole('button', { name: 'Crear hogar', exact: true }).click();
   await status.filter({ hasText: 'todavía no existe' }).waitFor();
-  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await status.filter({ hasText: 'se creará' }).waitFor();
   await openImport();
@@ -230,7 +230,6 @@ await step('the native panel offers brightness and sends it to HA without claimi
   await dialog.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
 });
 await step('a real entity is added by name and placed by tapping its space', async () => {
-  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   // Since 0.5 adding starts from the floating + on the plan.
   await card.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
@@ -271,7 +270,6 @@ await step('the cycle sends its next step on each tap and the symbol says what i
       .filter({ hasText: /^Enviado: (Encender|Apagar)$/ })
       .waitFor();
   }
-  await card.locator('.hm-menu > summary:visible').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
 });
 await step(
@@ -409,7 +407,6 @@ await step('the RF remotes tab is served and explains a missing transmitter', as
   assert.deepEqual((await ws({ type: 'homemanager/rf/transmitters' })).result, { transmitters: [] });
   await page.setViewportSize({ width: 1400, height: 950 });
   await page.goto(`${base}/homemanager`);
-  await app.locator('.hm-menu > summary:visible').click();
   await app.getByRole('button', { name: 'Controles RF', exact: true }).click();
   const rf = app.locator('homemanager-rf');
   await rf.getByText('Primero prepará un equipo RF').waitFor({ timeout: 30000 });

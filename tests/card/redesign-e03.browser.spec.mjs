@@ -1,3 +1,4 @@
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 async function start(page) {
@@ -25,21 +26,23 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
     'aria-expanded',
     'false',
   );
-  await card(page).locator('.hm-menu > summary').click();
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  const settings = page.getByRole('region', { name: 'Ajustes del plano', exact: true });
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  const settings = page.getByRole('region', { name: 'Configuración', exact: true });
+  // Layers live in Settings › Appearance since #70.
+  await showSection(settings, 'appearance-section');
   await settings.getByRole('checkbox', { name: /Mostrar capas/ }).uncheck();
+  // Leaving Settings opened from ⚙ also leaves editing (#70).
   await settings.getByRole('button', { name: 'Volver', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Salir de edición', exact: true }).click();
   await expect(layers).toBeHidden();
   await page.reload();
   await page.waitForFunction(() => window.shellHarnessReady);
   await expect(layers).toBeHidden();
-  await card(page).locator('.hm-menu > summary').click();
-  await card(page)
-    .getByRole('checkbox', { name: /Mostrar capas/ })
-    .check();
-  await page.keyboard.press('Escape');
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(settings, 'appearance-section');
+  await settings.getByRole('checkbox', { name: /Mostrar capas/ }).check();
+  await settings.getByRole('button', { name: 'Volver', exact: true }).click();
   await expect(layers).toBeVisible();
 });
 test('holding a layer exposes its name without toggling it', async ({ page }) => {
@@ -62,23 +65,8 @@ test('holding a layer exposes its name without toggling it', async ({ page }) =>
 test('zero alerts stay discreet, real alerts turn red and reveal their hidden layer', async ({ page }) => {
   await start(page);
   const pill = card(page).getByRole('button', { name: 'Alertas', exact: true });
-  await expect(pill).toBeVisible();
-  await expect(pill).toHaveAttribute('data-active', 'false');
-  const quiet = await card(page).evaluate(host => {
-    const reference = document.createElement('span');
-    reference.style.color = 'var(--hm-surface-2)';
-    host.shadowRoot.append(reference);
-    const color = getComputedStyle(reference).color;
-    reference.remove();
-    return color;
-  });
-  await expect(pill).toHaveCSS('background-color', quiet);
-  await pill.click();
-  await expect(page.getByRole('region', { name: 'Alertas', exact: true })).toContainText('Sin alertas');
-  await page
-    .getByRole('region', { name: 'Alertas', exact: true })
-    .getByRole('button', { name: 'Volver', exact: true })
-    .click();
+  // With no alerts the pill hides (#76, vision §3).
+  await expect(pill).toBeHidden();
   await card(page).locator('.layers').getByRole('button', { name: 'Sensores', exact: true }).click();
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'on', { device_class: 'moisture' }),
@@ -93,8 +81,7 @@ test('zero alerts stay discreet, real alerts turn red and reveal their hidden la
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'off', { device_class: 'moisture' }),
   );
-  await expect(pill).toBeVisible();
-  await expect(pill).toHaveAttribute('data-active', 'false');
+  await expect(pill).toBeHidden();
 });
 test('healthy and intentionally unlinked symbols stay clean; unavailable and broken links stay visible', async ({
   page,

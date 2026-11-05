@@ -75,6 +75,10 @@ export function describeError(error: unknown): string {
     );
   if (code === 'unauthorized')
     return t('No tenés permiso para esta operación. Pedile acceso a una persona administradora.');
+  if (code === 'storage_quota' && message?.includes('plan images'))
+    return t(
+      'Se alcanzó el límite de almacenamiento: las imágenes del plano ocupan la mayor parte. Quitá las alternativas que no uses y guardá el plano para liberarlas.',
+    );
   if (code === 'storage_quota')
     return t('Se alcanzó el límite de almacenamiento. Revisá los historiales conservados desde Almacenamiento.');
   if (code === 'storage_error') return t('No se pudo guardar o leer el almacenamiento. Recargá antes de reintentar.');

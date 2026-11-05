@@ -1,3 +1,4 @@
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
@@ -26,6 +27,8 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await card.locator('[data-id=synthetic-light] .primary').click();
   await editor.locator('.module-menu > summary').click();
   await editor.locator('[data-command=module-add][data-module-id=indicators]').click();
+  // Layer moved to Más opciones (#71).
+  await editor.locator('#device-options > summary').click();
   await editor.locator('[name=layer]').selectOption('controls');
   await editor.locator('#module-gestures > summary').click();
   await editor.locator('[data-gesture=tap]').selectOption('@screen');
@@ -38,12 +41,14 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await editor.getByLabel('Color libre', { exact: true }).fill('#7655a6');
   await editor.getByLabel('Color libre', { exact: true }).dispatchEvent('change');
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
-  await openCardMenu(page);
-  await card.getByRole('button', { name: 'Reglas', exact: true }).click();
+  // Rules live only in Settings since #70.
+  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(editor, 'rules-section');
   const rules = card.locator('homemanager-rules-editor');
   await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
   await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Temperatura de prueba alta');
-  await rules.getByLabel('Lecturas del grupo', { exact: true }).selectOption(['sensor.synthetic_temperature']);
+  await rules.locator('input[data-check-field=sources][value="sensor.synthetic_temperature"]').check();
   await rules.getByLabel('Más de', { exact: true }).fill('27');
   await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
   await editor.getByRole('button', { name: 'Volver', exact: true }).click();

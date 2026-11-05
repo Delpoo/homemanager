@@ -24,6 +24,11 @@ const SERVICES = Object.freeze({
   switch: ['turn_on', 'turn_off', 'toggle'],
   button: ['press'],
   script: ['turn_on'],
+  // Plan 0.12 (#96): device programs and modes as shortcuts.
+  scene: ['turn_on'],
+  vacuum: ['start', 'pause', 'stop', 'return_to_base', 'locate', 'clean_spot'],
+  select: ['select_option'],
+  input_button: ['press'],
 });
 const SCRIPT_PROOFS = new WeakMap();
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).length;
@@ -190,6 +195,12 @@ function schemaData(action) {
       if (low && data.target_temp_low > data.target_temp_high) fail('unsupported_data');
       if (OWN(data, 'hvac_mode')) text(data.hvac_mode);
     }
+    return;
+  }
+  if (action.domain === 'select') {
+    // The option chosen: a plain word from the entity's own list.
+    dataKeys(data, ['option'], ['option']);
+    text(data.option);
     return;
   }
   dataKeys(data, []);

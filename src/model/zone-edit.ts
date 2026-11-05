@@ -40,6 +40,8 @@ export interface EditZone {
   rects: RoomShape[];
   /** Its rectangles changed: on apply it stops following the SVG. */
   shapeChanged: boolean;
+  /** Its rectangles are a copy of an SVG zone with several shapes (#98). */
+  fromDrawing?: boolean;
   labelChanged: boolean;
   isNew: boolean;
 }
@@ -74,6 +76,7 @@ export function startDraft(
         label: room.label,
         ...(room.icon ? { icon: room.icon } : {}),
         rects: rects.map(rect => ({ ...rect })),
+        ...(copy ? { fromDrawing: true } : {}),
         shapeChanged: false,
         labelChanged: false,
         isNew: false,
@@ -127,6 +130,15 @@ export function removeRect(draft: ZoneDraft, id: string, index: number): ZoneDra
     rects: zone.rects.filter((_, at) => at !== index),
     shapeChanged: true,
   }));
+}
+/**
+ * «Fusionar formas de este espacio» (#98): an SVG zone made of several shapes becomes a
+ * shape of the app, drawn as one outline with no inner seams. Undone like any other edit.
+ */
+export const canAdoptZone = (zone: EditZone | undefined): boolean =>
+  !!zone && !!zone.fromDrawing && !zone.shapeChanged && zone.rects.length > 1;
+export function adoptZone(draft: ZoneDraft, id: string): ZoneDraft {
+  return change(draft, id, zone => (canAdoptZone(zone) ? { ...zone, shapeChanged: true } : zone));
 }
 export function renameZone(draft: ZoneDraft, id: string, label: string): ZoneDraft {
   return change(draft, id, zone => ({ ...zone, label, labelChanged: true }));

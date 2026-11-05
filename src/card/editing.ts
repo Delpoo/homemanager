@@ -1,12 +1,17 @@
 import { HomeManagerEditor, LovelaceConfigurationStore } from '../editor/index.js';
-import { t } from '../i18n/index.js';
+import { getLanguage, t } from '../i18n/index.js';
 import { VERSION } from '../version.js';
 import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
 import { clone, escapeHTML as e, type CardConfig, type Configuration } from './types.js';
 import { cameraForEditedDevice } from '../model/editor-session.js';
+import { unsavedCount } from '../model/move-grid.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { closeConfiguration } from './settings-screen.js';
+import { currentView, saveLocalView } from './initial-view.js';
+import { backupKey, browserStorage, clearBackup, readBackup, writeBackup } from '../model/draft-backup.js';
+import { STORAGE_WARNING } from '../editor/storage-section.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
 function commitPreview(card: HomeManagerCard): void {
@@ -17,6 +22,93 @@ function commitPreview(card: HomeManagerCard): void {
   if (card.history.length > 40) card.history.shift();
   card.future = [];
   card.updateControls();
+}
+/** Where this card's recovery copy lives: per home (or card) and per Home Assistant user. */
+export function draftBackupKey(card: HomeManagerCard): string {
+  return backupKey({
+    homeId: card.home?.homeId,
+    cardId: card.config?.card_id,
+    dashboard: card.config?.dashboard_path ?? (card.hass ? currentDashboardPath(card.hass) : undefined),
+    userId: card.hass?.user?.id,
+  });
+}
+/** Writes (or clears) the recovery copy now; called when leaving the page. */
+export function flushDraftBackup(card: HomeManagerCard): void {
+  clearTimeout(card.backupTimer);
+  card.backupTimer = undefined;
+  if (!card.editing || card.backupOffer) return;
+  const storage = browserStorage(),
+    key = draftBackupKey(card);
+  if (card.dirty && card.draft) writeBackup(storage, key, card.draft, card.saved);
+  else clearBackup(storage, key);
+}
+/** A short pause after each change, so typing does not write on every key. */
+function scheduleDraftBackup(card: HomeManagerCard): void {
+  // Throttled, not debounced: Home Assistant refreshes often and must not starve the write.
+  if (!card.editing || card.backupOffer || card.backupTimer) return;
+  card.backupTimer = setTimeout(() => flushDraftBackup(card), 400);
+}
+/** Offered once when editing starts: recover the unsaved copy or drop it. */
+function offerDraftBackup(card: HomeManagerCard): void {
+  const storage = browserStorage(),
+    key = draftBackupKey(card);
+  const backup = readBackup(storage, key, card.saved);
+  if (!backup || JSON.stringify(backup.draft) === JSON.stringify(card.saved)) {
+    clearBackup(storage, key);
+    return;
+  }
+  card.backupOffer = true;
+  const when = new Date(backup.savedAt).toLocaleString(getLanguage());
+  const finish = () => {
+    card.backupOffer = false;
+    scheduleDraftBackup(card);
+  };
+  card.dialog(
+    t('Tenés cambios sin guardar del {date}', { date: when }),
+    `<p>${e(t('Quedaron en este navegador cuando saliste de la edición sin guardar. Podés recuperarlos en el borrador o descartarlos.'))}</p>${
+      backup.stale
+        ? `<p class="warning">${e(t('El plano cambió en Home Assistant después de esa copia. Si la recuperás, revisá el borrador antes de guardar: tus cambios reemplazan los nuevos. Deshacer vuelve al plano actual.'))}</p>`
+        : ''
+    }`,
+    [
+      {
+        label: t('Recuperar'),
+        action: () => {
+          finish();
+          card.change(structuredClone(backup.draft));
+          card.status(t('Cambios recuperados en el borrador. Guardá para conservarlos.'));
+        },
+      },
+      {
+        label: t('Descartar'),
+        action: () => {
+          card.backupOffer = false;
+          clearBackup(storage, key);
+        },
+      },
+    ],
+  );
+}
+/** Before closing or reloading the tab with unsaved edits, the browser asks. */
+export function beforeUnload(card: HomeManagerCard, event: BeforeUnloadEvent): void {
+  if (!card.editing || !card.dirty) return;
+  flushDraftBackup(card);
+  event.preventDefault();
+  event.returnValue = '';
+}
+/** Outside the editor, a note says there is an unsaved copy to recover. */
+export function noteDraftBackup(card: HomeManagerCard): void {
+  if (card.editing || card.backupNoted || !card.config || !card.hass?.user?.is_admin) return;
+  // Checked once per card: Home Assistant updates hass on every state change.
+  card.backupNoted = true;
+  let present = false;
+  try {
+    present = !!browserStorage()?.getItem(draftBackupKey(card));
+  } catch {
+    present = false;
+  }
+  if (!present) return;
+  card.status(t('Tenés cambios sin guardar en este navegador. Entrá a editar el plano para recuperarlos.'));
 }
 export async function toggleEdit(this: HomeManagerCard) {
   if (this.loading || this.saving) return;
@@ -32,7 +124,9 @@ export async function toggleEdit(this: HomeManagerCard) {
         return;
       this.discard();
     }
+    flushDraftBackup(this);
     this.editing = false;
+    this.configuring = false;
     this.stopPlacing();
     this.editor?.closeSurface();
     this.updateControls();
@@ -83,6 +177,7 @@ export async function toggleEdit(this: HomeManagerCard) {
     this.fit(null);
     this.renderMarkers();
     this.updateShell();
+    offerDraftBackup(this);
     this.offerFirstSpace();
     this.status(
       this.home?.revision === null ? `Hogar nuevo: «${this.home.homeId}» se creará en la integración al guardar.` : '',
@@ -103,6 +198,8 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor.editZones = () => this.startZoneEdit();
   this.editor.linkedReview = () => void this.reviewLinkedPlan();
   this.editor.homeId = this.home?.homeId;
+  this.editor.appContext = this.shellContext;
+  this.editor.visibleLayers = this.enabledLayers;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });
   this.editor.selectedDeviceId = this.selected;
@@ -120,6 +217,10 @@ export function mountEditor(this: HomeManagerCard) {
   });
   this.editor.addEventListener('homemanager-editor-close', () => {
     commitPreview(this);
+    if (this.configuring) {
+      void closeConfiguration(this);
+      return;
+    }
     this.positionEditor();
     const marker =
       this.selected && this.root.querySelector<HTMLElement>(`[data-id="${CSS.escape(this.selected)}"] .primary`);
@@ -145,6 +246,24 @@ export function mountEditor(this: HomeManagerCard) {
     this.updateControls();
   });
   this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
+  // Home status opens a symbol's sheet (#74).
+  this.editor.addEventListener('homemanager-select', (event: Event) => {
+    const id = (event as CustomEvent<{ deviceId: string }>).detail.deviceId;
+    if (this.draft?.catalog.devices.some(device => device.id === id)) this.select(id);
+  });
+  this.editor.addEventListener('homemanager-view', (event: Event) => {
+    const command = (event as CustomEvent<{ command: string }>).detail.command;
+    if (command === 'view-save-local') saveLocalView(this, currentView(this) ?? null);
+    else if (command === 'view-clear-local') saveLocalView(this, null);
+    else {
+      const next = clone(this.draft!);
+      const view = command === 'view-save' ? currentView(this) : undefined;
+      if (view) next.initialView = view;
+      else delete next.initialView;
+      this.change(next);
+      this.status(view ? t('Vista inicial guardada. Guardá el plano para conservarla.') : t('Vista inicial quitada.'));
+    }
+  });
   this.editor.addEventListener('homemanager-save', () => void this.save());
   this.editor.addEventListener('homemanager-task-change', () => this.positionEditor());
   this.editor.addEventListener('config-changed', (event: Event) => {
@@ -190,6 +309,17 @@ export function positionEditor(this: HomeManagerCard) {
   if (!host) return;
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
+  // Settings is a page of its own: no edit bar or spaces rail behind it (#70).
+  this.root
+    .querySelector('.shell')
+    ?.classList.toggle('is-configuring', this.editing && this.editor?.surfaceMode === 'settings');
+  // On a phone the open sheet gets the room the spaces rail would take (#71).
+  this.root
+    .querySelector('.shell')
+    ?.classList.toggle(
+      'sheet-open',
+      this.editing && !!this.editor && !this.editor.hidden && this.editor.surfaceMode === 'device',
+    );
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
   host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker')
     ? 'link'
@@ -317,6 +447,7 @@ export async function save(this: HomeManagerCard, reviewed = false) {
       if (!this.homeUnsubscribe && this._hass) this.watchHome(this.home);
     }
     this.status(t('Guardado en Home Assistant.'));
+    void warnLowStorage(this);
     this.linkedSaved(next);
     this.activity.record({ type: 'saved', id: String(Date.now()), at: Date.now() });
     this.dispatchEvent(
@@ -360,14 +491,56 @@ export function updateControls(this: HomeManagerCard) {
   if (redo) redo.disabled = !this.future.length || this.saving;
   const discard = this.root.querySelector<HTMLButtonElement>('[data-command=discard]');
   if (discard) discard.disabled = this.saving || !this.dirty;
+  // The amber strip says how many changes are waiting (#90).
+  const count = this.root.querySelector('.edit-count');
+  if (count) {
+    const pending = unsavedCount(this.history.length, this.editing && this.dirty);
+    count.textContent = pending
+      ? ` · ${pending === 1 ? t('1 cambio sin guardar') : t('{count} cambios sin guardar', { count: pending })}`
+      : ` · ${t('Todo guardado')}`;
+  }
   this.updateSelection();
   this.positionEditor();
+  if (this.editor) {
+    this.editor.planDirty = this.dirty;
+    this.editor.visibleLayers = this.enabledLayers;
+  }
   this.insights?.update(this);
+  scheduleDraftBackup(this);
+}
+
+const statusTimers = new WeakMap<HomeManagerCard, ReturnType<typeof setTimeout>>();
+/** After saving, say so when the space is almost full (#75), before the limit stops a save. */
+async function warnLowStorage(card: HomeManagerCard): Promise<void> {
+  if (!card.hass?.callWS) return;
+  try {
+    const { bytes, limit } = await card.hass.callWS<{ bytes: number; limit?: number }>({
+      type: 'homemanager/storage/status',
+    });
+    if (bytes / (limit || 64 * 1048576) >= STORAGE_WARNING)
+      card.status(
+        t(
+          'Guardado en Home Assistant. Queda poco espacio: liberalo en Configuración › Mantenimiento › Almacenamiento.',
+        ),
+      );
+  } catch {
+    // Without the status the save still stands; Storage shows the error.
+  }
 }
 
 export function status(this: HomeManagerCard, message: string) {
   const host = this.root.querySelector('.status');
-  if (host) host.textContent = message;
+  if (!host) return;
+  host.textContent = message;
+  // Status messages clear themselves after 6 s, like the activity bar (vision §5, #78).
+  clearTimeout(statusTimers.get(this));
+  if (message)
+    statusTimers.set(
+      this,
+      setTimeout(() => {
+        if (host.textContent === message) host.textContent = '';
+      }, 6000),
+    );
 }
 
 export function info(this: HomeManagerCard, storage = false) {
@@ -412,9 +585,21 @@ export function dialog(
   title: string,
   body: string,
   actions: { label: string; action: () => void }[],
+  options: { side?: boolean } = {},
 ) {
   const previous = this.root.activeElement as HTMLElement | null;
   const dialog = new TaskScreen();
+  // Short content opens beside the plan on a wide screen, in Now's place (#76).
+  const workspace = this.root.querySelector<HTMLElement>('.workspace');
+  let dock: HTMLElement | undefined;
+  if (options.side && workspace && this.getBoundingClientRect().width > 650) {
+    this.root.querySelector('.workspace > .side-dock')?.querySelector<TaskScreen>('homemanager-task-screen')?.close();
+    dock = document.createElement('div');
+    dock.className = 'side-dock';
+    workspace.append(dock);
+    dialog.dataset.dock = 'side';
+    dock.append(dialog);
+  }
   dialog.innerHTML = `<h2>${e(title)}</h2>${body}<div class="actions"></div>`;
   const heading = dialog.querySelector('h2')!;
   heading.id = 'hm-dialog-title';
@@ -434,10 +619,11 @@ export function dialog(
     'close',
     () => {
       dialog.remove();
+      dock?.remove();
       previous?.focus();
     },
     { once: true },
   );
-  this.root.append(dialog);
+  if (!dock) this.root.append(dialog);
   dialog.show(this.root, title);
 }

@@ -713,7 +713,8 @@ function paintRoom(root: Element, mode: 'mask' | 'contour'): void {
     element.setAttribute('fill', mode === 'mask' ? '#000' : 'none');
     element.setAttribute('stroke', mode === 'mask' ? 'none' : 'var(--hm-brand)');
     if (mode === 'contour') {
-      element.setAttribute('stroke-width', '2');
+      // Twice as wide: the inner half is masked away, so seams between shapes vanish (#98).
+      element.setAttribute('stroke-width', '4');
       element.setAttribute('stroke-linejoin', 'round');
       element.setAttribute('stroke-linecap', 'round');
       element.setAttribute('vector-effect', 'non-scaling-stroke');
@@ -841,6 +842,17 @@ function highlightOverlay(
   shade.setAttribute('mask', `url(#${mask.id})`);
   const contour = draw('contour');
   contour.setAttribute('class', 'room-contour');
+  // Only the outer edge of the space shows (#98): the contour is hidden wherever the
+  // space itself is, which removes the lines between the shapes that form it.
+  const outer = document.createElementNS(SVG_NS, 'mask');
+  outer.id = `${prefix}outer`;
+  outer.setAttribute('maskUnits', 'userSpaceOnUse');
+  outer.setAttribute('maskContentUnits', 'userSpaceOnUse');
+  outer.style.maskType = 'luminance';
+  for (const [name, value] of Object.entries(shaded)) outer.setAttribute(name, String(value));
+  outer.append(rect('#fff'), draw('mask'));
+  defs.append(outer);
+  contour.setAttribute('mask', `url(#${outer.id})`);
   overlay.append(defs, shade, contour);
   return overlay;
 }

@@ -1,4 +1,5 @@
-import { wallModeStyles, syncWallMode } from './wall-mode.js';
+import { fullscreenStyles, syncFullscreen, paintFullscreenButton } from './fullscreen.js';
+import { moveGridStyles } from './move-grid.js';
 import { onCardClick } from './click-dispatch.js';
 import { renderPlanChoice } from './plan-views.js';
 import '../panels/device-screen.js';
@@ -39,6 +40,9 @@ import { bindTopBar, renderTopBar, type AppShellContext } from '../shell/top-bar
 import { layer, same, type Adapter } from './card-helpers.js';
 import * as commands from './commands.js';
 import * as editing from './editing.js';
+import { configurationStyles } from './settings-screen.js';
+import { applyInitialView } from './initial-view.js';
+import { applyShowLink } from '../shell/show-link.js';
 import * as gestures from './gestures.js';
 import * as planView from './plan-view.js';
 import * as session from './session.js';
@@ -60,6 +64,7 @@ export class HomeManagerCard extends HTMLElement {
   shellUnsubscribe?: () => void;
   setShellContext(context: AppShellContext): void {
     this.shellContext = context;
+    if (this.editor) this.editor.appContext = context;
     this.updateShell();
   }
   updateShell = updateShell.bind(this);
@@ -73,6 +78,10 @@ export class HomeManagerCard extends HTMLElement {
   runtime: RuntimeState = { schemaVersion: 1, states: {} };
   editor?: HomeManagerEditor;
   editorFocus?: HTMLElement;
+  /** Editing was entered only to change Settings (#70). */
+  configuring = false;
+  /** Opening shows the initial view once the plan has a size (#94). */
+  pendingInitialView = false;
   store?: ConfigurationStore;
   // Integration storage (card config with home_id): loaded over the websocket.
   home?: IntegrationConfigurationStore;
@@ -87,6 +96,11 @@ export class HomeManagerCard extends HTMLElement {
   future: Configuration[] = [];
   /** A live sheet edit is one undo step, never a persisted physical state. */
   editorPreviewBase?: Configuration;
+  /** Recovery copy (#89): pending write, an open offer, and the note shown once. */
+  backupTimer?: ReturnType<typeof setTimeout>;
+  backupOffer = false;
+  backupNoted = false;
+  private unloadGuard = (event: BeforeUnloadEvent) => editing.beforeUnload(this, event);
   box: ViewBox = { x: 0, y: 0, width: 1000, height: 700 };
   camera: Camera = { x: 0, y: 0, scale: 1 };
   fitted?: { camera: Camera; width: number };
@@ -140,6 +154,8 @@ export class HomeManagerCard extends HTMLElement {
   groupsKey = '';
   animation = 0;
   longPress?: { timer: ReturnType<typeof setTimeout>; id: string; x: number; y: number };
+  /** While editing on a touch screen: the press that will pick a symbol up (#90). */
+  editHold?: { timer: ReturnType<typeof setTimeout>; id: string; x: number; y: number };
   /** The click that ends a long press (which already opened the panel). Only
    * that one: a later tap must never be swallowed if that click never came. */
   suppressClick: { id: string; until: number } | null = null;
@@ -197,6 +213,7 @@ export class HomeManagerCard extends HTMLElement {
     if (!this.adapter) this.refreshState();
     this.updateControls();
     this.updateShell();
+    editing.noteDraftBackup(this);
     if (this.home && this.homeState === 'idle' && this.isConnected) void this.loadHome();
   }
   get hass(): Hass | undefined {
@@ -241,14 +258,17 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
-  private wallChanged = () => syncWallMode(this);
+  private fullscreenChanged = () => syncFullscreen(this);
+  private showLinkChanged = () => applyShowLink(this.root.querySelector('.shell'));
   private planThemeChanged = () => {
     void renderPlanChoice(this);
   };
   connectedCallback() {
-    document.addEventListener('fullscreenchange', this.wallChanged);
+    window.addEventListener('beforeunload', this.unloadGuard);
+    document.addEventListener('fullscreenchange', this.fullscreenChanged);
     document.addEventListener('homemanager-theme-change', this.planThemeChanged);
     document.addEventListener('homemanager-layers-change', this.syncLayerChoice);
+    document.addEventListener('homemanager-show-link', this.showLinkChanged);
     this.layerNamesCleanup?.();
     this.layerNamesCleanup = layerView.bindLayerNames(this.root);
     this.activityUnsubscribe ??= this.activity.subscribe(() => this.updateShell());
@@ -275,9 +295,13 @@ export class HomeManagerCard extends HTMLElement {
     }
   }
   disconnectedCallback() {
-    document.removeEventListener('fullscreenchange', this.wallChanged);
+    // Leaving the page keeps the unsaved edits in this browser for later.
+    editing.flushDraftBackup(this);
+    window.removeEventListener('beforeunload', this.unloadGuard);
+    document.removeEventListener('fullscreenchange', this.fullscreenChanged);
     document.removeEventListener('homemanager-theme-change', this.planThemeChanged);
     document.removeEventListener('homemanager-layers-change', this.syncLayerChoice);
+    document.removeEventListener('homemanager-show-link', this.showLinkChanged);
     this.layerNamesCleanup?.();
     clearInterval(this.activityTimer);
     this.activityTimer = undefined;
@@ -317,13 +341,14 @@ export class HomeManagerCard extends HTMLElement {
     const layers = layerView
       .layerItems()
       .filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
-    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${wallModeStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
-      <div class="editor-wrap" hidden><div class="editbar">${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Ajustes del plano'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
+    this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${fullscreenStyles}${configurationStyles}${moveGridStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
+      <div class="editor-wrap" hidden><div class="editbar"><span class="edit-title" role="status"><b>${e(t('Editando el plano'))}</b><span class="edit-count"></span></span>${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Configuración'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}${layerView.iconButtonMarkup('home-view', t('Vista inicial'), 'mdi:home-outline')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
     this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
+    paintFullscreenButton(this);
     this.layerNamesCleanup?.();
     this.layerNamesCleanup = layerView.bindLayerNames(this.root);
     this.groupsKey = '';
@@ -342,10 +367,15 @@ export class HomeManagerCard extends HTMLElement {
     this.mountArchitecture();
     this.renderMarkers();
     this.observer = new ResizeObserver(() => {
-      if (!this.gesture) this.refit();
+      if (this.gesture) return;
+      // The first real size shows the initial view, if the plan has one (#94).
+      if (this.pendingInitialView && applyInitialView(this, false)) this.pendingInitialView = false;
+      else this.refit();
     });
     this.observer.observe(viewport);
     this.fit(null, false);
+    this.pendingInitialView = true;
+    applyShowLink(this.root.querySelector('.shell'));
     this.updateControls();
   }
   get viewport() {

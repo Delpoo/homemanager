@@ -1,3 +1,4 @@
+import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -10,14 +11,14 @@ const button = (page, name) =>
   });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = async page => {
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 const openDiagnosis = async page => {
-  await button(page, 'Ajustes del plano').click();
-  await editor(page).locator('[data-settings="health-section"]').click();
-  return editor(page).getByRole('region', { name: 'Ajustes del plano' });
+  await button(page, 'Configuración').click();
+  await openFirstSection(page);
+  await showSection(editor(page), 'health-section');
+  return editor(page).getByRole('region', { name: 'Configuración' });
 };
 
 test.beforeEach(async ({ page }) => {
@@ -55,12 +56,16 @@ test('the diagnosis says which plan is saved, lists each problem, and fixes the 
   await begin(page);
   const before = await draft(page);
   const settings = await openDiagnosis(page);
-  await expect(settings.getByText('Synthetic geometry', { exact: true })).toBeVisible();
+  // The drawing's technical data is folded at the end (#74).
+  await settings.getByText('Datos técnicos del plano', { exact: true }).click();
+  await expect(settings.getByText(/Synthetic geometry/)).toBeVisible();
   await expect(settings.getByText(/2 zonas|3 zonas/)).toBeVisible();
   const rows = settings.locator('.health-row');
   await expect(rows.filter({ hasText: 'Pasillo viejo' })).toContainText('Espacio sin zona ni forma');
   await expect(rows.filter({ hasText: 'Temperatura de prueba' })).toContainText('Dibujado en');
-  await expect(rows.filter({ hasText: 'Ventilador de prueba' })).toContainText('Dibujado fuera de todos los espacios');
+  // The fan also appears once as not linked (Home status, #74).
+  await expect(rows.filter({ hasText: 'Dibujado fuera de todos los espacios' })).toContainText('Ventilador de prueba');
+  await expect(rows.filter({ hasText: 'Todavía no está conectado' })).toContainText('Ventilador de prueba');
   await expect(rows.filter({ hasText: 'Luz de prueba' })).toContainText('Su entidad ya no existe');
   await expect(rows.filter({ hasText: 'Zona del plano que ningún espacio usa' })).toHaveCount(1);
   await settings.getByRole('button', { name: /Arreglar lo seguro/ }).click();
@@ -90,6 +95,7 @@ test('a row fixes or opens just its own problem', async ({ page }) => {
   await settings
     .locator('.health-row')
     .filter({ hasText: 'Ventilador de prueba' })
+    .filter({ hasText: 'Dibujado' })
     .getByRole('button', { name: /^Mover a/ })
     .click();
   expect((await draft(page)).catalog.devices.find(device => device.id === 'synthetic-fan').roomId).toBe('kitchen');
@@ -111,6 +117,8 @@ test('a clean plan says it is in order', async ({ page }) => {
     const devices = configuration.catalog.devices;
     devices.find(device => device.id === 'synthetic-sensor').roomId = 'office';
     devices.find(device => device.id === 'synthetic-fan').roomId = 'kitchen';
+    // A symbol with no device link is a Home status issue (#74), unless it needs none.
+    devices.find(device => device.id === 'synthetic-fan').display.standalone = true;
     devices.find(device => device.id === 'synthetic-light').bindings.entityId = 'light.synthetic_light';
     window.testHarness.mutateRemote(dashboard => {
       dashboard.views[0].cards[0].configuration = configuration;

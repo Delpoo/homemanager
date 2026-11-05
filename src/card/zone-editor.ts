@@ -6,7 +6,9 @@ import {
   MIN_RECT,
   addRect,
   addZone,
+  adoptZone,
   applyDraft,
+  canAdoptZone,
   deviceMoves,
   mergeZones,
   removeRect,
@@ -98,7 +100,7 @@ function barMarkup(edit: ZoneEdit): string {
       .join('');
   const button = (command: string, label: string, enabled = true, pressed?: boolean) =>
     `<button type="button" data-command="${command}"${enabled ? '' : ' disabled'}${pressed === undefined ? '' : ` aria-pressed="${pressed}"`}>${e(label)}</button>`;
-  return `<div class="zones-bar" role="toolbar" aria-label="${e(t('Editor de zonas'))}"><div class="zones-row"><select name="zone-pick" aria-label="${e(t('Zona'))}"><option value="">${e(t('Elegí una zona'))}</option>${options(edit.draft.zones, edit.selected ?? '')}</select><input name="zone-name" maxlength="240" aria-label="${e(t('Nombre de la zona'))}" placeholder="${e(t('Nombre de la zona'))}" value="${e(zone?.label ?? '')}"${zone ? '' : ' disabled'}></div><div class="zones-row">${button('zone-new', t('Nueva zona'), true, edit.tool === 'new')}${button('zone-add', t('Agregar rectángulo'), !!zone && zone.rects.length < MAX_RECTS, edit.tool === 'add')}${button('zone-cut', t('Quitar rectángulo'), (zone?.rects.length ?? 0) > 1)}<select name="zone-merge" aria-label="${e(t('Fusionar con'))}"${zone && others.length ? '' : ' disabled'}><option value="">${e(t('Fusionar con…'))}</option>${options(others)}</select>${button('zone-delete', t('Eliminar zona'), !!zone)}</div><div class="zones-row"><span class="zones-hint">${e(hint(edit, zone))}</span>${button('zone-undo', t('Deshacer'), edit.past.length > 0)}${button('zone-cancel', t('Cancelar'))}<button type="button" class="primary" data-command="zone-apply">${e(t('Aplicar'))}</button></div></div>`;
+  return `<div class="zones-bar" role="toolbar" aria-label="${e(t('Editor de zonas'))}"><div class="zones-row"><select name="zone-pick" aria-label="${e(t('Zona'))}"><option value="">${e(t('Elegí una zona'))}</option>${options(edit.draft.zones, edit.selected ?? '')}</select><input name="zone-name" maxlength="240" aria-label="${e(t('Nombre de la zona'))}" placeholder="${e(t('Nombre de la zona'))}" value="${e(zone?.label ?? '')}"${zone ? '' : ' disabled'}></div><div class="zones-row">${button('zone-new', t('Nueva zona'), true, edit.tool === 'new')}${button('zone-add', t('Agregar rectángulo'), !!zone && zone.rects.length < MAX_RECTS, edit.tool === 'add')}${button('zone-cut', t('Quitar rectángulo'), (zone?.rects.length ?? 0) > 1)}${button('zone-adopt', t('Fusionar formas de este espacio'), canAdoptZone(zone))}<select name="zone-merge" aria-label="${e(t('Fusionar con'))}"${zone && others.length ? '' : ' disabled'}><option value="">${e(t('Fusionar con…'))}</option>${options(others)}</select>${button('zone-delete', t('Eliminar zona'), !!zone)}</div><div class="zones-row"><span class="zones-hint">${e(hint(edit, zone))}</span>${button('zone-undo', t('Deshacer'), edit.past.length > 0)}${button('zone-cancel', t('Cancelar'))}<button type="button" class="primary" data-command="zone-apply">${e(t('Aplicar'))}</button></div></div>`;
 }
 
 function build(layer: HTMLElement, edit: ZoneEdit): void {
@@ -152,6 +154,9 @@ export function renderZoneEdit(this: HomeManagerCard): void {
   // In place: rebuilding here would drop a drag's capture and the keyboard's focus.
   const undo = layer.querySelector<HTMLButtonElement>('[data-command="zone-undo"]');
   if (undo) undo.disabled = !edit.past.length;
+  // In place too: the first drag of an SVG zone already makes its shapes the app's (#98).
+  const adopt = layer.querySelector<HTMLButtonElement>('[data-command="zone-adopt"]');
+  if (adopt) adopt.disabled = !canAdoptZone(selectedZone(edit));
   const { scale, x, y } = this.camera;
   const px = (shape: RoomShape) => ({
     left: x + (this.box.x + shape.x * this.box.width) * scale,
@@ -441,6 +446,12 @@ export function zoneCommand(this: HomeManagerCard, command: string, trigger?: HT
         remember(edit);
         edit.draft = removeRect(edit.draft, selected, edit.rect);
         edit.rect = 0;
+      }
+      break;
+    case 'zone-adopt':
+      if (selected && canAdoptZone(selectedZone(edit))) {
+        remember(edit);
+        edit.draft = adoptZone(edit.draft, selected);
       }
       break;
     case 'zone-delete':

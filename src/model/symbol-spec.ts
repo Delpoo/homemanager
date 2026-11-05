@@ -4,6 +4,7 @@ import { activeStateOf, presentationOf } from './archetype.js';
 import { alertsOf, presenceHighlightOf, summarizeAlerts, type AlertContext } from './alerts.js';
 import { entityOf, finiteNumber } from './types.js';
 import { stateName } from './names.js';
+import { shownValues, type ShownValue } from './value-style.js';
 import type { AlertLevel } from './alerts.js';
 import type {
   Archetype,
@@ -29,6 +30,16 @@ export interface SymbolSpec {
   tag: string | null;
   layer: SymbolLayer;
   size: 's' | 'm' | 'l';
+  /** Chosen readings with their look (#92); empty keeps the old single value. */
+  values: ShownValue[];
+  place: 'inside' | 'beside' | 'below';
+  /** #93: the type only suggests the shape; any symbol can pick another. */
+  shape: 'circle' | 'pill' | 'dot' | 'icon';
+  /** #93: free size (1 = medium) and background opacity in %, when chosen. */
+  scale: number | null;
+  opacity: number | null;
+  /** #95: linked to Home Assistant, not yet, or needs no link. */
+  link: 'linked' | 'unlinked' | null;
 }
 
 const SENSOR_ICONS: Record<string, [string, string]> = {
@@ -49,13 +60,14 @@ export function symbolSpec(
   runtime?: ModelRuntime,
   context: AlertContext = {},
   rules: readonly VisualResult[] = [],
+  baseRules?: import('./base-rules.js').BaseRules,
 ): SymbolSpec {
   const { archetype, layer, cool, level } = presentationOf(device, hass);
   const entity = entityOf(device, hass);
   const show = device.display.show ?? (archetype === 'meter' ? 'value' : 'icon');
   const effects = rules.filter(result => result.rule.symbols.includes(device.id));
   const alerts = [
-    ...alertsOf(device, hass, now, context),
+    ...alertsOf(device, hass, now, context, baseRules),
     ...effects
       .filter(result => result.rule.badge !== false && result.rule.level !== 'indicator')
       .map(result => result.alert),
@@ -124,6 +136,16 @@ export function symbolSpec(
     tag: archetype === 'equipment' ? equipmentTag(entity, hass) : null,
     layer,
     size: device.display.size ?? 'm',
+    values: shownValues(device, hass),
+    place: device.display.valuePlace ?? 'inside',
+    shape: device.display.shape ?? (archetype === 'infrastructure' ? 'dot' : 'circle'),
+    scale: device.display.scale ?? null,
+    opacity: device.display.opacity ?? null,
+    link: device.display.standalone
+      ? null
+      : device.bindings.entityId || device.bindings.deviceId || device.bindings.remoteId
+        ? 'linked'
+        : 'unlinked',
   };
 }
 

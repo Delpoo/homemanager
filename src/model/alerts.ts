@@ -1,3 +1,4 @@
+import { limitsOf, type BaseRules } from './base-rules.js';
 import { entityOf, finiteNumber } from './types.js';
 import type { ModelDevice, ModelEntity, ModelHass } from './types.js';
 import { categoryOf } from './category.js';
@@ -43,7 +44,6 @@ const CRITICAL: Record<string, string> = {
   safety: 'Alerta de seguridad',
   problem: 'Problema detectado',
 };
-const unavailableAfter = 10 * 60 * 1000;
 
 /** Configured category rules and the backward-compatible health/default alarm rules. */
 export function alertsOf(
@@ -51,7 +51,9 @@ export function alertsOf(
   hass: ModelHass | undefined,
   now: number,
   context: AlertContext = {},
+  baseRules?: BaseRules,
 ): DeviceAlert[] {
+  const limits = limitsOf(baseRules);
   if (hass?.connection?.connected === false) return [];
   const alerts: DeviceAlert[] = configuredAlertsOf(device, hass, now, context).map(alert => ({
     id: `${device.id}:configured:${alert.key}`,
@@ -88,6 +90,7 @@ export function alertsOf(
     entity.state === 'on' &&
     (alarmCategory || legacyCritical) &&
     !hasBinaryAlertOverride(device, hass) &&
+    limits.safety &&
     !device.display.disabledBaseRules?.includes('safety')
   )
     add(
@@ -96,11 +99,20 @@ export function alertsOf(
       'critical',
       CRITICAL[deviceClass] ?? 'Alerta detectada',
     );
-  if (entity.state === 'unavailable' && !device.display.disabledBaseRules?.includes('unavailable')) {
+  if (
+    entity.state === 'unavailable' &&
+    limits.unavailable !== null &&
+    !device.display.disabledBaseRules?.includes('unavailable')
+  ) {
     // last_updated can advance while still unavailable; only last_changed proves its duration.
     const since = Date.parse(entity.last_changed ?? '');
-    if (Number.isFinite(now) && Number.isFinite(since) && now - since > unavailableAfter)
-      add(entityId, 'unavailable', 'warning', 'No disponible desde hace más de 10 minutos');
+    if (Number.isFinite(now) && Number.isFinite(since) && now - since > limits.unavailable * 60 * 1000)
+      add(
+        entityId,
+        'unavailable',
+        'warning',
+        limits.unavailable === 10 ? 'No disponible desde hace más de 10 minutos' : 'Sin conexión desde hace un rato',
+      );
   }
   const batterySources = new Map<string, number>();
   const rememberBattery = (id: string, source: ModelEntity) => {
@@ -109,7 +121,8 @@ export function alertsOf(
       source.attributes?.device_class === 'battery'
         ? finiteNumber(source.state)
         : finiteNumber(source.attributes?.battery_level ?? source.attributes?.battery);
-    if (battery !== null && battery >= 0 && battery < 15) batterySources.set(id, battery);
+    if (limits.battery !== null && battery !== null && battery >= 0 && battery < limits.battery)
+      batterySources.set(id, battery);
   };
   rememberBattery(entityId, entity);
   // Registry membership is evidence of association; never infer a battery from entity names.
@@ -135,7 +148,7 @@ export function summarizeAlerts(alerts: readonly DeviceAlert[]) {
 }
 
 /** Missing evidence is not recovery. Used by the activity feed, separate from visibility. */
-export function alertCleared(alert: DeviceAlert, device: ModelDevice, hass: ModelHass): boolean {
+export function alertCleared(alert: DeviceAlert, device: ModelDevice, hass: ModelHass, baseRules?: BaseRules): boolean {
   if (hass.connection?.connected === false) return false;
   const prefix = `${device.id}:configured:`;
   if (alert.id.startsWith(prefix)) return configuredAlertCleared(device, alert.id.slice(prefix.length), hass);
@@ -147,7 +160,7 @@ export function alertCleared(alert: DeviceAlert, device: ModelDevice, hass: Mode
       source.attributes?.device_class === 'battery'
         ? finiteNumber(source.state)
         : finiteNumber(source.attributes?.battery_level ?? source.attributes?.battery);
-    return battery !== null && battery >= 15 && battery <= 100;
+    return battery !== null && battery >= (limitsOf(baseRules).battery ?? 0) && battery <= 100;
   }
   return alert.entityId.startsWith('binary_sensor.') && source.state === 'off';
 }

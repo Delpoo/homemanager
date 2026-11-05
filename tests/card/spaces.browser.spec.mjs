@@ -1,3 +1,4 @@
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -10,7 +11,6 @@ const button = (page, name) =>
   });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = async page => {
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   // The first-space page deliberately covers the editing toolbar until dismissed.
   await expect
@@ -104,8 +104,9 @@ test('importing a plan never changes a space drawn by hand unless that is chosen
   );
   await begin(page);
   const upload = async () => {
-    await button(page, 'Ajustes del plano').click();
-    await editor(page).locator('[data-settings="import-section"]').click();
+    await button(page, 'Configuración').click();
+    await openFirstSection(page);
+    await showSection(editor(page), 'import-section');
     const svg = (await draft(page)).architecture.content;
     await editor(page)
       .getByLabel('Importar JSON o SVG', { exact: true })
@@ -135,8 +136,9 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
   page,
 }) => {
   await begin(page);
-  await button(page, 'Ajustes del plano').click();
-  const settings = editor(page).getByRole('region', { name: 'Ajustes del plano' });
+  await button(page, 'Configuración').click();
+  await openFirstSection(page);
+  const settings = editor(page).getByRole('region', { name: 'Configuración' });
   const ids = async () => (await draft(page)).rooms.map(room => room.id);
   const first = (await draft(page)).rooms[0];
   await settings.getByRole('button', { name: `Mover ${first.label}: flechas arriba y abajo`, exact: true }).focus();
@@ -170,8 +172,9 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
 
 test('an L-shaped zone of the SVG becomes two rectangles, and its hole belongs to the neighbour', async ({ page }) => {
   await begin(page);
-  await button(page, 'Ajustes del plano').click();
-  await editor(page).locator('[data-settings="import-section"]').click();
+  await button(page, 'Configuración').click();
+  await openFirstSection(page);
+  await showSection(editor(page), 'import-section');
   // viewBox 10 20 1000 700. Living is an L: full left column, top right part. Office fills the hole.
   const plan =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><path id="room-living" d="M10 20H1010V370H510V720H10Z"/><rect id="room-office" x="510" y="370" width="500" height="350"/><rect id="room-kitchen" x="1009" y="719" width="1" height="1"/></svg>';

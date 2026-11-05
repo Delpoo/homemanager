@@ -1,4 +1,4 @@
-import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openCardMenu, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile } from 'node:fs/promises';
@@ -174,14 +174,15 @@ test('entity, action, source and native panel bindings are edited as drafts with
 }) => {
   await begin(page);
   await select(page);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await page.getByText('Acciones lógicas', { exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'actions-section');
   await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
   await page.getByLabel('Dominio', { exact: true }).selectOption('light');
   await page.getByLabel('Servicio', { exact: true }).selectOption('toggle');
   await page.getByLabel('Destinos de la acción', { exact: true }).fill('light.synthetic_spare');
   await page.getByRole('button', { name: 'Aplicar acción', exact: true }).click();
-  await page.getByText('Paneles nativos', { exact: true }).click();
+  await showSection(page.locator('homemanager-editor'), 'panels-section');
   await page.getByRole('button', { name: 'Agregar control', exact: true }).click();
   await page.getByLabel('ID de panel', { exact: true }).fill('synthetic-spare-panel');
   await page.getByLabel('Título del panel', { exact: true }).fill('Panel de prueba adicional');
@@ -190,7 +191,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await page.getByLabel('Acción de control 1', { exact: true }).selectOption('synthetic-spare-toggle');
   await page.getByRole('button', { name: 'Aplicar panel', exact: true }).click();
   await page
-    .getByRole('region', { name: 'Ajustes del plano' })
+    .getByRole('region', { name: 'Configuración' })
     .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await select(page);
@@ -206,7 +207,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
   }
   if (!(await sheet.locator('#module-native').evaluate(d => d.open)))
     await sheet.locator('#module-native > summary').click();
-  await page.getByLabel('Panel nativo', { exact: true }).selectOption('synthetic-spare-panel');
+  await page.getByLabel('Panel avanzado', { exact: true }).selectOption('synthetic-spare-panel');
   await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   // Saving closed the sheet; "Más opciones" stays open when it is opened again.
   await select(page);
@@ -227,6 +228,65 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await expect(save(page)).toHaveAttribute('data-dirty', 'false');
 });
 
+test('unsaved edits survive a reload in this browser and are offered back (#89)', async ({ page }) => {
+  const backupKeys = () =>
+    page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('homemanager:draft:')));
+  await begin(page);
+  await select(page);
+  await setX(page, 0.41);
+  await expect.poll(backupKeys).toHaveLength(1);
+  // Reloading with unsaved edits asks first; accepting leaves the copy behind.
+  let asked = '';
+  page.once('dialog', dialog => {
+    asked = dialog.type();
+    void dialog.accept();
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.testHarnessReady);
+  expect(asked).toBe('beforeunload');
+  await expect(page.locator('homemanager-card .status')).toContainText('cambios sin guardar');
+  await openCardMenu(page);
+  await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  const offer = page.getByRole('region', { name: /^Tenés cambios sin guardar del/ });
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'Recuperar', exact: true }).click();
+  const light = (await draft(page)).catalog.devices.find(device => device.id === 'synthetic-light');
+  expect(light.position.x).toBeCloseTo(0.41);
+  // Saving clears the copy.
+  await save(page).click();
+  await expect(save(page)).toHaveAttribute('data-dirty', 'false');
+  await expect.poll(backupKeys).toHaveLength(0);
+});
+
+test('a copy older than the saved plan warns before recovering, and discarding drops it (#89)', async ({ page }) => {
+  await begin(page);
+  await select(page);
+  await setX(page, 0.43);
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('homemanager:draft:'))))
+    .toBe(true);
+  page.once('dialog', dialog => void dialog.accept());
+  // Someone else saves meanwhile.
+  await page.evaluate(() =>
+    window.testHarness.mutateRemote(dashboard => {
+      dashboard.views[0].cards[0].configuration.catalog.devices[2].display.label = 'Guardado por otra persona';
+    }),
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.testHarnessReady);
+  await openCardMenu(page);
+  await page.getByRole('button', { name: 'Editar plano', exact: true }).click();
+  const offer = page.getByRole('region', { name: /^Tenés cambios sin guardar del/ });
+  await expect(offer).toContainText('El plano cambió en Home Assistant');
+  // Nothing was applied before choosing.
+  expect((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-light').position.x).toBeCloseTo(0.25);
+  await offer.getByRole('button', { name: 'Descartar', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('homemanager:draft:'))))
+    .toBe(false);
+  expect((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-light').position.x).toBeCloseTo(0.25);
+});
+
 test('new unbound icons can be added and removed entirely through the editor', async ({ page }) => {
   await begin(page);
   await page.getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
@@ -234,7 +294,7 @@ test('new unbound icons can be added and removed entirely through the editor', a
   await page.getByText('Más opciones', { exact: true }).click();
   await page.getByLabel('Nombre del dispositivo', { exact: true }).fill('Icono sintético adicional');
   await page.getByLabel('ID del dispositivo', { exact: true }).fill('synthetic-added');
-  await page.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
+  await page.getByRole('button', { name: 'Crear', exact: true }).click();
   await expect
     .poll(async () => Boolean((await draft(page)).catalog.devices.find(d => d.id === 'synthetic-added')))
     .toBe(true);
@@ -380,7 +440,7 @@ test('keyboard movement stays normalized and undo restores the previous persiste
   const before = (await draft(page)).catalog.devices[0];
   await action(page, lightLabel).focus();
   await page.keyboard.press('ArrowRight');
-  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x + 0.002, 5);
+  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x + 0.01, 5); // one grid cell (#90)
   expect((await draft(page)).catalog.devices[0].bindings).toEqual(before.bindings);
   await page.keyboard.press('Control+z');
   expect((await draft(page)).catalog.devices[0].position).toEqual(before.position);
@@ -388,8 +448,9 @@ test('keyboard movement stays normalized and undo restores the previous persiste
 
 test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await page.getByText('Importar y exportar', { exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(() => {
     const create = URL.createObjectURL;
     URL.createObjectURL = blob => {
@@ -497,8 +558,9 @@ test('an old JSON cannot silently take links away or bring spaces back', async (
   await begin(page);
   const before = await draft(page);
   const linked = before.catalog.devices.find(item => item.bindings.entityId);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await page.getByText('Importar y exportar', { exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   const old = structuredClone(before);
   old.catalog.devices.find(item => item.id === linked.id).bindings.entityId = null;
   old.rooms.push({ id: 'cuarto-viejo', label: 'Cuarto viejo' });

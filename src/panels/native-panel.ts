@@ -23,6 +23,8 @@ export interface PanelAvailability {
   reason?: string;
 }
 export interface PanelOptions {
+  /** On a wide screen, the side column where Now lives: the plan stays in view (#59). */
+  dock?: HTMLElement;
   /** Configured native panel; null shows only the controls derived from the entity. */
   panel: NativePanel | null;
   device: Device;
@@ -111,6 +113,7 @@ export function stateText(value: string): string {
 }
 
 const css = `${tokens}${controlViewStyles}
+:host([data-dock=side]) .close{display:none}
 dialog{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:22px;padding:0;width:min(460px,calc(100vw - 24px));max-height:86dvh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.28)}
 dialog::backdrop{background:rgba(10,20,15,.42);backdrop-filter:blur(3px)}
 .head{display:flex;align-items:center;gap:12px;padding:18px 18px 6px}
@@ -756,8 +759,16 @@ export function openPanel(options: PanelOptions): PanelHandle {
   const element = document.createElement('homemanager-panel') as HomeManagerPanel;
   element.configure(options);
   const container = options.returnFocus?.getRootNode();
-  element.style.cssText = `position:${container instanceof ShadowRoot ? 'absolute' : 'fixed'};inset:0;z-index:20;display:block`;
-  (container instanceof ShadowRoot ? container : document.body).append(element);
+  if (options.dock) {
+    // Beside the plan, in Now's place, with one way out (its ← ): #59.
+    element.dataset.dock = 'side';
+    element.style.cssText =
+      'position:relative;flex:none;width:420px;max-width:45%;align-self:stretch;display:block;min-height:0;border-left:1px solid var(--hm-line)';
+    options.dock.append(element);
+  } else {
+    element.style.cssText = `position:${container instanceof ShadowRoot ? 'absolute' : 'fixed'};inset:0;z-index:20;display:block`;
+    (container instanceof ShadowRoot ? container : document.body).append(element);
+  }
   try {
     element.open();
   } catch (error) {

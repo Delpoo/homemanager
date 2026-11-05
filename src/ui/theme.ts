@@ -40,6 +40,8 @@ export const tokens = `
   --hm-surface-2:color-mix(in srgb,var(--hm-text) 6%,transparent);
   --hm-text:var(--hm-ink);--hm-accent:var(--hm-brand);--hm-on-accent:var(--hm-preference-on-accent,#FFFFFF);
   --hm-confirmed:var(--hm-ok);--hm-estimated:var(--hm-warn);--hm-sent:var(--hm-muted);--hm-error:var(--hm-alert);
+  /* Edit mode is amber (#90); red stays for alerts. */
+  --hm-edit:#C77700;--hm-edit-ink:#7A4300;--hm-edit-soft:color-mix(in srgb,#E8A33D 20%,var(--hm-bg));
   --hm-radius:12px;
   --hm-radius-sm:10px;
   --hm-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 20px rgba(0,0,0,.08);
@@ -52,11 +54,13 @@ export const tokens = `
   --hm-ink:var(--hm-preference-ink,#E8ECE6);--hm-muted:var(--hm-preference-muted,#9AA59F);--hm-bg:var(--hm-preference-bg,#121714);--hm-surface:var(--hm-preference-surface,#1B221E);--hm-line:var(--hm-preference-line,#2C3530);
   --hm-brand:var(--hm-preference-brand,#8FB38B);--hm-active:var(--hm-preference-active,#F0B455);--hm-cool:var(--hm-preference-cool,#6FA9D6);--hm-ok:var(--hm-preference-ok,#5DB07F);--hm-warn:var(--hm-preference-warn,#E9A23B);--hm-alert:var(--hm-preference-alert,#E5645A);--hm-unknown:var(--hm-preference-unknown,#6E7A73);
   --hm-on-accent:var(--hm-preference-on-accent,#121714);
+  --hm-edit:#F0B455;--hm-edit-ink:#F7CD86;--hm-edit-soft:color-mix(in srgb,#F0B455 16%,var(--hm-bg));
 }
 @media(prefers-color-scheme:dark){:host(:not([data-theme=light])){
   --hm-ink:var(--hm-preference-ink,#E8ECE6);--hm-muted:var(--hm-preference-muted,#9AA59F);--hm-bg:var(--hm-preference-bg,#121714);--hm-surface:var(--hm-preference-surface,#1B221E);--hm-line:var(--hm-preference-line,#2C3530);
   --hm-brand:var(--hm-preference-brand,#8FB38B);--hm-active:var(--hm-preference-active,#F0B455);--hm-cool:var(--hm-preference-cool,#6FA9D6);--hm-ok:var(--hm-preference-ok,#5DB07F);--hm-warn:var(--hm-preference-warn,#E9A23B);--hm-alert:var(--hm-preference-alert,#E5645A);--hm-unknown:var(--hm-preference-unknown,#6E7A73);
   --hm-on-accent:var(--hm-preference-on-accent,#121714);
+  --hm-edit:#F0B455;--hm-edit-ink:#F7CD86;--hm-edit-soft:color-mix(in srgb,#F0B455 16%,var(--hm-bg));
 }}
 *{box-sizing:border-box}
 [hidden]{display:none!important}

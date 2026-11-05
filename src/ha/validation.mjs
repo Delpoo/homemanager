@@ -35,7 +35,8 @@ export const CONTROL_STEPS = Object.freeze({
 });
 export const MAX_CONTROLS = 8;
 export const MAX_PINNED = 3;
-export const MAX_READINGS = 3;
+/** No fixed limit of three any more (#91): a safe technical ceiling of 31 besides the main one. */
+export const MAX_READINGS = 31;
 export const SYMBOL_SIZES = Object.freeze(['s', 'm', 'l']);
 export const SYMBOL_ARCHETYPES = Object.freeze([
   'actuator',
@@ -111,6 +112,110 @@ function id(value, path) {
   text(value, path);
   if (!ID.test(value) || UNSAFE.has(value)) invalid(path, 'safe kebab-case identifier required');
 }
+/** Plan 0.12 (#92, #93, #94): how a symbol and its values look. All optional. */
+function symbolLook(display, path) {
+  const hex = (value, where) => {
+    if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) invalid(where, 'hex color required');
+  };
+  const range = (value, min, max, where) => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      invalid(where, `number between ${min} and ${max} required`);
+  };
+  if (Object.hasOwn(display, 'values')) {
+    const values = display.values;
+    if (!Array.isArray(values) || values.length > 8) invalid(`${path}.values`, 'at most 8 values');
+    const seen = new Set();
+    values.forEach((value, index) => {
+      const where = `${path}.values[${index}]`;
+      fields(value, ['entity'], ['decimals', 'unit', 'label', 'size', 'color', 'ranges', 'dot'], where);
+      entity(value.entity, `${where}.entity`);
+      if (seen.has(value.entity)) invalid(where, 'each reading once');
+      seen.add(value.entity);
+      if (
+        Object.hasOwn(value, 'decimals') &&
+        (!Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 3)
+      )
+        invalid(`${where}.decimals`, '0 to 3 decimals');
+      if (Object.hasOwn(value, 'unit') && typeof value.unit !== 'boolean') invalid(`${where}.unit`, 'boolean required');
+      if (Object.hasOwn(value, 'dot') && typeof value.dot !== 'boolean') invalid(`${where}.dot`, 'boolean required');
+      if (
+        Object.hasOwn(value, 'label') &&
+        (typeof value.label !== 'string' || !value.label.trim() || value.label.length > 16)
+      )
+        invalid(`${where}.label`, 'short label required');
+      if (Object.hasOwn(value, 'size')) one(value.size, ['s', 'm', 'l'], `${where}.size`);
+      if (Object.hasOwn(value, 'color')) hex(value.color, `${where}.color`);
+      if (Object.hasOwn(value, 'ranges')) {
+        if (!Array.isArray(value.ranges) || value.ranges.length > 6) invalid(`${where}.ranges`, 'at most 6 ranges');
+        value.ranges.forEach((item, at) => {
+          fields(item, ['from', 'color'], [], `${where}.ranges[${at}]`);
+          range(item.from, -1e9, 1e9, `${where}.ranges[${at}].from`);
+          hex(item.color, `${where}.ranges[${at}].color`);
+        });
+      }
+    });
+  }
+  if (Object.hasOwn(display, 'valuePlace'))
+    one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
+  if (Object.hasOwn(display, 'scale')) range(display.scale, 0.5, 2.5, `${path}.scale`);
+  if (Object.hasOwn(display, 'roomScale')) range(display.roomScale, 0.5, 2.5, `${path}.roomScale`);
+  if (Object.hasOwn(display, 'opacity')) range(display.opacity, 0, 100, `${path}.opacity`);
+  if (Object.hasOwn(display, 'shape')) one(display.shape, ['circle', 'pill', 'dot', 'icon'], `${path}.shape`);
+  // #95: a drawing or a shortcut that needs no device link.
+  if (Object.hasOwn(display, 'standalone') && display.standalone !== true)
+    invalid(`${path}.standalone`, 'true or absent');
+}
+/** Plan 0.12 (#97): links that may open, and Home Assistant pages. Never javascript:, data: or file:. */
+const BLOCKED_SCHEMES = /^(?:javascript|data|file|vbscript|about|blob|chrome|ms-[a-z-]+):/i;
+const LINK = /^(?:https:\/\/[^\s"'<>]{1,500}|[a-z][a-z0-9+.-]{1,30}:[^\s"'<>]{1,500})$/i;
+const HA_PATH = /^\/(?!\/)[A-Za-z0-9/_\-.?=&%#]{0,200}$/;
+function link(value, at) {
+  if (typeof value !== 'string' || !LINK.test(value) || BLOCKED_SCHEMES.test(value) || /^http:/i.test(value))
+    invalid(at, 'https link or app link required');
+}
+function haPath(value, at) {
+  if (typeof value !== 'string' || !HA_PATH.test(value)) invalid(at, 'Home Assistant path required');
+}
+function gestureAction(binding, at, choose) {
+  fields(binding, ['action'], ['controlId', 'path', 'url', 'mobileUrl', 'fallback', 'fallbackPath', 'options'], at);
+  const kinds = ['screen', 'panel', 'native', 'none', 'control', 'more-info', 'navigate', 'url'];
+  one(binding.action, choose ? [...kinds, 'choose'] : kinds, at);
+  const only = (key, kind) => {
+    if (Object.hasOwn(binding, key) && binding.action !== kind) invalid(at, `${key} only belongs to ${kind}`);
+  };
+  only('controlId', 'control');
+  only('path', 'navigate');
+  for (const key of ['url', 'mobileUrl', 'fallback', 'fallbackPath']) only(key, 'url');
+  only('options', 'choose');
+  if (binding.action === 'control') id(binding.controlId, at + '.controlId');
+  if (binding.action === 'navigate') haPath(binding.path, `${at}.path`);
+  if (binding.action === 'url') {
+    link(binding.url, `${at}.url`);
+    if (Object.hasOwn(binding, 'mobileUrl')) link(binding.mobileUrl, `${at}.mobileUrl`);
+    if (Object.hasOwn(binding, 'fallback'))
+      one(binding.fallback, ['screen', 'panel', 'more-info', 'navigate'], `${at}.fallback`);
+    if (Object.hasOwn(binding, 'fallbackPath')) {
+      if (binding.fallback !== 'navigate') invalid(at, 'fallbackPath only belongs to a navigate fallback');
+      haPath(binding.fallbackPath, `${at}.fallbackPath`);
+    } else if (binding.fallback === 'navigate') invalid(at, 'fallbackPath required');
+  }
+  if (binding.action === 'choose') {
+    const options = binding.options;
+    if (!Array.isArray(options) || options.length < 2 || options.length > 4) invalid(`${at}.options`, '2 to 4 options');
+    options.forEach((item, index) => {
+      const where = `${at}.options[${index}]`;
+      fields(item, ['label', 'do'], ['icon'], where);
+      if (typeof item.label !== 'string' || !item.label.trim() || item.label.length > 40)
+        invalid(`${where}.label`, 'short label');
+      if (
+        Object.hasOwn(item, 'icon') &&
+        (typeof item.icon !== 'string' || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.icon))
+      )
+        invalid(`${where}.icon`, 'mdi icon');
+      gestureAction(item.do, `${where}.do`, false);
+    });
+  }
+}
 function entity(value, path) {
   text(value, path);
   if (!ENTITY.test(value) || value.endsWith('.all')) invalid(path, 'explicit entity ID required');
@@ -119,7 +224,8 @@ function one(value, values, path) {
   if (!values.includes(value)) invalid(path, 'unsupported value');
 }
 function alertRules(value, path) {
-  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, 'array of at most 4 alert rules required');
+  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES)
+    invalid(path, `array of at most ${MAX_ALERT_RULES} alert rules required`);
   value.forEach((rule, index) => {
     const at = `${path}[${index}]`;
     fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes', 'enabled'], at);
@@ -232,10 +338,7 @@ function controls(device, path) {
       if (gesture === 'tap' && !['button', 'cycle'].includes(types.get(binding)))
         invalid(at, 'must name a button or cycle control of this device');
     } else {
-      fields(binding, ['action'], ['controlId'], at);
-      one(binding.action, ['screen', 'panel', 'native', 'none', 'control'], at);
-      if (binding.action === 'control') id(binding.controlId, at + '.controlId');
-      else if (Object.hasOwn(binding, 'controlId')) invalid(at, 'controlId only belongs to a control action');
+      gestureAction(binding, at, true);
     }
   }
   if (Object.hasOwn(device.display, 'pinned')) {
@@ -256,7 +359,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels'],
+    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels', 'symbolSizes', 'initialView', 'baseRules'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -334,9 +437,17 @@ function shape(configuration) {
         'layer',
         'disabledBaseRules',
         'color',
+        'values',
+        'valuePlace',
+        'scale',
+        'roomScale',
+        'opacity',
+        'shape',
+        'standalone',
       ],
       `${path}.display`,
     );
+    symbolLook(device.display, `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
     if (
@@ -388,7 +499,7 @@ function shape(configuration) {
     if (Object.hasOwn(device.bindings, 'readings')) {
       const readings = device.bindings.readings;
       if (!Array.isArray(readings) || readings.length > MAX_READINGS)
-        invalid(`${path}.bindings.readings`, 'array of at most 3 additional readings required');
+        invalid(`${path}.bindings.readings`, 'array of at most 31 additional readings required');
       for (const reading of readings) entity(reading, `${path}.bindings.readings`);
       if (new Set(readings).size !== readings.length || readings.includes(device.bindings.entityId))
         invalid(`${path}.bindings.readings`, 'additional readings must be unique and exclude the principal');
@@ -467,6 +578,60 @@ function shape(configuration) {
     }
     one(source.feedback, ['measured', 'optimistic', 'transmitter'], `stateSources.${key}.feedback`);
   }
+  // Plan 0.12 (#94): symbol size by view and zoom, and the initial view. Optional.
+  const between = (value, min, max, where) => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      invalid(where, `number between ${min} and ${max} required`);
+  };
+  if (Object.hasOwn(configuration, 'symbolSizes')) {
+    const sizes = configuration.symbolSizes;
+    fields(sizes, ['house', 'room', 'min', 'max'], [], 'configuration.symbolSizes');
+    for (const key of ['house', 'room', 'min', 'max'])
+      between(sizes[key], 0.5, 2.5, `configuration.symbolSizes.${key}`);
+  }
+  // Plan 0.12 (#60): the automatic rules' switches and limits. Absent: as before.
+  if (Object.hasOwn(configuration, 'baseRules')) {
+    const rules = configuration.baseRules;
+    fields(rules, [], ['battery', 'unavailable', 'safety'], 'configuration.baseRules');
+    const toggle = (rule, at) => {
+      if (Object.hasOwn(rule, 'enabled') && typeof rule.enabled !== 'boolean') invalid(at, 'boolean required');
+    };
+    if (Object.hasOwn(rules, 'battery')) {
+      fields(rules.battery, [], ['enabled', 'below'], 'configuration.baseRules.battery');
+      toggle(rules.battery, 'configuration.baseRules.battery.enabled');
+      if (Object.hasOwn(rules.battery, 'below'))
+        between(rules.battery.below, 1, 100, 'configuration.baseRules.battery.below');
+    }
+    if (Object.hasOwn(rules, 'unavailable')) {
+      fields(rules.unavailable, [], ['enabled', 'minutes'], 'configuration.baseRules.unavailable');
+      toggle(rules.unavailable, 'configuration.baseRules.unavailable.enabled');
+      if (Object.hasOwn(rules.unavailable, 'minutes'))
+        between(rules.unavailable.minutes, 1, 1440, 'configuration.baseRules.unavailable.minutes');
+    }
+    if (Object.hasOwn(rules, 'safety')) {
+      fields(rules.safety, [], ['enabled'], 'configuration.baseRules.safety');
+      toggle(rules.safety, 'configuration.baseRules.safety.enabled');
+    }
+  }
+  if (Object.hasOwn(configuration, 'initialView')) {
+    const view = configuration.initialView;
+    fields(view, ['room', 'x', 'y', 'zoom'], ['planView'], 'configuration.initialView');
+    if (
+      view.room !== null &&
+      (typeof view.room !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.room) || view.room.length > 64)
+    )
+      invalid('configuration.initialView.room', 'space id or null required');
+    between(view.x, -1, 2, 'configuration.initialView.x');
+    between(view.y, -1, 2, 'configuration.initialView.y');
+    between(view.zoom, 0.5, 16, 'configuration.initialView.zoom');
+    if (
+      Object.hasOwn(view, 'planView') &&
+      (typeof view.planView !== 'string' ||
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.planView) ||
+        view.planView.length > 64)
+    )
+      invalid('configuration.initialView.planView', 'plan view id required');
+  }
   if (Object.hasOwn(configuration, 'nowPanels')) {
     fields(configuration.nowPanels, [], ['home', 'wall'], 'nowPanels');
     for (const [mode, blocks] of Object.entries(configuration.nowPanels)) {
@@ -482,7 +647,7 @@ function shape(configuration) {
         id(block.id, 'nowPanels.id');
         if (
           ids.has(block.id) ||
-          !['alerts', 'reading', 'readings', 'active', 'energy', 'control', 'shortcut'].includes(block.type)
+          !['alerts', 'climate', 'reading', 'readings', 'active', 'energy', 'control', 'shortcut'].includes(block.type)
         )
           invalid('nowPanels', 'invalid block');
         ids.add(block.id);

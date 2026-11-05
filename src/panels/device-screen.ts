@@ -105,6 +105,7 @@ export class DeviceScreenView extends HTMLElement {
           card.activity.entries,
           card.draft.panels,
           card.feed.alertContext,
+          card.draft.baseRules,
         )
       : undefined;
     const title = this.screen?.name ?? t('Ahora');
@@ -304,6 +305,7 @@ export class DeviceScreenView extends HTMLElement {
       card.currentRoom,
       card.runtime.states,
       card.feed.alertContext,
+      card.draft!.baseRules,
     );
     const global = card.feed.ruleResults.filter(
       result =>
@@ -331,7 +333,7 @@ export class DeviceScreenView extends HTMLElement {
         })),
       );
     }
-    const custom = configuredNow(card.draft!, card._hass, sections, card.dataset.wall === 'true');
+    const custom = configuredNow(card.draft!, card._hass, sections);
     if (custom)
       return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${custom.length ? custom.map(section => uiGroup(t(section.title), (section.missing ? uiNotice(t('Referencia no disponible'), 'warning') : '') + (section.block.type === 'control' ? `<div class="now-control" data-device="${e(section.block.deviceId ?? '')}" data-control-id="${e(section.block.controlId ?? '')}"></div>` : section.block.type === 'shortcut' && !section.block.deviceId && section.block.roomId ? `<button type="button" class="k-btn" data-now-room="${e(section.block.roomId)}">${e(section.rows[0]?.name ?? t('Referencia no disponible'))}</button>` : section.rows.map(uiNowRow).join('')))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
     return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
@@ -389,6 +391,7 @@ export class DeviceScreenView extends HTMLElement {
         this.card.currentRoom,
         this.card.runtime.states,
         this.card.feed.alertContext,
+        this.card.draft!.baseRules,
       );
       const command = sections.find(section => section.id === 'active')?.rows.find(row => row.id === id)?.off;
       if (command) await this.send(id, command);

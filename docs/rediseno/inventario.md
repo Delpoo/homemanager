@@ -56,7 +56,7 @@ Fuente: `src/editor/settings-page.ts`. La página tiene siete secciones y contad
 
 | Id | Función | Qué permite hacer | Dónde está hoy | Cómo se llega | Etapa que la toca | Qué pasa con ella | Comprobada en |
 |---|---|---|---|---|---|---|---|
-| F-022 | Cambiar sección de ajustes | Entrar a Plano y espacios, Conectar mi casa, Diagnóstico, Acciones lógicas, Paneles nativos, Referencias pendientes o Importar y exportar | Navegación de Ajustes | Abrir ajustes y elegir sección | E02 | Se conserva; funciones internas en F-075–F-089 y F-125 | código |
+| F-022 | Cambiar sección de ajustes | Entrar a Plano y espacios, Conectar mi casa, Diagnóstico, Acciones lógicas, Paneles avanzados, Referencias pendientes o Importar y exportar | Navegación de Ajustes | Abrir ajustes y elegir sección | E02 | Se conserva; funciones internas en F-075–F-089 y F-125 | código |
 | F-023 | Consultar espacios | Ver nombre, icono, cantidad de dispositivos y situación de su forma | Plano y espacios | Abrir la sección | E02, E11 | Se conserva | código |
 | F-024 | Ordenar y abrir un espacio | Acceder a su edición y al control de orden mediante agarre o teclado | Lista de espacios | Abrir una fila o usar su control de movimiento | E02, E11 | Se conserva; reordenar actualiza la lista en el borrador | código |
 | F-025 | Reemplazar el dibujo | Acceder a la importación desde la miniatura del plano | Plano y espacios | Reemplazar plano | E02, E11 | Se conserva; revisión detallada en F-083–F-088 | código |
@@ -100,7 +100,7 @@ Fuentes: `src/editor/index.ts` (`deviceForm`, `stateForm`, eventos), `src/editor
 | F-049 | Elegir mando RF | Usar un control de la biblioteca dentro del panel del dispositivo, o el automático de su entidad | Ficha | Control RF en el panel | E01, E05, E09 | Se conserva; si el selector no se muestra, el vínculo existente se mantiene | código |
 | F-050 | Movilidad, posición e identidad | Distinguir fijo/editable/portátil y editar coordenadas; conservar ID de dispositivos existentes | Más opciones | Abrir bloque avanzado | E01, E05 | Se conserva; campos técnicos permanecen avanzados | código |
 | F-051 | Corregir posición fija | Autorizar explícitamente el cambio de ubicación de un fijo | Más opciones o selección | Corregir ubicación fija / Reubicar dispositivo fijo | E01, E05 | Se conserva; no desbloquear todos los dispositivos | código |
-| F-052 | Panel nativo adicional | Asociar un panel definido en Ajustes | Más opciones | Panel nativo | E01, E05, E09 | Se conserva junto a los controles diseñados | código |
+| F-052 | Panel nativo adicional | Asociar un panel definido en Ajustes | Más opciones | Panel avanzado (antes «Panel nativo», #78) | E01, E05, E09 | Se conserva junto a los controles diseñados | código |
 | F-053 | Fuente de estado | Elegir entidad, atributo y lectura informada, medida o sólo envío; quitar la fuente al dejar entidad vacía | Más opciones | Fuente de estado → Aplicar fuente | E01, E05 | A decidir: destino del editor avanzado; recomendación D-E00-03 | código |
 | F-054 | Restablecer sugerencias | Reponer nombre, icono y controles sugeridos tras confirmar | Pie de ficha | Restablecer valores sugeridos | E01, E09 | Se conserva; no confundir con deshacer sólo este dispositivo | código |
 | F-055 | Aplicar la ficha al borrador | Validar campos y acciones, conservar vínculos y cerrar la ficha embebida | Pie de ficha | Guardar dispositivo | E01 | Se conserva; el guardado compartido sigue siendo separado | código + captura histórica C05 |
@@ -149,7 +149,7 @@ Fuentes: `src/editor/index.ts`, `room-actions.ts`, `plan-review.ts`, `model.ts`,
 | F-077 | Editar espacio | Renombrar, elegir icono, fusionar o quitar; reasignar o dejar sin espacio sus dispositivos | Ventana del espacio | Abrir espacio desde lista o riel en edición | E02, E11, E13 | Cambia de lugar: pantalla de edición de espacio | código |
 | F-078 | Ajustes de navegación del espacio | Elegir encuadre, saltear al navegar y flechas de destino; editar forma o volver a zona SVG | Ventana del espacio | Vista por espacio | E02, E11, E13 | Se conserva | código |
 | F-079 | Acciones lógicas | Crear o editar ID, dominio, servicio, destinos explícitos y datos JSON de una acción | Ajustes | Acciones lógicas → Aplicar acción | E02, E09 | A decidir: editor avanzado y relación con diseñador; D-E00-04 | código |
-| F-080 | Definir paneles nativos | Crear o editar panel, tipo y controles con ID, etiqueta y acción; agregar o quitar filas | Ajustes | Paneles nativos → Aplicar panel | E02, E09 | A decidir: conservar compatibilidad y destino avanzado; D-E00-04 | código |
+| F-080 | Definir paneles nativos | Crear o editar panel, tipo y controles con ID, etiqueta y acción; agregar o quitar filas | Ajustes | Paneles avanzados → Aplicar panel | E02, E09 | A decidir: conservar compatibilidad y destino avanzado; D-E00-04 | código |
 | F-081 | Referencias pendientes | Ver entidades, acciones o paneles no resueltos sin ejecutarlos | Ajustes | Referencias pendientes | E02, E05 | Se conserva; guardar debe validar lo requerido | código |
 | F-082 | Exportar respaldo | Descargar configuración duradera sin copiar el estado físico estimado como verdad | Importar y exportar | Exportar JSON | E02, E11 | Se conserva como copia de respaldo | código |
 | F-083 | Previsualizar JSON o SVG | Ver altas, bajas, cambios, acciones, paneles, espacios y dibujo antes de aplicar | Importar y exportar | Elegir archivo | E02, E11 | Se conserva; importar no ejecuta comandos | código |
@@ -394,3 +394,32 @@ Hallazgos que no se arreglan en E00:
 - La captura C04 muestra tabla de canales con nombres reconocibles; no prueba que cualquier medidor con lecturas llamadas Power 1 se reconozca igual. E04 debe comprobar ese caso con fixtures.
 
 La documentación de E00 está completa para revisión según las alternativas admitidas por la guía actualizada. La validación en vivo pendiente está declarada y no se marca como aprobada. Se requiere validación del propietario sobre los seis destinos «a decidir» antes de E01.
+
+## Cambios del plan 0.12 (lote B, 2026-11-05)
+
+El menú ⋮ se reemplazó por tres botones y una pantalla de **Configuración** ([#70](https://github.com/Delpoo/homemanager/issues/70)). El modo pared se quitó por **decisión del propietario del 2026-11-04** ([#61](https://github.com/Delpoo/homemanager/issues/61)). Ninguna fila se pierde. Dónde quedó cada una:
+
+| Fila | Antes | Ahora |
+|---|---|---|
+| F-006 | Menú → Editar plano | Botón ✎ de la barra superior |
+| F-007 | Menú → Plano | Botón ← en Controles RF y en Nuevo hogar. Vuelve a donde estabas |
+| F-008 | Menú → Controles RF | Configuración › Controles › Controles RF › Abrir controles RF |
+| F-009 | Menú → Ajustes del plano | Botón ⚙ › Configuración. En edición, el ⚙ de la franja |
+| F-010 | Menú → Hogar | Configuración › Mi casa › Hogares |
+| F-011 | Menú → Nuevo hogar | Configuración › Mi casa › Hogares › Nuevo hogar |
+| F-012, F-119 | Menú → Almacenamiento | Configuración › Mantenimiento › Almacenamiento. Ahora también muestra cuánto ocupan las imágenes |
+| F-013 | Menú → Apariencia | Configuración › Pantallas › Apariencia. Sin administrar también está |
+| F-014 | Menú → Pantalla completa | Botón ⛶ de la barra superior. Si el navegador no lo permite, la vista ocupa toda la ventana |
+| F-015 | Menú → Ayuda | Configuración › Ayuda |
+| F-016 | Teclado del menú | Ya no hay menú: los tres botones son botones comunes, con Tab y Enter |
+| F-017 | Menú → Menú de Home Assistant | Botón ☰ al principio de la barra, sólo en pantallas estrechas |
+| Mostrar capas | Menú y Ajustes › Plano y espacios | Sólo en Configuración › Pantallas › Apariencia |
+| Reglas | Menú (abría la edición) y Ajustes | Sólo en Configuración › Reglas |
+
+**Quitado por decisión del propietario del 2026-11-04 (#61):**
+- la entrada «Modo pared»;
+- la paleta oscura forzada;
+- el botón «Salir del modo pared»;
+- la lista «Modo pared» del editor de *Ahora*.
+
+Un plano con `nowPanels.wall` la conserva al guardar, aunque ya no se use.

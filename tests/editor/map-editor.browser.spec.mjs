@@ -1,3 +1,4 @@
+import { openAdvanced, openFirstSection } from '../browser/shell-helpers.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
@@ -85,7 +86,7 @@ test('editing starts with the plan, and the floating add menu offers both creati
   await expect(button(page, 'Dispositivo vacío')).toBeVisible();
   await button(page, 'Dispositivo vacío').click();
   await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Lámpara nueva');
-  await button(page, 'Guardar dispositivo').click();
+  await button(page, 'Crear').click();
   await expect(card(page).locator('.placing-hint')).toBeVisible();
   await expect(editor(page)).toBeHidden();
   const zone = await card(page).locator('#room-living').boundingBox();
@@ -95,6 +96,58 @@ test('editing starts with the plan, and the floating add menu offers both creati
   await expect(editor(page)).toBeVisible();
   await expect(editor(page).getByLabel('ID del dispositivo', { exact: true })).toBeHidden();
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
+});
+
+test('cancelling a new device leaves no trace, with or without a name (#88)', async ({ page }) => {
+  await begin(page);
+  const before = (await draft(page)).catalog.devices.length;
+  const undo = card(page).getByRole('button', { name: 'Deshacer', exact: true });
+  const undoBefore = await undo.isDisabled();
+  const startNew = async () => {
+    await button(page, 'Agregar dispositivo').click();
+    await button(page, 'Dispositivo vacío').click();
+    await expect(button(page, 'Crear')).toBeVisible();
+    await expect(button(page, 'Cancelar')).toBeVisible();
+  };
+  // Empty sheet: the × closes at once, without a question or a browser bubble.
+  await startNew();
+  await button(page, 'Cerrar').click();
+  await expect(editor(page)).toBeHidden();
+  expect((await draft(page)).catalog.devices.length).toBe(before);
+  // With a name: Cancel asks once, and discarding adds nothing.
+  await startNew();
+  await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('No quedará');
+  await button(page, 'Cancelar').click();
+  await expect(editor(page).getByRole('dialog')).toContainText('¿Descartar el dispositivo nuevo?');
+  await editor(page).getByRole('button', { name: 'Descartar', exact: true }).click();
+  await expect(editor(page)).toBeHidden();
+  // Tapping × with a name also asks; keeping the sheet keeps what was typed.
+  await startNew();
+  await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).fill('Tampoco');
+  await button(page, 'Cerrar').click();
+  await editor(page).getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await expect(editor(page).getByLabel('Nombre del dispositivo', { exact: true })).toHaveValue('Tampoco');
+  // Esc while typing works like Cancel.
+  await editor(page).getByLabel('Nombre del dispositivo', { exact: true }).press('Escape');
+  await editor(page).getByRole('button', { name: 'Descartar', exact: true }).click();
+  const after = await draft(page);
+  expect(after.catalog.devices.length).toBe(before);
+  expect(after.catalog.devices.some(d => ['No quedará', 'Tampoco'].includes(d.display.label))).toBe(false);
+  // Nothing reached the undo history either.
+  expect(await undo.isDisabled()).toBe(undoBefore);
+});
+
+test('creating without a name shows the app message next to the field (#88)', async ({ page }) => {
+  await begin(page);
+  await button(page, 'Agregar dispositivo').click();
+  await button(page, 'Dispositivo vacío').click();
+  await button(page, 'Crear').click();
+  const name = editor(page).getByLabel('Nombre del dispositivo', { exact: true });
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  await expect(editor(page).locator('.field-error')).toHaveText('Completá este campo.');
+  await expect(name).toBeFocused();
+  await name.fill('Con nombre');
+  await expect(editor(page).locator('.field-error')).toHaveCount(0);
 });
 
 test('linking an existing icon suggests its controls only in the draft, then a tap runs them after save', async ({
@@ -157,20 +210,16 @@ test('deletion has a modal focus trap, Escape and Cancel restore the trigger, an
 
 test('plan settings and field help open without cluttering the map, and Move uses map placement', async ({ page }) => {
   await begin(page);
-  await button(page, 'Ajustes del plano').click();
-  const settings = editor(page).getByRole('region', { name: 'Ajustes del plano' });
+  await button(page, 'Configuración').click();
+  await openFirstSection(page);
+  const settings = editor(page).getByRole('region', { name: 'Configuración' });
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.
-  const sections = settings.getByRole('navigation', { name: 'Secciones de ajustes' });
-  for (const name of [
-    'Plano y espacios',
-    'Acciones lógicas',
-    'Paneles nativos',
-    'Referencias pendientes',
-    'Importar y exportar',
-  ])
-    await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible();
   await expect(settings.getByRole('listitem')).toHaveCount(3);
+  const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
+  await openAdvanced(settings);
+  for (const name of ['Plano y espacios', 'Acciones lógicas', 'Paneles avanzados', 'Referencias pendientes', 'Copias'])
+    await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) }).first()).toBeVisible();
   await page.keyboard.press('Escape');
   await select(page);
   await openDeviceSections(page, ['device-binding']);

@@ -151,23 +151,72 @@ export class PlanViewsEditor extends HTMLElement {
     const image = edit?.[this.mode];
     const button = (cmd: string, label: string, id = '') =>
       `<button type="button" data-action="${cmd}" data-id="${e(id)}"${this.busy ? ' disabled' : ''}>${e(t(label))}</button>`;
-    this.root.innerHTML = `<style>:host{display:block;margin-top:16px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}*{box-sizing:border-box}button,input,select{font:inherit;min-height:44px;border:1px solid var(--hm-line);border-radius:10px;padding:8px;background:var(--hm-surface);color:var(--hm-ink);max-width:100%}label{display:grid;gap:6px;margin:8px 0}.row,.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.row{border:1px solid var(--hm-line);border-radius:12px;padding:10px;margin:8px 0}.row b{flex:1}.row img{width:64px;height:44px;object-fit:contain;border:1px solid var(--hm-line);border-radius:6px}.preview{position:relative;max-width:420px;width:100%;border:1px solid var(--hm-line);overflow:hidden}.preview img{width:100%;height:100%;object-fit:fill}.dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--hm-brand);transform:translate(-50%,-50%)}small{display:block;color:var(--hm-muted)}[role=status]{margin:8px 0}fieldset{min-width:0;width:100%;margin:0;border:1px solid var(--hm-line);border-radius:12px;padding:12px}</style><h4>${e(t('Alternativas del plano'))}</h4><p>${e(t('El plano original conserva símbolos, zonas e historial. Las alternativas cambian sólo la imagen.'))}</p><small>${e(t('Las imágenes se guardan en Home Assistant y sus copias de seguridad. Para trasladarlas, usá la copia con imágenes. La exportación habitual de configuración sólo contiene referencias.'))}</small>${views.map(v => `<div class="row"><b>${e(v.name)}</b>${(['light', 'dark'] as const).map(mode => (v[mode] ? `<img data-thumb="${e(v.id)}:${mode}" alt="${e(t(mode === 'light' ? 'Claro' : 'Oscuro'))}">` : '')).join('')}${button('edit', 'Editar', v.id)}${button('duplicate', 'Duplicar', v.id)}${button('up', 'Subir', v.id)}${button('down', 'Bajar', v.id)}${button('remove', 'Quitar', v.id)}</div>`).join('')}<div class="tools">${button('new', 'Agregar alternativa')}${button('export', 'Exportar copia con imágenes')}<label>${e(t('Importar copia con imágenes'))}<input type="file" data-import accept="application/json"></label></div>${edit ? `<fieldset><legend>${e(t('Editar alternativa'))}</legend><label>${e(t('Nombre'))}<input data-name maxlength="240" value="${e(edit.name)}"></label><label>${e(t('Imagen por modo'))}<select data-mode><option value="light"${this.mode === 'light' ? ' selected' : ''}>${e(t('Claro'))}</option><option value="dark"${this.mode === 'dark' ? ' selected' : ''}>${e(t('Oscuro'))}</option></select></label><label>${e(t('Cargar o reemplazar imagen'))}<input type="file" data-image accept=".svg,.png,.jpg,.jpeg"${this.busy ? ' disabled' : ''}></label><label>${e(t('Color del fondo'))}<input data-background value="${e(edit[this.mode === 'light' ? 'lightBackground' : 'darkBackground'] ?? 'transparent')}" placeholder="#ffffff"></label><small>${e(t('Usá un color hexadecimal o transparent. La imagen debe traer su transparencia.'))}</small>${image ? `<div class="preview" style="aspect-ratio:${this.base()[2]}/${this.base()[3]};background:${e(edit[this.mode === 'light' ? 'lightBackground' : 'darkBackground'] ?? 'transparent')}"><img alt="${e(t('Vista previa'))}" data-preview>${this.config.catalog.devices.map(d => `<i class="dot" style="left:${d.position.x * 100}%;top:${d.position.y * 100}%"></i>`).join('')}</div>${button('align', 'Alinear al plano')}<small>${e(t('Alinear ajusta la imagen al encuadre original. Comprobá sus paredes con los símbolos antes de guardar.'))}</small>` : ''}<div class="tools">${button('save', 'Guardar alternativa')}${button('cancel', 'Cancelar')}</div></fieldset>` : ''}<p role="status">${e(this.message)}</p>`;
+    const background = edit?.[this.mode === 'light' ? 'lightBackground' : 'darkBackground'] ?? 'transparent';
+    const swatches = ['#ffffff', '#f4f5f0', '#e8ece6', '#1b221e', '#121714', '#000000'];
+    const fileButton = (attribute: string, label: string, accept: string) =>
+      `<label class="file-button">${e(label)}<input type="file" ${attribute} accept="${accept}"${this.busy ? ' disabled' : ''}></label>`;
+    // Mockup 6 (#72): a card per alternative, light and dark side by side, a dashed card to add one.
+    this.root.innerHTML = `<style>:host{display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}*{box-sizing:border-box}button,input,select{font:inherit;min-height:44px;border:1px solid var(--hm-line);border-radius:10px;padding:8px;background:var(--hm-surface);color:var(--hm-ink);max-width:100%;cursor:pointer}label{display:grid;gap:6px;margin:8px 0}small{display:block;color:var(--hm-muted)}[role=status]{margin:8px 0}
+.view-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin:12px 0}.view-card{display:grid;gap:8px;padding:12px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface)}.view-card header{display:flex;align-items:center;gap:8px}.view-card header b{flex:1}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.thumb{display:grid;gap:4px;font-size:12px;color:var(--hm-muted);text-align:center}.thumb img,.thumb .missing{width:100%;aspect-ratio:4/3;object-fit:contain;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg)}.thumb .missing{display:grid;place-items:center;font-size:12px;color:var(--hm-warn);border-style:dashed}
+.card-menu{position:relative}.card-menu>summary{list-style:none;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:10px;cursor:pointer}.card-menu>summary::-webkit-details-marker{display:none}.card-menu[open]>div{position:absolute;right:0;top:46px;z-index:2;display:grid;gap:4px;padding:6px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);box-shadow:var(--hm-shadow);min-width:160px}
+.add-card{display:grid;place-items:center;min-height:160px;border:2px dashed var(--hm-line);border-radius:14px;background:transparent;color:var(--hm-accent);font-weight:600}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.file-button{display:inline-grid;place-items:center;min-height:44px;margin:0;padding:8px 14px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);cursor:pointer}.file-button input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.file-button:focus-within{outline:3px solid var(--hm-accent)}
+.editor-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px}@media(max-width:720px){.editor-layout{grid-template-columns:1fr}}
+fieldset{min-width:0;width:100%;margin:0;border:1px solid var(--hm-line);border-radius:12px;padding:12px}.segmented{display:flex;gap:4px}.segmented button[aria-pressed=true]{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.swatches button{width:36px;min-width:36px;height:36px;min-height:36px;padding:0;border-radius:50%}.swatches button[aria-pressed=true]{outline:3px solid var(--hm-accent);outline-offset:2px}.swatches input[type=color]{width:52px;padding:2px}
+.preview{position:relative;width:100%;border:1px solid var(--hm-line);border-radius:10px;overflow:hidden}.preview img{width:100%;height:100%;object-fit:fill}.dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--hm-brand);transform:translate(-50%,-50%)}</style>
+<p>${e(t('El plano original conserva símbolos, zonas e historial. Las alternativas cambian sólo la imagen.'))}</p><small>${e(t('Para elegir cuál se ve, usá el botón de alternativas en el plano. Recomendado: SVG; también PNG y JPG.'))}</small>
+<div class="view-cards">${views
+      .map(
+        v =>
+          `<article class="view-card"><header><b>${e(v.name)}</b><details class="card-menu"><summary aria-label="${e(t('Más acciones de {name}', { name: v.name }))}">⋯</summary><div>${button('up', 'Subir', v.id)}${button('down', 'Bajar', v.id)}${button('duplicate', 'Duplicar', v.id)}${button('remove', 'Quitar', v.id)}</div></details></header><div class="thumbs">${(
+            ['light', 'dark'] as const
+          )
+            .map(mode =>
+              v[mode]
+                ? `<span class="thumb"><img data-thumb="${e(v.id)}:${mode}" alt="${e(t(mode === 'light' ? 'Claro' : 'Oscuro'))}">${e(t(mode === 'light' ? 'Claro' : 'Oscuro'))}</span>`
+                : `<span class="thumb"><span class="missing">${e(t('Falta'))}</span>${e(t(mode === 'light' ? 'Claro' : 'Oscuro'))}</span>`,
+            )
+            .join('')}</div>${button('edit', 'Cambiar imágenes', v.id)}</article>`,
+      )
+      .join(
+        '',
+      )}<button type="button" class="add-card" data-action="new" data-id=""${this.busy ? ' disabled' : ''}>${e(t('+ Agregar alternativa'))}</button></div>
+<div class="tools">${button('export', 'Exportar copia con imágenes')}${fileButton('data-import', t('Importar copia con imágenes'), 'application/json')}</div>
+${
+  edit
+    ? `<fieldset><legend>${e(t('Editar alternativa'))}</legend><div class="editor-layout"><div><label>${e(t('Nombre'))}<input data-name maxlength="240" value="${e(edit.name)}"></label><div class="segmented" role="group" aria-label="${e(t('Imagen por modo'))}"><button type="button" data-mode-choice="light" aria-pressed="${this.mode === 'light'}">${e(t('Claro'))}</button><button type="button" data-mode-choice="dark" aria-pressed="${this.mode === 'dark'}">${e(t('Oscuro'))}</button></div><div class="tools">${fileButton('data-image', image ? t('Cambiar imagen') : t('Elegir imagen'), '.svg,.png,.jpg,.jpeg')}${image ? button('align', 'Alinear al plano') : ''}</div><p>${e(t('Color del fondo'))}</p><div class="swatches">${swatches
+        .map(
+          color =>
+            `<button type="button" data-swatch="${color}" aria-label="${e(color)}" aria-pressed="${background.toLowerCase() === color}" style="background:${color}"></button>`,
+        )
+        .join(
+          '',
+        )}<label class="file-button" style="padding:4px 8px">${e(t('Otro color'))}<input type="color" data-background-color value="${/^#[0-9a-fA-F]{6}$/.test(background) ? background : '#ffffff'}" style="position:static;width:40px;height:28px;opacity:1;pointer-events:auto;padding:0;min-height:28px"></label></div><label class="check" style="display:flex;align-items:center;gap:8px"><input type="checkbox" data-background-clear style="width:20px;min-height:20px"${background === 'transparent' ? ' checked' : ''}><span>${e(t('Fondo transparente'))}</span></label></div><div>${image ? `<div class="preview" style="aspect-ratio:${this.base()[2]}/${this.base()[3]};background:${e(background)}"><img alt="${e(t('Vista previa'))}" data-preview>${this.config.catalog.devices.map(d => `<i class="dot" style="left:${d.position.x * 100}%;top:${d.position.y * 100}%"></i>`).join('')}</div><small>${e(t('Si el encuadre no coincide, Alinear al plano ajusta la imagen al original. Comprobá sus paredes con los símbolos.'))}</small>` : `<p class="note">${e(t('Elegí una imagen para verla acá con los símbolos.'))}</p>`}</div></div><div class="tools">${button('save', 'Guardar alternativa')}${button('cancel', 'Cancelar')}</div></fieldset>`
+    : ''
+}<p role="status">${e(this.message)}</p>`;
+
     this.root.querySelector<HTMLInputElement>('[data-name]')?.addEventListener('input', ev => {
       if (this.edit) this.edit.name = (ev.target as HTMLInputElement).value;
     });
-    this.root.querySelector<HTMLSelectElement>('[data-mode]')?.addEventListener('change', ev => {
-      this.mode = (ev.target as HTMLSelectElement).value as 'light' | 'dark';
+    for (const choice of this.root.querySelectorAll<HTMLButtonElement>('[data-mode-choice]'))
+      choice.onclick = () => {
+        this.mode = choice.dataset.modeChoice as 'light' | 'dark';
+        this.render();
+      };
+    // The background is chosen, never typed (#72).
+    const setBackground = (value: string) => {
+      if (!this.edit || !/^(#[0-9a-fA-F]{6}|transparent)$/.test(value)) return;
+      this.edit[this.mode === 'light' ? 'lightBackground' : 'darkBackground'] = value;
       this.render();
-    });
-    this.root.querySelector<HTMLInputElement>('[data-background]')?.addEventListener('change', ev => {
-      const value = (ev.target as HTMLInputElement).value;
-      if (this.edit && /^(#[0-9a-fA-F]{6}|transparent)$/.test(value)) {
-        this.edit[this.mode === 'light' ? 'lightBackground' : 'darkBackground'] = value;
-        this.render();
-      } else {
-        this.message = t('Usá un color hexadecimal o transparent. La imagen debe traer su transparencia.');
-        this.render();
-      }
+    };
+    for (const swatch of this.root.querySelectorAll<HTMLButtonElement>('[data-swatch]'))
+      swatch.onclick = () => setBackground(swatch.dataset.swatch!);
+    this.root
+      .querySelector<HTMLInputElement>('[data-background-color]')
+      ?.addEventListener('change', ev => setBackground((ev.target as HTMLInputElement).value));
+    this.root.querySelector<HTMLInputElement>('[data-background-clear]')?.addEventListener('change', ev => {
+      setBackground((ev.target as HTMLInputElement).checked ? 'transparent' : '#ffffff');
     });
     const run = async (fn: () => Promise<unknown>) => {
       if (this.busy) return;

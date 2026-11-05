@@ -147,3 +147,7 @@ Propuesta el 29/10/2026; **pendiente de aprobación del propietario**. La pantal
 ## D28 — Quién programa y quién audita
 
 **Decisión del propietario del 31/10/2026.** En el [rediseño](rediseno/LEEME.md), un agente implementa una etapa por vez y otro la audita. Se valida paso a paso, y cada agente deja escrito qué hizo y qué falta en [rediseno/ESTADO.md](rediseno/ESTADO.md). Elegir una maqueta define cómo se usa, cómo se ve y cómo se organiza: nunca autoriza a quitar funciones construidas después.
+
+## D29 — Copia de recuperación del borrador
+
+**Decisión del propietario del 04/11/2026 ([#89](https://github.com/Delpoo/homemanager/issues/89)).** Mientras se edita, el borrador sin guardar se copia en el `localStorage` de **este navegador**, separado por hogar (o tarjeta) y por usuario de Home Assistant. La copia es **sólo de recuperación**: no es la fuente canónica (D02 sigue igual), no se comparte con otros dispositivos ni personas, y nunca reemplaza al guardado en Home Assistant. Al volver a editar se ofrece **Recuperar** o **Descartar**; si el plano guardado cambió desde la copia, se avisa antes y recuperar entra al borrador, donde Deshacer vuelve al plano actual. Guardar o descartar borra la copia. Antes de cerrar o recargar la pestaña con cambios sin guardar, el navegador pregunta. Sin almacenamiento disponible, el editor funciona igual que antes.
