@@ -5,7 +5,7 @@ const { chromium } = require(path.join(repo, 'node_modules', '@playwright', 'tes
 const url = 'file:///' + path.join(dir, 'maqueta013', 'index.html').replace(/\\/g, '/');
 const out = path.join(dir, 'shots');
 require('fs').mkdirSync(out, { recursive: true });
-const screens = ['inicio', 'casas', 'simbolo', 'plano', 'ahora', 'vista', 'alertas', 'alerta-nueva', 'guia', 'automatizaciones', 'automatizacion', 'controles', 'estado', 'datos', 'ayuda', 'indicadores', 'equipos', 'control', 'nuevo-control', 'aprender', 'probar', 'disenador', 'ficha'];
+const screens = ['inicio', 'casas', 'simbolo', 'plano', 'ahora', 'vista', 'alertas', 'alerta-nueva', 'guia', 'automatizaciones', 'automatizacion', 'controles', 'estado', 'datos', 'ayuda', 'indicadores', 'equipos', 'control', 'nuevo-control', 'aprender', 'probar', 'disenador', 'ficha', 'eco', 'receptor-b', 'camara'];
 (async () => {
   const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   const problems = [];
@@ -62,9 +62,36 @@ const screens = ['inicio', 'casas', 'simbolo', 'plano', 'ahora', 'vista', 'alert
       await page.locator('[data-act="rftest:0"]').first().click(); await page.locator('[data-act="rfok:0:0"]').click();
       if (!(await page.locator('.tune').count())) problems.push('probar: no aparecen los ajustes al decir que no reaccionó');
       await page.screenshot({ path: path.join(out, 'pc-probar-ajuste.png') });
-      await page.goto(url + '#disenador'); await page.waitForTimeout(150);
-      await page.locator('[data-act="esel:e3"]').click();
-      if (!(await page.locator('.rel.sel[data-e="e3"]').count())) problems.push('diseñador: no se elige el elemento');
+      // LED de la cortina: cambiar la fuente a «Estado» pasa las reglas a una fila por estado.
+      await page.goto(url + '#indicadores'); await page.waitForTimeout(200);
+      await page.locator('[data-act="fxsel:1"]').click();
+      await page.locator('#srcpill').click(); await page.screenshot({ path: path.join(out, 'pc-fuente.png') });
+      await page.locator('[data-act="setsrc:cover.cortina_dormitorio"]').click();
+      if ((await page.locator('.scale .srow').count()) !== 5) problems.push('fuente: el estado de la cortina no muestra 4 estados + sin dato');
+      await page.locator('[data-act="tvset:cover.cortina_dormitorio:closed"]').click();
+      await page.screenshot({ path: path.join(out, 'pc-led-estado.png') });
+      // Base de controles: se acota y se puede usar un perfil.
+      await page.goto(url + '#aprender'); await page.waitForTimeout(7300);
+      const cnt = await page.locator('.dbpanel .count').textContent();
+      if (!['214', '37', '3'].includes(cnt.trim())) problems.push('base: no se acotó (' + cnt + ')');
+      await page.screenshot({ path: path.join(out, 'pc-base.png') });
+      await page.locator('[data-act="useprof:mitsu"]').first().click();
+      if (!(await page.locator('.dbpanel .okline').count())) problems.push('base: no se usó el perfil');
+      // Comprobar: auto-eco termina con el veredicto.
+      await page.goto(url + '#eco'); await page.waitForTimeout(150);
+      await page.locator('[data-act="chkrun:echo"]').click(); await page.waitForTimeout(1900);
+      if (!(await page.locator('.verdict').count())) problems.push('auto-eco: no aparece el resultado');
+      await page.screenshot({ path: path.join(out, 'pc-eco-resultado.png') });
+      // Diseñador: elegir, mover, arrastrar un botón aprendido sin usar, cambiar el lienzo.
+      await page.goto(url + '#disenador'); await page.waitForTimeout(250);
+      const p3 = page.locator('.rel[data-e="p3"]'); const bb = await p3.boundingBox();
+      await page.mouse.click(bb.x + 10, bb.y + 10);
+      if (!(await page.locator('.rel.sel[data-e="p3"]').count())) problems.push('diseñador: no se elige el elemento');
+      await page.locator('.tchip[data-lb="Timer"]').dragTo(page.locator('.rel[data-e="p7"]'));
+      await page.locator('.rel[data-e="p7"]').click();
+      await page.locator('[data-bind="gcols"]').fill('6'); await page.locator('[data-bind="gcols"]').dispatchEvent('input');
+      if ((await page.locator('.cell').count()) !== 48) problems.push('diseñador: el lienzo no cambió a 6 × 8');
+      await page.screenshot({ path: path.join(out, 'pc-disenador-6x8.png') });
       await page.goto(url + '#guia'); await page.waitForTimeout(200);
       await page.locator('[data-act="g-next"]').click(); await page.locator('[data-act="g-next"]').click();
       await page.screenshot({ path: path.join(out, 'pc-guia-3.png') });

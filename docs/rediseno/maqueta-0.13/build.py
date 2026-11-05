@@ -3,8 +3,8 @@ import re, sys, json, pathlib
 src = pathlib.Path(sys.argv[1])
 mdi = pathlib.Path(sys.argv[2]).read_text(encoding='utf-8')
 paths = dict(re.findall(r'export var (mdi\w+) = "([^"]+)";', mdi))
-js = (src / 'hm.js').read_text(encoding='utf-8') + '\n' + (src / 'hm2.js').read_text(encoding='utf-8')
-css = (src / 'hm.css').read_text(encoding='utf-8') + '\n' + (src / 'hm2.css').read_text(encoding='utf-8')
+js = (src / 'hm.js').read_text(encoding='utf-8') + '\n' + (src / 'hm2.js').read_text(encoding='utf-8') + '\n' + (src / 'hm3.js').read_text(encoding='utf-8')
+css = (src / 'hm.css').read_text(encoding='utf-8') + '\n' + (src / 'hm2.css').read_text(encoding='utf-8') + '\n' + (src / 'hm3.css').read_text(encoding='utf-8')
 used = sorted(set(re.findall(r'\bmdi[A-Z]\w*', js)))
 missing = [n for n in used if n not in paths]
 icons = {n: paths[n] for n in used if n in paths}

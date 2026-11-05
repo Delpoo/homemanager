@@ -110,7 +110,7 @@ const SP = id => SPACES.find(s => s.id === id);
 const SCREENS = [
   ['Principal', [['inicio', 'Inicio'], ['casas', 'Casas']]],
   ['Editar', [['simbolo', 'Símbolo'], ['indicadores', 'Indicadores del símbolo'], ['plano', 'Plano'], ['ahora', 'Ahora'], ['vista', 'Tamaño y vista']]],
-  ['Controles', [['controles', 'Controles'], ['equipos', 'Equipos'], ['control', 'Un control'], ['nuevo-control', '1 · Nuevo control'], ['aprender', '2 · Aprender'], ['probar', '3 · Probar'], ['disenador', '4 · Diseñar'], ['ficha', 'Ficha técnica']]],
+  ['Controles', [['controles', 'Controles'], ['equipos', 'Equipos'], ['control', 'Un control'], ['nuevo-control', '1 · Nuevo control'], ['aprender', '2 · Aprender'], ['probar', '3 · Probar'], ['disenador', '4 · Diseñar'], ['eco', 'Comprobar · auto-eco'], ['receptor-b', 'Comprobar · receptor B'], ['camara', 'Comprobar · cámara'], ['ficha', 'Ficha técnica']]],
   ['Ajustes', [['alertas', 'Alertas'], ['alerta-nueva', 'Nueva alerta'], ['guia', 'Guía'], ['automatizaciones', 'Automatizaciones'], ['automatizacion', 'Automatización'], ['estado', 'Estado'], ['datos', 'Datos'], ['ayuda', 'Ayuda']]],
 ];
 const PRESET = {
@@ -120,23 +120,24 @@ const PRESET = {
   automatizaciones: { set: 'auto' }, automatizacion: { set: 'auto', autoEdit: 'dormir' }, controles: { set: 'rf' },
   indicadores: { mode: 'edit', tool: 'sym', sel: 'cortina' }, equipos: { set: 'rf', rfv: 'devices' }, control: { set: 'rf', rfv: 'remote' },
   'nuevo-control': { set: 'rf', rfv: 'new' }, aprender: { set: 'rf', rfv: 'learn' }, probar: { set: 'rf', rfv: 'test' }, disenador: { set: 'rf', rfv: 'design' }, ficha: { set: 'rf', rfv: 'sheet' },
+  eco: { set: 'rf', rfv: 'echo' }, 'receptor-b': { set: 'rf', rfv: 'recvb' }, camara: { set: 'rf', rfv: 'camera' },
   estado: { set: 'estado' }, datos: { set: 'datos' }, ayuda: { set: 'ayuda' },
 };
 function go(id) {
   if (!PRESET[id] && id !== 'inicio') id = 'inicio';
   Object.assign(S, { mode: 'view', tool: null, sel: null, set: null, homes: false, alertEdit: false, guide: 0, autoEdit: null,
     gallery: false, wset: null, pop: null, zoom: 1, center: [500, 350], room: null, planSel: [], planTool: 'select', moving: false, nav: false }, PRESET[id] || {});
-  stopLearn(); S.rf.view = PRESET[id]?.rfv ?? null; S.rf.tests = {};
+  stopLearn(); S.rf.view = PRESET[id]?.rfv ?? null; S.rf.tests = {}; Object.assign(S.rf, { chk: {}, cam: 1, camNo: false, camRes: null, profile: null }); S.tv = {}; if (typeof syncValues === 'function') syncValues();
   if (id === 'indicadores') S.open.cortina = 'values';
   if (S.rf.view === 'learn') { LEARNED = []; startLearn(); }
-  if (S.rf.view === 'test') LEARNED = SUGG.slice(0, 4).map((n, i) => ({ id: 'b' + i, name: n, seed: i + 3, ok: true }));
+  if (S.rf.view === 'test') LEARNED = LEARN_NAMES.map((n, i) => ({ id: 'b' + i, name: n, seed: i + 3, ok: true }));
   if (S.mode === 'edit' && !ORIG) ORIG = snap();
   S.screen = id; render();
   if (id === 'indicadores') setTimeout(() => document.querySelector('.mod.open')?.scrollIntoView({ block: 'start' }));
 }
 function screenOf() {
   if (S.mode === 'edit') return S.tool === 'sym' && S.sel && S.open[S.sel] === 'values' ? 'indicadores' : { sym: 'simbolo', plan: 'plano', now: 'ahora', view: 'vista' }[S.tool];
-  if (S.set === 'rf') return { devices: 'equipos', remote: 'control', new: 'nuevo-control', learn: 'aprender', test: 'probar', design: 'disenador', sheet: 'ficha' }[S.rf.view] || 'controles';
+  if (S.set === 'rf') return { devices: 'equipos', remote: 'control', new: 'nuevo-control', learn: 'aprender', test: 'probar', design: 'disenador', sheet: 'ficha', echo: 'eco', recvb: 'receptor-b', camera: 'camara' }[S.rf.view] || 'controles';
   if (S.set === 'alertas') return S.guide ? 'guia' : S.alertEdit ? 'alerta-nueva' : 'alertas';
   if (S.set === 'auto') return S.autoEdit ? 'automatizacion' : 'automatizaciones';
   if (S.set) return { rf: 'controles', estado: 'estado', datos: 'datos', ayuda: 'ayuda' }[S.set];
@@ -406,7 +407,7 @@ function viewPanel() {
 /* ——— Ajustes ——— */
 const TABS = [['alertas', 'mdiBellOutline', 'Alertas'], ['auto', 'mdiRobotOutline', 'Automatizaciones'], ['rf', 'mdiRemote', 'Controles'], ['estado', 'mdiStethoscope', 'Estado de la casa'], ['datos', 'mdiDatabaseOutline', 'Datos y copias'], ['ayuda', 'mdiHelpCircleOutline', 'Ayuda']];
 function settingsPanel() {
-  if (S.set === 'rf') return rfPanel();
+  if (S.set === 'rf') return rfPanel2() ?? rfPanel();
   const title = TABS.find(t => t[0] === S.set)[2];
   let extra = '', body = '';
   if (S.set === 'alertas') {
@@ -518,6 +519,7 @@ function renderPops() {
     }
   }
   if (S.confirmExit) html += `<div class="pop" style="right:12px;top:56px;width:280px"><h4>${ic('mdiContentSaveAlertOutline', 'sm')}${S.dirty} cambios sin guardar</h4><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="chip" data-act="exit-discard" style="padding:6px 12px">Descartar</button><button type="button" class="chip" data-act="exit-save" style="padding:6px 12px;background:var(--brand);color:var(--on-brand);border-color:var(--brand)">Guardar</button></div></div>`;
+  html += extraPops(app, near);
   host.innerHTML = html;
 }
 
@@ -546,15 +548,18 @@ const NOTES = {
   inicio: ['Pantalla principal', ['La casa se elige arriba a la izquierda: ya no es una sección de Ajustes.', '☀/🌙 cambia claro u oscuro con un toque.', '⚙ sólo aparece fuera de la edición: editar y ajustar son cosas distintas.', 'Dos filtros: Dispositivos e Infraestructura.', 'Sin cadenita encima del icono: un aro punteado marca lo no vinculado.', 'Atajos de automatizaciones (Dormir, Salir) arriba de Ahora.'], ['¿La marca de vínculo se ve en la pantalla normal o sólo al editar?']],
   casas: ['Casas', ['Cambiar, crear, duplicar, renombrar y borrar casa desde el selector de arriba.', 'Todo lo demás (Ajustes, Editar) es de la casa elegida.'], []],
   simbolo: ['Ficha del símbolo', ['Icono y nombre en el título: se editan ahí mismo (lápiz al pasar el mouse).', 'Espacio debajo del nombre.', 'Infraestructura es un interruptor visible, no «Capa: auto».', 'Tamaño y fondo con número en %, y el plano cambia en vivo.', 'Sin Small/Medium/Large: sólo el %.', 'Forma con dibujos; color con paletas de 10 colores, un selector libre y Mi paleta.', 'Los módulos son subtítulos, sin cajas ni la palabra «Módulos».', '«Agregar» suma un módulo nuevo; lo que ya está no se repite.', 'Tocar otro símbolo cambia la ficha (hoy se queda trabada).', '«Origen del estado» desaparece: sale del dispositivo vinculado.'], ['¿Cuántos atajos junto al símbolo? Hoy son 3.']],
-  indicadores: ['Indicadores del símbolo', ['Elementos que muestran datos sobre el símbolo: anillo, borde, color del icono, LED, número y etiqueta.', 'Cada uno toma una lectura y elige un color fijo, por rango de valores o por estado.', 'El anillo muestra un valor entre un mínimo y un máximo: la cortina al 75 % llena tres cuartos.', 'El control «probar valor» mueve el dato y el plano cambia en vivo.', 'Sirve igual para cualquier sensor o dispositivo: no está pensado para un caso solo.'], ['¿Qué otros elementos querés? (barra, icono que cambia según estado, animación al prender…)']],
+  indicadores: ['Indicadores del símbolo', ['La fuente es una lectura real de Home Assistant; el tipo (número, sí/no, estados, texto) sale de la entidad y su clase.', 'Las reglas cambian según el tipo: rangos para números, una fila por estado para estados, dos filas para sí/no, y siempre «Sin dato».', 'La línea «Ahora» muestra el valor actual y qué regla se cumple.', 'Elementos que muestran datos sobre el símbolo: anillo, borde, color del icono, LED, número y etiqueta.', 'Cada uno toma una lectura y elige un color fijo, por rango de valores o por estado.', 'El anillo muestra un valor entre un mínimo y un máximo: la cortina al 75 % llena tres cuartos.', 'El control «probar valor» mueve el dato y el plano cambia en vivo.', 'Sirve igual para cualquier sensor o dispositivo: no está pensado para un caso solo.'], ['¿Qué otros elementos querés? (barra, icono que cambia según estado, animación al prender…)']],
   controles: ['Controles RF / IR', ['Una lista para RF e IR, con su etiqueta.', 'Arriba, los equipos ESPHome y lo que pueden hacer.', '+ abre el asistente de cuatro pasos.'], []],
   equipos: ['Equipos', ['Qué puede hacer cada equipo: enviar o recibir RF e IR.', 'Probar recepción y el YAML para ESPHome con iconos.', '★ marca el receptor por defecto.'], []],
   control: ['Un control', ['Vista previa del diseño; tocarla abre el diseñador.', 'Botones aprendidos con su forma de onda: enviar, volver a aprender (conserva vínculos) y ficha técnica.'], []],
   'nuevo-control': ['1 · Nuevo control', ['Nombre, tipo con dibujo, señal IR o RF y qué equipo escucha y cuál envía.'], ['¿Agregamos plantillas por marca (Mitsubishi, Philips…)?']],
-  aprender: ['2 · Aprender', ['El receptor late mientras escucha; el anillo cuenta los 15 segundos.', 'Cada botón aparece como tarjeta con su forma de onda y un nombre sugerido.', 'Punto verde: reconocida; naranja: pulsalo otra vez.', 'La portadora (38 kHz estimada) queda plegada, editable.', 'En la maqueta los botones llegan solos para ver la animación.'], []],
+  aprender: ['2 · Aprender', ['Base de controles: con cada botón se acota (1.240 → 214 → 37 → 3) y podés probar o usar un perfil completo.', 'El nombre se elige de una lista; el ✓ verde dice a qué botón del perfil corresponde.', 'El receptor late mientras escucha; el anillo cuenta los 15 segundos.', 'Cada botón aparece como tarjeta con su forma de onda y un nombre sugerido.', 'Punto verde: reconocida; naranja: pulsalo otra vez.', 'La portadora (38 kHz estimada) queda plegada, editable.', 'En la maqueta los botones llegan solos para ver la animación.'], []],
   probar: ['3 · Probar', ['▶ envía; después, 👍 o 👎 si el aparato reaccionó.', 'Si no reaccionó: ajustes rápidos de pulso, repeticiones y emisor.', 'Comprobaciones opcionales con iconos: auto-eco, receptor B, cámara, comparar.'], []],
-  disenador: ['4 · Diseñar', ['El control se arma en grande, sobre el plano: arrastrar para ordenar, tocar para editar.', 'Elementos: botón, encender/apagar, bajar/subir, pasos, opciones y texto.', 'Cada elemento elige ancho, icono, etiqueta y qué botones aprendidos usa.', 'Abajo, el símbolo del plano donde se abre.'], []],
+  disenador: ['4 · Diseñar', ['Lienzo con columnas × filas a elección; los elementos se arrastran a una celda y la esquina cambia el tamaño.', 'A la izquierda, los botones aprendidos: se arrastran a un elemento (o a una celda vacía para crear un botón). Los «!» todavía no se usan.', 'Cada elemento dice qué botón aprendido usa en cada parte (encender/apagar, más/menos, cada paso, cada opción).', 'Presets: una secuencia de botones con esperas (ej. «Noche»).', 'Botones de marca, perilla, deslizadores, lectura y gráfico de un sensor, texto y separador.', 'El estado puede ser estimado o venir de un sensor (conexión con la comprobación por consumo).', 'El control se arma en grande, sobre el plano: arrastrar para ordenar, tocar para editar.', 'Elementos: botón, encender/apagar, bajar/subir, pasos, opciones y texto.', 'Cada elemento elige ancho, icono, etiqueta y qué botones aprendidos usa.', 'Abajo, el símbolo del plano donde se abre.'], []],
   ficha: ['Ficha técnica', ['Lo técnico sigue: portadora, protocolo, bits, tramas, duración, emisor.', 'Línea de tiempo con captura y envío superpuestos, zoom y exportar.', 'Histograma de pulsos y pausas, y resultados de eco, receptor B y cámara.'], []],
+  eco: ['Comprobar · auto-eco', ['El mismo equipo envía y escucha en una ventana de 3 s.', 'Compara la señal capturada con la que volvió: tramas, cantidad de tiempos, signos y diferencia máxima.', 'Dice si la señal salió; si el aparato reaccionó se confirma aparte.'], []],
+  'receptor-b': ['Comprobar · receptor B', ['Otro equipo (B) escucha lo que envía el primero.', 'Misma comparación que el auto-eco.', 'Aviso: B puede oír otros mandos cercanos durante la ventana.'], []],
+  camara: ['Comprobar · cámara', ['Tres pasos: calibrar con el mando original, mirar el LED del emisor mientras envía 10 s, y anotar qué se vio.', 'HomeManager no usa la cámara: sólo guarda lo que elegís y una nota.'], []],
   plano: ['Plano y espacios', ['Una sola pantalla: imágenes, espacios y herramientas de dibujo.', 'Imágenes en conjuntos claro/oscuro; la ★ marca el principal.', 'Herramientas abajo, como en la app de Roborock: dibujar, agregar parte, dividir, unir, renombrar, borrar.', 'Al elegir un espacio se ve sólo su borde exterior.', '«Crear esta área en Home Assistant» en cada espacio y «Traer áreas» arriba reemplazan la sección Conectar.', 'Se eliminan «Agregar espacio sin dibujarlo» y «Revisar espacios contra el plano».'], ['¿Dividir con una línea dibujada a mano (como Roborock) o en mitades?']],
   ahora: ['Panel Ahora', ['Se edita en el mismo lugar, viendo el resultado real.', 'Bloques con arrastrar, ancho, ajustes y quitar: sólo iconos.', '+ abre una galería de bloques con dibujo.', '↺ vuelve al panel estándar.', 'Cada bloque elige qué mostrar con buscador y casillas, y su estilo (lista, mosaico, gráfico).'], ['¿Qué otros bloques querés? (cámara, clima exterior, escenas…)']],
   vista: ['Tamaño y vista', ['Un tamaño para la casa entera y otro al ver un espacio; en el medio crece de forma lineal.', 'La curva muestra cómo cambia; el control de zoom permite probarlo en vivo.', 'Cada símbolo tiene su % propio sobre esto (en su ficha).', 'Vista inicial con el marco dibujado; 📌 guarda lo que ves.', 'Marca de vínculo y cuadrícula viven acá, en editar.'], []],
@@ -690,7 +695,7 @@ function act(a, b, c, el) {
     case 'filter': S.filter = b; break;
     case 'tips': S.tips = !S.tips; el.setAttribute('aria-checked', S.tips); hideTip(); return;
     case 'sw': el.setAttribute('aria-checked', el.getAttribute('aria-checked') !== 'true'); return;
-    default: { const r = actRF(a, b, c, el); if (r === true) break; return; }
+    default: { const r = actRF3(a, b, c, el) ?? actRF(a, b, c, el); if (r === true) break; return; }
   }
   render();
 }
@@ -718,7 +723,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset.bind; if (!k) return;
-  if (inputRF(k, el, el.value)) return;
+  if (inputRF3(k, el, el.value) || inputRF(k, el, el.value)) return;
   const d = D(), v = el.value;
   const pair = (id) => document.querySelectorAll(`[data-bind="${k}"]`).forEach(x => { if (x !== el) x.value = v; });
   if (k === 'size' || k === 'op') { mark(k); d[k] = clamp(Number(v) || 0, k === 'op' ? 0 : 40, 200); pair(); renderStage(); }

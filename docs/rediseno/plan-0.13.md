@@ -4,7 +4,7 @@
 
 **Maqueta:** [`maqueta-0.13/index.html`](maqueta-0.13/index.html) (se abre en el navegador; datos inventados). Arriba se elige cada pantalla y «Notas de diseño» dice qué cambia y qué hay que decidir.
 
-**Estado:** maqueta lista para revisión. **No se programa nada de 0.13 hasta que el propietario apruebe la maqueta** (por pantalla o completa).
+**Estado:** maqueta lista para revisión (versión 3: datos reales de los indicadores, diseñador avanzado, base de controles y comprobaciones). **No se programa nada de 0.13 hasta que el propietario apruebe la maqueta** (por pantalla o completa).
 
 ## Reglas de diseño (obligatorias en cada pantalla)
 
@@ -75,6 +75,70 @@ Cada lote cierra con la prueba visual contra la maqueta.
 | **8b · Controles RF/IR** | <ul><li>Base funcional: el PR #107 (incluye #105 y #106), revisado y fusionado antes como candidato único.</li><li>Lista RF e IR con etiqueta y equipos ESPHome con lo que pueden hacer.</li><li>Asistente de cuatro pasos con animación: el receptor late, la cuenta de 15 s, cada botón aparece con su forma de onda y un nombre sugerido.</li><li>Probar con 👍/👎 y ajustes rápidos (pulso, repeticiones, emisor); comprobaciones opcionales: auto-eco, receptor B, cámara.</li><li>Ficha técnica con portadora, protocolo, tramas, línea de tiempo captura/envío e histograma.</li><li>Diseñador nuevo: el control en grande sobre el plano, elementos que se arrastran y se editan al costado.</li><li>Se conserva todo lo técnico y los vínculos; volver a aprender no rompe nada.</li></ul> |
 | **9 · Avanzado** | <ul><li>Llevar Acciones lógicas y Paneles avanzados a su nuevo lugar y quitar la sección.</li><li>Los datos guardados siguen siendo válidos: sólo cambia dónde se editan.</li></ul> |
 | **Cierre** | <ul><li>Prueba de punta a punta en un Home Assistant desechable.</li><li>Capturas comparadas.</li><li>Beta para el propietario.</li></ul> |
+
+## Indicadores: de dónde salen los datos y cómo se pintan
+
+Cada indicador (anillo, borde, color del icono, LED, número, etiqueta) tiene una **fuente**: una entidad de Home Assistant y, si hace falta, uno de sus atributos (por ejemplo `cover.cortina` › `current_position`).
+
+**Tipo de dato.** HomeManager lo deduce de la entidad y no lo pregunta:
+
+| Tipo | Cómo se reconoce | Ejemplos |
+|---|---|---|
+| Número | estado o atributo numérico; `unit_of_measurement` o `state_class: measurement` | temperatura, humedad, potencia, batería, `current_position`, `brightness` |
+| Sí / no | dominios `binary_sensor`, `switch`, `light`, `fan`, `input_boolean` (on/off) | conexión, puerta, encendido |
+| Estados | lista cerrada: `climate` (`hvac_modes`), `cover`, `vacuum`, `select`/`input_select` (`options`), `sensor` con `device_class: enum` | modo del aire, cortina abierta/cerrada, robot en base |
+| Texto | cualquier otro valor | «Living y cocina» |
+
+**Reglas según el tipo.** Las reglas que se muestran dependen del tipo de la fuente:
+
+- **Número:** rangos «de – a» con color y un nombre opcional. Ejemplo: Posición 0 = Cerrada (gris), 1–99 = Entreabierta (naranja), 100 = Abierta (verde).
+- **Sí / no:** dos filas con el nombre traducido (Conectado / Desconectado).
+- **Estados:** una fila por cada opción que declara la entidad (`open`, `opening`, `closing`, `closed`), con su nombre traducido.
+- **Texto:** coincidencia exacta.
+- **Siempre**, una fila «Sin dato» para `unavailable`, `unknown` o una lectura vieja.
+
+**Vista previa.** La línea «Ahora» muestra el valor actual y qué regla se cumple. «Probar valor» simula otros valores y el plano cambia en vivo.
+
+**Elementos que necesitan un número.** El anillo y el número sólo aceptan fuentes numéricas: el selector deshabilita las demás y dice por qué.
+
+**Cambiar la fuente.** Al cambiarla, las reglas se rehacen para el tipo nuevo, sin dejar reglas que no encajan.
+
+**Contrato.** Campo nuevo opcional `display.indicators[]` con `{type, source: {entityId, attribute?}, rules, none, …}`, validado en los tres lugares. Un plano viejo sigue igual: la etiqueta de valor actual pasa a ser un indicador «etiqueta».
+
+## Controles RF/IR: lo que agrega la maqueta sobre #107
+
+- **Base de controles (IR).**
+  - Con cada botón aprendido, la búsqueda se acota (1.240 → 214 → 37 → 3).
+  - Cada perfil se puede **probar** (envía su Encender) o **usar** (trae todos sus botones con nombre y un diseño sugerido).
+  - Los nombres se proponen según el perfil.
+  - *Abierto:* elegir la fuente de datos (por ejemplo IRDB o Flipper-IRDB) y revisar su licencia.
+  - RF de 433 MHz no tiene base útil: sus códigos son propios de cada mando.
+- **Comprobaciones con pantalla propia.**
+  - **Auto-eco** y **receptor B:** eligen los equipos, abren una ventana de 3 s y comparan captura y recepción (tramas, tiempos, signos, diferencia máxima con tolerancia de 120 µs o 25 %). Dan un veredicto.
+  - **Cámara:** tres pasos. Calibrar con el mando original, mirar el LED mientras envía 10 s y anotar Visible / No visible / No concluyente.
+  - Sólo se guarda la observación.
+- **Diseñador avanzado.**
+  - **Lienzo:** columnas × filas a elección. Los elementos se ponen en una celda, se arrastran y se agrandan desde la esquina.
+  - **Elementos:**
+    - Botón y botón de marca (YouTube, Netflix… con sus colores).
+    - Encender/apagar y preset inteligente (secuencia de botones con esperas).
+    - Más/menos, perilla, deslizadores vertical y horizontal, pasos y opciones.
+    - Lectura y gráfico de un sensor, texto y separador.
+  - **Cada elemento:** texto, icono (mostrar u ocultar cada uno), color de fondo y de texto, forma, posición y tamaño.
+  - **Relación con lo aprendido:**
+    - A la izquierda, la lista de botones aprendidos dice cuántas veces se usa cada uno y marca con «!» los que no se usan.
+    - Se arrastran a un elemento (llena su primer lugar libre) o a una celda vacía (crea un botón).
+    - En el panel, cada parte del elemento muestra su botón: encender/apagar, menos/más, cada paso, cada opción, cada paso del preset.
+  - **Estado que muestra:** «estimado» (el último botón enviado) o «desde un sensor», por ejemplo consumo > 50 W = prendido.
+  - *Abierto:* esto se conecta con la comprobación por consumo que se arma aparte.
+
+## Cosas que quedan abiertas a propósito
+
+Se conectan cuando lleguen los módulos que las completan:
+
+- Comprobación por consumo para el estado de los controles y para «Comprobar» en Automatizaciones.
+- Fuente y licencia de la base de controles IR.
+- Prueba física con los Athom: IR Send frente al proxy directo, y reacción del televisor Philips (ver #107).
 
 ## Decisiones pendientes del propietario
 

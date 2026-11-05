@@ -285,4 +285,3 @@ document.addEventListener('drop', e => {
   if (from !== to) { const [m] = DESIGN.splice(from, 1); DESIGN.splice(to, 0, m); }
   dragE = null; renderStage();
 });
-go(location.hash.slice(1) || 'inicio');
