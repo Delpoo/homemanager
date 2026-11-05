@@ -173,7 +173,9 @@ try {
   });
   const saved = await ws({ type: 'homemanager/home/get', home_id: 'e2e-redesign' });
   assert.equal(saved.configuration.planViews.length, 1);
-  assert.equal(saved.configuration.nowPanels.home[0].readings[0], 'sensor.e2e_temperature');
+  // Customizing Now starts from the blocks it already showed (#62): the new one comes after them.
+  const reading = saved.configuration.nowPanels.home.find(block => block.type === 'reading');
+  assert.equal(reading?.readings[0], 'sensor.e2e_temperature');
   assert.deepEqual(saved.configuration.catalog.devices[0].position, { x: 0.25, y: 0.5 });
   console.log('ok: live reading, UI save, backend readback and geometry preservation');
   await card.getByRole('button', { name: /^(Salir de edición|Exit editing)$/ }).click();
