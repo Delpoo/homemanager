@@ -52,6 +52,7 @@ export function deviceScreen(
   activity: readonly ActivityEntry[] = [],
   panels: Record<string, { controls: readonly { actionId: string; label: string }[] }> = {},
   context: AlertContext = {},
+  baseRules?: import('./base-rules.js').BaseRules,
 ): DeviceScreen {
   const primary = device.bindings.entityId;
   const rawEntity = primary ? hass?.states[primary] : undefined;
@@ -216,7 +217,7 @@ export function deviceScreen(
       id: control.actionId,
       label: personName(control.label, 'Acción'),
     })),
-    alerts: alertsOf(device, hass, now, context),
+    alerts: alertsOf(device, hass, now, context, baseRules),
     diagnosis,
     issues: bindingIssues(device.bindings, hass).map(issue => issue.code),
     activity: activity

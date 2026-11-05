@@ -445,6 +445,10 @@ export class HomeManagerRf extends HTMLElement {
     this.render();
   }
 
+  /** Opens one remote's page, for example from a symbol that uses it (#73). */
+  openRemote(remoteId: string): void {
+    this.open(remoteId);
+  }
   private open(remoteId: string): void {
     if (this.selected !== remoteId) this.closeLearn(false);
     this.selected = remoteId;

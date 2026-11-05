@@ -390,6 +390,7 @@
             "values": {
               "type": "array",
               "maxItems": 8,
+              "uniqueItems": true,
               "$comment": "Plan 0.12 #92: readings shown on the symbol, in order; each reading once (semantic check).",
               "items": {
                 "type": "object",
@@ -574,6 +575,9 @@
                 },
                 {
                   "$ref": "#/$defs/gestureAction"
+                },
+                {
+                  "$ref": "#/$defs/gestureChoice"
                 }
               ],
               "$comment": "Control (button or cycle) a tap on the symbol runs; null opens the panel. Absent: primaryAction, as before."
@@ -588,6 +592,9 @@
                 },
                 {
                   "$ref": "#/$defs/gestureAction"
+                },
+                {
+                  "$ref": "#/$defs/gestureChoice"
                 }
               ]
             },
@@ -973,7 +980,8 @@
                 "screen",
                 "panel",
                 "native",
-                "none"
+                "none",
+                "more-info"
               ]
             }
           }
@@ -993,8 +1001,107 @@
               "$ref": "#/$defs/deviceId"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "path"
+          ],
+          "properties": {
+            "action": {
+              "const": "navigate"
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/(?!/)[A-Za-z0-9/_\\-.?=&%#]{0,200}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "url"
+          ],
+          "properties": {
+            "action": {
+              "const": "url"
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 540,
+              "pattern": "^(?:https://[^\\s\"'<>]{1,500}|[a-z][a-z0-9+.-]{1,30}:[^\\s\"'<>]{1,500})$",
+              "not": {
+                "pattern": "^(?:[Jj][Aa][Vv][Aa][Ss][Cc][Rr][Ii][Pp][Tt]|[Dd][Aa][Tt][Aa]|[Ff][Ii][Ll][Ee]|[Vv][Bb][Ss][Cc][Rr][Ii][Pp][Tt]|[Aa][Bb][Oo][Uu][Tt]|[Bb][Ll][Oo][Bb]|[Hh][Tt][Tt][Pp]):"
+              }
+            },
+            "mobileUrl": {
+              "type": "string",
+              "maxLength": 540,
+              "pattern": "^(?:https://[^\\s\"'<>]{1,500}|[a-z][a-z0-9+.-]{1,30}:[^\\s\"'<>]{1,500})$",
+              "not": {
+                "pattern": "^(?:[Jj][Aa][Vv][Aa][Ss][Cc][Rr][Ii][Pp][Tt]|[Dd][Aa][Tt][Aa]|[Ff][Ii][Ll][Ee]|[Vv][Bb][Ss][Cc][Rr][Ii][Pp][Tt]|[Aa][Bb][Oo][Uu][Tt]|[Bb][Ll][Oo][Bb]|[Hh][Tt][Tt][Pp]):"
+              }
+            },
+            "fallback": {
+              "enum": [
+                "screen",
+                "panel",
+                "more-info",
+                "navigate"
+              ]
+            },
+            "fallbackPath": {
+              "type": "string",
+              "pattern": "^/(?!/)[A-Za-z0-9/_\\-.?=&%#]{0,200}$"
+            }
+          }
         }
       ]
+    },
+    "gestureChoice": {
+      "$comment": "Plan 0.12 #97: a short menu of 2 to 4 gestures.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "options"
+      ],
+      "properties": {
+        "action": {
+          "const": "choose"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "do"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "icon": {
+                "type": "string",
+                "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "do": {
+                "$ref": "#/$defs/gestureAction"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$comment": "Semantic validation must additionally reject duplicate device IDs, roomId values not declared in configuration.rooms, non-finite numbers in in-memory input, unsafe object keys, invalid or unresolved HA references and unsafe icon content. No real household data belongs in the public repository."

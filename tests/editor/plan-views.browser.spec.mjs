@@ -48,14 +48,14 @@ test('changing theme during upload keeps the image in its original mode', async 
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
-  await editor.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
+  await editor.getByRole('button', { name: '+ Agregar alternativa', exact: true }).click();
   await editor.getByLabel('Nombre', { exact: true }).fill('Original mode');
   const source = await card.evaluate(c => c.draft.architecture.content);
   await editor
     .locator('[data-image]')
     .setInputFiles({ name: 'mode.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(source) });
   await page.waitForFunction(() => window.finishUpload);
-  await editor.locator('[data-mode]').selectOption('dark');
+  await editor.locator('[data-mode-choice=dark]').click();
   await page.evaluate(() => window.finishUpload());
   await editor.getByRole('button', { name: 'Guardar alternativa', exact: true }).click();
   await expect.poll(() => card.evaluate(c => c.draft.planViews?.length)).toBe(1);
@@ -73,7 +73,7 @@ test('alternative editor checks framing, keeps positions and supports duplicate/
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
-  await editor.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
+  await editor.getByRole('button', { name: '+ Agregar alternativa', exact: true }).click();
   await editor.getByLabel('Nombre', { exact: true }).fill('Simplificado');
   await editor
     .locator('[data-image]')
@@ -84,8 +84,11 @@ test('alternative editor checks framing, keeps positions and supports duplicate/
   await editor.getByRole('button', { name: 'Alinear al plano', exact: true }).click();
   await editor.getByRole('button', { name: 'Guardar alternativa', exact: true }).click();
   await expect(editor.getByText('Simplificado', { exact: true })).toBeVisible();
+  // Up, Down, Duplicate and Remove live in each card's menu (#72).
+  await editor.locator('.card-menu > summary').first().click();
   await editor.getByRole('button', { name: 'Duplicar', exact: true }).click();
   await expect.poll(() => card.evaluate(c => c.draft.planViews.length)).toBe(2);
+  await editor.locator('.card-menu > summary').last().click();
   await editor.getByRole('button', { name: 'Subir', exact: true }).last().click();
   await expect.poll(() => card.evaluate(c => c.draft.planViews[0].name)).toContain('Copia');
   expect(await card.evaluate(c => c.draft.catalog.devices.map(d => d.position))).toEqual(

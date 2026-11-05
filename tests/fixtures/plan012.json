@@ -1,0 +1,286 @@
+{
+  "valid": [
+    {
+      "display": {
+        "values": [
+          {
+            "entity": "light.sample",
+            "decimals": 1,
+            "label": "Luz",
+            "size": "l",
+            "ranges": [
+              {
+                "from": 0,
+                "color": "#3f8f5f"
+              }
+            ],
+            "dot": true,
+            "unit": false
+          }
+        ],
+        "valuePlace": "below"
+      }
+    },
+    {
+      "display": {
+        "scale": 1.4,
+        "roomScale": 2,
+        "opacity": 40,
+        "shape": "pill",
+        "standalone": true
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "more-info"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "hold": {
+          "action": "navigate",
+          "path": "/config/devices/dashboard"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "url",
+          "url": "https://example.com/app",
+          "mobileUrl": "exampleapp://open",
+          "fallback": "navigate",
+          "fallbackPath": "/config/integrations"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "hold": {
+          "action": "choose",
+          "options": [
+            {
+              "label": "Control",
+              "do": {
+                "action": "panel"
+              }
+            },
+            {
+              "label": "App",
+              "icon": "mdi:open-in-new",
+              "do": {
+                "action": "url",
+                "url": "exampleapp://home"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "config": {
+        "symbolSizes": {
+          "house": 1,
+          "room": 1.6,
+          "min": 0.8,
+          "max": 2
+        },
+        "initialView": {
+          "room": null,
+          "x": 0.5,
+          "y": 0.5,
+          "zoom": 2
+        }
+      }
+    },
+    {
+      "config": {
+        "baseRules": {
+          "battery": {
+            "enabled": true,
+            "below": 20
+          },
+          "unavailable": {
+            "minutes": 30
+          },
+          "safety": {
+            "enabled": false
+          }
+        }
+      }
+    },
+    {
+      "config": {
+        "nowPanels": {
+          "home": [
+            {
+              "id": "auto-climate",
+              "type": "climate"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "display": {
+        "values": [
+          {
+            "entity": "light.sample"
+          },
+          {
+            "entity": "light.sample"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "values": [
+          {
+            "entity": "light.sample",
+            "decimals": 5
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "scale": 3
+      }
+    },
+    {
+      "display": {
+        "shape": "star"
+      }
+    },
+    {
+      "display": {
+        "standalone": false
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "url",
+          "url": "javascript:alert(1)"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "url",
+          "url": "data:text/html,x"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "url",
+          "url": "file:///etc/passwd"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "url",
+          "url": "http://example.com"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "navigate",
+          "path": "//evil.example"
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "choose",
+          "options": [
+            {
+              "label": "Sola",
+              "do": {
+                "action": "panel"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "choose",
+          "options": [
+            {
+              "label": "A",
+              "do": {
+                "action": "choose",
+                "options": []
+              }
+            },
+            {
+              "label": "B",
+              "do": {
+                "action": "panel"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "bindings": {
+        "tap": {
+          "action": "more-info",
+          "path": "/x"
+        }
+      }
+    },
+    {
+      "config": {
+        "symbolSizes": {
+          "house": 1,
+          "room": 1.6,
+          "min": 0.8
+        }
+      }
+    },
+    {
+      "config": {
+        "initialView": {
+          "room": null,
+          "x": 0.5,
+          "y": 0.5,
+          "zoom": 40
+        }
+      }
+    },
+    {
+      "config": {
+        "baseRules": {
+          "battery": {
+            "below": 0
+          }
+        }
+      }
+    },
+    {
+      "config": {
+        "baseRules": {
+          "noise": {}
+        }
+      }
+    }
+  ]
+}

@@ -97,6 +97,8 @@ export interface Configuration {
   /** Plan 0.12 (#94): symbol size by view and zoom, and the view the plan opens with. */
   symbolSizes?: import('../model/symbol-scale.js').SymbolSizes;
   initialView?: import('../model/symbol-scale.js').InitialView;
+  /** Plan 0.12 (#60): the automatic rules' switches and limits. */
+  baseRules?: import('../model/base-rules.js').BaseRules;
   schemaVersion: 2;
   rooms: Room[];
   catalog: { schemaVersion: 2; devices: Device[] };
@@ -187,6 +189,11 @@ export const SERVICES: Record<string, readonly string[]> = {
   switch: ['turn_on', 'turn_off', 'toggle'],
   button: ['press'],
   script: ['turn_on'],
+  // Plan 0.12 (#96): device programs and modes as shortcuts.
+  scene: ['turn_on'],
+  vacuum: ['start', 'pause', 'stop', 'return_to_base', 'locate', 'clean_spot'],
+  select: ['select_option'],
+  input_button: ['press'],
 };
 export function clone<T>(value: T): T {
   return structuredClone(value);

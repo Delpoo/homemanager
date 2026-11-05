@@ -25,6 +25,9 @@ SERVICES = {
     "cover": {"open_cover", "close_cover", "stop_cover", "set_cover_position"},
     "climate": {"turn_on", "turn_off", "set_temperature", "set_hvac_mode", "set_fan_mode", "set_preset_mode", "set_swing_mode"},
     "switch": {"turn_on", "turn_off", "toggle"}, "button": {"press"}, "script": {"turn_on"},
+    # Plan 0.12 (#96): device programs and modes as shortcuts.
+    "scene": {"turn_on"}, "vacuum": {"start", "pause", "stop", "return_to_base", "locate", "clean_spot"},
+    "select": {"select_option"}, "input_button": {"press"},
 }
 
 # Controls of a map device (contract V2, optional): steps each type takes, as
@@ -103,6 +106,59 @@ def _symbol_look(display: dict) -> None:
         _fail()
     if "standalone" in display and display["standalone"] is not True:
         _fail()
+
+
+# Plan 0.12 (#97): links that may open, and Home Assistant pages. Never javascript:, data: or file:.
+_BLOCKED_SCHEMES = re.compile(r"(?:javascript|data|file|vbscript|about|blob|chrome|ms-[a-z-]+):", re.I)
+_LINK = re.compile(r"(?:https://[^\s\"'<>]{1,500}|[a-z][a-z0-9+.-]{1,30}:[^\s\"'<>]{1,500})", re.I)
+_HA_PATH = re.compile(r"/(?!/)[A-Za-z0-9/_\-.?=&%#]{0,200}")
+
+
+def _link(value: Any) -> None:
+    if not isinstance(value, str) or not _LINK.fullmatch(value) or _BLOCKED_SCHEMES.match(value) or value.lower().startswith("http:"):
+        _fail()
+
+
+def _ha_path(value: Any) -> None:
+    if not isinstance(value, str) or not _HA_PATH.fullmatch(value):
+        _fail()
+
+
+def _gesture_action(binding: Any, choose: bool) -> None:
+    _fields(binding, {"action"}, {"controlId", "path", "url", "mobileUrl", "fallback", "fallbackPath", "options"})
+    kinds = {"screen", "panel", "native", "none", "control", "more-info", "navigate", "url"} | ({"choose"} if choose else set())
+    action = binding["action"]
+    if action not in kinds:
+        _fail()
+    owners = {"controlId": "control", "path": "navigate", "url": "url", "mobileUrl": "url", "fallback": "url", "fallbackPath": "url", "options": "choose"}
+    for key, kind in owners.items():
+        if key in binding and action != kind:
+            _fail()
+    if action == "control":
+        _id(binding.get("controlId"))
+    if action == "navigate":
+        _ha_path(binding.get("path"))
+    if action == "url":
+        _link(binding.get("url"))
+        if "mobileUrl" in binding:
+            _link(binding["mobileUrl"])
+        if "fallback" in binding and binding["fallback"] not in ("screen", "panel", "more-info", "navigate"):
+            _fail()
+        if ("fallbackPath" in binding) != (binding.get("fallback") == "navigate"):
+            _fail()
+        if "fallbackPath" in binding:
+            _ha_path(binding["fallbackPath"])
+    if action == "choose":
+        options = binding.get("options")
+        if not isinstance(options, list) or not 2 <= len(options) <= 4:
+            _fail()
+        for item in options:
+            _fields(item, {"label", "do"}, {"icon"})
+            if not isinstance(item["label"], str) or not item["label"].strip() or len(item["label"]) > 40:
+                _fail()
+            if "icon" in item and (not isinstance(item["icon"], str) or not re.fullmatch(r"mdi:[a-z0-9]+(?:-[a-z0-9]+)*", item["icon"])):
+                _fail()
+            _gesture_action(item["do"], False)
 
 
 def _entity(value: Any) -> None:
@@ -248,6 +304,10 @@ def _action(action: Any) -> None:
                 _fail()
             if "hvac_mode" in data:
                 _text(data["hvac_mode"], 1024)
+    elif domain == "select":
+        allowed = required = {"option"}
+        if "option" in data:
+            _text(data["option"], 1024)
     if not required <= data.keys() or data.keys() - allowed:
         _fail()
 
@@ -290,13 +350,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
             if gesture == "tap" and types.get(binding) not in ("button", "cycle"):
                 _fail()
         else:
-            _fields(binding, {"action"}, {"controlId"})
-            if binding["action"] not in ("screen", "panel", "native", "none", "control"):
-                _fail()
-            if binding["action"] == "control":
-                _id(binding.get("controlId"))
-            elif "controlId" in binding:
-                _fail()
+            _gesture_action(binding, True)
     if "pinned" in display:
         pinned = display["pinned"]
         if not isinstance(pinned, list) or len(pinned) > MAX_PINNED or len(set(map(str, pinned))) != len(pinned) or any(not isinstance(item, str) or item not in types for item in pinned):
@@ -306,7 +360,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels", "symbolSizes", "initialView"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels", "symbolSizes", "initialView", "baseRules"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -503,6 +557,17 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fields(sizes, {"house", "room", "min", "max"})
         for key in ("house", "room", "min", "max"):
             _number(sizes[key], 0.5, 2.5)
+    # Plan 0.12 (#60): the automatic rules' switches and limits. Absent: as before.
+    if "baseRules" in configuration:
+        rules = configuration["baseRules"]
+        _fields(rules, set(), {"battery", "unavailable", "safety"})
+        for key, extra, low, high in (("battery", "below", 1, 100), ("unavailable", "minutes", 1, 1440), ("safety", None, 0, 0)):
+            if key in rules:
+                _fields(rules[key], set(), {"enabled"} | ({extra} if extra else set()))
+                if "enabled" in rules[key] and not isinstance(rules[key]["enabled"], bool):
+                    _fail()
+                if extra and extra in rules[key]:
+                    _number(rules[key][extra], low, high)
     if "initialView" in configuration:
         view = configuration["initialView"]
         _fields(view, {"room", "x", "y", "zoom"}, {"planView"})
@@ -523,7 +588,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             for block in blocks:
                 _fields(block, {"id", "type"}, {"title", "devices", "readings", "deviceId", "controlId", "roomId"})
                 _id(block["id"])
-                if block["id"] in ids or block["type"] not in ("alerts", "reading", "readings", "active", "energy", "control", "shortcut"):
+                if block["id"] in ids or block["type"] not in ("alerts", "climate", "reading", "readings", "active", "energy", "control", "shortcut"):
                     _fail()
                 ids.add(block["id"])
                 if "title" in block:

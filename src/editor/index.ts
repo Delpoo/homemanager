@@ -111,12 +111,23 @@ import {
   type SettingsSection,
 } from './settings-page.js';
 import { helpBody } from '../shell/help.js';
+import { gestureExtra, gestureFieldChange, gestureFieldStyles, newGestureAction } from './gesture-fields.js';
 import { valuesChange, valuesEditor, valuesEditorStyles, type ValuesDraft } from './values-editor.js';
 import { MODULE_ICONS, MODULE_PURPOSE, moduleSummary, type Summary } from '../model/module-summary.js';
 import { DEFAULT_SIZES } from '../model/symbol-scale.js';
+import { resolveGesture } from '../model/gestures.js';
+import { homeStatus, type StatusIssue } from '../model/home-status.js';
+import {
+  addShortcut,
+  deviceActions,
+  MAX_SHORTCUTS,
+  removeShortcut,
+  shortcutId,
+  type DeviceAction,
+} from '../model/device-actions.js';
 import { setShowLink } from '../shell/show-link.js';
 import { gridStep, setGridStep } from '../card/move-grid.js';
-import { storageBody } from './storage-section.js';
+import { storageBody, storageStyles } from './storage-section.js';
 import type { AppShellContext } from '../shell/top-bar.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
@@ -142,7 +153,14 @@ const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyl
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 .palette{display:flex;flex-wrap:wrap;gap:4px}.palette button{padding:0 8px}.symbol-color>summary{min-height:44px;line-height:44px;cursor:pointer}.symbol-color small{font-size:12px;color:var(--hm-muted)}
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
-const css = cssBase + editorSheetStyles + fieldErrorStyles + sheetStyles + valuesEditorStyles;
+const css =
+  cssBase +
+  editorSheetStyles +
+  fieldErrorStyles +
+  sheetStyles +
+  valuesEditorStyles +
+  gestureFieldStyles +
+  storageStyles;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
@@ -282,6 +300,9 @@ export class HomeManagerEditor extends HTMLElement {
       this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
     });
     this.root.addEventListener('pointerdown', event => this.dragRoom(event as PointerEvent));
+    this.root.addEventListener('homemanager-storage-share', event => {
+      this.storageShare = (event as CustomEvent<number>).detail;
+    });
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
     this.root.addEventListener('input', event => {
@@ -497,6 +518,91 @@ export class HomeManagerEditor extends HTMLElement {
       `<label class="field">${esc(label)} <output>${shown[key].toFixed(2)}</output><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}"${sizes ? '' : ' disabled'}></label>`;
     const initial = this.configuration.initialView;
     return `<label class="check"><input type="checkbox" data-sizes-on${sizes ? ' checked' : ''}><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span></label><p class="note">${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}</p><div class="grid">${slider('house', t('Casa entera'))}${slider('room', t('Vista por espacio'))}${slider('min', t('Mínimo'))}${slider('max', t('Máximo'))}</div><h4>${esc(t('Vista inicial'))}</h4><p class="note">${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}</p><div class="rooms-actions"><button type="button" data-command="view-save" class="primary">${esc(t('Guardar la vista actual como inicial'))}</button><button type="button" data-command="view-save-local">${esc(t('Sólo en este equipo'))}</button>${initial ? `<button type="button" data-command="view-clear">${esc(t('Quitar vista inicial'))}</button>` : ''}<button type="button" data-command="view-clear-local">${esc(t('Olvidar la de este equipo'))}</button></div>`;
+  }
+  /** Next to the symbol › what the device can do, one tap from a shortcut (#96). */
+  private shortcutsBody(device?: Device): string {
+    const actions = device ? deviceActions(device, this._hass) : [];
+    const pinned = new Set(device?.display.pinned ?? []);
+    const intro = `<p class="note">${esc(t('Hasta {count} atajos junto al símbolo. También se pueden armar en Control.', { count: MAX_SHORTCUTS }))}</p>`;
+    if (!actions.length)
+      return (
+        intro +
+        `<p class="note">${esc(t('Este dispositivo no tiene programas ni acciones propias. Elegí atajos de su control en Control.'))}</p>`
+      );
+    const groups: [DeviceAction['group'], string][] = [
+      ['program', t('Programas')],
+      ['action', t('Acciones')],
+      ['mode', t('Modos')],
+    ];
+    return (
+      intro +
+      groups
+        .map(([group, title]) => {
+          const rows = actions.filter(action => action.group === group);
+          if (!rows.length) return '';
+          return `<h4>${esc(title)}</h4><div class="shortcut-list">${rows
+            .map(action => {
+              const on = pinned.has(shortcutId(action));
+              const name = action.translate ? t(action.name) : action.name;
+              return `<div class="shortcut-row"><ha-icon icon="${esc(action.icon)}" aria-hidden="true"></ha-icon><span>${esc(name)}</span><button type="button" data-command="shortcut-toggle" data-shortcut-key="${esc(action.key)}" aria-pressed="${on}"${!on && pinned.size >= MAX_SHORTCUTS ? ' disabled' : ''}>${esc(on ? t('Quitar atajo') : t('Atajo'))}</button></div>`;
+            })
+            .join('')}</div>`;
+        })
+        .join('')
+    );
+  }
+  /** Last storage share seen, so Home status can warn from 80 % (#74, #75). */
+  storageShare?: number;
+  private homeStatus(): StatusIssue[] {
+    return homeStatus(this.configuration, this._hass, { storageShare: this.storageShare });
+  }
+  /** A Home status button opens the right place (#74). */
+  private statusAction(issue: StatusIssue): void {
+    switch (issue.kind) {
+      case 'unlinked':
+      case 'offline':
+      case 'unknown-state':
+      case 'remote-missing':
+        this.closeSurface();
+        this.dispatchEvent(
+          new CustomEvent('homemanager-select', {
+            bubbles: true,
+            composed: true,
+            detail: { deviceId: issue.deviceId },
+          }),
+        );
+        if (issue.kind !== 'offline' && issue.kind !== 'unknown-state')
+          requestAnimationFrame(() =>
+            this.openSection(issue.kind === 'unlinked' ? 'device-binding' : 'device-controls-section'),
+          );
+        return;
+      case 'view-image':
+        this.openSettings('views-section');
+        return;
+      case 'rule-target':
+        this.openRules();
+        return;
+      case 'storage':
+        this.openSettings('storage-section');
+        return;
+    }
+  }
+  /** What this symbol does today with nothing chosen (#67): «Automático (abre su pantalla)». */
+  private automaticGesture(gesture: 'tap' | 'hold'): string {
+    const device = this.device();
+    if (!device) return t('Abrir el control completo');
+    const probe = { ...device, bindings: { ...device.bindings, [gesture]: undefined } };
+    const sensorLike = ['sensor', 'meter', 'equipment', 'infrastructure'].includes(
+      presentationOf(device, this._hass).archetype,
+    );
+    const action = resolveGesture(probe, gesture, this._hass).action;
+    const said =
+      action === 'legacy' || action === 'control'
+        ? t('su acción principal')
+        : action === 'panel' && sensorLike && gesture === 'tap'
+          ? t('abre su pantalla')
+          : t('abre el control completo');
+    return t('Automático ({action})', { action: said });
   }
   private valuesDraft?: ValuesDraft;
   /** The linked readings, as the sheet has them now (the binding may have just changed). */
@@ -928,7 +1034,7 @@ export class HomeManagerEditor extends HTMLElement {
       view: this.settingsView,
       available: this.settingsAvailable(),
       problems: conflicts ? zoneless + unclaimed : 0,
-      health: health?.issues.length ?? 0,
+      health: (health?.issues.length ?? 0) + this.homeStatus().length,
       pending: pending.length,
       // Moving an inline plan into the integration is offered on top too, when it applies.
       notice:
@@ -937,7 +1043,9 @@ export class HomeManagerEditor extends HTMLElement {
           ? `<div class="plan-conflicts note pending"><span>${esc(t('{rooms} espacios sin zona y {zones} zonas sin espacio', { rooms: zoneless, zones: unclaimed }))}</span><button type="button" data-command="review-spaces">${esc(t('Revisar'))}</button></div>`
           : ''),
       bodies: {
-        'designer-section': '<div class="designer-host"></div>',
+        'designer-section': this.device()
+          ? `<div class="designer-title"><ha-icon icon="${esc(this.device()!.display.icon)}" aria-hidden="true"></ha-icon><b>${esc(t('Diseñando el control de «{name}»', { name: this.device()!.display.label }))}</b></div><div class="designer-host"></div>`
+          : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Diseñar control.'))}</p>`,
         'rules-section': '<div class="rules-host"></div>',
         'now-section': '<div class=now-editor-host></div>',
         'rooms-section': this.roomsForm(),
@@ -953,6 +1061,7 @@ export class HomeManagerEditor extends HTMLElement {
           ? healthBody(
               health,
               id => this.configuration.rooms.find(room => room.id === id)?.label ?? t('ningún espacio'),
+              this.homeStatus(),
             )
           : `<p class="note">${esc(t('No se pudo leer el plano.'))}</p>`,
         'actions-section': this.actionForm(),
@@ -1053,7 +1162,7 @@ export class HomeManagerEditor extends HTMLElement {
       });
     }
     const storageHost = this.root.querySelector<HTMLElement>('.storage-host');
-    if (storageHost && this._hass) void storageBody(storageHost, this._hass, this.root);
+    if (storageHost && this._hass) void storageBody(storageHost, this._hass, this.root, this.homeId);
     const planViewsHost = this.root.querySelector('.plan-views-host');
     if (planViewsHost) {
       this.planViewsEditor ??= new PlanViewsEditor();
@@ -1167,7 +1276,7 @@ export class HomeManagerEditor extends HTMLElement {
       <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
 
       <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', `<p>${esc(t('Elegí hasta tres atajos en Control.'))}</p>`, device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
+      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1308,15 +1417,19 @@ export class HomeManagerEditor extends HTMLElement {
         ? '@' + binding.action + (binding.controlId ? ':' + binding.controlId : '')
         : (binding ?? '');
     const select = (gesture: 'tap' | 'hold', label: string, binding: GestureBinding | undefined) =>
-      `<label class="field">${esc(t(label))}<select data-gesture="${gesture}" aria-label="${esc(t(label))}">${option('', t('Abrir el control completo'), value(binding))}${[
+      `<label class="field">${esc(t(label))}<select data-gesture="${gesture}" aria-label="${esc(t(label))}">${option('', this.automaticGesture(gesture), value(binding))}${[
         ['@screen', 'Abrir su pantalla'],
         ['@native', 'Abrir panel nativo'],
+        ['@more-info', 'Abrir la ficha de Home Assistant'],
+        ['@navigate', 'Abrir una página de Home Assistant'],
+        ['@url', 'Abrir un enlace o una app'],
+        ['@choose', 'Elegir entre varias opciones'],
         ['@none', 'Nada'],
       ]
         .map(([id, title]) => option(id, t(title), value(binding)))
         .join(
           '',
-        )}${this.sheet!.controls.map(c => option(c.id, c.label, value(binding).replace('@control:', ''))).join('')}</select></label>`;
+        )}${this.sheet!.controls.map(c => option(c.id, c.label, value(binding).replace('@control:', ''))).join('')}</select></label><div class="gesture-extra">${gestureExtra(gesture, binding)}</div>`;
     return (
       select('tap', 'Al tocar', this.sheet?.tapAction ?? this.sheet?.tap) +
       select('hold', 'Al mantener', this.sheet?.hold) +
@@ -1728,6 +1841,12 @@ export class HomeManagerEditor extends HTMLElement {
       '.values-host button[data-value-move], .values-host button[data-value-range-add], .values-host button[data-value-range-remove]',
     );
     if (valueButton && this.valuesEvent(valueButton)) return;
+    const gestureButton = (event.target as Element).closest<HTMLElement>('button[data-gesture-for]');
+    if (gestureButton) {
+      this.onChange({ target: gestureButton } as unknown as Event);
+      this.schedulePreview();
+      return;
+    }
     const app = (event.target as Element).closest<HTMLElement>('[data-app-command]');
     if (app) {
       this.shellCommand(app.dataset.appCommand!);
@@ -1775,6 +1894,11 @@ export class HomeManagerEditor extends HTMLElement {
           this.render();
           this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
           break;
+        case 'status-action': {
+          const issue = this.homeStatus()[Number(button.dataset.status)];
+          if (issue) this.statusAction(issue);
+          break;
+        }
         case 'health-action': {
           const issue = this.planHealth()?.issues[Number(button.dataset.issue)];
           if (issue) this.healthAction(issue);
@@ -1956,6 +2080,17 @@ export class HomeManagerEditor extends HTMLElement {
         case 'design-open':
           if (this.flushDevice()) {
             const device = this.device();
+            // One design per control (#73): a symbol that uses an RF remote edits that remote's design.
+            if (device?.bindings.remoteId && this.appContext) {
+              this.dispatchEvent(
+                new CustomEvent('homemanager-shell-command', {
+                  detail: { command: 'rf', remoteId: device.bindings.remoteId },
+                  bubbles: true,
+                  composed: true,
+                }),
+              );
+              break;
+            }
             // Opening the visual designer explicitly materializes the read migration.
             // A legacy primary action must remain a visible, executable piece.
             if (device && device.bindings.controls === undefined) {
@@ -1978,6 +2113,31 @@ export class HomeManagerEditor extends HTMLElement {
         case 'rules-create':
           this.openRules(this.device()?.id);
           break;
+        case 'shortcut-toggle': {
+          const device = this.device();
+          const action = device
+            ? deviceActions(device, this._hass).find(item => item.key === button.dataset.shortcutKey)
+            : undefined;
+          if (!device || !action || !this.flushDevice()) break;
+          try {
+            const on = (device.display.pinned ?? []).includes(shortcutId(action));
+            const name = action.translate ? t(action.name) : action.name;
+            const next = on
+              ? removeShortcut(this.configuration, device.id, action)
+              : addShortcut(this.configuration, device.id, action, name);
+            this.sheet = undefined;
+            this.emit(next);
+            this.render();
+            this.notice(on ? t('Atajo quitado.') : t('Atajo agregado junto al símbolo.'));
+          } catch (error) {
+            this.notice(
+              (error as Error).message === 'shortcut_limit'
+                ? t('Ya hay {count} atajos: quitá uno para agregar otro.', { count: MAX_SHORTCUTS })
+                : t('Este símbolo ya tiene el máximo de controles.'),
+            );
+          }
+          break;
+        }
         case 'module-add': {
           const id = button.dataset.moduleId as ModuleId;
           this.moduleUndo = modulesOf(this.moduleDevice(), this._hass);
@@ -2094,11 +2254,27 @@ export class HomeManagerEditor extends HTMLElement {
       if (hidden) hidden.value = target.value;
       return;
     }
+    if (target.dataset.gestureFor && this.sheet) {
+      const gesture = target.dataset.gestureFor as 'tap' | 'hold';
+      const current = gesture === 'hold' ? this.sheet.hold : (this.sheet.tapAction ?? this.sheet.tap);
+      const next = gestureFieldChange(current, target);
+      if (next) {
+        if (gesture === 'hold') this.sheet.hold = next;
+        else {
+          this.sheet.tapAction = next;
+          this.sheet.tap = null;
+        }
+        const host = target.closest<HTMLElement>('.gesture-extra');
+        if (host && target.tagName !== 'INPUT') host.innerHTML = gestureExtra(gesture, next);
+      }
+      return;
+    }
     if (target.dataset.gesture && this.sheet) {
       const selected = target.value;
-      const binding: GestureBinding = selected.startsWith('@')
-        ? { action: selected.slice(1) as 'screen' | 'native' | 'none' }
-        : selected || null;
+      const binding: GestureBinding = selected.startsWith('@') ? newGestureAction(selected.slice(1)) : selected || null;
+      const extra = target.closest('label')?.nextElementSibling;
+      if (extra?.classList.contains('gesture-extra'))
+        extra.innerHTML = gestureExtra(target.dataset.gesture as 'tap' | 'hold', binding);
       if (target.dataset.gesture === 'hold') this.sheet.hold = binding;
       else if (typeof binding === 'object' && binding) {
         this.sheet.tapAction = binding;

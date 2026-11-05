@@ -45,10 +45,14 @@ export class ControlDesigner extends HTMLElement {
         `
       :host{display:block;min-width:0}.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
       .types{display:flex;flex-wrap:wrap;gap:6px}.types button{flex:1 1 110px}
+      .piece-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.piece-card{display:flex;align-items:center;gap:10px;text-align:left;min-height:64px;padding:8px 10px}.piece-text{display:grid;gap:2px;min-width:0}.piece-text span{font-size:12px;color:var(--hm-muted);font-weight:400}
+      .piece-art{flex:none;width:56px;display:grid;place-items:center}.piece-preview{display:grid;place-items:center;min-height:84px;margin-bottom:12px;border:1px dashed var(--hm-line);border-radius:12px;background:var(--hm-bg)}
+      .art{display:flex;gap:3px;align-items:center;justify-content:center;font-size:12px}.art i{display:inline-grid;place-items:center;min-width:22px;height:22px;border:1px solid var(--hm-line);border-radius:7px;background:var(--hm-surface);font-style:normal;padding:0 4px}.art .bar{width:48px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--hm-brand) 55%,var(--hm-line) 0)}.art .line{width:48px;height:2px;background:var(--hm-line)}
       .canvas{max-width:520px;margin:auto;width:100%} .error-text:empty{display:none}
       .inspector{display:grid;gap:12px}.size{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       label{min-width:0}input,select{max-width:100%;box-sizing:border-box}
       homemanager-task-screen.editor{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:100dvh;margin:0;border:0;padding:0}
+      @media(min-width:800px){homemanager-task-screen.editor{left:auto;right:0;width:min(560px,100vw);border-left:1px solid var(--hm-line);box-shadow:-8px 0 30px rgba(0,0,0,.18)}}
     `,
       false,
     );
@@ -155,8 +159,7 @@ export class ControlDesigner extends HTMLElement {
     return rfWidgetDialog(
       this.isNew ? t('Agregar elemento') : t('Editar elemento'),
       `
-      <div class="inspector"><div class="types" role="group" aria-label="${e(t('Tipo'))}">${types.map(type => `<button type="button" data-type="${type}" aria-pressed="${piece.type === type}">${e(widgetLabel(type))}</button>`).join('')}</div>
-      <p>${e(widgetHelp(piece.type))}</p><div class="slots">${slots}</div>${count < max ? `<button type="button" data-command="add-slot">${e(t('Agregar paso'))}</button>` : ''}
+      <div class="inspector"><div class="piece-preview" aria-label="${e(t('Así se ve'))}">${piecePreview(piece.type, piece.label ?? widgetLabel(piece.type), piece.icon)}</div><div class="types piece-cards" role="group" aria-label="${e(t('Tipo'))}">${types.map(type => `<button type="button" class="piece-card" data-type="${type}" aria-pressed="${piece.type === type}" aria-label="${e(widgetLabel(type))}" title="${e(widgetHelp(type))}"><span class="piece-art" aria-hidden="true">${piecePreview(type, '', null)}</span><span class="piece-text"><b>${e(widgetLabel(type))}</b><span>${e(widgetHelp(type))}</span></span></button>`).join('')}</div><div class="slots">${slots}</div>${count < max ? `<button type="button" data-command="add-slot">${e(t('Agregar paso'))}</button>` : ''}
       <label>${e(t('Etiqueta (opcional)'))}<input name="widget-label" maxlength="40" value="${e(piece.label ?? '')}"></label>
       ${iconPicker(piece.icon ?? '', t('Icono (opcional)'), 'name="widget-icon" clearable')}
       ${
@@ -242,7 +245,8 @@ export class ControlDesigner extends HTMLElement {
       for (const node of this.root.children)
         if (node instanceof HTMLElement && node !== dialog && node.localName !== 'style') {
           node.inert = true;
-          node.style.visibility = 'hidden';
+          // On a wide screen the piece panel sits beside the control, which stays in view (#73).
+          if (innerWidth < 800) node.style.visibility = 'hidden';
         }
       // A native top-layer task escapes the canvas's containment without
       // turning the task into a modal confirmation or moving its live fields.
@@ -333,3 +337,30 @@ export class ControlDesigner extends HTMLElement {
 }
 if (!customElements.get('homemanager-control-designer'))
   customElements.define('homemanager-control-designer', ControlDesigner);
+
+/** A small drawing of how a piece looks (#73), for the Add element cards and the live preview. */
+function piecePreview(type: WidgetType, label: string, icon: string | null): string {
+  const name = label ? `<span>${e(label)}</span>` : '';
+  const glyph = icon ? `<ha-icon icon="${e(icon)}" style="--mdc-icon-size:16px"></ha-icon>` : '';
+  switch (type) {
+    case 'toggle':
+      return `<span class="art"><i>On</i><i>Off</i>${name}</span>`;
+    case 'updown':
+      return `<span class="art"><i>−</i><i>+</i>${name}</span>`;
+    case 'steps':
+    case 'slider':
+      return `<span class="art"><span class="bar"></span>${name}</span>`;
+    case 'modes':
+      return `<span class="art"><i>A</i><i>B</i><i>C</i>${name}</span>`;
+    case 'cycle':
+      return `<span class="art"><i>↻</i>${name}</span>`;
+    case 'indicator':
+      return `<span class="art"><i>23°</i>${name}</span>`;
+    case 'title':
+      return `<span class="art"><b>${e(label || 'Aa')}</b></span>`;
+    case 'separator':
+      return `<span class="art"><span class="line"></span></span>`;
+    default:
+      return `<span class="art"><i>${glyph || '●'}</i>${name}</span>`;
+  }
+}

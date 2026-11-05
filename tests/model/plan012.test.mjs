@@ -167,3 +167,137 @@ test('a symbol says whether it is linked, unless it needs no link (#95)', async 
     null,
   );
 });
+
+test('a fictional robot offers programs, modes and actions as shortcuts without a designed control (#96)', async () => {
+  const { deviceActions, addShortcut, removeShortcut, shortcutId, MAX_SHORTCUTS } = await import(
+    '../../.work/model/device-actions.js'
+  );
+  const states = {
+    'vacuum.robot_ficticio': { state: 'docked', attributes: { friendly_name: 'Robot' } },
+    'button.robot_ficticio_profundo': { state: 'unknown', attributes: { friendly_name: 'Profundo' } },
+    'button.robot_ficticio_estandar': { state: 'unknown', attributes: { friendly_name: 'Estándar' } },
+    'select.robot_ficticio_fregado': { state: 'medio', attributes: { options: ['bajo', 'alto'] } },
+  };
+  const entities = Object.fromEntries(Object.keys(states).map(id => [id, { device_id: 'robot' }]));
+  const symbol = {
+    id: 'robot',
+    roomId: null,
+    kind: 'equipment',
+    display: { label: 'Robot', icon: 'mdi:robot-vacuum' },
+    bindings: { entityId: 'vacuum.robot_ficticio', deviceId: 'robot' },
+  };
+  const actions = deviceActions(symbol, { states, entities });
+  assert.deepEqual(
+    actions.filter(a => a.group === 'program').map(a => a.name),
+    ['Estándar', 'Profundo'],
+  );
+  assert.equal(actions.filter(a => a.group === 'mode').length, 2);
+  assert.ok(actions.some(a => a.action.domain === 'vacuum' && a.action.service === 'return_to_base'));
+  const plan = { actions: {}, catalog: { devices: [structuredClone(symbol)] } };
+  const deep = actions.find(a => a.name === 'Profundo');
+  const once = addShortcut(plan, 'robot', deep, 'Profundo');
+  const device = once.catalog.devices[0];
+  assert.deepEqual(device.display.pinned, [shortcutId(deep)]);
+  const control = device.bindings.controls[0];
+  assert.equal(control.type, 'button');
+  assert.deepEqual(once.actions[control.steps[0].actionId], {
+    domain: 'button',
+    service: 'press',
+    target: { entity_id: 'button.robot_ficticio_profundo' },
+  });
+  let full = once;
+  for (const action of actions.filter(a => a !== deep).slice(0, MAX_SHORTCUTS - 1))
+    full = addShortcut(full, 'robot', action, action.name);
+  assert.throws(() => addShortcut(full, 'robot', actions.at(-1), 'x'), /shortcut_limit/);
+  const back = removeShortcut(once, 'robot', deep);
+  assert.equal(back.catalog.devices[0].display.pinned, undefined);
+  assert.deepEqual(back.actions, {});
+});
+
+test('gestures that leave the plan only accept safe links and real pages (#97)', async () => {
+  const { safeLink, safePath, resolveAction } = await import('../../.work/model/gestures.js');
+  for (const ok of ['https://example.com/x', 'exampleapp://open', 'intent://scan#Intent;scheme=x;end'])
+    assert.equal(safeLink(ok), true, ok);
+  for (const bad of ['javascript:alert(1)', 'JavaScript:x', 'data:text/html,x', 'file:///x', 'http://example.com'])
+    assert.equal(safeLink(bad), false, bad);
+  assert.equal(safePath('/config/devices/dashboard'), true);
+  assert.equal(safePath('//evil.example'), false);
+  const device = { id: 'd', bindings: { entityId: 'light.x' } };
+  assert.deepEqual(resolveAction({ action: 'url', url: 'javascript:alert(1)' }, device), {
+    action: 'screen',
+    missing: true,
+  });
+  assert.deepEqual(resolveAction({ action: 'more-info' }, { id: 'd', bindings: { entityId: null } }), {
+    action: 'screen',
+    missing: true,
+  });
+});
+
+test('home status lists what does not work, each kind with its place (#74)', async () => {
+  const { homeStatus } = await import('../../.work/model/home-status.js');
+  const device = (id, bindings, display = {}) => ({ id, display: { label: id, ...display }, bindings });
+  const configuration = {
+    catalog: {
+      devices: [
+        device('sin-vinculo', { entityId: null }),
+        device('dibujo', { entityId: null }, { standalone: true }),
+        device('caido', { entityId: 'light.caida' }),
+        device('incierto', { entityId: 'sensor.incierto' }),
+        device('mando', { entityId: null, remoteId: 'borrado' }),
+      ],
+    },
+    planViews: [{ id: 'noche', name: 'Noche', light: {} }],
+    rules: [{ id: 'r', name: 'Regla vieja', sources: [{ reading: 'sensor.no_existe' }], symbols: ['sin-vinculo'] }],
+  };
+  const hass = {
+    states: { 'light.caida': { state: 'unavailable' }, 'sensor.incierto': { state: 'unknown' } },
+  };
+  const issues = homeStatus(configuration, hass, { remotes: new Set(), storageShare: 0.85 });
+  const kinds = issues.map(issue => issue.kind);
+  assert.deepEqual(kinds, [
+    'storage',
+    'remote-missing',
+    'offline',
+    'unlinked',
+    'rule-target',
+    'unknown-state',
+    'view-image',
+  ]);
+  assert.ok(!issues.some(issue => issue.deviceId === 'dibujo'));
+  assert.deepEqual(homeStatus({ catalog: { devices: [] } }, hass), []);
+});
+
+test('base rules: absent means v0.11 limits; battery needs evidence (#60)', async () => {
+  const { limitsOf, appliesTo } = await import('../../.work/model/base-rules.js');
+  const { alertsOf } = await import('../../.work/model/alerts.js');
+  assert.deepEqual(limitsOf(undefined), { battery: 15, unavailable: 10, safety: true });
+  assert.deepEqual(limitsOf({ battery: { below: 30 }, unavailable: { enabled: false } }), {
+    battery: 30,
+    unavailable: null,
+    safety: true,
+  });
+  const lamp = {
+    id: 'l',
+    roomId: null,
+    kind: 'light',
+    display: { label: 'L', icon: 'mdi:lamp' },
+    bindings: { entityId: 'light.l' },
+  };
+  const sensor = { ...lamp, id: 's', bindings: { entityId: 'sensor.s' } };
+  const hass = {
+    states: {
+      'light.l': { state: 'on', attributes: {} },
+      'sensor.s': { state: '22', attributes: { battery_level: 20 } },
+    },
+  };
+  assert.equal(appliesTo('battery', lamp, hass), false);
+  assert.equal(appliesTo('battery', sensor, hass), true);
+  assert.equal(
+    alertsOf(sensor, hass, Date.now()).some(a => a.rule === 'battery'),
+    false,
+  );
+  assert.equal(
+    alertsOf(sensor, hass, Date.now(), {}, { battery: { below: 25 } }).some(a => a.rule === 'battery'),
+    true,
+  );
+});

@@ -182,4 +182,168 @@ export const enPlan012: Record<string, string> = {
     'A small chain in the corner of the symbol says whether it is connected to a device. In edit mode it always shows.',
   'Sin vincular.': 'Not linked.',
   'No necesita vínculo': 'Needs no link',
+  'Hasta {count} atajos junto al símbolo. También se pueden armar en Control.':
+    'Up to {count} shortcuts next to the symbol. They can also be built in Control.',
+  'Este dispositivo no tiene programas ni acciones propias. Elegí atajos de su control en Control.':
+    'This device has no programs or actions of its own. Pick shortcuts from its control in Control.',
+  Programas: 'Programs',
+  Acciones: 'Actions',
+  Modos: 'Modes',
+  'Quitar atajo': 'Remove shortcut',
+  Atajo: 'Shortcut',
+  'Atajo quitado.': 'Shortcut removed.',
+  'Atajo agregado junto al símbolo.': 'Shortcut added next to the symbol.',
+  'Ya hay {count} atajos: quitá uno para agregar otro.':
+    'There are already {count} shortcuts: remove one to add another.',
+  'Este símbolo ya tiene el máximo de controles.': 'This symbol already has the maximum number of controls.',
+  'Empezar a limpiar': 'Start cleaning',
+  Pausar: 'Pause',
+  'Volver a la base': 'Return to base',
+  'Encontrar el robot': 'Locate the robot',
+  'Abrir la ficha de Home Assistant': 'Open the Home Assistant info',
+  'Abrir una página de Home Assistant': 'Open a Home Assistant page',
+  'Abrir un enlace o una app': 'Open a link or an app',
+  'Elegir entre varias opciones': 'Choose among several options',
+  'Control completo': 'Full control',
+  'Ficha de Home Assistant': 'Home Assistant info',
+  'Página de Home Assistant': 'Home Assistant page',
+  'Enlace o app': 'Link or app',
+  'En el teléfono (opcional)': 'On the phone (optional)',
+  'Si no se puede abrir': 'If it cannot open',
+  'Por seguridad sólo se abren enlaces https y de apps, y siempre por un toque tuyo. Si la app no está instalada, se usa la alternativa.':
+    'For safety only https and app links open, and always from your own tap. If the app is not installed, the fallback is used.',
+  'Nombre de la opción {n}': 'Name of option {n}',
+  'Qué hace la opción {n}': 'What option {n} does',
+  'Quitar opción': 'Remove option',
+  '+ Agregar opción': '+ Add option',
+  Pantalla: 'Screen',
+  'No se pudo abrir la app. Se abre la alternativa.': 'The app could not open. The fallback opens instead.',
+  'Así se ve': 'How it looks',
+  'Diseñando el control de «{name}»': 'Designing the control of “{name}”',
+  'Elegí un símbolo en el plano y abrí Control › Diseñar control.':
+    'Pick a symbol on the plan and open Control › Design control.',
+  'Buscar en {label}': 'Search in {label}',
+  'Sin filas ahora': 'Nothing right now',
+  Buscar: 'Search',
+  'Elegí al menos una lectura.': 'Choose at least one reading.',
+  'Batería baja · menos de {value} %': 'Low battery · below {value}%',
+  'Sin conexión · más de {value} minutos': 'Offline · more than {value} minutes',
+  'Avisar con menos de (%)': 'Warn below (%)',
+  'Avisar después de (minutos)': 'Warn after (minutes)',
+  'Sólo cuenta en los símbolos con una lectura de batería.': 'Only counts on symbols with a battery reading.',
+  'Avisa cuando un dispositivo deja de responder durante ese tiempo.':
+    'Warns when a device stops responding for that long.',
+  'Fugas, humo, gas y otras detecciones de seguridad de los sensores binarios.':
+    'Leaks, smoke, gas and other safety detections of binary sensors.',
+  'Resalta el símbolo mientras su sensor detecta algo. Elegí en cuáles.':
+    'Highlights the symbol while its sensor detects something. Choose which ones.',
+  'Símbolos que se resaltan': 'Symbols highlighted',
+  'Símbolos que cubre': 'Symbols covered',
+  'Sin conexión desde hace un rato': 'Offline for a while',
+  'Planos y su historial': 'Plans and their history',
+  'Imágenes de las alternativas': 'Alternative images',
+  'Historiales de hogares eliminados': 'Histories of deleted homes',
+  'Lista de hogares': 'List of homes',
+  'Uso de almacenamiento: {size} MiB de {limit} MiB.': 'Storage usage: {size} MiB of {limit} MiB.',
+  'Uso de almacenamiento': 'Storage usage',
+  'Queda poco espacio: liberá imágenes sin uso o historiales viejos.':
+    'Little space left: free unused images or old histories.',
+  'Liberar espacio': 'Free space',
+  'Quitar imágenes sin uso': 'Remove unused images',
+  'Dejar sólo los 3 planos anteriores más nuevos': 'Keep only the 3 newest previous plans',
+  '¿Quitar las imágenes sin uso?': 'Remove unused images?',
+  'Se borran las imágenes que ningún plano guardado muestra, también las que subiste y todavía no guardaste.':
+    'Images no saved plan shows are deleted, including ones you uploaded and have not saved yet.',
+  Quitar: 'Remove',
+  'Imágenes quitadas: {count}.': 'Images removed: {count}.',
+  '¿Borrar planos anteriores?': 'Delete previous plans?',
+  'Se conservan el plano actual y los 3 anteriores más nuevos. Los demás ya no se pueden restaurar.':
+    'The current plan and the 3 newest previous ones are kept. The others can no longer be restored.',
+  Borrar: 'Delete',
+  'Planos anteriores borrados: {count}.': 'Previous plans deleted: {count}.',
+  'Todavía no está conectado a un dispositivo': 'It is not connected to a device yet',
+  'No responde: Home Assistant lo ve sin conexión': 'Not responding: Home Assistant sees it offline',
+  'Ver dispositivo': 'View device',
+  'Home Assistant no sabe su estado': 'Home Assistant does not know its state',
+  'Usa un control RF que ya no existe': 'It uses an RF remote that no longer exists',
+  'Elegir control': 'Choose a remote',
+  'Falta la imagen clara': 'The light image is missing',
+  'Falta la imagen oscura': 'The dark image is missing',
+  'Abrir alternativas': 'Open alternatives',
+  'La regla apunta a algo que ya no existe': 'The rule points to something that no longer exists',
+  'Está al {percent} %: conviene liberar espacio': 'It is at {percent}%: better free some space',
+  'Abrir almacenamiento': 'Open storage',
+  'Datos técnicos del plano': 'Technical plan data',
+  'Todo en orden: cada símbolo funciona, cada espacio tiene su zona y cada dispositivo está donde está dibujado.':
+    'All good: every symbol works, every space has its zone and every device is where it is drawn.',
+  'Para elegir cuál se ve, usá el botón de alternativas en el plano. Recomendado: SVG; también PNG y JPG.':
+    'To choose which one shows, use the alternatives button on the plan. Recommended: SVG; PNG and JPG also work.',
+  'Más acciones de {name}': 'More actions for {name}',
+  Falta: 'Missing',
+  'Cambiar imágenes': 'Change images',
+  '+ Agregar alternativa': '+ Add alternative',
+  'Cambiar imagen': 'Change image',
+  'Elegir imagen': 'Choose image',
+  'Otro color': 'Other color',
+  'Fondo transparente': 'Transparent background',
+  'Si el encuadre no coincide, Alinear al plano ajusta la imagen al original. Comprobá sus paredes con los símbolos.':
+    'If the framing does not match, Align to plan fits the image to the original. Check its walls against the symbols.',
+  'Elegí una imagen para verla acá con los símbolos.': 'Choose an image to see it here with the symbols.',
+  'El dibujo de tu casa y sus espacios: nombres, formas y orden.':
+    'The drawing of your home and its spaces: names, shapes and order.',
+  'Otras imágenes del mismo plano, por ejemplo una clara y una oscura.':
+    'Other images of the same plan, for example a light and a dark one.',
+  'Une cada espacio con un área de Home Assistant y suma sus dispositivos.':
+    'Links each space with a Home Assistant area and adds its devices.',
+  'Elegí qué hogar se muestra o empezá uno nuevo.': 'Choose which home is shown or start a new one.',
+  'Qué muestra el panel Ahora, al costado del plano.': 'What the Now panel beside the plan shows.',
+  'Claro u oscuro, qué capas se ven y cómo se mueven los símbolos. Sólo en este navegador.':
+    'Light or dark, which layers show and how symbols move. Only in this browser.',
+  'Cuánto crecen los símbolos con el zoom y en qué vista abre el plano.':
+    'How much symbols grow with the zoom and which view the plan opens with.',
+  'Controles infrarrojos y de radio que aprendiste.': 'Infrared and radio remotes you learned.',
+  'Avisos y resaltados cuando una lectura pasa un límite. Nunca envían comandos.':
+    'Warnings and highlights when a reading crosses a limit. They never send commands.',
+  'Lo que no está funcionando y cómo arreglarlo.': 'What is not working and how to fix it.',
+  'Cuánto ocupa HomeManager en Home Assistant y cómo liberar espacio.':
+    'How much space HomeManager takes in Home Assistant and how to free some.',
+  'Copias del plano para guardar, mover o volver atrás.': 'Copies of the plan to keep, move or go back.',
+  'Acciones guardadas que usan los controles. Para usuarios avanzados.':
+    'Saved actions the controls use. For advanced users.',
+  'Pantallas de controles armadas a mano para un dispositivo. Se usan cuando el control automático no alcanza.':
+    'Control screens built by hand for a device. Used when the automatic control is not enough.',
+  'Símbolos que apuntan a algo que todavía no existe en Home Assistant.':
+    'Symbols that point to something that does not exist in Home Assistant yet.',
+  'Cómo se usa HomeManager y qué significa cada cosa.': 'How HomeManager is used and what each thing means.',
+  'Cómo se ve el control de un símbolo.': 'How a symbol’s control looks.',
+  'Usar el plano': 'Using the plan',
+  'Tocá un símbolo para su acción principal. Mantenelo pulsado, hacé clic derecho o usá el botón ⋯ para abrir su control completo.':
+    'Tap a symbol for its main action. Press and hold it, right-click it or use the ⋯ button to open its full control.',
+  '⌂ vuelve a la vista inicial y ⛶ pone el plano a pantalla completa.':
+    '⌂ goes back to the initial view and ⛶ shows the plan full screen.',
+  'Símbolos y módulos': 'Symbols and modules',
+  'Cada símbolo tiene una base (nombre, icono, color, espacio y tamaño) y módulos que le suman cosas: dispositivo, indicadores, gestos, control, atajos y reglas.':
+    'Each symbol has a base (name, icon, color, space and size) and modules that add to it: device, indicators, gestures, control, shortcuts and rules.',
+  'Por ejemplo, a un robot aspirador le podés poner su estado como valor y dos programas de limpieza como atajos.':
+    'For example, a robot vacuum can show its state as a value and two cleaning programs as shortcuts.',
+  'Para editar, tocá ✎. Los cambios se ven en ámbar hasta que los guardás.':
+    'To edit, tap ✎. Changes show in amber until you save them.',
+  'Reglas y alertas': 'Rules and alerts',
+  'Una regla avisa o resalta un símbolo cuando una lectura pasa un límite, por ejemplo «humedad del suelo menos de 20 %».':
+    'A rule warns about or highlights a symbol when a reading crosses a limit, for example “soil moisture below 20%”.',
+  'Las reglas base (batería baja, sin conexión, seguridad) ya vienen, con límites que podés cambiar. Ninguna regla envía comandos.':
+    'Base rules (low battery, offline, safety) come ready, with limits you can change. No rule sends commands.',
+  'Un control RF es un control remoto infrarrojo o de radio que HomeManager aprende botón por botón.':
+    'An RF remote is an infrared or radio remote that HomeManager learns button by button.',
+  'Abrilo desde Configuración › Controles, elegí Nuevo control y seguí los pasos de Aprender botones.':
+    'Open it from Settings › Controls, choose New remote and follow the Learn buttons steps.',
+  'El botón ⚙ abre Configuración, con las secciones agrupadas. Cada una dice debajo del título para qué sirve.':
+    'The ⚙ button opens Settings, with its sections grouped. Each one says under its title what it is for.',
+  'Estado de la casa lista lo que no funciona y te lleva a arreglarlo.':
+    'Home status lists what does not work and takes you to fix it.',
+  'Qué significa cada estado': 'What each state means',
+  'Automático ({action})': 'Automatic ({action})',
+  'su acción principal': 'its main action',
+  'abre su pantalla': 'opens its screen',
+  'abre el control completo': 'opens the full control',
 };

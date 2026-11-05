@@ -13,4 +13,6 @@ export const sheetStyles = `
 .module-add-row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;text-align:left;justify-content:flex-start}.module-add-row ha-icon{flex:none;color:var(--hm-accent)}
 .module-add-row .module-sum{white-space:normal}.module-state{margin-left:auto;flex:none;font-size:12px;color:var(--hm-muted)}
 .symbol-rules{padding-left:18px}.symbol-rules li[data-level=alert] b{color:var(--hm-alert)}.symbol-rules li[data-level=warning] b{color:var(--hm-warn)}
+.shortcut-list{display:grid;gap:4px}.shortcut-row{display:flex;align-items:center;gap:10px;min-height:48px}.shortcut-row span{flex:1;min-width:0}.shortcut-row ha-icon{color:var(--hm-accent)}.shortcut-row button[aria-pressed=true]{color:var(--hm-error)}
+.designer-title{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:15px}.designer-title ha-icon{color:var(--hm-accent)}
 `;

@@ -399,6 +399,7 @@
               "type": {
                 "enum": [
                   "alerts",
+                  "climate",
                   "reading",
                   "readings",
                   "active",
@@ -470,6 +471,7 @@
               "type": {
                 "enum": [
                   "alerts",
+                  "climate",
                   "reading",
                   "readings",
                   "active",
@@ -599,6 +601,50 @@
           "type": "string",
           "maxLength": 64,
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      }
+    },
+    "baseRules": {
+      "$comment": "Plan 0.12 #60: switches and limits of the automatic rules; absent means battery below 15 %, offline 10 minutes, safety on.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "battery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "below": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "unavailable": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minutes": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1440
+            }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
         }
       }
     }
@@ -811,7 +857,11 @@
             "climate",
             "switch",
             "button",
-            "script"
+            "script",
+            "scene",
+            "vacuum",
+            "select",
+            "input_button"
           ]
         },
         "service": {
@@ -993,6 +1043,83 @@
             "properties": {
               "service": {
                 "const": "turn_on"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "scene"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "turn_on"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "vacuum"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "start",
+                  "pause",
+                  "stop",
+                  "return_to_base",
+                  "locate",
+                  "clean_spot"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "select"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "select_option"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "domain": {
+                "const": "input_button"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "enum": [
+                  "press"
+                ]
               }
             }
           }

@@ -105,6 +105,7 @@ export class DeviceScreenView extends HTMLElement {
           card.activity.entries,
           card.draft.panels,
           card.feed.alertContext,
+          card.draft.baseRules,
         )
       : undefined;
     const title = this.screen?.name ?? t('Ahora');
@@ -304,6 +305,7 @@ export class DeviceScreenView extends HTMLElement {
       card.currentRoom,
       card.runtime.states,
       card.feed.alertContext,
+      card.draft!.baseRules,
     );
     const global = card.feed.ruleResults.filter(
       result =>
@@ -389,6 +391,7 @@ export class DeviceScreenView extends HTMLElement {
         this.card.currentRoom,
         this.card.runtime.states,
         this.card.feed.alertContext,
+        this.card.draft!.baseRules,
       );
       const command = sections.find(section => section.id === 'active')?.rows.find(row => row.id === id)?.off;
       if (command) await this.send(id, command);

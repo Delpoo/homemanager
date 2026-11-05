@@ -1,4 +1,5 @@
-import { resolveGesture } from '../model/gestures.js';
+import { runOutside } from './gesture-actions.js';
+import { resolveGesture, type ResolvedGesture } from '../model/gestures.js';
 import { commandLabel } from '../model/control-capabilities.js';
 import { archetypeOf } from '../model/archetype.js';
 import { t } from '../i18n/index.js';
@@ -195,11 +196,19 @@ export function remoteOf(this: HomeManagerCard, d: Device): string | null {
 }
 
 /** Every gesture keeps an accessible response, even a deliberate no-op. */
-export function runGesture(this: HomeManagerCard, id: string, gesture: 'tap' | 'hold', anchor: HTMLElement) {
+export function runGesture(
+  this: HomeManagerCard,
+  id: string,
+  gesture: 'tap' | 'hold',
+  anchor: HTMLElement,
+  /** A choice already made, for example from a gesture's menu (#97). */
+  chosen?: ResolvedGesture,
+) {
   if (this.editing) return;
   const device = this.draft?.catalog.devices.find(d => d.id === id);
   if (!device) return;
-  let choice = resolveGesture(device, gesture, this._hass);
+  let choice = chosen ?? resolveGesture(device, gesture, this._hass);
+  if (runOutside(this, device, choice, anchor)) return;
   if (choice.action === 'native' && !this.draft?.panels[device.bindings.advancedPopupId ?? ''])
     choice = { action: 'screen', missing: true };
   if (choice.action === 'control') {

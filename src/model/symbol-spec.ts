@@ -60,13 +60,14 @@ export function symbolSpec(
   runtime?: ModelRuntime,
   context: AlertContext = {},
   rules: readonly VisualResult[] = [],
+  baseRules?: import('./base-rules.js').BaseRules,
 ): SymbolSpec {
   const { archetype, layer, cool, level } = presentationOf(device, hass);
   const entity = entityOf(device, hass);
   const show = device.display.show ?? (archetype === 'meter' ? 'value' : 'icon');
   const effects = rules.filter(result => result.rule.symbols.includes(device.id));
   const alerts = [
-    ...alertsOf(device, hass, now, context),
+    ...alertsOf(device, hass, now, context, baseRules),
     ...effects
       .filter(result => result.rule.badge !== false && result.rule.level !== 'indicator')
       .map(result => result.alert),

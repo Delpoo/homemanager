@@ -70,13 +70,16 @@ test('presence highlighting and counting remain independent with no numeric defa
   await begin(page, 'Puerta de prueba');
   await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
   const rules = ruleScreen(page);
-  await rules.locator('[data-toggle="base:presence:highlight"]').check();
+  // One row per base rule type (#60): choose which symbols are highlighted.
+  await rules.locator('[data-edit="base:highlight"]').click();
+  await rules.locator('input[data-check-field="base-devices"][value="presence"]').check();
+  await rules.locator('[data-base-apply]').click();
   let saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
   expect(saved.display.highlight).toBe(true);
   expect(saved.display.alerts).toBeUndefined();
   await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
   await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Apertura de prueba');
-  await rules.getByLabel('Lecturas del grupo', { exact: true }).selectOption(['binary_sensor.test_door']);
+  await rules.locator('input[data-check-field=sources][value="binary_sensor.test_door"]').check();
   await rules.locator('[name="symbol:presence"]').check();
   await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
   const rule = (await draft(page)).rules[0];

@@ -7,7 +7,7 @@ interface Configuration {
 import type { ModelHass } from './types.js';
 import { personName } from './names.js';
 import type { NowSection, NowRow } from './now.js';
-export type NowBlockType = 'alerts' | 'reading' | 'readings' | 'active' | 'energy' | 'control' | 'shortcut';
+export type NowBlockType = 'alerts' | 'climate' | 'reading' | 'readings' | 'active' | 'energy' | 'control' | 'shortcut';
 export interface NowBlock {
   id: string;
   type: NowBlockType;
@@ -31,6 +31,7 @@ export interface CustomNowSection {
 }
 export const BLOCK_NAMES: Record<NowBlockType, string> = {
   alerts: 'Alertas',
+  climate: 'Clima',
   reading: 'Una lectura',
   readings: 'Grupo de lecturas',
   active: 'Activos',
@@ -38,6 +39,10 @@ export const BLOCK_NAMES: Record<NowBlockType, string> = {
   control: 'Un control',
   shortcut: 'Acceso directo',
 };
+/** What Now shows before anyone customizes it, as blocks: customizing starts from here (#62). */
+export function automaticBlocks(): NowBlock[] {
+  return (['alerts', 'climate', 'active', 'energy'] as const).map(type => ({ id: `auto-${type}`, type }));
+}
 export function panelBlocks(config: Configuration, wall = false): NowBlock[] | undefined {
   return wall ? (config.nowPanels?.wall ?? config.nowPanels?.home) : config.nowPanels?.home;
 }
@@ -52,7 +57,7 @@ export function configuredNow(
   return blocks.map(block => {
     let rows: NowRow[] = [];
     let missing = false;
-    if (['alerts', 'active', 'energy'].includes(block.type)) {
+    if (['alerts', 'climate', 'active', 'energy'].includes(block.type)) {
       rows = (sections.find(s => s.id === block.type)?.rows ?? []).filter(
         row => !block.devices || block.devices.includes(row.id),
       );

@@ -1,7 +1,7 @@
 import { homeStart } from '../ui/home-start.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { appearanceBody } from '../editor/settings-page.js';
-import { storageBody } from '../editor/storage-section.js';
+import { storageBody, storageStyles } from '../editor/storage-section.js';
 import { helpBody } from '../shell/help.js';
 import { setShowLink } from '../shell/show-link.js';
 import { t } from '../i18n/index.js';
@@ -25,7 +25,7 @@ homemanager-card{--hm-shell-height:max(100dvh,450px);--hm-viewport-height:100%}
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
 .maintenance ul{padding-left:20px}.maintenance li{margin:12px 0}.maintenance button{margin-left:8px}
-${topBarStyles}`;
+${topBarStyles}${storageStyles}`;
 const STORAGE_KEY = 'homemanager-app-home';
 function remembered(): string | null {
   try {
@@ -176,7 +176,9 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId } = (event as CustomEvent<{ command: string; homeId?: string }>).detail;
+    const { command, homeId, remoteId } = (
+      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string }>
+    ).detail;
     if (command === 'home' && homeId) {
       this.select(homeId);
       return;
@@ -198,6 +200,8 @@ export class HomeManagerApp extends HTMLElement {
     }
     this.renderHeader();
     this.applyTab();
+    // From a symbol's Control › Design: straight to that remote's design (#73).
+    if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId);
     if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
   };
   /** The same menu remains usable while the RF manager or empty view is open. */

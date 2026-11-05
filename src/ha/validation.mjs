@@ -157,6 +157,52 @@ function symbolLook(display, path) {
   // #95: a drawing or a shortcut that needs no device link.
   if (Object.hasOwn(display, 'standalone') && display.standalone !== true) invalid(`${path}.standalone`, 'true or absent');
 }
+/** Plan 0.12 (#97): links that may open, and Home Assistant pages. Never javascript:, data: or file:. */
+const BLOCKED_SCHEMES = /^(?:javascript|data|file|vbscript|about|blob|chrome|ms-[a-z-]+):/i;
+const LINK = /^(?:https:\/\/[^\s"'<>]{1,500}|[a-z][a-z0-9+.-]{1,30}:[^\s"'<>]{1,500})$/i;
+const HA_PATH = /^\/(?!\/)[A-Za-z0-9/_\-.?=&%#]{0,200}$/;
+function link(value, at) {
+  if (typeof value !== 'string' || !LINK.test(value) || BLOCKED_SCHEMES.test(value) || /^http:/i.test(value))
+    invalid(at, 'https link or app link required');
+}
+function haPath(value, at) {
+  if (typeof value !== 'string' || !HA_PATH.test(value)) invalid(at, 'Home Assistant path required');
+}
+function gestureAction(binding, at, choose) {
+  fields(binding, ['action'], ['controlId', 'path', 'url', 'mobileUrl', 'fallback', 'fallbackPath', 'options'], at);
+  const kinds = ['screen', 'panel', 'native', 'none', 'control', 'more-info', 'navigate', 'url'];
+  one(binding.action, choose ? [...kinds, 'choose'] : kinds, at);
+  const only = (key, kind) => {
+    if (Object.hasOwn(binding, key) && binding.action !== kind) invalid(at, `${key} only belongs to ${kind}`);
+  };
+  only('controlId', 'control');
+  only('path', 'navigate');
+  for (const key of ['url', 'mobileUrl', 'fallback', 'fallbackPath']) only(key, 'url');
+  only('options', 'choose');
+  if (binding.action === 'control') id(binding.controlId, at + '.controlId');
+  if (binding.action === 'navigate') haPath(binding.path, `${at}.path`);
+  if (binding.action === 'url') {
+    link(binding.url, `${at}.url`);
+    if (Object.hasOwn(binding, 'mobileUrl')) link(binding.mobileUrl, `${at}.mobileUrl`);
+    if (Object.hasOwn(binding, 'fallback')) one(binding.fallback, ['screen', 'panel', 'more-info', 'navigate'], `${at}.fallback`);
+    if (Object.hasOwn(binding, 'fallbackPath')) {
+      if (binding.fallback !== 'navigate') invalid(at, 'fallbackPath only belongs to a navigate fallback');
+      haPath(binding.fallbackPath, `${at}.fallbackPath`);
+    } else if (binding.fallback === 'navigate') invalid(at, 'fallbackPath required');
+  }
+  if (binding.action === 'choose') {
+    const options = binding.options;
+    if (!Array.isArray(options) || options.length < 2 || options.length > 4) invalid(`${at}.options`, '2 to 4 options');
+    options.forEach((item, index) => {
+      const where = `${at}.options[${index}]`;
+      fields(item, ['label', 'do'], ['icon'], where);
+      if (typeof item.label !== 'string' || !item.label.trim() || item.label.length > 40) invalid(`${where}.label`, 'short label');
+      if (Object.hasOwn(item, 'icon') && (typeof item.icon !== 'string' || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.icon)))
+        invalid(`${where}.icon`, 'mdi icon');
+      gestureAction(item.do, `${where}.do`, false);
+    });
+  }
+}
 function entity(value, path) {
   text(value, path);
   if (!ENTITY.test(value) || value.endsWith('.all')) invalid(path, 'explicit entity ID required');
@@ -165,7 +211,7 @@ function one(value, values, path) {
   if (!values.includes(value)) invalid(path, 'unsupported value');
 }
 function alertRules(value, path) {
-  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, 'array of at most 4 alert rules required');
+  if (!Array.isArray(value) || value.length > MAX_ALERT_RULES) invalid(path, `array of at most ${MAX_ALERT_RULES} alert rules required`);
   value.forEach((rule, index) => {
     const at = `${path}[${index}]`;
     fields(rule, ['reading', 'level'], ['below', 'above', 'forMinutes', 'enabled'], at);
@@ -278,10 +324,7 @@ function controls(device, path) {
       if (gesture === 'tap' && !['button', 'cycle'].includes(types.get(binding)))
         invalid(at, 'must name a button or cycle control of this device');
     } else {
-      fields(binding, ['action'], ['controlId'], at);
-      one(binding.action, ['screen', 'panel', 'native', 'none', 'control'], at);
-      if (binding.action === 'control') id(binding.controlId, at + '.controlId');
-      else if (Object.hasOwn(binding, 'controlId')) invalid(at, 'controlId only belongs to a control action');
+      gestureAction(binding, at, true);
     }
   }
   if (Object.hasOwn(device.display, 'pinned')) {
@@ -302,7 +345,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels', 'symbolSizes', 'initialView'],
+    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels', 'symbolSizes', 'initialView', 'baseRules'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -531,6 +574,29 @@ function shape(configuration) {
     fields(sizes, ['house', 'room', 'min', 'max'], [], 'configuration.symbolSizes');
     for (const key of ['house', 'room', 'min', 'max']) between(sizes[key], 0.5, 2.5, `configuration.symbolSizes.${key}`);
   }
+  // Plan 0.12 (#60): the automatic rules' switches and limits. Absent: as before.
+  if (Object.hasOwn(configuration, 'baseRules')) {
+    const rules = configuration.baseRules;
+    fields(rules, [], ['battery', 'unavailable', 'safety'], 'configuration.baseRules');
+    const toggle = (rule, at) => {
+      if (Object.hasOwn(rule, 'enabled') && typeof rule.enabled !== 'boolean') invalid(at, 'boolean required');
+    };
+    if (Object.hasOwn(rules, 'battery')) {
+      fields(rules.battery, [], ['enabled', 'below'], 'configuration.baseRules.battery');
+      toggle(rules.battery, 'configuration.baseRules.battery.enabled');
+      if (Object.hasOwn(rules.battery, 'below')) between(rules.battery.below, 1, 100, 'configuration.baseRules.battery.below');
+    }
+    if (Object.hasOwn(rules, 'unavailable')) {
+      fields(rules.unavailable, [], ['enabled', 'minutes'], 'configuration.baseRules.unavailable');
+      toggle(rules.unavailable, 'configuration.baseRules.unavailable.enabled');
+      if (Object.hasOwn(rules.unavailable, 'minutes'))
+        between(rules.unavailable.minutes, 1, 1440, 'configuration.baseRules.unavailable.minutes');
+    }
+    if (Object.hasOwn(rules, 'safety')) {
+      fields(rules.safety, [], ['enabled'], 'configuration.baseRules.safety');
+      toggle(rules.safety, 'configuration.baseRules.safety.enabled');
+    }
+  }
   if (Object.hasOwn(configuration, 'initialView')) {
     const view = configuration.initialView;
     fields(view, ['room', 'x', 'y', 'zoom'], ['planView'], 'configuration.initialView');
@@ -557,7 +623,7 @@ function shape(configuration) {
         id(block.id, 'nowPanels.id');
         if (
           ids.has(block.id) ||
-          !['alerts', 'reading', 'readings', 'active', 'energy', 'control', 'shortcut'].includes(block.type)
+          !['alerts', 'climate', 'reading', 'readings', 'active', 'energy', 'control', 'shortcut'].includes(block.type)
         )
           invalid('nowPanels', 'invalid block');
         ids.add(block.id);

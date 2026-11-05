@@ -134,7 +134,9 @@ export class RuntimeFeed {
           value: result.value,
         });
     const alerts = [
-      ...this.configuration.catalog.devices.flatMap(device => alertsOf(device, hass, now, this.observations)),
+      ...this.configuration.catalog.devices.flatMap(device =>
+        alertsOf(device, hass, now, this.observations, this.configuration?.baseRules),
+      ),
       ...visual.results
         .filter(result => result.rule.level !== 'indicator' && result.rule.bar !== false)
         .map(result => result.alert),
@@ -164,7 +166,8 @@ export class RuntimeFeed {
               rule => 'visual:' + rule.id === alert.id && visualRuleCleared(rule, hass),
             )
           : this.configuration.catalog.devices.some(
-              device => device.id === alert.deviceId && alertCleared(alert, device, hass),
+              device =>
+                device.id === alert.deviceId && alertCleared(alert, device, hass, this.configuration?.baseRules),
             ))
       ) {
         alertChanged.add(alert.deviceId);

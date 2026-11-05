@@ -31,6 +31,7 @@ export function nowSections(
   roomId: string | null = null,
   runtime: Record<string, ModelRuntime> = {},
   context: AlertContext = {},
+  baseRules?: import('./base-rules.js').BaseRules,
 ): NowSection[] {
   const sections: NowSection[] = [
     { id: 'alerts', title: 'Alertas', rows: [] },
@@ -42,9 +43,9 @@ export function nowSections(
   const energy = new Set<string>();
   for (const device of devices.filter(item => !roomId || item.roomId === roomId)) {
     const room = personName(rooms.find(item => item.id === device.roomId)?.label);
-    const screen = deviceScreen(device, hass, rooms, now, [], {}, context);
+    const screen = deviceScreen(device, hass, rooms, now, [], {}, context, baseRules);
     const base = { id: device.id, name: screen.name, icon: screen.icon };
-    for (const alert of alertsOf(device, hass, now, context))
+    for (const alert of alertsOf(device, hass, now, context, baseRules))
       sections[0].rows.push({
         ...base,
         name: alert.message,

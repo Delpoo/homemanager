@@ -317,7 +317,15 @@ export function refreshState(this: HomeManagerCard) {
     const d = this.draft?.catalog.devices.find(d => d.id === m.dataset.id);
     if (!d) return;
     const state = this.runtime.states[d.id];
-    const spec = symbolSpec(d, this._hass, Date.now(), state, this.feed.alertContext, this.feed.ruleResults);
+    const spec = symbolSpec(
+      d,
+      this._hass,
+      Date.now(),
+      state,
+      this.feed.alertContext,
+      this.feed.ruleResults,
+      this.draft?.baseRules,
+    );
     const confidence = state?.confidence ?? 'unknown';
     m.dataset.confidence = confidence;
     m.toggleAttribute('data-custom-color', !!spec.color);
@@ -368,6 +376,10 @@ export function refreshState(this: HomeManagerCard) {
             panel: 'Abrir el control completo',
             native: 'Abrir panel nativo',
             none: 'Nada',
+            'more-info': 'Abrir la ficha de Home Assistant',
+            navigate: 'Abrir una página de Home Assistant',
+            url: 'Abrir un enlace o una app',
+            choose: 'Elegir entre varias opciones',
           } as const
         )[choice.action],
       );

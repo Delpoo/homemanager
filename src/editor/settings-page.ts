@@ -6,6 +6,7 @@ import { escapeHTML as esc, type Configuration } from '../card/types.js';
 import { uiButton, uiIcon, uiStatus } from '../ui/components.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
 import { isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
+import type { StatusIssue } from '../model/home-status.js';
 
 /** Settings as one page (#70): grouped sections on the left (a list first on a phone),
  * problems on top, spaces as a list. */
@@ -72,6 +73,27 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section', 'pending-section'], advanced: true },
   { title: () => t('Ayuda'), sections: ['help-section'] },
 ];
+/** One line under each section's title saying what it is for (#77). */
+const PURPOSE: Record<SettingsSection, string> = {
+  'rooms-section': 'El dibujo de tu casa y sus espacios: nombres, formas y orden.',
+  'views-section': 'Otras imágenes del mismo plano, por ejemplo una clara y una oscura.',
+  'connect-section': 'Une cada espacio con un área de Home Assistant y suma sus dispositivos.',
+  'homes-section': 'Elegí qué hogar se muestra o empezá uno nuevo.',
+  'now-section': 'Qué muestra el panel Ahora, al costado del plano.',
+  'appearance-section': 'Claro u oscuro, qué capas se ven y cómo se mueven los símbolos. Sólo en este navegador.',
+  'view-section': 'Cuánto crecen los símbolos con el zoom y en qué vista abre el plano.',
+  'controls-section': 'Controles infrarrojos y de radio que aprendiste.',
+  'rules-section': 'Avisos y resaltados cuando una lectura pasa un límite. Nunca envían comandos.',
+  'health-section': 'Lo que no está funcionando y cómo arreglarlo.',
+  'storage-section': 'Cuánto ocupa HomeManager en Home Assistant y cómo liberar espacio.',
+  'import-section': 'Copias del plano para guardar, mover o volver atrás.',
+  'actions-section': 'Acciones guardadas que usan los controles. Para usuarios avanzados.',
+  'panels-section':
+    'Pantallas de controles armadas a mano para un dispositivo. Se usan cuando el control automático no alcanza.',
+  'pending-section': 'Símbolos que apuntan a algo que todavía no existe en Home Assistant.',
+  'help-section': 'Cómo se usa HomeManager y qué significa cada cosa.',
+  'designer-section': 'Cómo se ve el control de un símbolo.',
+};
 /** Where a fresh Settings page opens: the first section this person can use. */
 export function firstSection(available: ReadonlySet<SettingsSection>): SettingsSection {
   return GROUPS.flatMap(group => group.sections).find(id => available.has(id)) ?? 'help-section';
@@ -101,7 +123,7 @@ export function settingsPage(page: SettingsPage): string {
       : `<div class="settings-group-box" role="group" aria-label="${esc(group.title())}">${heading}${items}</div>`;
   }).join('');
   const current = SECTIONS.find(section => section.id === page.section)!;
-  return `<div class="settings-page" data-view="${page.view}"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content"><button type="button" class="settings-list" data-command="settings-list">${uiIcon('mdi:arrow-left')}<span>${esc(t('Todas las secciones'))}</span></button>${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title">${esc(current.title())}</h3>${page.bodies[page.section] ?? ''}</section></div></div>`;
+  return `<div class="settings-page" data-view="${page.view}"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content"><button type="button" class="settings-list" data-command="settings-list">${uiIcon('mdi:arrow-left')}<span>${esc(t('Todas las secciones'))}</span></button>${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title">${esc(current.title())}</h3><p class="section-purpose">${esc(t(PURPOSE[page.section]))}</p>${page.bodies[page.section] ?? ''}</section></div></div>`;
 }
 
 /** Light and dark, which layers the plan shows and, for editors, the grid: per browser. */
@@ -192,19 +214,62 @@ function issueText(
       };
   }
 }
-export function healthBody(health: PlanHealth, roomName: (id: string | null) => string): string {
+/** What a home-status row says (#74), and what its button does. */
+function statusText(issue: StatusIssue): { title: string; detail: string; fix: string } {
+  switch (issue.kind) {
+    case 'unlinked':
+      return { title: issue.label, detail: t('Todavía no está conectado a un dispositivo'), fix: t('Vincular') };
+    case 'offline':
+      return {
+        title: issue.label,
+        detail: t('No responde: Home Assistant lo ve sin conexión'),
+        fix: t('Ver dispositivo'),
+      };
+    case 'unknown-state':
+      return { title: issue.label, detail: t('Home Assistant no sabe su estado'), fix: t('Ver dispositivo') };
+    case 'remote-missing':
+      return { title: issue.label, detail: t('Usa un control RF que ya no existe'), fix: t('Elegir control') };
+    case 'view-image':
+      return {
+        title: issue.name,
+        detail: issue.mode === 'light' ? t('Falta la imagen clara') : t('Falta la imagen oscura'),
+        fix: t('Abrir alternativas'),
+      };
+    case 'rule-target':
+      return { title: issue.name, detail: t('La regla apunta a algo que ya no existe'), fix: t('Abrir Reglas') };
+    case 'storage':
+      return {
+        title: t('Almacenamiento'),
+        detail: t('Está al {percent} %: conviene liberar espacio', { percent: issue.percent }),
+        fix: t('Abrir almacenamiento'),
+      };
+  }
+}
+export function healthBody(
+  health: PlanHealth,
+  roomName: (id: string | null) => string,
+  status: readonly StatusIssue[] = [],
+): string {
   const { plan, issues } = health;
   const safe = issues.filter(isSafeFix).length;
-  const summary = `<div class="health-plan"><b>${esc(plan.title ?? t('Plano sin título'))}</b><span class="k-sub">${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</span></div>`;
-  if (!issues.length)
-    return `${summary}<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>`;
+  // The drawing's identity is technical: it stays folded at the end (#74).
+  const summary = `<details class="health-tech"><summary>${esc(t('Datos técnicos del plano'))}</summary><p class="k-sub">${esc(plan.title ?? t('Plano sin título'))} · ${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</p></details>`;
+  const statusRows = status
+    .map((issue, index) => {
+      const text = statusText(issue);
+      return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="status-action" data-status="${index}">${esc(text.fix)}</button></div>`;
+    })
+    .join('');
+  if (!issues.length && !status.length)
+    return `<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada símbolo funciona, cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>${summary}`;
+  if (!issues.length) return `<div class="k-list health-list">${statusRows}</div>${summary}`;
   const rows = issues
     .map((issue, index) => {
       const text = issueText(issue, roomName);
       return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="health-action" data-issue="${index}">${esc(text.fix)}</button></div>`;
     })
     .join('');
-  return `${summary}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>`;
+  return `${statusRows ? `<div class="k-list health-list">${statusRows}</div>` : ''}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>${summary}`;
 }
 
 export const settingsPageStyles = `
@@ -220,10 +285,10 @@ export const settingsPageStyles = `
 .settings-nav button[aria-current=page]{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-ink);font-weight:600}
 .settings-group-box{display:grid;gap:2px;margin-bottom:8px}.settings-group{display:block;padding:6px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hm-muted)}
 .settings-advanced>summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center}.settings-advanced>summary::-webkit-details-marker{display:none}.settings-advanced>summary::after{content:'▸';margin-left:auto;padding-right:12px;color:var(--hm-muted)}.settings-advanced[open]>summary::after{content:'▾'}
-.settings-chev{display:none}.settings-list{display:none}
+.settings-chev{display:none}.settings-list{display:none}.section-purpose{margin:-8px 0 0;color:var(--hm-muted);font-size:13px;line-height:1.5}
 .settings-badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hm-surface-2,var(--hm-line));color:var(--hm-muted)}.settings-badge.warn{background:color-mix(in srgb,var(--hm-warn) 18%,transparent);color:var(--hm-warn)}
 .settings-content{overflow:auto;padding:18px 22px 24px;display:grid;align-content:start;gap:14px}
-.settings-section{display:grid;gap:14px;min-width:0}.settings-section>h3{margin:0;font-size:18px}
+.settings-section{display:grid;gap:14px;min-width:0;max-width:720px}/* #66: a reading width on wide monitors */.settings-section>h3{margin:0;font-size:18px}
 .plan-card{display:flex;gap:16px;align-items:center;padding:14px;border:1px solid var(--hm-line);border-radius:16px;background:var(--hm-surface)}
 .plan-thumb{flex:none;width:160px;height:110px;border-radius:12px;overflow:hidden;background:var(--hm-bg);display:grid;place-items:center}.plan-thumb svg{width:100%;height:100%}
 .plan-info{display:grid;gap:6px;min-width:0}.plan-actions{display:flex;gap:8px;flex-wrap:wrap}

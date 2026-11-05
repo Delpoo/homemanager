@@ -40,17 +40,25 @@ test('Now editor previews selected readings, orders blocks and saves', async ({ 
   const panel = editor.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('readings');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
-  await panel.locator('[data-field=readings]').selectOption('sensor.synthetic_temperature');
+  await panel.locator('input[data-check-field=readings][value="sensor.synthetic_temperature"]').check();
   await panel.getByLabel('Título', { exact: true }).fill('Lectura de prueba');
   await panel.getByLabel('Título', { exact: true }).dispatchEvent('change');
   await expect(panel.locator('.preview')).toContainText('23');
   await panel.locator('[data-type]').selectOption('alerts');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
   await panel.getByRole('button', { name: 'Subir', exact: true }).last().click();
-  expect(await card.evaluate(c => c.draft.nowPanels.home.map(b => b.type))).toEqual(['alerts', 'readings']);
+  // Customizing starts from what Now shows today (#62).
+  expect(await card.evaluate(c => c.draft.nowPanels.home.map(b => b.type))).toEqual([
+    'alerts',
+    'climate',
+    'active',
+    'energy',
+    'alerts',
+    'readings',
+  ]);
   // The wall list was removed with wall mode (#61): only the home list is edited.
   await expect(panel.getByLabel('Configuración del panel', { exact: true })).toHaveCount(0);
-  expect(await card.evaluate(c => c.draft.nowPanels.home.length)).toBe(2);
+  expect(await card.evaluate(c => c.draft.nowPanels.home.length)).toBe(6);
   await page.keyboard.press('Escape');
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.locator('.shell>.status')).toContainText('Guardado');

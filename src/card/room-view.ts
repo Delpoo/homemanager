@@ -156,6 +156,8 @@ export function renderNav(this: HomeManagerCard): void {
     }
     const label = labelOf(this, target.id);
     arrow.setAttribute('aria-label', t('Ir a {room}', { room: label }));
+    // The destination shows on hover too, as with a press (#65).
+    arrow.title = t('Ir a {room}', { room: label });
     arrow.querySelector('.nav-name')!.textContent = label;
     const point = exitPoint(nav.room.bounds, target.angle, gap);
     const viewport = this.viewport.getBoundingClientRect();
@@ -164,6 +166,7 @@ export function renderNav(this: HomeManagerCard): void {
     arrow.style.setProperty('--angle', `${target.angle}rad`);
     arrow.style.setProperty('--size', String(target.scale));
     arrow.style.opacity = String(target.opacity);
+    arrow.style.setProperty('--nav-opacity', String(target.opacity));
     arrow.dataset.angle = String(target.angle);
   }
   for (const stale of existing.values()) stale.remove();
@@ -274,7 +277,7 @@ export function keyNav(this: HomeManagerCard, key: string): boolean {
 
 export const navStyles = `
 .nav-layer{position:absolute;inset:0;pointer-events:none;z-index:2}
-.nav-arrow{position:absolute;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;box-shadow:none;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;cursor:grab;color:var(--hm-ink)}
+.nav-arrow{position:absolute;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;box-shadow:none;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;cursor:grab;color:var(--hm-ink)}@media(hover:hover) and (min-width:651px){.nav-arrow{background:var(--hm-surface);border:1px solid var(--hm-line);box-shadow:var(--hm-shadow);min-width:44px}.nav-arrow ha-icon{--mdc-icon-size:26px}.nav-arrow{opacity:max(var(--nav-opacity,1),.72)!important}}
 .nav-arrow:focus-visible{outline:2px solid var(--hm-brand);outline-offset:2px}
 .nav-glyph{position:absolute;inset:0;display:grid;place-items:center;transform:rotate(var(--angle)) translateX(calc(-1 * var(--pull, 0px))) scale(var(--size, 1));transition:transform .12s}
 .nav-glyph svg{width:26px;height:26px;overflow:visible}.nav-glyph path{fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.nav-glyph .halo{stroke:var(--hm-bg);stroke-width:7;stroke-opacity:.85}

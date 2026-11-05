@@ -48,7 +48,7 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   const rules = card.locator('homemanager-rules-editor');
   await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
   await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Temperatura de prueba alta');
-  await rules.getByLabel('Lecturas del grupo', { exact: true }).selectOption(['sensor.synthetic_temperature']);
+  await rules.locator('input[data-check-field=sources][value="sensor.synthetic_temperature"]').check();
   await rules.getByLabel('Más de', { exact: true }).fill('27');
   await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
   await editor.getByRole('button', { name: 'Volver', exact: true }).click();

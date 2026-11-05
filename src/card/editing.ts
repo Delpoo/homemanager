@@ -245,6 +245,11 @@ export function mountEditor(this: HomeManagerCard) {
     this.updateControls();
   });
   this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
+  // Home status opens a symbol's sheet (#74).
+  this.editor.addEventListener('homemanager-select', (event: Event) => {
+    const id = (event as CustomEvent<{ deviceId: string }>).detail.deviceId;
+    if (this.draft?.catalog.devices.some(device => device.id === id)) this.select(id);
+  });
   this.editor.addEventListener('homemanager-view', (event: Event) => {
     const command = (event as CustomEvent<{ command: string }>).detail.command;
     if (command === 'view-save-local') saveLocalView(this, currentView(this) ?? null);
@@ -502,9 +507,20 @@ export function updateControls(this: HomeManagerCard) {
   scheduleDraftBackup(this);
 }
 
+const statusTimers = new WeakMap<HomeManagerCard, ReturnType<typeof setTimeout>>();
 export function status(this: HomeManagerCard, message: string) {
   const host = this.root.querySelector('.status');
-  if (host) host.textContent = message;
+  if (!host) return;
+  host.textContent = message;
+  // Status messages clear themselves after 6 s, like the activity bar (vision §5, #78).
+  clearTimeout(statusTimers.get(this));
+  if (message)
+    statusTimers.set(
+      this,
+      setTimeout(() => {
+        if (host.textContent === message) host.textContent = '';
+      }, 6000),
+    );
 }
 
 export function info(this: HomeManagerCard, storage = false) {
