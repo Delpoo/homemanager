@@ -82,7 +82,7 @@ test('learning says when a signal is not recognised and listens with the chosen 
   await rf.getByRole('button', { name: 'Modo libre', exact: true }).click();
   await page.evaluate(() => window.rfServer.send({ noise: 4 }));
   await expect(rf.getByText('Llega señal, pero no se reconoce')).toBeVisible();
-  await rf.getByLabel('Escucha').selectOption('tx_b');
+  await rf.getByRole('group', { name: 'Escucha' }).getByRole('button', { name: 'Emisor B' }).click();
   await expect
     .poll(() =>
       page.evaluate(() =>

@@ -2,7 +2,8 @@ import { iconPicker } from '../ui/icon-picker.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents, panelIconAction } from '../ui/panel-components.js';
-import { rfLearnStyles, rfText } from '../ui/rf-components.js';
+import { rfLearnStyles, rfLearnRingStyles, rfText } from '../ui/rf-components.js';
+import { iconButton, miniWave, sidePanelStyles } from '../ui/side-panel.js';
 import { ROLES, rf, type RfAbout, type RfCandidate, type RfRemote, type RfTransmitter } from '../integration/rf.js';
 import { buttonSuggestions, icon, roleLabel } from './catalog.js';
 import { learningProgress } from '../model/learning-progress.js';
@@ -78,7 +79,12 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-learn', rfLearnStyles + learningPanelStyles, false);
+    installPanelComponents(
+      this.root,
+      'rf-learn',
+      rfLearnStyles + learningPanelStyles + sidePanelStyles + rfLearnRingStyles,
+      false,
+    );
   }
 
   /** Starts listening with this receiver. */
@@ -209,32 +215,48 @@ export class HomeManagerRfLearn extends HTMLElement {
     const focused = active?.name,
       caret = active?.selectionStart ?? null;
     const receivers = this.transmitters.filter(item => item.can_capture);
-    const options = receivers
-      .map(
-        item =>
-          `<option value="${e(item.id)}"${item.id === this.listen ? ' selected' : ''}>${e(rfText(item.name))}</option>`,
-      )
-      .join('');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
     const available =
       receivers.some(r => this.receiverOnline?.(r.id) !== false) && this.hass?.connection?.connected !== false;
     const progress = learningProgress(this.candidate);
-    const guide = this.guided
-      ? `<ol class="learning-steps" aria-label="${e(t('Pasos de aprendizaje'))}">${[t('Elegí un botón'), t('Apuntá y pulsá'), t('Probá y guardá')].map((label, i) => `<li${(this.candidate ? progress.stage : this.listening ? 2 : 1) === i + 1 ? ' aria-current="step"' : ''}>${i + 1}. ${e(label)}</li>`).join('')}</ol>
-      ${!this.listening && !this.candidate ? `<label>${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label><p>${e(t('Elegí un botón del mando, apuntá al receptor y pulsalo cuando empiece la escucha.'))}</p><button type="button" data-command="guided-start"${!available || !this.target.trim() ? ' disabled' : ''}>${e(t('Empezar'))}</button>` : ''}
-      ${this.candidate ? `<div class="evidence" role="status"><label>${e(t('Señales iguales en esta pulsación: {count}', { count: progress.frames }))}<progress max="3" value="${Math.min(3, progress.frames)}"></progress></label><label>${e(t('Pulsaciones separadas: {count}', { count: progress.presses }))}<progress max="2" value="${Math.min(2, progress.presses)}"></progress></label><p>${e(t('Se reconoce con 3 señales iguales en una pulsación o con 2 pulsaciones separadas por más de 0,3 s.'))}</p></div>` : ''}`
-      : '';
+    // 0.13: the receiver is a big ring to tap; the button to learn is named first in
+    // guided mode, any button is taken in free mode. Words live in tooltips.
+    const idle = !this.listening && !this.candidate;
+    const target =
+      this.guided && idle
+        ? `<label class="target">${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label><button type="button" class="next" data-command="guided-start"${!available || !this.target.trim() ? ' disabled' : ''}>${icon('mdi:access-point')}${e(t('Empezar'))}</button>`
+        : '';
+    const evidence =
+      this.guided && this.candidate
+        ? `<div class="evidence" role="status"><label>${e(t('Señales iguales en esta pulsación: {count}', { count: progress.frames }))}<progress max="3" value="${Math.min(3, progress.frames)}"></progress></label><label>${e(t('Pulsaciones separadas: {count}', { count: progress.presses }))}<progress max="2" value="${Math.min(2, progress.presses)}"></progress></label></div>`
+        : '';
     const help = !available
-      ? `<p class="notice">${e(t('No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.'))}</p><button type="button" data-open-devices>${e(t('Abrir Equipos RF'))}</button>`
+      ? `<div class="empty-state">${icon('mdi:access-point-off')}<span>${e(t('No hay un receptor disponible. En Equipos RF, conectá un equipo con el paquete RF y elegilo para aprender.'))}</span><button type="button" class="next" data-open-devices>${e(t('Abrir Equipos RF'))}</button></div>`
       : '';
     const queue =
       !this.guided && (this.readings.size > 1 || (!this.candidate && this.readings.size > 0))
         ? `<label>${e(t('Capturas pendientes'))}<select name="reading"><option value="">${e(t('Última lectura'))}</option>${[...this.readings.values()].map((item, index) => `<option value="${e(item.candidate_id)}"${this.chosenReading === item.candidate_id ? ' selected' : ''}>${e(t('Captura {count}', { count: index + 1 }))} · ${item.nbits} ${e(t('bits'))}</option>`).join('')}</select></label>`
         : '';
-    this.root.innerHTML = `<section class="sheet" aria-labelledby="learn-title"><div class="head"><h3 id="learn-title">${e(t('Aprender botones'))}</h3>${panelIconAction(t('Listo'), 'data-command="close"', 'mdi:check')}</div>
-<button type="button" data-command="learning-mode" aria-pressed="${!this.guided}">${e(this.guided ? t('Modo libre') : t('Modo guiado'))}</button>${help}${guide}
-<label>${e(t('Escucha'))}<select name="listen">${options}</select></label>
-${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.unclassified ? '<div data-signal-preview></div>' : ''}${status}</section>`;
+    const modes = `<div class="seg modes" role="group" aria-label="${e(t('Modo'))}">${[
+      [true, t('Modo guiado'), 'mdi:target'],
+      [false, t('Modo libre'), 'mdi:gesture-tap-button'],
+    ]
+      .map(([guided, label, glyph]) =>
+        iconButton(
+          label as string,
+          glyph as string,
+          `aria-pressed="${this.guided === guided}"${this.guided === guided ? '' : ' data-command="learning-mode"'}`,
+        ),
+      )
+      .join('')}</div>`;
+    const listeners = receivers
+      .map(
+        item =>
+          `<button type="button" class="chip" data-listen="${e(item.id)}" aria-pressed="${item.id === this.listen}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
+      )
+      .join('');
+    this.root.innerHTML = `<section class="sheet learn" aria-label="${e(t('Aprender botones'))}">${modes}${help}
+${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group" aria-label="${e(t('Escucha'))}">${icon('mdi:ear-hearing')}<div class="chips">${listeners}</div></div>` : ''}${evidence}${queue}${this.candidate ? this.renderCandidate() : this.unclassified ? '<div data-signal-preview></div>' : ''}${status}<div class="learn-foot"><span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="close"', 'primary')}</div></section>`;
     this.bind();
     const signalId = this.candidate?.candidate_id ?? this.unclassified;
     if (signalId && this.hass) {
@@ -291,11 +313,9 @@ ${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.u
       title = t('Pulsá un botón del control');
       detail = t('Cualquiera, en el orden que quieras. Escucha {receiver}.', { receiver });
     }
-    const resume =
-      this.listening || (this.guided && !this.until)
-        ? ''
-        : `<button type="button" data-command="listen">${e(t('Escuchar'))}</button>`;
-    return `<div class="listen"><span class="pulse ${dot}" aria-hidden="true"></span><div class="text"><strong>${e(title)}</strong>${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div>${resume}</div>`;
+    const tap = this.listening ? '' : this.guided && !this.until ? '' : ' data-command="listen"';
+    const glyph = dot === 'ok' ? 'mdi:check' : dot === 'warn' ? 'mdi:alert-outline' : 'mdi:access-point';
+    return `<div class="listen ${dot}"><button type="button" class="ring${this.listening ? ' on' : ''}"${tap} aria-label="${e(this.listening ? title : t('Escuchar'))}"${tap ? '' : ' tabindex="-1"'}><span class="waves" aria-hidden="true"><i></i><i></i><i></i></span><span class="core">${icon(glyph)}</span></button><div class="text"><strong>${e(title)}</strong>${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div></div>`;
   }
 
   private roleOptions(): string {
@@ -327,29 +347,30 @@ ${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.u
 
   private renderCandidate(): string {
     const c = this.candidate!;
-    const badge = c.confirmed
-      ? `<span class="badge ok">✓ ${e(t('Lista para aprender'))}</span>`
-      : `<span class="badge warn">${e(t('Sin confirmar'))}</span>`;
+    const badge = `<div class="cap-head"><span class="dot ${c.confirmed ? 'ok' : 'warn'}"></span>${miniWave(c.candidate_id, 72)}<span class="badge ${c.confirmed ? 'ok' : 'warn'}">${c.confirmed ? `✓ ${e(t('Lista para aprender'))}` : e(t('Sin confirmar'))}</span></div>`;
     const details = `<details class="signal-details"><summary>${e(t('Detalles de la señal'))}</summary><p class="muted">${e(t('Tipo {protocol} · tamaño {bits} · pulso medido de la señal: {pulse} µs', { protocol: c.protocol, bits: c.nbits, pulse: c.pulse_us }))}</p></details><div data-signal-preview></div>`;
     const known = c.known_as.length
       ? `<p class="muted">${e(t('Ya está guardado como: {names}', { names: c.known_as.map(value => rfText(value)).join(', ') }))}</p>`
       : '';
     if (!c.confirmed) return `<div class="code">${badge}${details}${known}</div>`;
+    // Five names this remote does not use yet: the rest are typed.
+    const used = new Set((this.remote?.buttons ?? []).map(button => button.name));
     const suggestions = buttonSuggestions()
+      .filter(([label]) => !used.has(label) || label === this.name)
+      .slice(0, 5)
       .map(
         ([label, glyph]) =>
           `<button type="button" data-suggest="${e(label)}" data-icon="${e(glyph)}" aria-pressed="${label === this.name}">${e(label)}</button>`,
       )
       .join('');
-    const icons = iconPicker(this.glyph, t('Icono'), 'wide clearable data-learning-icon');
-    const form = `<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label>
-<div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>
-<div class="chips icons" role="group" aria-label="${e(t('Icono'))}">${icons}</div>${this.roleOptions()}`;
+    const icons = iconPicker(this.glyph, t('Icono'), 'clearable data-learning-icon');
+    const form = `<div class="name-row">${icons}<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label></div>
+<div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>${this.roleOptions()}`;
     let action: string;
     if (this.trial) {
-      action = `<div class="question"><p><strong>${e(t('¿El equipo reaccionó?'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="row"><button type="button" data-variant="primary" data-command="worked"${this.name.trim() ? '' : ' disabled'}>${e(t('Sí, guardar'))}</button><button type="button" data-command="failed">${e(t('No reaccionó'))}</button></div></div>`;
+      action = `<div class="question"><p><strong>${e(t('¿El equipo reaccionó?'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="row">${iconButton(t('Sí, guardar'), 'mdi:thumb-up-outline', `data-command="worked"${this.name.trim() ? '' : ' disabled'}`, 'send')}${iconButton(t('No reaccionó'), 'mdi:thumb-down-outline', 'data-command="failed"')}</div></div>`;
     } else {
-      action = `<div class="row"><button type="button" data-variant="primary" data-command="try">${e(t('Probar'))}</button><button type="button" data-command="save"${this.name.trim() ? '' : ' disabled'}>${e(t('Guardar sin probar'))}</button></div>`;
+      action = `<div class="row"><button type="button" class="next" data-command="try">${icon('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t('Guardar sin probar'), 'mdi:content-save-outline', `data-command="save"${this.name.trim() ? '' : ' disabled'}`)}</div>`;
     }
     const attempts = this.attempts.length
       ? `<ul class="attempts" aria-label="${e(t('Pruebas'))}">${this.attempts.map(item => `<li>${item.worked ? '✓' : '✗'} ${e(item.reason)} · ${e(t('{transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(item.transmitter), pulse: item.pulse_us, repeats: item.repeats }))}</li>`).join('')}</ul>`
@@ -386,9 +407,17 @@ ${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.u
           this.receiverOnline?.(this.listen) === false ||
           this.hass?.connection?.connected === false;
     });
-    root.querySelector<HTMLSelectElement>('select[name=listen]')?.addEventListener('change', event => {
+    this.bindForm();
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-listen]')
+      .forEach(chip => chip.addEventListener('click', () => this.listenWith(chip.dataset.listen!)));
+  }
+
+  /** Another receiver: a running capture moves to it; guided mode waits for its button. */
+  private listenWith(receiver: string): void {
+    {
       const wasActive = this.until > 0;
-      this.listen = (event.target as HTMLSelectElement).value;
+      this.listen = receiver;
       this.until = Date.now() + LISTEN_MS;
       this.reset();
       if (this.guided && !this.target.trim() && !wasActive) {
@@ -398,7 +427,11 @@ ${this.renderListen()}${queue}${this.candidate ? this.renderCandidate() : this.u
         if (this.guided) this.name = this.target.trim();
         void this.capture();
       }
-    });
+    }
+  }
+
+  private bindForm(): void {
+    const root = this.root;
     root.querySelector<HTMLInputElement>('input[name=name]')?.addEventListener('input', event => {
       this.name = (event.target as HTMLInputElement).value;
       root

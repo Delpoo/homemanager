@@ -68,3 +68,32 @@ export const rfControlsStyles = `
 .form-foot{display:flex;align-items:center}
 form.settings{display:grid;gap:12px}
 `;
+/** 0.13 learning: a big ring to tap, waves while it listens, captures as cards. */
+export const rfLearnRingStyles = `
+.learn{gap:16px}
+.learn .listen{flex-direction:column;justify-content:center;gap:10px;padding:8px 0 4px;min-height:0;background:transparent;text-align:center}
+.learn .listen .text{justify-items:center;gap:2px}.learn .listen strong{font-size:15px}
+.ring{position:relative;display:grid;place-items:center;width:150px;height:150px;min-height:150px;padding:0;border:0;border-radius:50%;background:transparent}
+.ring:hover:not(:disabled){background:transparent}
+.ring .core{position:relative;z-index:1;display:grid;place-items:center;width:76px;height:76px;border-radius:50%;background:color-mix(in srgb,var(--hm-brand) 14%,var(--hm-surface));color:var(--hm-brand);transition:background .2s,color .2s}
+.ring .core ha-icon{--mdc-icon-size:34px}
+.listen.ok .ring .core{background:var(--hm-brand);color:var(--hm-on-accent)}
+.listen.warn .ring .core{background:color-mix(in srgb,var(--hm-warn) 18%,var(--hm-surface));color:var(--hm-warn)}
+.ring .waves{position:absolute;inset:0;display:grid;place-items:center}
+.ring .waves i{position:absolute;width:76px;height:76px;border:2px solid var(--hm-brand);border-radius:50%;opacity:0}
+.ring.on .waves i{animation:hm-wave 2.4s ease-out infinite}
+.ring.on .waves i:nth-child(2){animation-delay:.8s}.ring.on .waves i:nth-child(3){animation-delay:1.6s}
+@keyframes hm-wave{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.95);opacity:0}}
+@media(prefers-reduced-motion:reduce){.ring.on .waves i{animation:none;opacity:.3}}
+.modes{justify-self:center}
+.row-icon{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:center;color:var(--hm-muted)}
+.target{display:grid;gap:6px}
+.learn .next{justify-self:center}
+.cap-head{display:flex;align-items:center;gap:10px}
+.code{padding:12px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);animation:hm-pop .35s ease}
+@keyframes hm-pop{from{transform:scale(.97);opacity:.4}}
+.learn-foot{display:flex;align-items:center;padding-top:6px;border-top:1px solid var(--hm-line)}
+.question .row{display:flex;gap:6px}
+.name-row{display:flex;align-items:flex-end;gap:10px}.name-row label{flex:1;display:grid;gap:6px;min-width:0}
+.signal-details summary{min-height:36px;padding:6px 10px;font-size:13px;font-weight:400;color:var(--hm-muted)}
+`;
