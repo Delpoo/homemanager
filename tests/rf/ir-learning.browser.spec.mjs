@@ -124,9 +124,13 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
     window.irFixture = { calls, active: () => Boolean(receive), emit: event => receive?.(event) };
   });
 
-  await expect(rf.getByRole('button', { name: /Techo/ })).toBeVisible();
+  await expect(rf.locator('[data-open=techo]')).toBeVisible();
   expect(await page.evaluate(() => window.irFixture.calls)).toEqual([]);
-  await rf.getByRole('tab', { name: 'Infrarrojos' }).click();
+  // 0.13: IR is chosen when creating a remote; its capture page opens in the same panel.
+  await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
+  await rf.getByRole('button', { name: 'IR', exact: true }).click();
+  await rf.getByLabel('Nombre', { exact: true }).fill('Demo');
+  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   const ir = rf.locator('homemanager-ir-manager');
   await expect(ir.getByText('RF only')).toHaveCount(0);
   const capture = ir.getByRole('button', { name: 'Capturar botón IR' });
@@ -207,9 +211,9 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
 
   await capture.click();
   await expect.poll(() => page.evaluate(() => window.irFixture.active())).toBe(true);
-  await rf.getByRole('tab', { name: 'Controles', exact: true }).click();
+  await rf.locator('.dh [data-command=back]').click();
   await expect.poll(() => page.evaluate(() => window.irFixture.active())).toBe(false);
-  await rf.getByRole('button', { name: /Techo/ }).click();
+  await rf.locator('[data-open=techo]').click();
   await expect(rf.locator('homemanager-rf-remote')).toBeVisible();
 
   await page.evaluate(() => {

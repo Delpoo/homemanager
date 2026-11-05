@@ -7,7 +7,7 @@ test('RF combines minus, estimated value and plus; preview is the runtime grid, 
 }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open=techo]').click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
+  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
   const designer = rf.locator('homemanager-control-designer');
   const before = await page.evaluate(() => structuredClone(window.rfServer.library[0].buttons));
   for (const [type, label, ref] of [
@@ -40,7 +40,7 @@ test('RF combines minus, estimated value and plus; preview is the runtime grid, 
   await designer.getByRole('button', { name: 'Deshacer diseño', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.rfServer.library[0].layout.length)).toBe(layout.length - 1);
   expect(await page.evaluate(() => window.rfServer.library[0].buttons)).toEqual(before);
-  await rf.getByRole('button', { name: 'Terminar edición', exact: true }).click();
+  await rf.locator('.dfoot [data-command=edit]').click();
   const actual = await rf
     .locator('homemanager-rf-remote')
     .evaluate(v =>

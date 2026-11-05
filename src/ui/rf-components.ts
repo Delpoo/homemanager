@@ -39,3 +39,32 @@ export const rfLearnStyles = `
 export const rfDeviceStyles = `
 :host{display:block}.wrap{display:grid;gap:14px}.device{border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);overflow:hidden}.top{padding:14px;display:flex;gap:12px;align-items:center}.top>ha-icon{width:24px;height:24px;color:var(--hm-brand);flex:none}.top .info{flex:1;min-width:0}.name{font-size:14px;font-weight:500}.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 8px;border-radius:12px;color:var(--hm-warn);background:color-mix(in srgb,var(--hm-warn) 12%,transparent)}.badge.ok{color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 12%,transparent)}.badge.off{color:var(--hm-muted);background:var(--hm-surface-2)}.device>.row{padding:0 14px 14px}.device button{min-height:36px;padding:6px 12px;font-size:13px}.device button[aria-pressed=true]{color:var(--hm-brand);border-color:var(--hm-brand)}ol{padding:14px 14px 14px 34px;margin:0;display:grid;gap:12px;border-top:1px solid var(--hm-line);font-size:14px;line-height:1.5}pre{margin:10px 0;padding:12px;border-radius:12px;background:var(--hm-bg);overflow:auto;white-space:pre;font-size:12px;line-height:1.6;user-select:all;color:var(--hm-ink)}a.link{color:var(--hm-brand);font-weight:500}.device-options{position:relative}.device-options summary{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;cursor:pointer;list-style:none;font-size:22px}.device-options summary::-webkit-details-marker{display:none}.device-options-body{display:grid;gap:6px;min-width:200px;padding:10px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:12px}.probe{margin:0 14px 14px;padding:12px;border-radius:12px;background:var(--hm-bg);font-size:13px}
 `;
+/** The pieces only this panel has: devices row, new-remote kinds, steps, preview. */
+export const rfControlsStyles = `
+:host{display:block;height:100%;min-height:0}
+.nodes{display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:2px}
+.node{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;padding:10px 26px 10px 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);text-align:left}
+.node b{font-size:13px;font-weight:500}.node .dot{position:absolute;right:10px;top:13px}.node .caps{display:flex;gap:4px}
+.kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kind{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;padding:12px 6px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:12.5px;color:var(--hm-muted)}
+.kind ha-icon{--mdc-icon-size:28px}
+.kind[aria-pressed=true]{border-color:var(--hm-brand);color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 10%,var(--hm-surface))}
+.seg.big2{display:flex;width:100%}.seg.big2 .ib{flex:1;width:auto;height:44px;display:flex;gap:8px;font-weight:500;font-size:13px}
+.row-icon{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:center;color:var(--hm-muted)}
+.stepper{display:flex;align-items:center;gap:4px;margin:0;padding:0;list-style:none}
+.stepper .st{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;color:var(--hm-muted)}
+.stepper .st span{display:grid;place-items:center;width:30px;height:30px;border:2px solid var(--hm-line);border-radius:50%;background:var(--hm-surface)}
+.stepper .st ha-icon{--mdc-icon-size:16px}
+.stepper .st.cur span{border-color:var(--hm-brand);color:var(--hm-brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--hm-brand) 18%,transparent)}
+.stepper .st.done span{border-color:var(--hm-brand);background:var(--hm-brand);color:var(--hm-on-accent)}
+.stepper .st em{font-style:normal}.stepper .st.cur em{color:var(--hm-ink);font-weight:500}
+.stepper .bar{flex:1;height:2px;margin-bottom:18px;background:var(--hm-line)}
+.tools{display:flex;align-items:center;gap:2px}
+.rprev{padding:12px;border-radius:16px;background:var(--hm-bg)}
+.name-in{width:100%;min-height:30px;padding:2px 6px;margin-left:-6px;border:0;border-radius:8px;background:transparent;font-weight:500}
+.name-in:hover{background:var(--hm-surface-2)}.name-in:focus{background:var(--hm-surface);box-shadow:0 0 0 2px var(--hm-brand)}
+.btn-row .t{flex-direction:row;align-items:center;gap:8px}
+.part{display:grid;gap:12px;padding:12px;border:1px solid var(--hm-line);border-radius:14px}
+.form-foot{display:flex;align-items:center}
+form.settings{display:grid;gap:12px}
+`;

@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { setup, calls } from '../browser/rf-helpers.mjs';
+import { setup, calls, ceiling } from '../browser/rf-helpers.mjs';
 test('full icon index is paged, bilingual, prefix-free, accepts unknown saved names and stays responsive', async ({
   page,
 }, info) => {
@@ -63,13 +63,17 @@ test('custom color previews in both themes and automatic removes the optional va
     .toBeUndefined();
 });
 test('RF uses the same full picker and saves exact identifiers without transmitting', async ({ page }) => {
-  const rf = await setup(page);
-  await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
-  const picker = rf.locator('homemanager-icon-picker[data-rf-icon=new]');
+  const rf = await setup(page, { remotes: [ceiling()] });
+  // 0.13: a new remote takes its icon from its kind; any icon is chosen in its settings.
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'Emisor y ajustes', exact: true }).click();
+  const picker = rf.locator('homemanager-icon-picker[data-rf-icon=remote]');
   await picker.locator('.trigger').click();
   await picker.getByRole('searchbox').fill('rocket-launch');
   await picker.getByRole('option', { name: 'rocket-launch', exact: true }).click();
   await expect(picker).toHaveAttribute('value', 'mdi:rocket-launch');
   expect(await calls(page, 'homemanager/rf/press')).toEqual([]);
-  expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/remote/save')).at(-1)?.remote.icon)
+    .toBe('mdi:rocket-launch');
 });

@@ -2,16 +2,10 @@ import { iconPicker } from '../ui/icon-picker.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { learningWorkspaceStyles } from '../ui/learning-components.js';
 import { t } from '../i18n/index.js';
-import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import {
-  installPanelComponents,
-  panelField,
-  panelIconAction,
-  panelChoices,
-  keepPanelFocus,
-} from '../ui/panel-components.js';
-import { rfManagerStyles, rfText, rfEditedText, rfWorkspace } from '../ui/rf-components.js';
+import { installPanelComponents, panelField, keepPanelFocus } from '../ui/panel-components.js';
+import { rfManagerStyles, rfControlsStyles, rfText, rfEditedText } from '../ui/rf-components.js';
+import { iconButton, miniWave, panelHead, panelLabel, sidePanelStyles, sourceTag } from '../ui/side-panel.js';
 import {
   ROLES,
   rf,
@@ -21,11 +15,9 @@ import {
   type RfRemote,
   type RfTransmitter,
   type RfDevice,
-  type RfWidget,
 } from '../integration/rf.js';
+import { remotes as irApi, type IrDevice, type IrRemote } from '../integration/remotes.js';
 import { icon, kindLabel, roleLabel } from './catalog.js';
-import { uiEmpty, uiNotice } from '../ui/components.js';
-import { iconLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { openSignal } from '../ui/signal-workbench.js';
 import './remote-view.js';
@@ -37,30 +29,44 @@ import type { HomeManagerRfLearn } from './learn.js';
 import type { HomeManagerRfDevices } from './devices.js';
 import type { HomeManagerIr } from './ir-manager.js';
 
-/** RF remotes, administrators only (the integration enforces it). A remote is
- * a name and an icon; its buttons are learned in any order and drawn as a
- * remote that can be designed on a grid. What Home Assistant gets (fans and
- * lights) is decided apart, in "In Home Assistant". The RF devices page shows
- * which ESPHome devices can send and listen, and how to prepare the others.
- * Codes never reach this page. */
+/** Controls (0.13): one panel beside the plan for RF and IR remotes, administrators only
+ * (the integration enforces it). The list shows the ESPHome devices that send and
+ * listen, then every remote with its RF or IR tag. A remote opens with its drawing,
+ * one row of icon tools and its learned buttons; its design takes the stage. What Home
+ * Assistant gets (fans and lights) and the transmission settings each have their own
+ * page in the same panel. Codes never reach this page. */
 
-type View = 'list' | 'new' | 'remote' | 'devices' | 'ir';
+type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn';
+type Source = 'rf' | 'ir';
+/** What kind of appliance a new remote is for: only its icon follows from it. */
+const KINDS: [string, string][] = [
+  ['mdi:air-conditioner', 'Aire'],
+  ['mdi:ceiling-fan', 'Ventilador'],
+  ['mdi:television', 'TV'],
+  ['mdi:lightbulb-outline', 'Luz'],
+  ['mdi:projector', 'Proyector'],
+  ['mdi:remote', 'Otro'],
+];
 export class HomeManagerRf extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
   private remotes: RfRemote[] = [];
+  private irRemotes: IrRemote[] = [];
+  private irReceivers: IrDevice[] = [];
+  private irEmitters: IrDevice[] = [];
   private transmitters: RfTransmitter[] = [];
   private defaultReceiver: string | null = null;
   private view: View = 'list';
   private selected: string | null = null;
   /** A new remote that is stored with its first learned button. */
   private draft: RfAbout | null = null;
-  private newRemote: RfAbout = { name: '', icon: 'mdi:remote', description: null };
+  private newRemote: RfAbout = { name: '', icon: 'mdi:air-conditioner', description: null };
+  private newSource: Source = 'rf';
+  private newReceiver = '';
   private editing = false;
   private learning = false;
   private readonly designer = new ControlDesigner();
   private rfDevices: RfDevice[] = [];
-  private inlineOwner: string | null = null;
   private learnSuspended = false;
   private learnOwner: string | null = null;
   private message = '';
@@ -74,7 +80,12 @@ export class HomeManagerRf extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-manager', rfManagerStyles + learningWorkspaceStyles, true);
+    installPanelComponents(
+      this.root,
+      'rf-manager',
+      rfManagerStyles + learningWorkspaceStyles + sidePanelStyles + rfControlsStyles,
+      true,
+    );
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
     this.learn.onSaved = id => void this.learned(id);
     this.learn.onClose = () => this.closeLearn();
@@ -128,15 +139,21 @@ export class HomeManagerRf extends HTMLElement {
   private async reload(): Promise<void> {
     const hass = this._hass;
     if (!hass) return;
-    const [library, transmitters, devices] = await Promise.all([
+    const [library, transmitters, devices, irLibrary, irDevices] = await Promise.all([
       rf.library(hass),
       rf.transmitters(hass),
       rf.devices(hass).catch(() => null),
+      // IR needs a Home Assistant whose ESPHome exposes IR Proxy: without it, RF only.
+      irApi.library(hass).catch(() => [] as IrRemote[]),
+      irApi.devices(hass).catch(() => ({ receivers: [] as IrDevice[], emitters: [] as IrDevice[] })),
     ]);
     this.remotes = library.remotes;
     this.transmitters = transmitters;
     this.defaultReceiver = devices?.default_receiver ?? null;
     this.rfDevices = devices?.devices ?? [];
+    this.irRemotes = irLibrary;
+    this.irReceivers = irDevices.receivers;
+    this.irEmitters = irDevices.emitters;
   }
 
   private report(error: unknown): void {
@@ -156,6 +173,7 @@ export class HomeManagerRf extends HTMLElement {
   private receiver(): string {
     const usable = (id: string | null | undefined) =>
       !!id && this.transmitters.some(item => item.id === id && item.can_capture);
+    if (usable(this.newReceiver) && !this.remote()) return this.newReceiver;
     if (usable(this.defaultReceiver)) return this.defaultReceiver!;
     const remote = this.remote();
     if (usable(remote?.transmitter)) return remote!.transmitter;
@@ -167,109 +185,183 @@ export class HomeManagerRf extends HTMLElement {
   private render(): void {
     const restoreFocus = keepPanelFocus(this.root, '[data-button],[data-part]');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
-    let body: string;
-    if (this.view === 'ir') body = '<div data-slot="infrared"></div>';
-    else if (!this.loaded) body = `<p>${e(t('Cargando…'))}</p>${status}`;
-    else if (this.view === 'devices') body = this.renderDevices(status);
-    else if (this.view === 'new') body = this.renderNew(status);
-    else if (this.view === 'remote' && (this.remote() || this.draft)) body = this.renderRemote(status);
-    else body = this.renderList(status);
-    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices' && this.view !== 'ir'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button><button type="button" role="tab" data-view="ir" aria-selected="${this.view === 'ir'}">${e(t('Infrarrojos'))}</button></div>`;
-    const inline = this.editing && this.view === 'remote' && !!this.remote() && !this.learning;
-    if (inline) {
-      const remote = this.remote()!;
-      this.learn.inline = true;
-      this.learn.remote = remote;
-      this.learn.draft = null;
-      this.learn.transmitters = this.transmitters;
-      this.learn.hass = this._hass;
-      if (this.inlineOwner !== remote.id) {
-        this.inlineOwner = remote.id;
-        this.learn.prepare(this.receiver());
-      } else this.learn.resume();
-    } else this.learn.inline = false;
-    this.root.innerHTML =
-      rfWorkspace(this.renderNavigation(tabs), body, inline ? '<div data-slot="learn"></div>' : '', this.view) +
-      (this.learning ? taskScreen(t('Aprender botones'), '<div data-slot="learn"></div>', '', 'learning-page') : '');
+    const designing = this.view === 'remote' && this.editing && !!this.remote();
+    // The design takes the stage; everything else is a panel beside the plan.
+    this.toggleAttribute('data-stage', designing);
+    let page: string;
+    if (!this.loaded && this.view !== 'ir')
+      page = this.panel(panelHead(e(t('Controles')), { close: t('Cerrar') }), `<p>${e(t('Cargando…'))}</p>${status}`);
+    else if (this.view === 'ir')
+      page = this.panel(
+        panelHead(e(t('Infrarrojos')), { back: t('Volver'), close: t('Cerrar') }),
+        '<div data-slot="infrared"></div>',
+      );
+    else if (this.view === 'devices')
+      page = this.panel(
+        panelHead(e(t('Equipos')), { back: t('Volver'), close: t('Cerrar') }),
+        `<div data-slot="devices"></div>${status}`,
+      );
+    else if (this.view === 'new') page = this.renderNew(status);
+    else if (this.view === 'learn' && (this.remote() || this.draft))
+      page = this.panel(
+        panelHead(`${e(t('Aprender'))} · ${e(rfText((this.remote() ?? this.draft)!.name))}`, {
+          back: t('Volver'),
+          close: t('Cerrar'),
+        }),
+        `${this.remote() ? '' : this.stepper(1)}<div data-slot="learn"></div>${status}`,
+      );
+    else if (this.view === 'entities' && this.remote()) page = this.renderEntities(this.remote()!, status);
+    else if (this.view === 'settings' && this.remote()) page = this.renderSettings(this.remote()!, status);
+    else if (this.view === 'remote' && (this.remote() || this.draft)) page = this.renderRemote(status);
+    else page = this.renderList(status);
+    this.root.innerHTML = page;
     for (const [slot, element] of [
-      ['remote', this.editing ? this.designer : this.remoteView],
+      ['remote', designing ? this.designer : this.remoteView],
       ['learn', this.learn],
       ['devices', this.devices],
       ['infrared', this.infrared],
     ] as const)
       this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
     this.bind();
-    const learnPage = this.root.querySelector<TaskScreen>('.learning-page');
-    if (learnPage) {
-      learnPage.onBack = () => {
-        this.learn.stop();
-        this.learning = false;
-        this.learnSuspended = true;
-        this.render();
-      };
-      learnPage.show(this.root);
-    }
     restoreFocus();
   }
 
-  private renderNavigation(tabs: string): string {
-    if (this.view === 'ir') return tabs;
-    const cards = this.remotes.length
-      ? `<div class="cards">${this.remotes.map(remote => `<button type="button" class="card" data-open="${e(remote.id)}" aria-current="${this.view === 'remote' && this.selected === remote.id}">${icon(remote.icon ?? 'mdi:remote')}<span class="info"><span class="name">${e(rfText(remote.name))}</span><span class="muted">${e(rfText(remote.description ?? t('{count} botones', { count: remote.buttons.length })))}</span></span></button>`).join('')}</div>`
-      : '';
-    return (
-      tabs +
-      cards +
-      `<button type="button" data-command="new"${this.transmitters.length ? '' : ' disabled'}>${icon('mdi:plus')}${e(t('Nuevo control'))}</button>`
-    );
+  private panel(head: string, body: string, foot = ''): string {
+    return `<div class="panel">${head}<div class="dbody">${body}</div>${foot ? `<div class="dfoot">${foot}</div>` : ''}</div>`;
   }
+
+  /** The ESPHome devices, as chips: a dot says whether each one is online. */
+  private renderNodes(): string {
+    const nodes = new Map<string, { name: string; online: boolean; rf: boolean; ir: boolean }>();
+    for (const device of this.rfDevices)
+      nodes.set(device.name, { name: device.name, online: device.online && device.has_package, rf: true, ir: false });
+    for (const transmitter of this.transmitters)
+      if (![...nodes.values()].some(node => node.name === transmitter.name))
+        nodes.set(transmitter.name, { name: transmitter.name, online: true, rf: true, ir: false });
+    for (const device of [...this.irReceivers, ...this.irEmitters]) {
+      const node = nodes.get(device.name) ?? { name: device.name, online: true, rf: false, ir: false };
+      node.ir = true;
+      nodes.set(device.name, node);
+    }
+    const chips = [...nodes.values()]
+      .map(
+        node =>
+          `<button type="button" class="node" data-view="devices" title="${e(node.online ? t('En línea') : t('Sin conexión o sin el paquete HomeManager RF'))}"><span class="dot ${node.online ? 'ok' : 'alert'}"></span><b>${e(rfText(node.name))}</b><span class="caps">${node.rf ? sourceTag('rf') : ''}${node.ir ? sourceTag('ir') : ''}</span></button>`,
+      )
+      .join('');
+    return `<div class="nodes" role="group" aria-label="${e(t('Equipos'))}">${chips}${iconButton(t('Equipos RF'), 'mdi:chip', 'data-view="devices"')}</div>`;
+  }
+
   private renderList(status: string): string {
-    const notice = this.transmitters.length
-      ? ''
-      : uiNotice(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.')) +
-        `<button type="button" data-view="devices">${e(t('Ver equipos RF'))}</button>`;
-    return (
-      `<div class="head"><div class="title"><h2>${e(t('Controles RF'))}</h2></div></div>` +
-      notice +
-      uiEmpty(
-        this.remotes.length
-          ? t('Elegí un control para ver sus botones.')
-          : t('Todavía no hay controles. Creá uno y enseñale sus botones.'),
-      ) +
-      status
-    );
+    const canCreate = this.transmitters.length > 0 || this.irReceivers.length > 0;
+    const head = panelHead(e(t('Controles')), {
+      extra: iconButton(t('Nuevo control'), 'mdi:plus', `data-command="new"${canCreate ? '' : ' disabled'}`),
+      close: t('Cerrar'),
+    });
+    const row = (
+      source: Source,
+      id: string,
+      name: string,
+      glyph: string | null,
+      count: number,
+      description: string | null,
+    ) =>
+      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}</span></button>${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Diseñar {name}', { name: rfText(name) }), 'mdi:pencil-ruler', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
+    const items = [
+      ...this.remotes.map(remote =>
+        row('rf', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description),
+      ),
+      ...this.irRemotes.map(remote =>
+        row('ir', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description),
+      ),
+    ].join('');
+    const empty = canCreate
+      ? `<div class="empty-state">${icon('mdi:remote')}</div>`
+      : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.'))}</span><button type="button" class="next" data-view="devices">${e(t('Ver equipos RF'))}</button></div>`;
+    return this.panel(head, `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}${status}`);
   }
 
   private iconPicker(name: string, selected: string | null): string {
     return iconPicker(selected ?? '', t('Icono'), `wide clearable data-rf-icon="${name}"`);
   }
 
+  private stepper(current: 0 | 1 | 2 | 3): string {
+    const steps: [string, string][] = [
+      ['mdi:remote', t('Nuevo')],
+      ['mdi:access-point', t('Aprender')],
+      ['mdi:play-circle-outline', t('Probar')],
+      ['mdi:pencil-ruler', t('Diseñar')],
+    ];
+    return `<ol class="stepper" aria-label="${e(t('Pasos'))}">${steps
+      .map(
+        ([glyph, label], index) =>
+          `<li class="st${index < current ? ' done' : index === current ? ' cur' : ''}"${index === current ? ' aria-current="step"' : ''}><span>${icon(index < current ? 'mdi:check' : glyph)}</span><em>${e(label)}</em></li>`,
+      )
+      .join('<li class="bar" aria-hidden="true"></li>')}</ol>`;
+  }
+
   private renderNew(status: string): string {
     const draft = this.newRemote;
-    return (
-      `<div class="head">${panelIconAction(t('Volver'), 'data-command="list"', 'mdi:arrow-left')}<div class="title"><h2>${e(t('Nuevo control'))}</h2></div></div>` +
-      panelField(
-        t('Nombre'),
-        `<input name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}">`,
-        t('El nombre identifica el control. Podés cambiarlo después.'),
-      ) +
-      panelChoices(t('Icono'), this.iconPicker('new', draft.icon)) +
-      panelField(
-        t('Descripción (opcional)'),
-        `<input name="new-description" maxlength="200" value="${e(draft.description ?? '')}">`,
-      ) +
-      `<div class="actions"><button type="button" data-command="list">${e(t('Cancelar'))}</button><button type="button" data-variant="primary" data-command="create"${draft.name.trim() ? '' : ' disabled'}>${e(t('Aprender botones'))}</button></div>${status}`
+    const kinds = KINDS.map(
+      ([glyph, label]) =>
+        `<button type="button" class="kind" data-kind="${glyph}" aria-pressed="${draft.icon === glyph}">${icon(glyph)}<span>${e(t(label))}</span></button>`,
+    ).join('');
+    const sources = (['ir', 'rf'] as Source[])
+      .map(
+        source =>
+          `<button type="button" class="ib" data-source="${source}" aria-pressed="${this.newSource === source}" title="${e(source === 'ir' ? t('Infrarrojo') : t('Radio 433 MHz'))}">${icon(source === 'ir' ? 'mdi:remote-tv' : 'mdi:access-point')}<span>${source.toUpperCase()}</span></button>`,
+      )
+      .join('');
+    const listeners: { id: string; name: string }[] =
+      this.newSource === 'rf'
+        ? this.transmitters.filter(item => item.can_capture)
+        : this.irReceivers.map(item => ({ id: item.id, name: item.name }));
+    const chosen = this.newSource === 'rf' ? this.receiver() : '';
+    const chips = listeners
+      .map(
+        item =>
+          `<button type="button" class="chip" data-receiver="${e(item.id)}" aria-pressed="${item.id === chosen}" title="${e(t('Escucha'))}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
+      )
+      .join('');
+    const body = `${this.stepper(0)}<input class="title-in" name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}" aria-label="${e(t('Nombre'))}"><div class="kinds" role="group" aria-label="${e(t('Icono'))}">${kinds}</div>${panelLabel(t('Señal'))}<div class="seg big2" role="group" aria-label="${e(t('Señal'))}">${sources}</div>${chips ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>` : ''}${status}`;
+    const ready = !!draft.name.trim() && (this.newSource === 'ir' || !!this.receiver());
+    return this.panel(
+      panelHead(e(t('Nuevo control')), { back: t('Volver'), close: t('Cerrar') }),
+      body,
+      `<span class="grow"></span><button type="button" class="next" data-command="create"${ready ? '' : ' disabled'}>${icon('mdi:access-point')}${e(t('Aprender botones'))}</button>`,
     );
   }
 
   private renderRemote(status: string): string {
     const remote = this.remote();
     const about: RfAbout = remote ?? this.draft!;
-    const head = `<div class="head"><button type="button" class="back" data-command="list" aria-label="${e(t('Volver'))}">←</button><div class="title">${icon(about.icon ?? 'mdi:remote')}<div><h2>${e(rfText(about.name))}</h2>${about.description ? `<p class="muted">${e(rfText(about.description))}</p>` : ''}</div></div>${remote ? panelIconAction(this.editing ? t('Terminar edición') : t('Editar'), `data-command="edit" aria-pressed="${this.editing}"`, this.editing ? 'mdi:check' : 'mdi:pencil-outline') : ''}</div>`;
     if (!remote)
-      return `${head}<p class="notice">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`;
-    const sections = this.editing ? this.renderEditSections(remote) : '';
-    return `${head}<div data-slot="remote"></div>${this.learning ? '' : `<div class="actions"><button type="button" data-command="learn" aria-label="${e(t('Aprender botones'))}">${icon('mdi:plus')}${e(t('Agregar botón'))}</button></div>`}${uiNotice(t('El envío no confirma que el equipo reaccionó. El eco «en el aire» sólo indica que la señal salió.'))}${status}${sections}`;
+      return this.panel(
+        panelHead(e(rfText(about.name)), { back: t('Volver'), close: t('Cerrar') }),
+        `<p class="muted">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`,
+      );
+    if (this.editing)
+      return this.panel(
+        panelHead(`${e(t('Diseño'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
+        `<div data-slot="remote"></div>${status}`,
+        `<span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="edit"', 'primary')}`,
+      );
+    const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Diseñar'), 'mdi:pencil-ruler', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
+    const buttons = remote.buttons.length
+      ? `<div class="list">${remote.buttons
+          .map(
+            button =>
+              `<div class="li btn-row" data-button="${e(button.id)}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: rfText(button.name) }), 'name="button-icon" clearable')}<span class="t"><input class="name-in" name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${miniWave(button.fingerprint || button.id)}</span><span class="acts">${iconButton(t('Enviar {name}', { name: rfText(button.name) }), 'mdi:play', `data-press="${e(button.id)}"`, 'send')}${iconButton(t('Ficha técnica de {name}', { name: rfText(button.name) }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}${iconButton(t('Eliminar {name}', { name: rfText(button.name) }), 'mdi:close', `data-delete-button="${e(button.id)}"`)}</span></div>`,
+          )
+          .join('')}</div>`
+      : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
+    return this.panel(
+      panelHead(`${icon(about.icon ?? 'mdi:remote')}<span>${e(rfText(about.name))}</span>${sourceTag('rf')}`, {
+        back: t('Volver'),
+        close: t('Cerrar'),
+      }),
+      `<div class="rprev" data-slot="remote"></div>${tools}${panelLabel(t('Botones'))}${buttons}${status}`,
+    );
   }
 
   private entities(remoteId: string): string[] {
@@ -287,20 +379,21 @@ export class HomeManagerRf extends HTMLElement {
       .join('')}`;
   }
 
-  private renderEditSections(remote: RfRemote): string {
-    const about = `<section aria-labelledby="about-title"><h3 id="about-title">${e(t('Nombre e icono'))}</h3><div class="row"><label>${e(t('Nombre'))}<input name="remote-name" maxlength="80" value="${e(rfText(remote.name))}"></label><label>${e(t('Descripción (opcional)'))}<input name="remote-description" maxlength="200" value="${e(rfText(remote.description))}"></label></div>${this.iconPicker('remote', remote.icon)}</section>`;
-    const buttons = remote.buttons.length
-      ? remote.buttons
-          .map(
-            button =>
-              `<div class="btn-row" data-button="${e(button.id)}"><span>${icon(button.icon)}</span><input name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: button.name }), 'name="button-icon" clearable')}<div class="row"><button type="button" data-press="${e(button.id)}">${e(t('Probar'))}</button>${panelIconAction(t('Ficha técnica de {name}', { name: button.name }), `data-signal="${e(button.id)}"`, 'mdi:file-document-outline')}</div><button type="button" class="danger" data-delete-button="${e(button.id)}" aria-label="${e(t('Eliminar {name}', { name: button.name }))}">✕</button></div>`,
-          )
-          .join('')
-      : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
-    const learned = `<section aria-labelledby="buttons-title"><h3 id="buttons-title">${e(t('Botones aprendidos ({count})', { count: remote.buttons.length }))}</h3>${buttons}</section>`;
+  /** What Home Assistant gets: a fan or a light whose roles name the buttons. */
+  private renderEntities(remote: RfRemote, status: string): string {
     const parts = remote.parts.map(part => this.renderPart(remote, part)).join('');
     const entities = this.entities(remote.id);
-    const ha = `<section aria-labelledby="ha-title"><h3 id="ha-title">${e(t('En Home Assistant'))}</h3><p class="muted">${e(t('Para tener un ventilador o una luz en Home Assistant, elegí qué botón hace cada cosa. Los botones sin función aparecen como botones.'))}</p>${parts}<div class="row"><button type="button" data-add-part="fan">${e(t('Agregar ventilador'))}</button><button type="button" data-add-part="light">${e(t('Agregar luz'))}</button></div>${entities.length ? `<p class="muted">${e(t('Vinculados: {entities}', { entities: entities.map(id => rfText(this._hass?.states[id]?.attributes.friendly_name, t('Dispositivo'))).join(', ') }))}</p>` : ''}</section>`;
+    const linked = entities.length
+      ? `<div class="chips">${entities.map(id => `<span class="chip">${icon('mdi:link-variant')}${e(rfText(this._hass?.states[id]?.attributes.friendly_name, t('Dispositivo')))}</span>`).join('')}</div>`
+      : '';
+    return this.panel(
+      panelHead(e(t('En Home Assistant')), { back: t('Volver'), close: t('Cerrar') }),
+      `${parts}<div class="chips">${iconButton(t('Agregar ventilador'), 'mdi:fan-plus', 'data-add-part="fan"')}${iconButton(t('Agregar luz'), 'mdi:lightbulb-on-outline', 'data-add-part="light"')}</div>${linked}${status}`,
+    );
+  }
+
+  /** Name, icon and how it transmits. */
+  private renderSettings(remote: RfRemote, status: string): string {
     const transmitters = this.transmitters
       .map(
         item =>
@@ -316,9 +409,12 @@ export class HomeManagerRf extends HTMLElement {
               measured: remote.measured_pulse_us,
               pulse: remote.pulse_us,
             });
-    const advanced = `<section><details><summary>${e(t('Avanzado'))}</summary><form class="settings"><p class="muted">${e(t('Tipo {protocol} · tamaño {bits}.', { protocol: remote.protocol, bits: remote.nbits }))}</p><div class="row">${panelField(t('Transmisor'), `<select name="transmitter">${transmitters}</select>`)}${panelField(t('Pulso (µs)'), `<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}">`, measured)}${panelField(t('Repeticiones'), `<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}">`)}${panelField(t('Pausa entre señales (µs)'), `<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}">`, t('La espera suele ser 0: cada señal ya incluye su propia pausa.'))}</div><div>${panelIconAction(t('Guardar ajustes'), '', 'mdi:check', 'primary', 'submit')}</div></form></details></section>`;
-    const remove = `<section><div><button type="button" class="danger" data-command="delete-remote">${e(t('Eliminar control'))}</button></div></section>`;
-    return `${about}${learned}${ha}${advanced}${remove}`;
+    const about = `<input class="title-in" name="remote-name" maxlength="80" value="${e(rfText(remote.name))}" aria-label="${e(t('Nombre'))}">${panelField(t('Descripción (opcional)'), `<input name="remote-description" maxlength="200" value="${e(rfText(remote.description))}">`)}${this.iconPicker('remote', remote.icon)}`;
+    const form = `<form class="settings">${panelLabel(t('Emisión'))}<p class="muted">${e(t('Tipo {protocol} · tamaño {bits}.', { protocol: remote.protocol, bits: remote.nbits }))}</p>${panelField(t('Transmisor'), `<select name="transmitter">${transmitters}</select>`)}${panelField(t('Pulso (µs)'), `<input name="pulse_us" type="number" min="50" max="2000" value="${remote.pulse_us}">`, measured)}${panelField(t('Repeticiones'), `<input name="repeats" type="number" min="1" max="20" value="${remote.repeats}">`)}${panelField(t('Pausa entre señales (µs)'), `<input name="wait_us" type="number" min="0" max="100000" value="${remote.wait_us}">`)}<div class="form-foot"><span class="grow"></span>${iconButton(t('Guardar ajustes'), 'mdi:check', 'type="submit"', 'primary').replace('type="button" ', '')}</div></form>`;
+    return this.panel(
+      panelHead(e(t('Emisor y ajustes')), { back: t('Volver'), close: t('Cerrar') }),
+      `${about}${form}${status}`,
+    );
   }
 
   private renderPart(remote: RfRemote, part: RfPart): string {
@@ -344,11 +440,7 @@ export class HomeManagerRf extends HTMLElement {
               `<option value="${index + 1}"${part.speeds === index + 1 ? ' selected' : ''}>${index + 1}</option>`,
           ).join('')}</select></label>`
         : '';
-    return `<div class="part" data-part="${e(part.id)}" data-kind="${part.kind}"><div class="row"><span class="badge">${e(kindLabel(part.kind))}</span><input name="part-name" maxlength="80" value="${e(rfText(part.name))}" aria-label="${e(t('Nombre en Home Assistant'))}"><button type="button" class="danger" data-remove-part="${e(part.id)}" aria-label="${e(t('Quitar {name}', { name: part.name }))}">✕</button></div><div class="roles">${selects}${speeds}</div></div>`;
-  }
-
-  private renderDevices(status: string): string {
-    return `<div class="head"><div class="title"><h2>${e(t('Equipos ESPHome'))}</h2></div></div><div data-slot="devices"></div>${status}`;
+    return `<div class="part" data-part="${e(part.id)}" data-kind="${part.kind}"><div class="row"><span class="badge">${e(kindLabel(part.kind))}</span><input name="part-name" maxlength="80" value="${e(rfText(part.name))}" aria-label="${e(t('Nombre en Home Assistant'))}">${iconButton(t('Quitar {name}', { name: part.name }), 'mdi:close', `data-remove-part="${e(part.id)}"`, 'danger')}</div><div class="roles">${selects}${speeds}</div></div>`;
   }
 
   private bind(): void {
@@ -363,6 +455,21 @@ export class HomeManagerRf extends HTMLElement {
     root
       .querySelectorAll<HTMLButtonElement>('[data-open]')
       .forEach(button => button.addEventListener('click', () => this.open(button.dataset.open!)));
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-open-ir]')
+      .forEach(button => button.addEventListener('click', () => this.openIrRemote(button.dataset.openIr!)));
+    root.querySelectorAll<HTMLButtonElement>('[data-design]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.open(button.dataset.design!);
+        void this.command('edit');
+      }),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-learn-more]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.open(button.dataset.learnMore!);
+        void this.command('learn');
+      }),
+    );
     root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (remote && this._hass)
@@ -375,14 +482,8 @@ export class HomeManagerRf extends HTMLElement {
         else void this.saveAbout({ icon: picker.value || null });
       }),
     );
-    root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {
-      this.newRemote.name = (event.target as HTMLInputElement).value;
-      root.querySelector<HTMLButtonElement>('[data-command=create]')!.disabled = !this.newRemote.name.trim();
-    });
-    root.querySelector<HTMLInputElement>('input[name=new-description]')?.addEventListener('input', event => {
-      this.newRemote.description = (event.target as HTMLInputElement).value || null;
-    });
-    if (this.view === 'remote' && remote) {
+    if (this.view === 'new') this.bindNew();
+    if (remote && (this.view === 'remote' || this.view === 'entities' || this.view === 'settings')) {
       this.remoteView.readValues = () => this._hass?.states ?? {};
       this.designer.configure({
         key: remote.id,
@@ -403,6 +504,41 @@ export class HomeManagerRf extends HTMLElement {
     if (this.view === 'ir') this.infrared.hass = this._hass;
   }
 
+  private bindNew(): void {
+    const root = this.root;
+    const refresh = () => {
+      const create = root.querySelector<HTMLButtonElement>('[data-command=create]');
+      if (create) create.disabled = !this.newRemote.name.trim() || (this.newSource === 'rf' && !this.receiver());
+    };
+    root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {
+      this.newRemote.name = (event.target as HTMLInputElement).value;
+      refresh();
+    });
+    root.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.newRemote.icon = button.dataset.kind!;
+        root
+          .querySelectorAll<HTMLButtonElement>('[data-kind]')
+          .forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+      }),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.newSource = button.dataset.source as Source;
+        this.render();
+      }),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-receiver]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.newReceiver = button.dataset.receiver!;
+        root
+          .querySelectorAll<HTMLButtonElement>('[data-receiver]')
+          .forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+        refresh();
+      }),
+    );
+  }
+
   private bindEditSections(remote: RfRemote): void {
     const root = this.root;
     root
@@ -417,18 +553,19 @@ export class HomeManagerRf extends HTMLElement {
     root.querySelectorAll<HTMLElement>('.btn-row').forEach(row => {
       const save = () =>
         void this.run(async () => {
+          const button = remote.buttons.find(item => item.id === row.dataset.button);
           const name = rfEditedText(
             row.querySelector<HTMLInputElement>('[name=button-name]')!.value.trim(),
-            remote.buttons.find(button => button.id === row.dataset.button)?.name,
+            button?.name,
           );
-          const glyph = row.querySelector<HTMLSelectElement>('[name=button-icon]')!.value || null;
+          const glyph = row.querySelector<HTMLInputElement>('[name=button-icon]')?.value || null;
           if (!name) return;
           await rf.saveButton(this._hass!, remote.id, { name, icon: glyph }, { buttonId: row.dataset.button });
           await this.reload();
           this.say(t('Cambios guardados.'));
         });
-      row.querySelector('[name=button-name]')!.addEventListener('change', save);
-      row.querySelector('[name=button-icon]')!.addEventListener('change', save);
+      row.querySelector('[name=button-name]')?.addEventListener('change', save);
+      row.querySelector('[name=button-icon]')?.addEventListener('change', save);
     });
     root.querySelectorAll<HTMLButtonElement>('[data-press]').forEach(button =>
       button.addEventListener(
@@ -461,8 +598,9 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private show(view: View): void {
-    if (view !== 'remote') this.closeLearn(false);
+    if (view !== 'learn' && view !== 'remote') this.closeLearn(false);
     if (view !== 'devices') this.devices.stop();
+    if (view !== 'ir') this.infrared.stopCapture();
     this.view = view;
     this.editing = false;
     this.say('');
@@ -489,13 +627,39 @@ export class HomeManagerRf extends HTMLElement {
     this.render();
   }
 
+  /** ✕ goes back to the plan; ← one level up. */
+  private leave(): void {
+    this.learn.stop();
+    this.infrared.stopCapture();
+    this.dispatchEvent(
+      new CustomEvent('homemanager-shell-command', { detail: { command: 'plan' }, bubbles: true, composed: true }),
+    );
+  }
+
   private async command(name: string): Promise<void> {
     const hass = this._hass;
     if (!hass) return;
+    if (name === 'close') return this.leave();
+    if (name === 'back') {
+      if (this.view === 'remote' && this.editing) return void this.command('edit');
+      if (this.view === 'learn' && this.remote()) {
+        // Back keeps the capture and the typed name: Learn picks up where it was.
+        this.learn.stop();
+        this.learning = false;
+        this.learnSuspended = true;
+        this.view = 'remote';
+        this.say('');
+        return this.render();
+      }
+      if ((this.view === 'entities' || this.view === 'settings') && this.remote()) return this.show('remote');
+      return void this.command('list');
+    }
     await this.run(async () => {
       switch (name) {
         case 'new':
-          this.newRemote = { name: '', icon: 'mdi:remote', description: null };
+          this.newRemote = { name: '', icon: 'mdi:air-conditioner', description: null };
+          this.newSource = this.transmitters.length ? 'rf' : 'ir';
+          this.newReceiver = '';
           this.show('new');
           break;
         case 'list':
@@ -506,13 +670,17 @@ export class HomeManagerRf extends HTMLElement {
           this.show('list');
           break;
         case 'create':
+          if (this.newSource === 'ir') {
+            // IR keeps its own capture page until the shared learning wizard covers it.
+            this.show('ir');
+            break;
+          }
           this.draft = {
             name: this.newRemote.name.trim(),
             icon: this.newRemote.icon,
             description: this.newRemote.description?.trim() || null,
           };
           this.selected = null;
-          this.view = 'remote';
           this.startLearn();
           break;
         case 'learn':
@@ -522,7 +690,6 @@ export class HomeManagerRf extends HTMLElement {
         case 'edit':
           this.editing = !this.editing;
           if (this.editing) this.closeLearn(false);
-          else this.learn.stop();
           this.say('');
           break;
         case 'delete-remote': {
@@ -546,8 +713,12 @@ export class HomeManagerRf extends HTMLElement {
 
   // Learning ------------------------------------------------------------
 
+  /** Learning is a page of the panel (0.13). A saved remote waits for the person to
+   * name the button they will press (guided); a new one starts listening at once. */
   private startLearn(): void {
     const learn = this.learn;
+    this.view = 'learn';
+    this.say('');
     if (this.learnSuspended && this.learnOwner === this.selected) {
       this.learnSuspended = false;
       this.learning = true;
@@ -556,12 +727,13 @@ export class HomeManagerRf extends HTMLElement {
     }
     learn.hass = this._hass;
     this.learnOwner = this.selected;
+    learn.inline = true;
     learn.transmitters = this.transmitters;
     learn.remote = this.remote() ?? null;
     learn.draft = learn.remote ? null : this.draft;
     this.learning = true;
-    this.say('');
-    learn.start(this.receiver());
+    if (learn.remote) learn.prepare(this.receiver());
+    else learn.start(this.receiver());
   }
 
   private closeLearn(render = true): void {
@@ -574,7 +746,7 @@ export class HomeManagerRf extends HTMLElement {
       this.draft = null;
       this.view = 'list';
       this.say(t('No se guardó: el control necesita al menos un botón.'));
-    }
+    } else if (this.view === 'learn') this.view = this.remote() ? 'remote' : 'list';
     if (render) this.render();
   }
 

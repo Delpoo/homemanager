@@ -251,13 +251,14 @@ test('learning Back keeps the candidate and button name; storage uses one explic
   await rf.locator('[data-open]').first().click();
   await rf.locator('[data-command=learn]').click();
   const learn = rf.locator('homemanager-rf-learn');
+  await learn.getByRole('button', { name: 'Modo libre', exact: true }).click();
   await expect(learn.getByText('Pulsá un botón del control', { exact: true })).toBeVisible();
   await page.evaluate(() =>
     window.rfServer.heard({ frames: 3, burst_frames: 3, confirmed: true, confirmed_by: 'frames' }),
   );
   await expect(learn.getByText('Señal reconocida', { exact: true })).toBeVisible();
   await learn.getByLabel('Nombre del botón').fill('Nombre pendiente');
-  await rf.locator('homemanager-task-screen.learning-page .task-back').click();
+  await rf.locator('.dh [data-command=back]').click();
   await rf.locator('[data-command=learn]').click();
   await expect(learn.getByLabel('Nombre del botón')).toHaveValue('Nombre pendiente');
   await expect(learn.getByText(/Lista para aprender/)).toBeVisible();

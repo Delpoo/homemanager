@@ -103,6 +103,13 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
       break;
     case 'nav-open':
       closeNavMenu(this.root);
+      // 0.13: Controls opens straight beside the plan in the HomeManager panel.
+      if (target.dataset.section === 'controls-section' && this.shellContext) {
+        this.dispatchEvent(
+          new CustomEvent('homemanager-shell-command', { detail: { command: 'rf' }, bubbles: true, composed: true }),
+        );
+        break;
+      }
       void openConfiguration(this, target.dataset.section as SettingsSection);
       break;
     case 'all':

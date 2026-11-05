@@ -359,4 +359,18 @@ export const enPlan012: Record<string, string> = {
   'Los cambios de {name} tenían un error y no se aplicaron.':
     'The changes to {name} had an error and were not applied.',
   'Las imágenes PNG o JPG van en Alternativas del plano.': 'PNG or JPG images go in Plan alternatives.',
+  Nuevo: 'New',
+  Aprender: 'Learn',
+  Diseñar: 'Design',
+  Diseño: 'Design',
+  Infrarrojo: 'Infrared',
+  'Radio 433 MHz': '433 MHz radio',
+  'Emisor y ajustes': 'Transmitter and settings',
+  Aire: 'Air conditioner',
+  TV: 'TV',
+  Proyector: 'Projector',
+  'Diseñar {name}': 'Design {name}',
+  'Aprender más botones de {name}': 'Learn more buttons for {name}',
+  'Enviar {name}': 'Send {name}',
+  'Sin conexión o sin el paquete HomeManager RF': 'Offline or without the HomeManager RF package',
 };
