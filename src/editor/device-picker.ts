@@ -5,7 +5,6 @@ import {
   searchDevices,
   usefulEntity,
   bindingIssues,
-  pickerReadings,
   type CatalogDevice,
   type DeviceSelection,
 } from '../model/device-catalog.js';
@@ -22,6 +21,7 @@ import {
   uiFold,
   uiNotice,
   uiEmpty,
+  uiEscape,
   useComponents,
 } from '../ui/components.js';
 
@@ -228,42 +228,38 @@ export class DevicePicker extends HTMLElement {
     } else {
       const device = this.selected;
       title = device.name;
-      const suggestions = pickerReadings(device);
-      const choices = [...suggestions.primary];
-      if (!choices.some(reading => reading.entityId === this.primary))
-        choices.push(device.readings.find(reading => reading.entityId === this.primary)!);
-      const primaryRow = (reading: CatalogDevice['readings'][number]) =>
+      // One list, each reading once, no fixed limit (#91). The suggested one is the
+      // symbol's main reading; what the symbol shows is chosen in Indicators (#92).
+      const chosen = [this.primary, ...this.additional];
+      const row = (reading: CatalogDevice['readings'][number]) =>
         uiRow({
           name: reading.name,
           value: reading.value,
-          detail: reading.entityId === device.primaryEntityId ? t('Sugerida') : undefined,
+          detail:
+            reading.entityId === this.primary
+              ? t('Principal')
+              : reading.entityId === device.primaryEntityId
+                ? t('Sugerida')
+                : undefined,
           key: reading.entityId,
-          choice: { type: 'radio', name: 'primary', checked: this.primary === reading.entityId },
+          choice: { type: 'checkbox', name: 'reading', checked: chosen.includes(reading.entityId) },
         });
-      body = uiGroup(t('Lectura principal · se ve en el símbolo'), choices.map(primaryRow).join(''));
-      const extras = suggestions.additional.filter(reading => reading.entityId !== this.primary);
-      const choiceRow = (reading: CatalogDevice['readings'][number]) =>
-        uiRow({
-          name: reading.name,
-          value: reading.value,
-          key: reading.entityId,
-          choice: {
-            type: 'checkbox',
-            name: 'additional',
-            checked: this.additional.includes(reading.entityId),
-            disabled: this.additional.length >= 3 && !this.additional.includes(reading.entityId),
-          },
-        });
-      const shown = extras.filter((reading, index) => index < 4 || this.additional.includes(reading.entityId));
-      body += uiGroup(t('Lecturas adicionales · hasta 3'), shown.map(choiceRow).join(''));
-      const rest = extras.filter(reading => !shown.includes(reading));
-      // Folded readings can become either the principal or an additional one.
-      const others = device.readings.filter(reading => !choices.includes(reading));
-      if (rest.length || others.length)
+      body = uiNotice(
+        t(
+          'Elegí las lecturas que te interesan. Todas quedan en la pantalla del dispositivo; las que se ven en el símbolo se eligen después en Indicadores.',
+        ),
+      );
+      body += uiGroup(t('Lecturas ({count})', { count: device.readings.length }), device.readings.map(row).join(''));
+      if (device.actions.length)
         body += uiFold(
-          t('Otras lecturas ({count})', { count: others.length }),
-          uiGroup(t('Lectura principal'), others.map(primaryRow).join('')) +
-            uiGroup(t('Lecturas adicionales · hasta 3'), rest.map(choiceRow).join('')),
+          t('Programas y opciones ({count})', { count: device.actions.length }),
+          `<p class="k-sub">${uiEscape(t('No son lecturas: se usan como atajos y acciones del símbolo.'))}</p>` +
+            uiGroup(
+              '',
+              device.actions
+                .map(action => uiRow({ name: action.name, key: action.entityId, icon: action.icon }))
+                .join(''),
+            ),
         );
       if (device.excluded)
         body += uiNotice(
@@ -300,15 +296,15 @@ export class DevicePicker extends HTMLElement {
   };
   private change = (event: Event): void => {
     const input = event.target as HTMLInputElement;
-    if (input.name === 'primary') {
-      this.primary = input.value;
-      this.additional = this.additional.filter(id => id !== this.primary);
-      this.render();
-    }
-    if (input.name === 'additional') {
-      this.additional = input.checked
-        ? [...this.additional, input.value].slice(0, 3)
-        : this.additional.filter(id => id !== input.value);
+    if (input.name === 'reading') {
+      const id = input.value;
+      if (input.checked) {
+        if (id !== this.primary && !this.additional.includes(id)) this.additional = [...this.additional, id];
+      } else if (id === this.primary) {
+        // The main reading passes to the next chosen one; the last one stays.
+        if (this.additional.length) [this.primary, ...this.additional] = this.additional;
+        else input.checked = true;
+      } else this.additional = this.additional.filter(other => other !== id);
       const open = this.root.querySelector<HTMLDetailsElement>('details')?.open;
       this.render();
       if (open) {

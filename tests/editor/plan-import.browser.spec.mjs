@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
@@ -11,6 +11,7 @@ async function begin(page) {
 }
 async function settings(page) {
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
 }
 async function upload(page, svg = merged) {
   await settings(page);

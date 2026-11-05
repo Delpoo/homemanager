@@ -1,4 +1,4 @@
-import { openAdvanced } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openFirstSection } from '../browser/shell-helpers.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
@@ -211,6 +211,7 @@ test('deletion has a modal focus trap, Escape and Cancel restore the trigger, an
 test('plan settings and field help open without cluttering the map, and Move uses map placement', async ({ page }) => {
   await begin(page);
   await button(page, 'Configuración').click();
+  await openFirstSection(page);
   const settings = editor(page).getByRole('region', { name: 'Configuración' });
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.

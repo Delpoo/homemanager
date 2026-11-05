@@ -35,7 +35,8 @@ export const CONTROL_STEPS = Object.freeze({
 });
 export const MAX_CONTROLS = 8;
 export const MAX_PINNED = 3;
-export const MAX_READINGS = 3;
+/** No fixed limit of three any more (#91): a safe technical ceiling of 31 besides the main one. */
+export const MAX_READINGS = 31;
 export const SYMBOL_SIZES = Object.freeze(['s', 'm', 'l']);
 export const SYMBOL_ARCHETYPES = Object.freeze([
   'actuator',
@@ -110,6 +111,51 @@ function text(value, path, max = 240) {
 function id(value, path) {
   text(value, path);
   if (!ID.test(value) || UNSAFE.has(value)) invalid(path, 'safe kebab-case identifier required');
+}
+/** Plan 0.12 (#92, #93, #94): how a symbol and its values look. All optional. */
+function symbolLook(display, path) {
+  const hex = (value, where) => {
+    if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) invalid(where, 'hex color required');
+  };
+  const range = (value, min, max, where) => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      invalid(where, `number between ${min} and ${max} required`);
+  };
+  if (Object.hasOwn(display, 'values')) {
+    const values = display.values;
+    if (!Array.isArray(values) || values.length > 8) invalid(`${path}.values`, 'at most 8 values');
+    const seen = new Set();
+    values.forEach((value, index) => {
+      const where = `${path}.values[${index}]`;
+      fields(value, ['entity'], ['decimals', 'unit', 'label', 'size', 'color', 'ranges', 'dot'], where);
+      entity(value.entity, `${where}.entity`);
+      if (seen.has(value.entity)) invalid(where, 'each reading once');
+      seen.add(value.entity);
+      if (Object.hasOwn(value, 'decimals') && (!Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 3))
+        invalid(`${where}.decimals`, '0 to 3 decimals');
+      if (Object.hasOwn(value, 'unit') && typeof value.unit !== 'boolean') invalid(`${where}.unit`, 'boolean required');
+      if (Object.hasOwn(value, 'dot') && typeof value.dot !== 'boolean') invalid(`${where}.dot`, 'boolean required');
+      if (Object.hasOwn(value, 'label') && (typeof value.label !== 'string' || !value.label.trim() || value.label.length > 16))
+        invalid(`${where}.label`, 'short label required');
+      if (Object.hasOwn(value, 'size')) one(value.size, ['s', 'm', 'l'], `${where}.size`);
+      if (Object.hasOwn(value, 'color')) hex(value.color, `${where}.color`);
+      if (Object.hasOwn(value, 'ranges')) {
+        if (!Array.isArray(value.ranges) || value.ranges.length > 6) invalid(`${where}.ranges`, 'at most 6 ranges');
+        value.ranges.forEach((item, at) => {
+          fields(item, ['from', 'color'], [], `${where}.ranges[${at}]`);
+          range(item.from, -1e9, 1e9, `${where}.ranges[${at}].from`);
+          hex(item.color, `${where}.ranges[${at}].color`);
+        });
+      }
+    });
+  }
+  if (Object.hasOwn(display, 'valuePlace')) one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
+  if (Object.hasOwn(display, 'scale')) range(display.scale, 0.5, 2.5, `${path}.scale`);
+  if (Object.hasOwn(display, 'roomScale')) range(display.roomScale, 0.5, 2.5, `${path}.roomScale`);
+  if (Object.hasOwn(display, 'opacity')) range(display.opacity, 0, 100, `${path}.opacity`);
+  if (Object.hasOwn(display, 'shape')) one(display.shape, ['circle', 'pill', 'dot', 'icon'], `${path}.shape`);
+  // #95: a drawing or a shortcut that needs no device link.
+  if (Object.hasOwn(display, 'standalone') && display.standalone !== true) invalid(`${path}.standalone`, 'true or absent');
 }
 function entity(value, path) {
   text(value, path);
@@ -256,7 +302,7 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels'],
+    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels', 'symbolSizes', 'initialView'],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -334,9 +380,17 @@ function shape(configuration) {
         'layer',
         'disabledBaseRules',
         'color',
+        'values',
+        'valuePlace',
+        'scale',
+        'roomScale',
+        'opacity',
+        'shape',
+        'standalone',
       ],
       `${path}.display`,
     );
+    symbolLook(device.display, `${path}.display`);
     text(device.display.label, `${path}.display.label`);
     text(device.display.icon, `${path}.display.icon`);
     if (
@@ -388,7 +442,7 @@ function shape(configuration) {
     if (Object.hasOwn(device.bindings, 'readings')) {
       const readings = device.bindings.readings;
       if (!Array.isArray(readings) || readings.length > MAX_READINGS)
-        invalid(`${path}.bindings.readings`, 'array of at most 3 additional readings required');
+        invalid(`${path}.bindings.readings`, 'array of at most 31 additional readings required');
       for (const reading of readings) entity(reading, `${path}.bindings.readings`);
       if (new Set(readings).size !== readings.length || readings.includes(device.bindings.entityId))
         invalid(`${path}.bindings.readings`, 'additional readings must be unique and exclude the principal');
@@ -466,6 +520,27 @@ function shape(configuration) {
         invalid(`stateSources.${key}.attribute`, 'unsafe attribute');
     }
     one(source.feedback, ['measured', 'optimistic', 'transmitter'], `stateSources.${key}.feedback`);
+  }
+  // Plan 0.12 (#94): symbol size by view and zoom, and the initial view. Optional.
+  const between = (value, min, max, where) => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      invalid(where, `number between ${min} and ${max} required`);
+  };
+  if (Object.hasOwn(configuration, 'symbolSizes')) {
+    const sizes = configuration.symbolSizes;
+    fields(sizes, ['house', 'room', 'min', 'max'], [], 'configuration.symbolSizes');
+    for (const key of ['house', 'room', 'min', 'max']) between(sizes[key], 0.5, 2.5, `configuration.symbolSizes.${key}`);
+  }
+  if (Object.hasOwn(configuration, 'initialView')) {
+    const view = configuration.initialView;
+    fields(view, ['room', 'x', 'y', 'zoom'], ['planView'], 'configuration.initialView');
+    if (view.room !== null && (typeof view.room !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.room) || view.room.length > 64))
+      invalid('configuration.initialView.room', 'space id or null required');
+    between(view.x, -1, 2, 'configuration.initialView.x');
+    between(view.y, -1, 2, 'configuration.initialView.y');
+    between(view.zoom, 0.5, 16, 'configuration.initialView.zoom');
+    if (Object.hasOwn(view, 'planView') && (typeof view.planView !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(view.planView) || view.planView.length > 64))
+      invalid('configuration.initialView.planView', 'plan view id required');
   }
   if (Object.hasOwn(configuration, 'nowPanels')) {
     fields(configuration.nowPanels, [], ['home', 'wall'], 'nowPanels');

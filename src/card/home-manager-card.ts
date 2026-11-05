@@ -41,6 +41,8 @@ import { layer, same, type Adapter } from './card-helpers.js';
 import * as commands from './commands.js';
 import * as editing from './editing.js';
 import { configurationStyles } from './settings-screen.js';
+import { applyInitialView } from './initial-view.js';
+import { applyShowLink } from '../shell/show-link.js';
 import * as gestures from './gestures.js';
 import * as planView from './plan-view.js';
 import * as session from './session.js';
@@ -78,6 +80,8 @@ export class HomeManagerCard extends HTMLElement {
   editorFocus?: HTMLElement;
   /** Editing was entered only to change Settings (#70). */
   configuring = false;
+  /** Opening shows the initial view once the plan has a size (#94). */
+  pendingInitialView = false;
   store?: ConfigurationStore;
   // Integration storage (card config with home_id): loaded over the websocket.
   home?: IntegrationConfigurationStore;
@@ -255,6 +259,7 @@ export class HomeManagerCard extends HTMLElement {
   }
   // Reconnected: the revision subscription was dropped, so re-read once (not while editing).
   private fullscreenChanged = () => syncFullscreen(this);
+  private showLinkChanged = () => applyShowLink(this.root.querySelector('.shell'));
   private planThemeChanged = () => {
     void renderPlanChoice(this);
   };
@@ -263,6 +268,7 @@ export class HomeManagerCard extends HTMLElement {
     document.addEventListener('fullscreenchange', this.fullscreenChanged);
     document.addEventListener('homemanager-theme-change', this.planThemeChanged);
     document.addEventListener('homemanager-layers-change', this.syncLayerChoice);
+    document.addEventListener('homemanager-show-link', this.showLinkChanged);
     this.layerNamesCleanup?.();
     this.layerNamesCleanup = layerView.bindLayerNames(this.root);
     this.activityUnsubscribe ??= this.activity.subscribe(() => this.updateShell());
@@ -295,6 +301,7 @@ export class HomeManagerCard extends HTMLElement {
     document.removeEventListener('fullscreenchange', this.fullscreenChanged);
     document.removeEventListener('homemanager-theme-change', this.planThemeChanged);
     document.removeEventListener('homemanager-layers-change', this.syncLayerChoice);
+    document.removeEventListener('homemanager-show-link', this.showLinkChanged);
     this.layerNamesCleanup?.();
     clearInterval(this.activityTimer);
     this.activityTimer = undefined;
@@ -337,7 +344,7 @@ export class HomeManagerCard extends HTMLElement {
     this.root.innerHTML = `<style>${styles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${fullscreenStyles}${configurationStyles}${moveGridStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar"><span class="edit-title" role="status"><b>${e(t('Editando el plano'))}</b><span class="edit-count"></span></span>${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}${iconButton('settings', t('Configuración'), 'settings')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
-      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
+      <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}${layerView.iconButtonMarkup('home-view', t('Vista inicial'), 'mdi:home-outline')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
     this.insights = this.root.querySelector<DeviceScreenView>('homemanager-insights') ?? undefined;
     this.insights?.update(this);
     this.shellUnsubscribe = bindTopBar(this.root);
@@ -360,10 +367,15 @@ export class HomeManagerCard extends HTMLElement {
     this.mountArchitecture();
     this.renderMarkers();
     this.observer = new ResizeObserver(() => {
-      if (!this.gesture) this.refit();
+      if (this.gesture) return;
+      // The first real size shows the initial view, if the plan has one (#94).
+      if (this.pendingInitialView && applyInitialView(this, false)) this.pendingInitialView = false;
+      else this.refit();
     });
     this.observer.observe(viewport);
     this.fit(null, false);
+    this.pendingInitialView = true;
+    applyShowLink(this.root.querySelector('.shell'));
     this.updateControls();
   }
   get viewport() {

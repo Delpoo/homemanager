@@ -386,6 +386,107 @@
             "color": {
               "type": "string",
               "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "values": {
+              "type": "array",
+              "maxItems": 8,
+              "$comment": "Plan 0.12 #92: readings shown on the symbol, in order; each reading once (semantic check).",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "entity"
+                ],
+                "properties": {
+                  "entity": {
+                    "$ref": "#/$defs/entityId"
+                  },
+                  "decimals": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "unit": {
+                    "type": "boolean"
+                  },
+                  "dot": {
+                    "type": "boolean"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16
+                  },
+                  "size": {
+                    "enum": [
+                      "s",
+                      "m",
+                      "l"
+                    ]
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "ranges": {
+                    "type": "array",
+                    "maxItems": 6,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "from",
+                        "color"
+                      ],
+                      "properties": {
+                        "from": {
+                          "type": "number",
+                          "minimum": -1000000000.0,
+                          "maximum": 1000000000.0
+                        },
+                        "color": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "valuePlace": {
+              "enum": [
+                "inside",
+                "beside",
+                "below"
+              ]
+            },
+            "scale": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2.5
+            },
+            "roomScale": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2.5
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "shape": {
+              "enum": [
+                "circle",
+                "pill",
+                "dot",
+                "icon"
+              ]
+            },
+            "standalone": {
+              "const": true,
+              "$comment": "Plan 0.12 #95: a drawing or shortcut that needs no device link."
             }
           }
         },
@@ -406,7 +507,7 @@
             },
             "readings": {
               "type": "array",
-              "maxItems": 3,
+              "maxItems": 31,
               "uniqueItems": true,
               "items": {
                 "$ref": "#/$defs/entityId"

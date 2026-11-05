@@ -22,6 +22,8 @@ export interface CatalogDevice {
   icon: string;
   inPlan: boolean;
   readings: CatalogReading[];
+  /** Programs, scenes, scripts and device options: things it can do, not readings (#91). */
+  actions: CatalogReading[];
   excluded: number;
   primaryEntityId: string;
 }
@@ -72,11 +74,27 @@ const EXCLUDED_DOMAINS = new Set([
   'notify',
   'ai_task',
 ]);
+/** What a device can do rather than measure (#91, #96). */
+export const ACTION_DOMAINS = new Set([
+  'button',
+  'scene',
+  'script',
+  'select',
+  'number',
+  'input_button',
+  'input_select',
+  'input_number',
+]);
+export function isActionEntity(entityId: string): boolean {
+  return ACTION_DOMAINS.has(entityId.split('.')[0]);
+}
 export function usefulEntity(entityId: string, hass?: ModelHass): boolean {
   const entry = hass?.entities?.[entityId];
+  // A configuration option (the mop mode of a robot, say) is offered as an action.
+  const category = entry?.entity_category;
   return (
     !!hass?.states[entityId] &&
-    !entry?.entity_category &&
+    (!category || (category === 'config' && isActionEntity(entityId))) &&
     !entry?.hidden &&
     !entry?.hidden_by &&
     !entry?.disabled &&
@@ -86,6 +104,8 @@ export function usefulEntity(entityId: string, hass?: ModelHass): boolean {
 }
 function priority(reading: CatalogReading, archetype?: Archetype): number {
   const domain = reading.entityId.split('.')[0];
+  // A robot's own state ("Docked") says more than any of its sensors.
+  if (['vacuum', 'lawn_mower'].includes(domain)) return -20;
   if (!archetype || archetype === 'actuator' || archetype === 'equipment')
     if (!['sensor', 'binary_sensor'].includes(domain)) return -10;
   if (reading.deviceClass === 'power') return /^(?:canal|channel|kanal)\s*\d/i.test(reading.name) ? 2 : 0;
@@ -110,7 +130,7 @@ export function deviceCatalog(
   const result: CatalogDevice[] = [];
   for (const [deviceId, device] of Object.entries(hass.devices ?? {})) {
     const all = grouped.get(deviceId) ?? [];
-    const readings = all
+    const useful = all
       .filter(id => usefulEntity(id, hass))
       .map(entityId => {
         const entity = hass.states[entityId];
@@ -123,7 +143,11 @@ export function deviceCatalog(
           icon: presentationSuggestion(entityId, entity).icon,
         };
       });
-    if (!readings.length) continue;
+    const readings = useful.filter(reading => !isActionEntity(reading.entityId));
+    const actions = useful.filter(reading => isActionEntity(reading.entityId));
+    if (!readings.length && !actions.length) continue;
+    // A device that only acts (a set of buttons) still links: by its first action.
+    if (!readings.length) readings.push(actions[0]);
     // Infer the group's semantics from its most useful control/measurement, not its first registry entry.
     readings.sort((a, b) => priority(a, archetype) - priority(b, archetype) || a.name.localeCompare(b.name));
     const first = readings[0];
@@ -158,7 +182,8 @@ export function deviceCatalog(
           (!!item.bindings.entityId && hass.entities?.[item.bindings.entityId]?.device_id === deviceId),
       ),
       readings,
-      excluded: all.length - readings.length,
+      actions: actions.filter(action => !readings.includes(action)),
+      excluded: all.length - useful.length,
       primaryEntityId: primary.entityId,
     });
   }

@@ -35,3 +35,9 @@ export async function showSection(scope, id) {
   }
   await button.click();
 }
+/** On a phone Settings opens as a list (#70): open the section a wide screen starts on. */
+export async function openFirstSection(page) {
+  const list = page.locator('homemanager-editor .settings-page[data-view=list]');
+  await page.waitForTimeout(50);
+  if (await list.isVisible()) await list.locator('[data-settings="rooms-section"]').click();
+}

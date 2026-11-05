@@ -1,3 +1,4 @@
+import { openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -157,6 +158,7 @@ test('settings and fullscreen remain reachable while the dock is open', async ({
   await expect(card.locator('homemanager-editor [name=label]')).toBeVisible();
   await page.evaluate(() => document.exitFullscreen());
   await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await expect(card.getByRole('region', { name: 'Configuración', exact: true })).toBeVisible();
 });
 

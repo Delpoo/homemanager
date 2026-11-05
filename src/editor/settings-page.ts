@@ -1,6 +1,7 @@
 import { t } from '../i18n/index.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
+import { showLink } from '../shell/show-link.js';
 import { escapeHTML as esc, type Configuration } from '../card/types.js';
 import { uiButton, uiIcon, uiStatus } from '../ui/components.js';
 import { suggestRoomIcon } from '../shell/room-rail.js';
@@ -16,6 +17,7 @@ export type SettingsSection =
   | 'homes-section'
   | 'now-section'
   | 'appearance-section'
+  | 'view-section'
   | 'controls-section'
   | 'rules-section'
   | 'health-section'
@@ -48,6 +50,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'homes-section', title: () => t('Hogares'), icon: 'mdi:home-switch-outline' },
   { id: 'now-section', title: () => t('Panel Ahora'), icon: 'mdi:view-dashboard-outline' },
   { id: 'appearance-section', title: () => t('Apariencia'), icon: 'mdi:palette-outline' },
+  { id: 'view-section', title: () => t('Tamaño y vista inicial'), icon: 'mdi:magnify-plus-outline' },
   { id: 'controls-section', title: () => t('Controles RF'), icon: 'mdi:remote' },
   { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
   { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
@@ -62,7 +65,7 @@ const SECTIONS: SectionInfo[] = [
 ];
 const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: true }[] = [
   { title: () => t('Mi casa'), sections: ['rooms-section', 'views-section', 'connect-section', 'homes-section'] },
-  { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section'] },
+  { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
   { title: () => t('Reglas'), sections: ['rules-section'] },
   { title: () => t('Mantenimiento'), sections: ['health-section', 'storage-section', 'import-section'] },
@@ -113,7 +116,19 @@ export function appearanceBody(grid?: number): string {
     grid === undefined
       ? ''
       : `<label class="field">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label><p class="note">${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}</p>`;
-  return `<p class="note">${esc(t('Se guarda en este navegador: no cambia lo que ven las demás personas.'))}</p><homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${gridField}`;
+  const link = showLink();
+  const linkField = `<label class="field">${esc(t('Mostrar vínculo'))}<select data-show-link>${(
+    [
+      ['unlinked', t('Sólo en símbolos sin vincular')],
+      ['always', t('Siempre')],
+      ['never', t('Nunca')],
+    ] as const
+  )
+    .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
+    .join(
+      '',
+    )}</select></label><p class="note">${esc(t('Una cadena chica en la esquina del símbolo dice si está conectado a un dispositivo. En modo edición se ve siempre.'))}</p>`;
+  return `<p class="note">${esc(t('Se guarda en este navegador: no cambia lo que ven las demás personas.'))}</p><homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */

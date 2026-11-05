@@ -9,6 +9,7 @@ import { unsavedCount } from '../model/move-grid.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { closeConfiguration } from './settings-screen.js';
+import { currentView, saveLocalView } from './initial-view.js';
 import { backupKey, browserStorage, clearBackup, readBackup, writeBackup } from '../model/draft-backup.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
@@ -197,6 +198,7 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor.linkedReview = () => void this.reviewLinkedPlan();
   this.editor.homeId = this.home?.homeId;
   this.editor.appContext = this.shellContext;
+  this.editor.visibleLayers = this.enabledLayers;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });
   this.editor.selectedDeviceId = this.selected;
@@ -243,6 +245,19 @@ export function mountEditor(this: HomeManagerCard) {
     this.updateControls();
   });
   this.editor.addEventListener('homemanager-preview-finish', () => commitPreview(this));
+  this.editor.addEventListener('homemanager-view', (event: Event) => {
+    const command = (event as CustomEvent<{ command: string }>).detail.command;
+    if (command === 'view-save-local') saveLocalView(this, currentView(this) ?? null);
+    else if (command === 'view-clear-local') saveLocalView(this, null);
+    else {
+      const next = clone(this.draft!);
+      const view = command === 'view-save' ? currentView(this) : undefined;
+      if (view) next.initialView = view;
+      else delete next.initialView;
+      this.change(next);
+      this.status(view ? t('Vista inicial guardada. Guardá el plano para conservarla.') : t('Vista inicial quitada.'));
+    }
+  });
   this.editor.addEventListener('homemanager-save', () => void this.save());
   this.editor.addEventListener('homemanager-task-change', () => this.positionEditor());
   this.editor.addEventListener('config-changed', (event: Event) => {
@@ -292,6 +307,13 @@ export function positionEditor(this: HomeManagerCard) {
   this.root
     .querySelector('.shell')
     ?.classList.toggle('is-configuring', this.editing && this.editor?.surfaceMode === 'settings');
+  // On a phone the open sheet gets the room the spaces rail would take (#71).
+  this.root
+    .querySelector('.shell')
+    ?.classList.toggle(
+      'sheet-open',
+      this.editing && !!this.editor && !this.editor.hidden && this.editor.surfaceMode === 'device',
+    );
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
   host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker')
     ? 'link'
@@ -472,7 +494,10 @@ export function updateControls(this: HomeManagerCard) {
   }
   this.updateSelection();
   this.positionEditor();
-  if (this.editor) this.editor.planDirty = this.dirty;
+  if (this.editor) {
+    this.editor.planDirty = this.dirty;
+    this.editor.visibleLayers = this.enabledLayers;
+  }
   this.insights?.update(this);
   scheduleDraftBackup(this);
 }

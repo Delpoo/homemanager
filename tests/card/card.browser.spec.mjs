@@ -1,4 +1,4 @@
-import { openCardMenu, openAdvanced } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openCardMenu, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile } from 'node:fs/promises';
@@ -175,15 +175,14 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await begin(page);
   await select(page);
   await page.getByRole('button', { name: 'Configuración', exact: true }).click();
-  await openAdvanced(page);
-  await page.getByText('Acciones lógicas', { exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'actions-section');
   await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
   await page.getByLabel('Dominio', { exact: true }).selectOption('light');
   await page.getByLabel('Servicio', { exact: true }).selectOption('toggle');
   await page.getByLabel('Destinos de la acción', { exact: true }).fill('light.synthetic_spare');
   await page.getByRole('button', { name: 'Aplicar acción', exact: true }).click();
-  await openAdvanced(page);
-  await page.getByText('Paneles nativos', { exact: true }).click();
+  await showSection(page.locator('homemanager-editor'), 'panels-section');
   await page.getByRole('button', { name: 'Agregar control', exact: true }).click();
   await page.getByLabel('ID de panel', { exact: true }).fill('synthetic-spare-panel');
   await page.getByLabel('Título del panel', { exact: true }).fill('Panel de prueba adicional');
@@ -450,7 +449,8 @@ test('keyboard movement stays normalized and undo restores the previous persiste
 test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
   await page.getByRole('button', { name: 'Configuración', exact: true }).click();
-  await page.getByText('Copias', { exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(() => {
     const create = URL.createObjectURL;
     URL.createObjectURL = blob => {
@@ -559,7 +559,8 @@ test('an old JSON cannot silently take links away or bring spaces back', async (
   const before = await draft(page);
   const linked = before.catalog.devices.find(item => item.bindings.entityId);
   await page.getByRole('button', { name: 'Configuración', exact: true }).click();
-  await page.getByText('Copias', { exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   const old = structuredClone(before);
   old.catalog.devices.find(item => item.id === linked.id).bindings.entityId = null;
   old.rooms.push({ id: 'cuarto-viejo', label: 'Cuarto viejo' });

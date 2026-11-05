@@ -1,4 +1,4 @@
-import { openAdvanced } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { readFile } from 'node:fs/promises';
@@ -31,6 +31,7 @@ async function section(page, title) {
     return;
   } else if (!(await editor(page).getByRole('region', { name: 'Configuración' }).isVisible())) {
     await button(page, 'Configuración').click();
+    await openFirstSection(page);
   }
   if (['Acciones lógicas', 'Paneles nativos', 'Referencias pendientes'].includes(title))
     await openAdvanced(editor(page));

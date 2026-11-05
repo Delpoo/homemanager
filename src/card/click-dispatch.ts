@@ -1,5 +1,6 @@
 import { toggleFullscreen } from './fullscreen.js';
 import { openConfiguration } from './settings-screen.js';
+import { applyInitialView } from './initial-view.js';
 import * as layerView from '../shell/layers.js';
 import { showActivity, showAlerts } from '../shell/activity-view.js';
 import { t } from '../i18n/index.js';
@@ -24,6 +25,9 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
     }
     if (this.editing) {
       this.select(id);
+      // The link mark opens the Device module (#95).
+      if ((event.target as Element).closest('.symbol-link'))
+        requestAnimationFrame(() => this.editor?.openSection('device-binding'));
       return;
     }
     if (target.closest('.pins')) return;
@@ -90,6 +94,10 @@ export function onCardClick(this: HomeManagerCard, event: Event): void {
       break;
     case 'all':
       this.fit(null);
+      break;
+    case 'home-view':
+      // ⌂ returns to the saved initial view, or the whole plan without one (#94).
+      if (!applyInitialView(this)) this.fit(null);
       break;
     case 'room-view':
       this.toggleRoomView();

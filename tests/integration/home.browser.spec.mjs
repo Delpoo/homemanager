@@ -1,4 +1,4 @@
-import { openCardMenu, showSection } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic stand-in for custom_components/homemanager. It mirrors the websocket
@@ -130,6 +130,7 @@ test('New home can be cancelled or left through Plan without losing the previous
     const settings = homeCard.getByRole('region', { name: 'Configuración', exact: true });
     if (!(await settings.isVisible()))
       await homeCard.getByRole('button', { name: 'Configuración', exact: true }).click();
+    await openFirstSection(page);
     await showSection(homeCard.locator('homemanager-editor'), 'homes-section');
     await homeCard.getByRole('button', { name: 'Nuevo hogar', exact: true }).click();
     await expect(app.getByLabel('Nombre del hogar', { exact: true })).toBeVisible();
@@ -228,7 +229,8 @@ test('a missing home is created by the first administrator save', async ({ page 
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).locator('.shell > .status')).toContainText('se creará');
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
-  await card(page).getByText('Copias', { exact: true }).click();
+  await openFirstSection(page);
+  await showSection(page.locator('homemanager-editor'), 'import-section');
   await page.evaluate(async () => {
     const editor = window.testHarness.card.shadowRoot.querySelector('homemanager-editor');
     const input = editor.shadowRoot.querySelector('#import-file'),
@@ -273,6 +275,7 @@ test('the card editor moves an inline plan into the integration and keeps only t
   expect(events).toBe(0);
   const editor = page.locator('homemanager-editor');
   await editor.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await editor.locator('summary').filter({ hasText: 'Mover a la integración HomeManager' }).click();
   await editor.getByLabel('ID del hogar', { exact: true }).fill('casa');
   await editor.getByRole('button', { name: 'Mover a la integración', exact: true }).click();
@@ -522,6 +525,7 @@ test('plan settings say where the file goes and offer a version that is still op
   await openHome(page);
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   const editor = card(page).locator('homemanager-editor');
   await showSection(editor, 'import-section');
   const box = editor.locator('.linked-box');
@@ -530,6 +534,7 @@ test('plan settings say where the file goes and offer a version that is still op
   await putFile(page, SHA_A, NO_ZONE);
   await editor.getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true }).click();
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await showSection(editor, 'import-section');
   await expect(box).toContainText('sin aplicar');
   await box.getByRole('button', { name: 'Revisar', exact: true }).click();

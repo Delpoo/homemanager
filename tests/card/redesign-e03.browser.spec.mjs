@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 async function start(page) {
@@ -27,6 +27,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
     'false',
   );
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   const settings = page.getByRole('region', { name: 'Configuración', exact: true });
   // Layers live in Settings › Appearance since #70.
   await showSection(settings, 'appearance-section');
@@ -38,6 +39,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
   await page.waitForFunction(() => window.shellHarnessReady);
   await expect(layers).toBeHidden();
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await showSection(settings, 'appearance-section');
   await settings.getByRole('checkbox', { name: /Mostrar capas/ }).check();
   await settings.getByRole('button', { name: 'Volver', exact: true }).click();

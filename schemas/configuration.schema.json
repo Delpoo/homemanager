@@ -523,6 +523,84 @@
           }
         }
       }
+    },
+    "symbolSizes": {
+      "$comment": "Plan 0.12 #94: symbol size for the whole house and the per-space view, and its limits.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "house",
+        "room",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "house": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "room": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "min": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        }
+      }
+    },
+    "initialView": {
+      "$comment": "Plan 0.12 #94: the view the plan opens with.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "room",
+        "x",
+        "y",
+        "zoom"
+      ],
+      "properties": {
+        "room": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "x": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 2
+        },
+        "y": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 2
+        },
+        "zoom": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 16
+        },
+        "planView": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      }
     }
   },
   "$defs": {

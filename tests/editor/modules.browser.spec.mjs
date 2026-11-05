@@ -27,6 +27,8 @@ test('modules are independent, preview immediately, keep data and undo removal',
   await expect(module).toBeHidden();
   await editor(page).getByRole('button', { name: 'Deshacer cambio de módulo' }).click();
   await expect(module).toBeVisible();
+  // Layer is in Más opciones since #71.
+  await editor(page).locator('#device-options > summary').click();
   await editor(page).locator('[name=layer]').selectOption('energy');
   await expect
     .poll(() =>
@@ -56,7 +58,8 @@ test('tap and hold are independently editable, keyboard hold works and context m
   const marker = card(page).locator('[data-id=fan] .primary');
   await marker.focus();
   await page.keyboard.press('Shift+Enter');
-  await expect.poll(() => card(page).evaluate(c => c.feed.log.entries.at(-1)?.message)).toBe('Sin acción configurada');
+  // A gesture is not something that happened in the home: it is said, not logged (#76).
+  await expect(card(page).locator('.shell > .status')).toHaveText('Sin acción configurada');
   await marker.click({ button: 'right' });
   await expect(page.locator('homemanager-task-screen')).not.toHaveCount(0);
 });

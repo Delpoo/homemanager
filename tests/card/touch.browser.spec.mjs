@@ -56,6 +56,8 @@ test('a real touch drag in edit mode creates a saveable draft without executing 
   const before = await page.evaluate(() => window.testHarness.card.getDraftConfiguration().catalog.devices[0].position);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  // A finger picks a symbol up after a short hold (#90); a quick swipe pans instead.
+  await page.waitForTimeout(550);
   for (let n = 1; n <= 6; n++)
     await cdp.send('Input.dispatchTouchEvent', {
       type: 'touchMove',

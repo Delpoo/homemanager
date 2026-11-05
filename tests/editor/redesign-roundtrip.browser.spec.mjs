@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
@@ -27,6 +27,8 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await card.locator('[data-id=synthetic-light] .primary').click();
   await editor.locator('.module-menu > summary').click();
   await editor.locator('[data-command=module-add][data-module-id=indicators]').click();
+  // Layer moved to Más opciones (#71).
+  await editor.locator('#device-options > summary').click();
   await editor.locator('[name=layer]').selectOption('controls');
   await editor.locator('#module-gestures > summary').click();
   await editor.locator('[data-gesture=tap]').selectOption('@screen');
@@ -41,6 +43,7 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
   // Rules live only in Settings since #70.
   await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await showSection(editor, 'rules-section');
   const rules = card.locator('homemanager-rules-editor');
   await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();

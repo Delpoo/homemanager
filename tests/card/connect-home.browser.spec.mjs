@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Invented home: no household data. The registry is what Home Assistant's frontend exposes.
@@ -80,6 +80,7 @@ const open = async (page, { areas = true } = {}) => {
   }, areas);
   await button(page, 'Editar plano').click();
   await button(page, 'Configuración').click();
+  await openFirstSection(page);
   await showSection(editor(page), 'connect-section');
 };
 
@@ -116,6 +117,7 @@ test('each space is offered its area, and only the named areas are created', asy
   await expect(card(page).locator('.shell > .status')).toContainText('Guardado');
   // Applying again creates nothing: the button has nothing to do.
   await button(page, 'Configuración').click();
+  await openFirstSection(page);
   await showSection(editor(page), 'connect-section');
   await expect(editor(page).locator('.connect').getByRole('button', { name: 'Vincular', exact: true })).toBeDisabled();
   expect(await page.evaluate(() => window.createdAreas)).toEqual(['Baño Norte']);

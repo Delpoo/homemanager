@@ -3,6 +3,7 @@ import { TaskScreen } from '../ui/task-screen.js';
 import { appearanceBody } from '../editor/settings-page.js';
 import { storageBody } from '../editor/storage-section.js';
 import { helpBody } from '../shell/help.js';
+import { setShowLink } from '../shell/show-link.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { describeError, listHomes, type HomeSummary } from '../integration/store.js';
@@ -224,6 +225,10 @@ export class HomeManagerApp extends HTMLElement {
     dialog.className = 'maintenance';
     dialog.innerHTML = `<h2>${e(t('Configuración'))}</h2><h3>${e(t('Apariencia'))}</h3>${appearanceBody()}${admin ? `<h3>${e(t('Controles RF'))}</h3><button type="button" data-app-command="rf">${e(t('Abrir controles RF'))}</button><h3>${e(t('Almacenamiento'))}</h3><div class="storage-host"></div>` : ''}<h3>${e(t('Ayuda'))}</h3>${helpBody()}`;
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    dialog.addEventListener('change', event => {
+      const target = event.target as HTMLSelectElement;
+      if (target.hasAttribute('data-show-link')) setShowLink(target.value);
+    });
     // Opening RF leaves this page.
     dialog.addEventListener('click', event => {
       if ((event.target as Element).closest('[data-app-command]')) dialog.close();

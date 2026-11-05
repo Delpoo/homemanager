@@ -85,6 +85,7 @@ import { restoreEditedDevice } from '../model/editor-session.js';
 import { iconButton, iconButtonStyles, submitIconButton } from '../ui/icon-button.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { fieldErrorStyles, showFieldErrors } from './field-errors.js';
+import { sheetStyles } from './sheet-styles.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import { helpTip } from '../ui/help-tip.js';
 import { iconPicker } from '../ui/icon-picker.js';
@@ -110,6 +111,10 @@ import {
   type SettingsSection,
 } from './settings-page.js';
 import { helpBody } from '../shell/help.js';
+import { valuesChange, valuesEditor, valuesEditorStyles, type ValuesDraft } from './values-editor.js';
+import { MODULE_ICONS, MODULE_PURPOSE, moduleSummary, type Summary } from '../model/module-summary.js';
+import { DEFAULT_SIZES } from '../model/symbol-scale.js';
+import { setShowLink } from '../shell/show-link.js';
 import { gridStep, setGridStep } from '../card/move-grid.js';
 import { storageBody } from './storage-section.js';
 import type { AppShellContext } from '../shell/top-bar.js';
@@ -137,7 +142,7 @@ const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyl
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 .palette{display:flex;flex-wrap:wrap;gap:4px}.palette button{padding:0 8px}.symbol-color>summary{min-height:44px;line-height:44px;cursor:pointer}.symbol-color small{font-size:12px;color:var(--hm-muted)}
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
-const css = cssBase + editorSheetStyles + fieldErrorStyles;
+const css = cssBase + editorSheetStyles + fieldErrorStyles + sheetStyles + valuesEditorStyles;
 const option = (value: string, text: string, selected: string) =>
   `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(text)}</option>`;
 const input = (name: string, label: string, value: unknown, extra = '') =>
@@ -451,6 +456,81 @@ export class HomeManagerEditor extends HTMLElement {
   setNarrow(narrow: boolean): void {
     this.dataset.narrow = String(narrow);
   }
+  /** Layers shown outside edit mode, so the sheet can say if this symbol is hidden (#93). */
+  visibleLayers?: ReadonlySet<string>;
+  /** Free size, transparency and shape (#93). Written only when touched: old plans stay the same. */
+  private lookFields(device?: Device): string {
+    const scale = device?.display.scale ?? ({ s: 0.8, m: 1, l: 1.25 } as const)[device?.display.size ?? 'm'];
+    const opacity = device?.display.opacity ?? 100;
+    const shape = device?.display.shape ?? '';
+    const shapes: [string, string][] = [
+      ['', t('Según el tipo')],
+      ['circle', t('Círculo')],
+      ['pill', t('Píldora')],
+      ['dot', t('Punto chico')],
+      ['icon', t('Sólo el icono')],
+    ];
+    return `<div class="look-fields"><label class="field">${esc(t('Tamaño libre'))}<input type="range" name="scale" min="0.5" max="2.5" step="0.05" list="scale-marks" value="${scale}"${device?.display.scale !== undefined ? ' data-touched' : ''}><datalist id="scale-marks"><option value="0.8" label="${esc(t('Chico'))}"></option><option value="1" label="${esc(t('Mediano'))}"></option><option value="1.25" label="${esc(t('Grande'))}"></option></datalist></label>${this.configuration.symbolSizes ? `<label class="field">${esc(t('Tamaño en la vista por espacio'))}<input type="range" name="roomScale" min="0.5" max="2.5" step="0.05" value="${device?.display.roomScale ?? this.configuration.symbolSizes.room}"${device?.display.roomScale !== undefined ? ' data-touched' : ''}></label>` : ''}<label class="field">${esc(t('Opacidad del fondo'))}<input type="range" name="opacity" min="0" max="100" step="5" value="${opacity}"${device?.display.opacity !== undefined ? ' data-touched' : ''}></label><label class="field">${esc(t('Forma'))}<select name="shape">${shapes.map(([value, label]) => option(value, label, shape)).join('')}</select></label></div>`;
+  }
+  private lookChange(data: FormData, previous?: Device): Partial<Device['display']> {
+    const touched = (name: string) =>
+      !!this.root.querySelector(`#device-form [name=${name}][data-touched]`) ||
+      previous?.display[name as 'scale' | 'opacity' | 'roomScale'] !== undefined;
+    const look: Partial<Device['display']> = {};
+    const scale = Number(value(data, 'scale'));
+    if (touched('scale') && Number.isFinite(scale)) look.scale = Math.min(2.5, Math.max(0.5, scale));
+    const roomScale = Number(value(data, 'roomScale'));
+    if (touched('roomScale') && data.has('roomScale') && Number.isFinite(roomScale))
+      look.roomScale = Math.min(2.5, Math.max(0.5, roomScale));
+    const opacity = Number(value(data, 'opacity'));
+    if (touched('opacity') && Number.isFinite(opacity)) look.opacity = Math.min(100, Math.max(0, opacity));
+    const shape = value(data, 'shape');
+    if (['circle', 'pill', 'dot', 'icon'].includes(shape))
+      look.shape = shape as NonNullable<Device['display']['shape']>;
+    return look;
+  }
+  /** Settings › Screens › Size and initial view (#94). */
+  private viewBody(): string {
+    const sizes = this.configuration.symbolSizes;
+    const shown = sizes ?? DEFAULT_SIZES;
+    const slider = (key: keyof typeof shown, label: string) =>
+      `<label class="field">${esc(label)} <output>${shown[key].toFixed(2)}</output><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}"${sizes ? '' : ' disabled'}></label>`;
+    const initial = this.configuration.initialView;
+    return `<label class="check"><input type="checkbox" data-sizes-on${sizes ? ' checked' : ''}><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span></label><p class="note">${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}</p><div class="grid">${slider('house', t('Casa entera'))}${slider('room', t('Vista por espacio'))}${slider('min', t('Mínimo'))}${slider('max', t('Máximo'))}</div><h4>${esc(t('Vista inicial'))}</h4><p class="note">${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}</p><div class="rooms-actions"><button type="button" data-command="view-save" class="primary">${esc(t('Guardar la vista actual como inicial'))}</button><button type="button" data-command="view-save-local">${esc(t('Sólo en este equipo'))}</button>${initial ? `<button type="button" data-command="view-clear">${esc(t('Quitar vista inicial'))}</button>` : ''}<button type="button" data-command="view-clear-local">${esc(t('Olvidar la de este equipo'))}</button></div>`;
+  }
+  private valuesDraft?: ValuesDraft;
+  /** The linked readings, as the sheet has them now (the binding may have just changed). */
+  private valueCandidates(device?: Device): string[] {
+    const form = this.root.querySelector<HTMLFormElement>('#device-form');
+    const entityId = form?.querySelector<HTMLInputElement>('[name=entityId]')?.value ?? device?.bindings.entityId ?? '';
+    const raw = form?.querySelector<HTMLInputElement>('[name=readings]')?.value;
+    let readings: string[] = device?.bindings.readings ?? [];
+    if (raw !== undefined) {
+      try {
+        readings = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        readings = [];
+      }
+    }
+    return [...new Set([entityId, ...readings].filter(Boolean))];
+  }
+  private paintValues(): void {
+    const host = this.root.querySelector<HTMLElement>('.values-host');
+    if (!host || !this.valuesDraft) return;
+    const open = [...host.querySelectorAll<HTMLDetailsElement>('details')].map(d => d.open);
+    host.innerHTML = valuesEditor(this.valuesDraft, this.valueCandidates(this.device()), this._hass);
+    host.querySelectorAll<HTMLDetailsElement>('details').forEach((d, i) => (d.open = open[i] ?? false));
+  }
+  /** One change in Indicators › values: keep the draft and preview it on the plan. */
+  private valuesEvent(target: HTMLElement): boolean {
+    if (!this.valuesDraft || !target.closest('.values-host')) return false;
+    const next = valuesChange(this.valuesDraft, target);
+    if (!next) return true;
+    this.valuesDraft = next;
+    this.paintValues();
+    this.schedulePreview();
+    return true;
+  }
   /** Opens one module of the sheet, for example to link a device (#76). */
   openSection(id: string): void {
     this.openSections.add(id);
@@ -539,6 +619,7 @@ export class HomeManagerEditor extends HTMLElement {
       fields: form ? [...new FormData(form)] : [],
       sheet: this.sheet,
       modules: this.moduleDraft,
+      values: this.valuesDraft,
       alerts: this.alertDraft,
     });
   }
@@ -677,6 +758,7 @@ export class HomeManagerEditor extends HTMLElement {
       'connect-section',
       'now-section',
       'appearance-section',
+      'view-section',
       'rules-section',
       'health-section',
       'import-section',
@@ -863,6 +945,7 @@ export class HomeManagerEditor extends HTMLElement {
         'connect-section': this.connectForm(),
         'homes-section': this.homesBody(),
         'appearance-section': appearanceBody(gridStep()),
+        'view-section': this.viewBody(),
         'controls-section': this.controlsBody(),
         'storage-section': '<div class="storage-host"></div>',
         'help-section': helpBody(),
@@ -906,6 +989,10 @@ export class HomeManagerEditor extends HTMLElement {
     if (!this.sheet || this.sheet.key !== key) {
       this.sheet = sheetFromDevice(selected, key, configuration);
       this.moduleDraft = selected?.display.modules ? [...selected.display.modules] : undefined;
+      this.valuesDraft = {
+        values: structuredClone(selected?.display.values ?? []),
+        place: selected?.display.valuePlace ?? 'inside',
+      };
       this.moduleUndo = undefined;
       this.alertDraft = alertSettingsDraft(selected);
     }
@@ -1042,8 +1129,23 @@ export class HomeManagerEditor extends HTMLElement {
     const remotes = this.remotes.length
       ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se dibuja en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
       : '';
-    const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
-      <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${['fixed', 'editable', 'portable'].map(mobility => option(mobility, mobility, device?.mobility ?? 'editable')).join('')}</select></div>
+    // Layer is advanced: the automatic choice follows the device (#71).
+    const layerField = `<label class="field">${esc(t('Capa'))}<select form="device-form" name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label>`;
+    const currentLayer = device ? presentationOf(device, this._hass).layer : undefined;
+    const layerNote =
+      currentLayer && this.visibleLayers
+        ? `<p class="note">${esc(this.visibleLayers.has(currentLayer) ? t('Su capa se muestra fuera de edición.') : t('Su capa está oculta fuera de edición: sólo se ve mientras editás o si mostrás esa capa.'))}</p>`
+        : '';
+    const advanced = `${layerField}${layerNote}${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
+      <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
+        [
+          ['fixed', 'Fijo'],
+          ['editable', 'Editable'],
+          ['portable', 'Portátil'],
+        ] as const
+      )
+        .map(([mobility, label]) => option(mobility, t(label), device?.mobility ?? 'editable'))
+        .join('')}</select></div>
       ${input('x', t('Posición X'), snapToGrid(device?.position.x ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}${input('y', t('Posición Y'), snapToGrid(device?.position.y ?? 0.5), `form="device-form" type="number" min="0" max="1" step="any" required data-location${fixed ? ' disabled' : ''}`)}
 `;
     const category = this.sheetCategory(device);
@@ -1059,12 +1161,12 @@ export class HomeManagerEditor extends HTMLElement {
       device?.display.show ??
         (device ? (presentationOf(device, this._hass).archetype === 'meter' ? 'value' : 'icon') : 'icon'),
     )}</div>`;
-    const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"></div>`;
-    return `<form id="device-form" novalidate><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
+    const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"><label class="check"><input type="checkbox" name="standalone" value="true"${device?.display.standalone ? ' checked' : ''}><span>${esc(t('No necesita vínculo'))}</span></label></div>`;
+    return `<form id="device-form" novalidate><h3 class="sheet-group">${esc(t('Base'))}</h3><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
       <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
-      <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div><label>${esc(t('Capa'))}<select name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label></div>
+      <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
 
-      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', show, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
+      <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
       ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', `<p>${esc(t('Elegí hasta tres atajos en Control.'))}</p>`, device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel nativo'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel nativo'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
@@ -1116,18 +1218,35 @@ export class HomeManagerEditor extends HTMLElement {
       bindings: { ...base.bindings, controls: this.sheet?.controls ?? base.bindings.controls },
     };
   }
+  /** The line under a module's name (#71): what it does today, without opening it. */
+  private moduleLine(id: ModuleId, device?: Device): string {
+    if (!device) return '';
+    const said = (part: Summary) => t(part.key, part.vars);
+    const summary = moduleSummary(id, device, {
+      rules: rulesForSymbol(this.configuration.rules ?? [], device.id).length + (device.display.alerts?.length ?? 0),
+      controlLabel: control => device.bindings.controls?.find(c => c.id === control)?.label,
+    });
+    return (Array.isArray(summary) ? summary : [summary]).map(said).join(' ');
+  }
   private moduleBlock(id: ModuleId, body: string, device?: Device): string {
     const active = modulesOf(this.moduleDevice(device), this._hass).includes(id);
-    return `<div data-module="${id}"${active ? '' : ' hidden'}>${this.section(({ device: 'device-binding', rules: 'device-alerts', control: 'device-controls-section' } as Partial<Record<ModuleId, string>>)[id] ?? 'module-' + id, t(MODULE_LABELS[id]), `${body}<button type="button" data-command="module-remove" data-module-id="${id}">${esc(t('Quitar módulo'))}</button>`)}</div>`;
+    const sectionId =
+      (
+        { device: 'device-binding', rules: 'device-alerts', control: 'device-controls-section' } as Partial<
+          Record<ModuleId, string>
+        >
+      )[id] ?? 'module-' + id;
+    const title = `<ha-icon class="module-icon" icon="${MODULE_ICONS[id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[id]))}</span><span class="module-sum">${esc(this.moduleLine(id, device))}</span></span>`;
+    return `<div data-module="${id}" class="module-card"${active ? '' : ' hidden'}>${this.section(sectionId, title, `${body}<button type="button" data-command="module-remove" data-module-id="${id}">${esc(t('Quitar módulo'))}</button>`)}</div>`;
   }
   private moduleMenu(device?: Device): string {
-    return `<details class="section module-menu"><summary>${esc(t('+ Agregar'))}</summary><div class="section-body">${moduleChoices(
+    return `<details class="section module-menu"><summary>${esc(t('+ Agregar'))}</summary><div class="section-body module-add-list">${moduleChoices(
       this.moduleDevice(device),
       this._hass,
     )
       .map(
         choice =>
-          `<button type="button" data-command="module-add" data-module-id="${choice.id}"${choice.present || choice.reason ? ' disabled' : ''}>${esc(t(MODULE_LABELS[choice.id]))} · ${esc(t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar')))}</button>`,
+          `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}"${choice.present || choice.reason ? ' disabled' : ''}><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[choice.id]))}</span><span class="module-sum">${esc(t(MODULE_PURPOSE[choice.id]))}</span></span><span class="module-state">${esc(t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar')))}</span></button>`,
       )
       .join(
         '',
@@ -1151,7 +1270,8 @@ export class HomeManagerEditor extends HTMLElement {
   private readonly controlDesigner = new ControlDesigner();
   private symbolRules(device?: Device): string {
     const rules = device ? rulesForSymbol(this.configuration.rules ?? [], device.id) : [];
-    return `<ul>${rules.map(r => `<li>${esc(r.name)} · ${esc(t(r.enabled ? 'Activa' : 'Apagada'))}</li>`).join('')}${(device?.display.alerts ?? []).map(r => `<li>${esc(readingName(r.reading, this._hass))} · ${esc(t('Aviso conservado'))}</li>`).join('')}</ul><button type="button" data-command="rules-open">${esc(t('Abrir Reglas'))}</button><button type="button" data-command="rules-create">${esc(t('Crear regla para este símbolo'))}</button>`;
+    const level = (value: string) => t(value === 'alert' ? 'Alerta' : value === 'warning' ? 'Aviso' : 'Indicador');
+    return `<ul class="symbol-rules">${rules.map(r => `<li data-level="${esc(r.level)}"><b>${esc(r.name)}</b> · ${esc(level(r.level))} · ${esc(t(r.enabled ? 'Activa' : 'Apagada'))}</li>`).join('')}${(device?.display.alerts ?? []).map(r => `<li>${esc(readingName(r.reading, this._hass))} · ${esc(t('Aviso conservado'))}</li>`).join('')}</ul><button type="button" data-command="rules-open">${esc(t('Abrir Reglas'))}</button><button type="button" data-command="rules-create">${esc(t('Crear regla para este símbolo'))}</button>`;
   }
   openRules(createFor?: string): void {
     if (!this.flushDevice()) return;
@@ -1200,7 +1320,7 @@ export class HomeManagerEditor extends HTMLElement {
     return (
       select('tap', 'Al tocar', this.sheet?.tapAction ?? this.sheet?.tap) +
       select('hold', 'Al mantener', this.sheet?.hold) +
-      `<p class="note">${esc(t('Mayús+Enter ejecuta mantener. El menú contextual siempre abre el control.'))}</p>`
+      `<p class="note">${esc(t('El clic derecho siempre abre el control completo.'))}</p>`
     );
   }
   private controlsSection(): string {
@@ -1219,7 +1339,11 @@ export class HomeManagerEditor extends HTMLElement {
     }
   }
   private actionChoices(): { id: string; label: string }[] {
-    const name = (entityId: string) => friendlyName(this._hass, entityId);
+    // A person's name for what it acts on, never its entity_id (#71).
+    const name = (entityId: string) => {
+      const friendly = friendlyName(this._hass, entityId);
+      return friendly && friendly !== entityId ? friendly : entityId.replace(/^[^.]+\./, '').replace(/_/g, ' ');
+    };
     return Object.entries(this.configuration.actions).map(([id, action]) => ({ id, label: actionName(action, name) }));
   }
   private paintControls(): void {
@@ -1600,6 +1724,10 @@ export class HomeManagerEditor extends HTMLElement {
     );
   }
   private onClick = (event: Event): void => {
+    const valueButton = (event.target as Element).closest<HTMLElement>(
+      '.values-host button[data-value-move], .values-host button[data-value-range-add], .values-host button[data-value-range-remove]',
+    );
+    if (valueButton && this.valuesEvent(valueButton)) return;
     const app = (event.target as Element).closest<HTMLElement>('[data-app-command]');
     if (app) {
       this.shellCommand(app.dataset.appCommand!);
@@ -1628,6 +1756,19 @@ export class HomeManagerEditor extends HTMLElement {
       switch (button.dataset.command) {
         case 'settings-save':
           this.dispatchEvent(new CustomEvent('homemanager-save', { bubbles: true, composed: true }));
+          break;
+        case 'view-save':
+        case 'view-save-local':
+        case 'view-clear':
+        case 'view-clear-local':
+          // The camera belongs to the card: it answers with the view (#94).
+          this.dispatchEvent(
+            new CustomEvent('homemanager-view', {
+              bubbles: true,
+              composed: true,
+              detail: { command: button.dataset.command },
+            }),
+          );
           break;
         case 'settings-list':
           this.settingsView = 'list';
@@ -1918,8 +2059,29 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (this.valuesEvent(target)) return;
+    if (
+      (target as HTMLInputElement).type === 'range' &&
+      ['scale', 'opacity', 'roomScale'].includes(target.getAttribute('name') ?? '')
+    )
+      target.setAttribute('data-touched', '');
     if (target.dataset.appSelect === 'home') {
       this.shellCommand('home', target.value);
+      return;
+    }
+    if (target.hasAttribute('data-show-link')) {
+      setShowLink(target.value);
+      return;
+    }
+    if (target.hasAttribute('data-sizes-on') || target.dataset.sizeKey) {
+      const next = clone(this.configuration);
+      if (target.hasAttribute('data-sizes-on')) {
+        if ((target as HTMLInputElement).checked) next.symbolSizes = { ...DEFAULT_SIZES };
+        else delete next.symbolSizes;
+      } else if (next.symbolSizes) {
+        next.symbolSizes = { ...next.symbolSizes, [target.dataset.sizeKey!]: Number(target.value) };
+      }
+      this.emit(next);
       return;
     }
     if (target.hasAttribute('data-grid-step')) {
@@ -1966,6 +2128,7 @@ export class HomeManagerEditor extends HTMLElement {
       // A device that has no controls yet gets the ones its new entity suggests, visibly.
       if (this.sheet && !this.sheet.controls.length) this.resetSheet(false);
       else this.refreshSuggestions();
+      this.paintValues();
       this.proposeCategory(target.value);
       return;
     }
@@ -2058,8 +2221,17 @@ export class HomeManagerEditor extends HTMLElement {
             : {}),
         ...(previous?.display.category ? { category: previous.display.category } : {}),
         ...(this.moduleDraft ? { modules: [...this.moduleDraft] } : {}),
+        // Values on the symbol (#92): only written once chosen, so old plans look the same.
+        ...(this.valuesDraft?.values.length
+          ? {
+              values: structuredClone(this.valuesDraft.values),
+              ...(this.valuesDraft.place !== 'inside' ? { valuePlace: this.valuesDraft.place } : {}),
+            }
+          : {}),
         ...(value(data, 'color') ? { color: value(data, 'color') } : {}),
         ...(value(data, 'layer') ? { layer: value(data, 'layer') as NonNullable<Device['display']['layer']> } : {}),
+        ...this.lookChange(data, previous),
+        ...(value(data, 'standalone') ? { standalone: true as const } : {}),
         ...(this.alertDraft?.rules.some(rule => rule.enabled) || previous?.display.alerts !== undefined
           ? { alerts: previous?.display.alerts ? structuredClone(previous.display.alerts) : alertDisplay.alerts }
           : {}),

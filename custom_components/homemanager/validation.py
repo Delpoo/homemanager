@@ -60,6 +60,51 @@ def _id(value: Any) -> None:
         _fail()
 
 
+def _symbol_look(display: dict) -> None:
+    """Plan 0.12 (#92, #93, #94): how a symbol and its values look. All optional."""
+    def hex_color(value: Any) -> None:
+        if not isinstance(value, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            _fail()
+    if "values" in display:
+        values = display["values"]
+        if not isinstance(values, list) or len(values) > 8:
+            _fail()
+        seen = set()
+        for value in values:
+            _fields(value, {"entity"}, {"decimals", "unit", "label", "size", "color", "ranges", "dot"})
+            _entity(value["entity"])
+            if value["entity"] in seen:
+                _fail()
+            seen.add(value["entity"])
+            if "decimals" in value and (type(value["decimals"]) is not int or not 0 <= value["decimals"] <= 3):
+                _fail()
+            for flag in ("unit", "dot"):
+                if flag in value and not isinstance(value[flag], bool):
+                    _fail()
+            if "label" in value and (not isinstance(value["label"], str) or not value["label"].strip() or len(value["label"]) > 16):
+                _fail()
+            if "size" in value and value["size"] not in ("s", "m", "l"):
+                _fail()
+            if "color" in value:
+                hex_color(value["color"])
+            if "ranges" in value:
+                if not isinstance(value["ranges"], list) or len(value["ranges"]) > 6:
+                    _fail()
+                for item in value["ranges"]:
+                    _fields(item, {"from", "color"})
+                    _number(item["from"], -1e9, 1e9)
+                    hex_color(item["color"])
+    if "valuePlace" in display and display["valuePlace"] not in ("inside", "beside", "below"):
+        _fail()
+    for key, low, high in (("scale", 0.5, 2.5), ("roomScale", 0.5, 2.5), ("opacity", 0, 100)):
+        if key in display:
+            _number(display[key], low, high)
+    if "shape" in display and display["shape"] not in ("circle", "pill", "dot", "icon"):
+        _fail()
+    if "standalone" in display and display["standalone"] is not True:
+        _fail()
+
+
 def _entity(value: Any) -> None:
     _text(value)
     if not ENTITY.fullmatch(value) or value.endswith(".all"):
@@ -261,7 +306,7 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels", "symbolSizes", "initialView"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -327,7 +372,8 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone"})
+        _symbol_look(display)
         _text(display["label"])
         _text(display["icon"])
         if "size" in display and display["size"] not in ("s", "m", "l"):
@@ -382,7 +428,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
         if "readings" in bindings:
             readings = bindings["readings"]
-            if not isinstance(readings, list) or len(readings) > 3:
+            if not isinstance(readings, list) or len(readings) > 31:
                 _fail()
             for reading in readings:
                 _entity(reading)
@@ -450,6 +496,22 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
             if source["attribute"] in UNSAFE or RESERVED.fullmatch(source["attribute"]):
                 _fail()
         if source["feedback"] not in ("measured", "optimistic", "transmitter"):
+            _fail()
+    # Plan 0.12 (#94): symbol size by view and zoom, and the initial view. Optional.
+    if "symbolSizes" in configuration:
+        sizes = configuration["symbolSizes"]
+        _fields(sizes, {"house", "room", "min", "max"})
+        for key in ("house", "room", "min", "max"):
+            _number(sizes[key], 0.5, 2.5)
+    if "initialView" in configuration:
+        view = configuration["initialView"]
+        _fields(view, {"room", "x", "y", "zoom"}, {"planView"})
+        if view["room"] is not None and (not isinstance(view["room"], str) or len(view["room"]) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", view["room"])):
+            _fail()
+        _number(view["x"], -1, 2)
+        _number(view["y"], -1, 2)
+        _number(view["zoom"], 0.5, 16)
+        if "planView" in view and (not isinstance(view["planView"], str) or len(view["planView"]) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", view["planView"])):
             _fail()
     if "nowPanels" in configuration:
         panels = configuration["nowPanels"]

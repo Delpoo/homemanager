@@ -119,7 +119,7 @@ dt{font-weight:600}dd{margin:0}
 .remote-mark{position:absolute;left:-3px;bottom:-3px;width:14px;height:14px;border:2px solid var(--hm-surface);border-radius:4px;background:var(--hm-brand)}
 .symbol-tag{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:7px;background:var(--hm-surface);color:var(--hm-cool)}
 .marker[data-archetype=meter] .primary{width:max-content;max-width:150px;height:30px;min-height:30px;min-width:44px;left:50%;transform:translateX(-50%);border-radius:16px;padding:0 10px;font-size:13px;font-weight:600;margin-top:7px}
-.marker[data-archetype=infrastructure] .primary{background:transparent;border:0;box-shadow:none}.marker[data-archetype=infrastructure] .symbol-body{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);border:3px solid var(--hm-surface)}.marker[data-archetype=infrastructure] .symbol-body ha-icon{display:none}
+.marker[data-shape=dot] .primary{background:transparent;border:0;box-shadow:none}.marker[data-shape=dot] .symbol-body{width:14px;height:14px;border-radius:50%;background:var(--hm-unknown);border:3px solid var(--hm-surface)}.marker[data-shape=dot] .symbol-body ha-icon{display:none}
 ${topBarStyles}${roomRailStyles}${layerStyles}
 @media(max-width:1099px){.shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "edit" "workspace" "rooms" "selection" "status"}}
 ${insightsLayoutStyles}
@@ -130,4 +130,23 @@ ${editorDockStyles}
 @media(prefers-color-scheme:dark){:host(:not([data-theme=light])) .marker[data-custom-color]{--hm-symbol-color:var(--hm-symbol-dark)}}
 .marker[data-custom-color] .primary .symbol-body,.marker[data-custom-color] .primary .symbol-body ha-icon{color:var(--hm-symbol-color)}
 .marker[data-custom-color] .symbol-ring{background:conic-gradient(var(--hm-symbol-color) calc(var(--level)*1turn),transparent 0)}
+.values{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--hm-ink)}
+.values .value{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.values .value[data-size=s]{font-size:10px}.values .value[data-size=l]{font-size:15px}
+.value-label{font-weight:400;color:var(--hm-muted)}.value-dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 0 1px var(--hm-surface)}
+.marker:has(.symbol-body .values) .primary{width:auto;min-width:44px;border-radius:22px;padding:0 10px}
+.marker .values[data-place=below],.marker .values[data-place=beside]{position:absolute;padding:2px 7px;border-radius:9px;background:color-mix(in srgb,var(--hm-surface) 92%,transparent);box-shadow:var(--hm-shadow);pointer-events:none}
+.marker .values[data-place=below]{top:100%;left:50%;transform:translateX(-50%);margin-top:4px}
+.marker .values[data-place=beside]{left:100%;top:50%;transform:translateY(-50%);margin-left:6px;align-items:flex-start}
+.marker[data-scaled] .primary{transform:scale(var(--hm-symbol-scale))}
+/* #94: a smaller symbol keeps a 44 px touch target. */
+.marker[data-scaled] .primary{position:relative}.marker[data-scaled] .primary::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,calc(44px / var(--hm-symbol-scale)));height:max(100%,calc(44px / var(--hm-symbol-scale)));transform:translate(-50%,-50%)}
+.marker[data-opacity] .primary{background:color-mix(in srgb,var(--hm-bg) var(--hm-symbol-opacity),transparent)}
+.marker[data-shape=pill] .primary{width:auto;min-width:56px;border-radius:22px;padding:0 10px}
+.marker[data-shape=icon] .primary{background:transparent;border-color:transparent;box-shadow:none}
+/* #93: in edit mode, symbols of layers hidden outside editing look faded and say so. */
+.marker.layer-hidden .primary{opacity:.45;border-style:dashed}
+/* #95: link mark, bottom-left. Always in edit mode; otherwise as chosen in Appearance. */
+.symbol-link{display:none;position:absolute;left:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%;place-items:center;background:var(--hm-surface);box-shadow:0 0 0 1.5px var(--hm-line);color:var(--hm-muted)}.symbol-link ha-icon{--mdc-icon-size:12px}
+.symbol-link[data-link=unlinked]{color:var(--hm-warn)}
+.is-editing .symbol-link,.shell[data-show-link=always] .symbol-link,.shell[data-show-link=unlinked] .symbol-link[data-link=unlinked]{display:grid}
 `;

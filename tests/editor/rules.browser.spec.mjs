@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 const rules = page => page.locator('homemanager-rules-editor');
@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.alertHarnessReady);
   // Rules live only in Settings since #70.
   await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openFirstSection(page);
   await showSection(card(page).locator('homemanager-editor'), 'rules-section');
   await expect(rules(page)).toBeVisible();
 });

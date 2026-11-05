@@ -2,6 +2,7 @@ import { t } from '../i18n/index.js';
 import { escapeHTML as e } from './types.js';
 import { appearanceBody } from '../editor/settings-page.js';
 import { helpBody } from '../shell/help.js';
+import { setShowLink } from '../shell/show-link.js';
 import type { HomeManagerCard } from './home-manager-card.js';
 
 /** ⚙ Settings (#70): one page outside edit mode. An administrator gets every section,
@@ -14,11 +15,21 @@ export async function openConfiguration(card: HomeManagerCard): Promise<void> {
       `<h3>${e(t('Apariencia'))}</h3>${appearanceBody()}<h3>${e(t('Ayuda'))}</h3>${helpBody()}`,
       [{ label: t('Cerrar'), action: () => {} }],
     );
+    card.root.querySelector('[data-show-link]')?.addEventListener('change', event => {
+      setShowLink((event.target as HTMLSelectElement).value);
+    });
     return;
   }
   if (!card.editing) {
+    // Settings keeps the plan where it was, so "save this view" saves what you saw (#94).
+    const camera = { ...card.camera },
+      room = card.currentRoom,
+      roomView = card.roomView;
     await card.toggleEdit();
     if (!card.editing) return;
+    card.currentRoom = room;
+    card.roomView = roomView;
+    card.moveCamera(camera, false);
     // Entered only to edit settings: leaving Settings leaves editing too.
     card.configuring = true;
   }
@@ -38,4 +49,4 @@ export async function closeConfiguration(card: HomeManagerCard): Promise<void> {
   }
 }
 
-export const configurationStyles = `.shell.is-configuring .editor-wrap,.shell.is-configuring .rooms{display:none}`;
+export const configurationStyles = `.shell.is-configuring .editor-wrap,.shell.is-configuring .rooms{display:none}@media(max-width:650px){.shell.sheet-open .rooms{display:none}}`;
