@@ -21,6 +21,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
 from .plan_link import ensure_folder
+from .remotes import DATA_REMOTES, RemotesLibrary
 from .rf import RfManager
 from .rf_websocket import DATA_RF, async_register as async_register_rf
 from .store import HomeManagerStore
@@ -42,6 +43,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rf = RfManager(hass)
     await rf.async_load()
     hass.data[DATA_RF] = rf
+    remotes = RemotesLibrary(hass, rf)
+    await remotes.async_load()
+    hass.data[DATA_REMOTES] = remotes
     async_register(hass)
     async_register_rf(hass)
     await _async_register_frontend(hass)
@@ -60,6 +64,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if store := hass.data.pop(DOMAIN, None):
         store.async_close()
     hass.data.pop(DATA_RF, None)
+    hass.data.pop(DATA_REMOTES, None)
     # Websocket commands and the static route cannot be unregistered in HA; they
     # answer "not loaded" errors through the missing store until the next setup.
     return True

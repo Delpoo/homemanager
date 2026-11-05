@@ -1,5 +1,7 @@
 # Gestor de controles RF
 
+La [biblioteca Remotes](remotes.md) incorpora estos controles mediante una vista compatible con el almacenamiento y la API RF existentes.
+
 Estado: **0.5.0-beta.1** (aprendizaje libre, partes, diseñador, equipos RF y control en el plano). Falta la prueba con un transmisor real. Decisión: [D16](decisions.md#d16--gestor-de-controles-rf-propio). Sustituye, para los equipos que se den de alta aquí, la cadena actual de scripts, helpers y botones de dashboard. Lo existente en Home Assistant no se toca.
 
 ## Qué reemplaza
