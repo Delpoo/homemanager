@@ -90,7 +90,11 @@ dt{font-weight:600}dd{margin:0}
 @media (prefers-reduced-motion:no-preference){.marker .primary{transition:background .2s,border-color .2s,transform .1s}}
 .workspace > .editor{position:absolute;z-index:6;left:16px;top:16px;width:340px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);overflow:auto;border-radius:18px;overscroll-behavior:contain}
 .editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
-.is-editing .header [data-command=edit]{display:none}
+.is-editing .header [data-command=edit],.is-editing .header [data-command=configuration]{display:none}
+.is-editing .editor-wrap{border-top:0;background:var(--hm-edit-soft)}.is-editing .editbar{background:var(--hm-edit-soft);border-bottom:3px solid var(--hm-edit)}
+.edit-title{display:flex;align-items:baseline;gap:4px;min-width:0;margin-right:auto;color:var(--hm-ink);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.edit-title b{color:var(--hm-edit-ink)}
+.is-editing .viewport{box-shadow:inset 0 0 0 3px var(--hm-edit)}
+@media(max-width:650px){.edit-title{flex-basis:100%;order:-1;padding:0 4px 2px}.edit-count{overflow:hidden;text-overflow:ellipsis}}
 @media(max-width:650px){.workspace > .editor{top:auto!important;left:0!important;bottom:0;width:100%;max-width:100%;max-height:76%;border-radius:18px 18px 0 0}.workspace > .editor homemanager-editor{width:100%;border-radius:18px 18px 0 0}.editbar{padding:6px;gap:2px}.editbar .hm-icon-button{width:48px;flex-basis:48px}.editbar .space{min-width:0}}
 
 .architecture>.room-highlight{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:none;overflow:visible}

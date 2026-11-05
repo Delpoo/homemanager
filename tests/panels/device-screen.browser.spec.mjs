@@ -1,6 +1,7 @@
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
+import { chooseTheme, openSettingsSection } from '../browser/shell-helpers.mjs';
 const card = page => page.locator('homemanager-card');
 const view = page => page.locator('homemanager-insights');
 async function start(page) {
@@ -148,9 +149,12 @@ test('Ahora filters rooms, hides empty sections and quick-off never claims confi
 });
 test('Light, Dark and Auto persist across reloads and override/follow HA across surfaces', async ({ page }) => {
   await start(page);
-  const menu = card(page).locator('.hm-menu > summary');
+  // Appearance lives in Settings since #70.
+  const menu = { click: () => openSettingsSection(page, card(page), 'appearance-section') };
   await menu.click();
-  const theme = page.locator('homemanager-theme-choice').getByRole('combobox', { name: 'Apariencia' });
+  const theme = page
+    .locator('homemanager-editor homemanager-theme-choice')
+    .getByRole('combobox', { name: 'Apariencia' });
   await expect(theme).toHaveValue('auto');
   await theme.selectOption('dark');
   const bg = () => view(page).evaluate(node => getComputedStyle(node).backgroundColor);
@@ -181,6 +185,7 @@ test('Light, Dark and Auto persist across reloads and override/follow HA across 
   });
   await expect.poll(bg).toBe('rgb(255, 255, 255)');
   await theme.selectOption('dark');
+  await page.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await openDeviceSections(page, ['device-binding']);
@@ -230,8 +235,10 @@ test('theme selection remains usable when preference storage is denied, includin
     };
   });
   await start(page);
-  await card(page).locator('.hm-menu > summary').click();
-  const field = page.locator('homemanager-theme-choice').getByRole('combobox', { name: 'Apariencia' });
+  await openSettingsSection(page, card(page), 'appearance-section');
+  const field = page
+    .locator('homemanager-editor homemanager-theme-choice')
+    .getByRole('combobox', { name: 'Apariencia' });
   await field.focus();
   await field.press('ArrowDown');
   await expect(field).toHaveValue('light');
@@ -404,10 +411,8 @@ test('evidence: every changed screen at 1440x900 / 390x844 alongside its mockup'
     .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
-  await card(page).locator('.hm-menu > summary').click();
-  await page.locator('homemanager-theme-choice').getByRole('combobox', { name: 'Apariencia' }).selectOption('dark');
+  await chooseTheme(page, card(page), 'dark');
   await shot('appearance');
-  await card(page).locator('.hm-menu > summary').click();
   await openMeter(page);
   await shot('meter-dark');
   await view(page)

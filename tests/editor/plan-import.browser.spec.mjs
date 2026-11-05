@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 const editor = page => card(page).locator('homemanager-editor');
@@ -5,16 +6,15 @@ const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfig
 const merged =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><path id="room-joined" d="M10 20H1010V720H10Z" fill="#e1e9df"><title>Estudio unido</title></path></svg>';
 async function begin(page) {
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await expect(card(page).getByRole('button', { name: 'Guardar cambios', exact: true })).toBeVisible();
 }
 async function settings(page) {
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
 }
 async function upload(page, svg = merged) {
   await settings(page);
-  await editor(page).locator('[data-settings="import-section"]').click();
+  await showSection(editor(page), 'import-section');
   await editor(page)
     .getByLabel('Importar JSON o SVG', { exact: true })
     .setInputFiles({ name: 'synthetic.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) });
@@ -61,7 +61,7 @@ test('plan-only import can be reconciled later against the saved geometry withou
   await card(page).getByRole('button', { name: 'Salir de edición', exact: true }).click();
   await begin(page);
   await settings(page);
-  await editor(page).locator('[data-settings="rooms-section"]').click();
+  await showSection(editor(page), 'rooms-section');
   await editor(page).getByRole('button', { name: 'Revisar espacios con el plano', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Revisar cambios', exact: true })).toBeVisible();
   await page
@@ -121,15 +121,16 @@ test('editing rail supports rename, merge and explicit unassignment on removal',
   await dialog.getByRole('option', { name: 'sofa', exact: true }).click();
   await dialog.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await draft(page)).rooms.find(room => room.id === 'living').icon).toBe('mdi:sofa');
-  await expect(card(page).getByRole('button', { name: 'Encuadrar Sala nueva', exact: true })).toBeVisible();
-  await card(page).getByRole('button', { name: 'Encuadrar Sala nueva', exact: true }).click();
+  // Settings hides the rail (#70): the renamed space is in its list.
+  await expect(card(page).locator('homemanager-editor [data-command=room-open][data-room=living]')).toContainText(
+    'Sala nueva',
+  );
+  await card(page).locator('homemanager-editor [data-command=room-open][data-room=living]').click();
   dialog = page.getByRole('region', { name: 'Sala nueva', exact: true });
   await dialog.getByLabel('Fusionar en…', { exact: true }).selectOption('kitchen');
   await dialog.getByRole('button', { name: 'Fusionar', exact: true }).click();
   expect((await draft(page)).rooms.some(room => room.id === 'living')).toBe(false);
-  await card(page)
-    .getByRole('button', { name: `Encuadrar ${labels.kitchen}`, exact: true })
-    .click();
+  await card(page).locator('homemanager-editor [data-command=room-open][data-room=kitchen]').click();
   dialog = page.getByRole('region', { name: labels.kitchen, exact: true });
   await dialog.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Elegí fusionar');

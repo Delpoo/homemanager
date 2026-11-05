@@ -183,7 +183,9 @@ export class TaskScreen extends HTMLElement {
     const coverRoot =
       hostTask && root.host.getRootNode() instanceof ShadowRoot ? (root.host.getRootNode() as ShadowRoot) : root;
     let branch: Element = hostTask ? root.host : this;
-    while (branch.parentNode) {
+    // A page docked beside the plan (#59, #76) leaves the plan in view and usable.
+    const docked = this.dataset.dock === 'side' || (root.host as HTMLElement).dataset.dock === 'side';
+    while (!docked && branch.parentNode) {
       const parent = branch.parentNode;
       if (parent instanceof ShadowRoot && parent !== coverRoot) break;
       for (const child of parent.children) {

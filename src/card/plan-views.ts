@@ -21,7 +21,6 @@ export async function renderPlanChoice(card: HomeManagerCard): Promise<void> {
     chosen.set(card, id);
   }
   const views = card.draft.planViews ?? [];
-  if (card.dataset.wall === 'true' && !id) id = views.find(v => v.dark)?.id ?? '';
   let controls = card.root.querySelector<HTMLElement>('.plan-choices');
   if (!controls) {
     controls = document.createElement('div');
@@ -62,7 +61,7 @@ export async function renderPlanChoice(card: HomeManagerCard): Promise<void> {
   host.style.background = '';
   const view = views.find(v => v.id === id);
   if (!view) return;
-  const dark = card.dataset.wall === 'true' || effectiveDark(card._hass?.themes?.darkMode === true);
+  const dark = effectiveDark(card._hass?.themes?.darkMode === true);
   const selected = choosePlanImage(view, dark);
   host.style.background = selected.background;
   if (!selected.image) return;

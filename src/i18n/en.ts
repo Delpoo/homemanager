@@ -73,7 +73,7 @@ export const en: Record<string, string> = {
   'Cargando…': 'Loading…',
   'El ID del hogar debe ser kebab-case (minúsculas, números y guiones).':
     'The home ID must be kebab-case (lowercase letters, numbers and hyphens).',
-  Configuración: 'Configuration',
+  Configuración: 'Settings',
   '{field}: texto vacío o demasiado largo.': '{field}: empty or too long.',
   '{field}: ID kebab-case no válido.': '{field}: invalid kebab-case ID.',
   'Documento demasiado profundo.': 'Document nested too deeply.',
@@ -682,9 +682,6 @@ export const en: Record<string, string> = {
   'Editar Ahora': 'Edit Now',
   'Configuración del panel': 'Panel configuration',
   Casa: 'Home',
-  'Modo pared': 'Wall mode',
-  'Sin personalizar se conservan las secciones automáticas. El modo pared puede usar otra lista.':
-    'Without customization the automatic sections are kept. Wall mode can use another list.',
   'Usar panel automático': 'Use automatic panel',
   'Agregar bloque': 'Add block',
   'Editar bloque': 'Edit block',
@@ -698,7 +695,6 @@ export const en: Record<string, string> = {
   'Un control': 'A control',
   'Acceso directo': 'Shortcut',
   'Se conservan las secciones automáticas.': 'The automatic sections are kept.',
-  'Salir del modo pared': 'Exit wall mode',
   'El encuadre del plano cambió. Revisá la alternativa en Ajustes.':
     'The plan framing changed. Review the alternative in Settings.',
   'Primero se descarga una copia actual con imágenes. Después se reemplaza el borrador; podés descartar los cambios antes de guardar el hogar.':

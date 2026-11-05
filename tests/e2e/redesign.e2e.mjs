@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 import { chromium, expect } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -144,7 +145,6 @@ try {
   await expect(card.locator('[data-id=lamp] .primary')).toBeVisible({ timeout: 60000 });
   await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.user?.is_admin)).toBe(true);
   console.log('ok: legacy plan loads from actual persistent HA storage');
-  await card.locator('.hm-menu>summary').click();
   await card.getByRole('button', { name: /^(Editar plano|Edit plan)$/ }).click();
   await card.locator('[data-command=settings]').click();
   const editor = card.locator('homemanager-editor');
@@ -158,7 +158,7 @@ try {
   await views.getByRole('button', { name: /^(Guardar alternativa|Save alternative)$/ }).click();
   await expect(views.getByText('E2E alternative', { exact: true })).toBeVisible();
   console.log('ok: authenticated upload, actual image storage and browser preview');
-  await editor.locator('[data-settings=now-section]').click();
+  await showSection(editor, 'now-section');
   const panel = editor.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('reading');
   await panel.getByRole('button', { name: /^(Agregar bloque|Add block)$/ }).click();
@@ -194,7 +194,6 @@ try {
   await arrow.click();
   await expect.poll(() => card.evaluate(c => c.currentRoom)).not.toBe(room);
   console.log('ok: mouse room navigation on the actual HA frontend');
-  await card.locator('.hm-menu>summary').click();
   await card.getByRole('button', { name: /^(Modo pared|Wall mode)$/ }).click();
   await expect(card).toHaveAttribute('data-wall', 'true');
   assert.ok(await page.evaluate(() => !!document.fullscreenElement));

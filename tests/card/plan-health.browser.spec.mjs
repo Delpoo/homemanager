@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 const card = page => page.locator('homemanager-card');
@@ -10,14 +11,13 @@ const button = (page, name) =>
   });
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const begin = async page => {
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 const openDiagnosis = async page => {
-  await button(page, 'Ajustes del plano').click();
-  await editor(page).locator('[data-settings="health-section"]').click();
-  return editor(page).getByRole('region', { name: 'Ajustes del plano' });
+  await button(page, 'Configuración').click();
+  await showSection(editor(page), 'health-section');
+  return editor(page).getByRole('region', { name: 'Configuración' });
 };
 
 test.beforeEach(async ({ page }) => {

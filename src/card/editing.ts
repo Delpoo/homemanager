@@ -5,8 +5,10 @@ import { currentDashboardPath, same } from './card-helpers.js';
 import { validateConfiguration } from './configuration.js';
 import { clone, escapeHTML as e, type CardConfig, type Configuration } from './types.js';
 import { cameraForEditedDevice } from '../model/editor-session.js';
+import { unsavedCount } from '../model/move-grid.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { closeConfiguration } from './settings-screen.js';
 import { backupKey, browserStorage, clearBackup, readBackup, writeBackup } from '../model/draft-backup.js';
 
 import type { HomeManagerCard } from './home-manager-card.js';
@@ -122,6 +124,7 @@ export async function toggleEdit(this: HomeManagerCard) {
     }
     flushDraftBackup(this);
     this.editing = false;
+    this.configuring = false;
     this.stopPlacing();
     this.editor?.closeSurface();
     this.updateControls();
@@ -193,6 +196,7 @@ export function mountEditor(this: HomeManagerCard) {
   this.editor.editZones = () => this.startZoneEdit();
   this.editor.linkedReview = () => void this.reviewLinkedPlan();
   this.editor.homeId = this.home?.homeId;
+  this.editor.appContext = this.shellContext;
   if (this._hass) this.editor.hass = this._hass;
   this.editor.setConfig({ ...this.config!, configuration: this.draft! });
   this.editor.selectedDeviceId = this.selected;
@@ -210,6 +214,10 @@ export function mountEditor(this: HomeManagerCard) {
   });
   this.editor.addEventListener('homemanager-editor-close', () => {
     commitPreview(this);
+    if (this.configuring) {
+      void closeConfiguration(this);
+      return;
+    }
     this.positionEditor();
     const marker =
       this.selected && this.root.querySelector<HTMLElement>(`[data-id="${CSS.escape(this.selected)}"] .primary`);
@@ -280,6 +288,10 @@ export function positionEditor(this: HomeManagerCard) {
   if (!host) return;
   host.hidden = !this.editing || !this.editor || this.editor.hidden;
   host.dataset.surface = this.editor?.surfaceMode ?? '';
+  // Settings is a page of its own: no edit bar or spaces rail behind it (#70).
+  this.root
+    .querySelector('.shell')
+    ?.classList.toggle('is-configuring', this.editing && this.editor?.surfaceMode === 'settings');
   host.dataset.expanded = String(this.editor?.sheetExpanded ?? false);
   host.dataset.task = this.editor?.shadowRoot?.querySelector('homemanager-device-picker')
     ? 'link'
@@ -450,8 +462,17 @@ export function updateControls(this: HomeManagerCard) {
   if (redo) redo.disabled = !this.future.length || this.saving;
   const discard = this.root.querySelector<HTMLButtonElement>('[data-command=discard]');
   if (discard) discard.disabled = this.saving || !this.dirty;
+  // The amber strip says how many changes are waiting (#90).
+  const count = this.root.querySelector('.edit-count');
+  if (count) {
+    const pending = unsavedCount(this.history.length, this.editing && this.dirty);
+    count.textContent = pending
+      ? ` · ${pending === 1 ? t('1 cambio sin guardar') : t('{count} cambios sin guardar', { count: pending })}`
+      : ` · ${t('Todo guardado')}`;
+  }
   this.updateSelection();
   this.positionEditor();
+  if (this.editor) this.editor.planDirty = this.dirty;
   this.insights?.update(this);
   scheduleDraftBackup(this);
 }
@@ -503,9 +524,21 @@ export function dialog(
   title: string,
   body: string,
   actions: { label: string; action: () => void }[],
+  options: { side?: boolean } = {},
 ) {
   const previous = this.root.activeElement as HTMLElement | null;
   const dialog = new TaskScreen();
+  // Short content opens beside the plan on a wide screen, in Now's place (#76).
+  const workspace = this.root.querySelector<HTMLElement>('.workspace');
+  let dock: HTMLElement | undefined;
+  if (options.side && workspace && this.getBoundingClientRect().width > 650) {
+    this.root.querySelector('.workspace > .side-dock')?.querySelector<TaskScreen>('homemanager-task-screen')?.close();
+    dock = document.createElement('div');
+    dock.className = 'side-dock';
+    workspace.append(dock);
+    dialog.dataset.dock = 'side';
+    dock.append(dialog);
+  }
   dialog.innerHTML = `<h2>${e(title)}</h2>${body}<div class="actions"></div>`;
   const heading = dialog.querySelector('h2')!;
   heading.id = 'hm-dialog-title';
@@ -525,10 +558,11 @@ export function dialog(
     'close',
     () => {
       dialog.remove();
+      dock?.remove();
       previous?.focus();
     },
     { once: true },
   );
-  this.root.append(dialog);
+  if (!dock) this.root.append(dialog);
   dialog.show(this.root, title);
 }

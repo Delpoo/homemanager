@@ -29,7 +29,6 @@ test('dock opens and previews without saving, then reverts this device', async (
     info.project.name === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 900 },
   );
   const card = page.locator('homemanager-card');
-  await card.locator('.hm-menu > summary').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-id=fan] .primary').click();
   const editor = card.locator('homemanager-editor');
@@ -64,7 +63,6 @@ test('dock opens and previews without saving, then reverts this device', async (
 
 async function edit(page, id = 'fan') {
   const card = page.locator('homemanager-card');
-  await card.locator('.hm-menu > summary').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator(`[data-id=${id}] .primary`).click();
   return card.locator('homemanager-editor');
@@ -154,13 +152,12 @@ test('settings and fullscreen remain reachable while the dock is open', async ({
   );
   await edit(page);
   const card = page.locator('homemanager-card');
-  await card.locator('.hm-menu > summary').click();
   await card.getByRole('button', { name: 'Pantalla completa', exact: true }).click();
   await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
   await expect(card.locator('homemanager-editor [name=label]')).toBeVisible();
   await page.evaluate(() => document.exitFullscreen());
-  await card.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await expect(card.getByRole('region', { name: 'Ajustes del plano', exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await expect(card.getByRole('region', { name: 'Configuración', exact: true })).toBeVisible();
 });
 
 test('selected marker stays centred through sidebar, resize and mobile expansion; visual evidence', async ({

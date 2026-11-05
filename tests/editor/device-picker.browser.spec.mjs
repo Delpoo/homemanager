@@ -6,7 +6,6 @@ const editor = page => card(page).locator('homemanager-editor');
 async function start(page) {
   await page.goto('/tests/browser/fixtures/picker.html');
   await page.waitForFunction(() => window.pickerHarnessReady);
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
   await card(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();

@@ -34,8 +34,9 @@ export function showActivity(this: HomeManagerCard): void {
         entry =>
           `<li data-tone="${entry.tone}"><time>${e(new Date(entry.updatedAt).toLocaleTimeString())}</time> ${e(activityText(entry, entry.updatedAt))}</li>`,
       )
-      .join('')}</ol>`,
-    [{ label: t('Cerrar'), action: () => {} }],
+      .join('')}</ol>${this.activity.entries.length ? '' : `<p>${e(t('Sin actividad reciente'))}</p>`}`,
+    [],
+    { side: true },
   );
 }
 export function showAlerts(this: HomeManagerCard): void {
@@ -49,9 +50,10 @@ export function showAlerts(this: HomeManagerCard): void {
     alerts.length
       ? `<div class="choices">${alerts.map(alert => `<button type="button" data-alert-device="${e(alert.deviceId)}"${alert.deviceId ? '' : ' disabled'}>${e(alertText(alert))} · ${e(this.draft?.catalog.devices.find(device => device.id === alert.deviceId)?.display.label ?? '')}</button>`).join('')}</div>`
       : `<p>${e(t('Sin alertas'))}</p>`,
-    [{ label: t('Cerrar'), action: () => {} }],
+    [],
+    { side: true },
   );
-  const dialog = this.root.querySelector('homemanager-task-screen:last-of-type') as TaskScreen;
+  const dialog = [...this.root.querySelectorAll<TaskScreen>('homemanager-task-screen')].at(-1)!;
   dialog.querySelectorAll<HTMLButtonElement>('[data-alert-device]').forEach(button =>
     button.addEventListener('click', () => {
       dialog.close();

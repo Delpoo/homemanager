@@ -6,7 +6,6 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.shellHarnessReady);
 });
 async function edit(page, id = 'fan') {
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).locator(`[data-id=${id}] .primary`).click();
 }

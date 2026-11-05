@@ -394,3 +394,32 @@ Hallazgos que no se arreglan en E00:
 - La captura C04 muestra tabla de canales con nombres reconocibles; no prueba que cualquier medidor con lecturas llamadas Power 1 se reconozca igual. E04 debe comprobar ese caso con fixtures.
 
 La documentación de E00 está completa para revisión según las alternativas admitidas por la guía actualizada. La validación en vivo pendiente está declarada y no se marca como aprobada. Se requiere validación del propietario sobre los seis destinos «a decidir» antes de E01.
+
+## Cambios del plan 0.12 (lote B, 2026-11-05)
+
+El menú ⋮ se reemplazó por tres botones y una pantalla de **Configuración** ([#70](https://github.com/Delpoo/homemanager/issues/70)). El modo pared se quitó por **decisión del propietario del 2026-11-04** ([#61](https://github.com/Delpoo/homemanager/issues/61)). Ninguna fila se pierde. Dónde quedó cada una:
+
+| Fila | Antes | Ahora |
+|---|---|---|
+| F-006 | Menú → Editar plano | Botón ✎ de la barra superior |
+| F-007 | Menú → Plano | Botón ← en Controles RF y en Nuevo hogar. Vuelve a donde estabas |
+| F-008 | Menú → Controles RF | Configuración › Controles › Controles RF › Abrir controles RF |
+| F-009 | Menú → Ajustes del plano | Botón ⚙ › Configuración. En edición, el ⚙ de la franja |
+| F-010 | Menú → Hogar | Configuración › Mi casa › Hogares |
+| F-011 | Menú → Nuevo hogar | Configuración › Mi casa › Hogares › Nuevo hogar |
+| F-012, F-119 | Menú → Almacenamiento | Configuración › Mantenimiento › Almacenamiento. Ahora también muestra cuánto ocupan las imágenes |
+| F-013 | Menú → Apariencia | Configuración › Pantallas › Apariencia. Sin administrar también está |
+| F-014 | Menú → Pantalla completa | Botón ⛶ de la barra superior. Si el navegador no lo permite, la vista ocupa toda la ventana |
+| F-015 | Menú → Ayuda | Configuración › Ayuda |
+| F-016 | Teclado del menú | Ya no hay menú: los tres botones son botones comunes, con Tab y Enter |
+| F-017 | Menú → Menú de Home Assistant | Botón ☰ al principio de la barra, sólo en pantallas estrechas |
+| Mostrar capas | Menú y Ajustes › Plano y espacios | Sólo en Configuración › Pantallas › Apariencia |
+| Reglas | Menú (abría la edición) y Ajustes | Sólo en Configuración › Reglas |
+
+**Quitado por decisión del propietario del 2026-11-04 (#61):**
+- la entrada «Modo pared»;
+- la paleta oscura forzada;
+- el botón «Salir del modo pared»;
+- la lista «Modo pared» del editor de *Ahora*.
+
+Un plano con `nowPanels.wall` la conserva al guardar, aunque ya no se use.

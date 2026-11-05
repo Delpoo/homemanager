@@ -86,6 +86,8 @@ await build({
     'src/model/control-layout.ts',
     'src/model/learning-progress.ts',
     'src/model/draft-backup.ts',
+    'src/model/move-grid.ts',
+    'src/editor/storage-section.ts',
     'src/shell/runtime-feed.ts',
   ],
   outbase: 'src',

@@ -14,7 +14,6 @@ const decimals = value => (String(value).split('.')[1] ?? '').length;
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
   await page.waitForFunction(() => window.testHarnessReady);
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 });

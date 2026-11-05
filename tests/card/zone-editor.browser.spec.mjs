@@ -19,12 +19,11 @@ const confirmMoves = async page => {
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
 };
 const begin = async page => {
-  await card(page).locator('.hm-menu > summary').click();
   await button(page, 'Editar plano').click();
   await expect(button(page, 'Guardar cambios')).toBeVisible();
 };
 const openEditor = async page => {
-  await button(page, 'Ajustes del plano').click();
+  await button(page, 'Configuración').click();
   await card(page).locator('homemanager-editor').getByRole('button', { name: 'Editar zonas', exact: true }).click();
   await expect(card(page).locator('.zones-bar')).toBeVisible();
 };
@@ -169,7 +168,7 @@ test('the top menu cannot drop zones that are not applied yet', async ({ page })
   await button(page, 'Eliminar zona').click();
   await page.evaluate(() => {
     const command = document.createElement('button');
-    command.dataset.command = 'plan-settings';
+    command.dataset.command = 'configuration';
     window.testHarness.card.root.append(command);
     command.click();
     command.remove();

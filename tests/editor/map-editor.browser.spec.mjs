@@ -1,3 +1,4 @@
+import { openAdvanced } from '../browser/shell-helpers.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
@@ -209,19 +210,14 @@ test('deletion has a modal focus trap, Escape and Cancel restore the trigger, an
 
 test('plan settings and field help open without cluttering the map, and Move uses map placement', async ({ page }) => {
   await begin(page);
-  await button(page, 'Ajustes del plano').click();
-  const settings = editor(page).getByRole('region', { name: 'Ajustes del plano' });
+  await button(page, 'Configuración').click();
+  const settings = editor(page).getByRole('region', { name: 'Configuración' });
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.
-  const sections = settings.getByRole('navigation', { name: 'Secciones de ajustes' });
-  for (const name of [
-    'Plano y espacios',
-    'Acciones lógicas',
-    'Paneles nativos',
-    'Referencias pendientes',
-    'Importar y exportar',
-  ])
-    await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible();
+  const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
+  await openAdvanced(settings);
+  for (const name of ['Plano y espacios', 'Acciones lógicas', 'Paneles nativos', 'Referencias pendientes', 'Copias'])
+    await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) }).first()).toBeVisible();
   await expect(settings.getByRole('listitem')).toHaveCount(3);
   await page.keyboard.press('Escape');
   await select(page);

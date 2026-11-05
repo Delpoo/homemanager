@@ -27,7 +27,8 @@ for (const width of [1440, 1920])
         .toBe(true);
     }
   });
-test('wall mode enters actual fullscreen, uses a separate Now panel and restores the home', async ({ page }) => {
+// Wall mode was removed by the owner's decision of 2026-11-04 (#61): one full screen that looks the same.
+test('full screen keeps the home Now panel and keeps an old wall list untouched', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
   await page.waitForFunction(() => window.testHarnessReady);
   const card = page.locator('homemanager-card');
@@ -39,13 +40,13 @@ test('wall mode enters actual fullscreen, uses a separate Now panel and restores
     };
     c.setConfig(config);
   });
-  await openCardMenu(page);
-  await card.getByRole('button', { name: 'Modo pared', exact: true }).click();
-  await expect(card).toHaveAttribute('data-wall', 'true');
+  await card.getByRole('button', { name: 'Pantalla completa', exact: true }).click();
+  await expect(card).toHaveAttribute('data-fullscreen', 'native');
   expect(await page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-  await expect(card.locator('homemanager-insights')).toContainText('Sólo pared');
-  await card.getByRole('button', { name: 'Salir del modo pared', exact: true }).click();
-  await expect(card).not.toHaveAttribute('data-wall', 'true');
-  expect(await page.evaluate(() => document.fullscreenElement)).toBe(null);
   await expect(card.locator('homemanager-insights')).toContainText('Casa');
+  await expect(card.locator('homemanager-insights')).not.toContainText('Sólo pared');
+  await card.getByRole('button', { name: 'Salir de pantalla completa', exact: true }).click();
+  await expect(card).not.toHaveAttribute('data-fullscreen', /./);
+  expect(await page.evaluate(() => document.fullscreenElement)).toBe(null);
+  expect((await card.evaluate(c => c.getDraftConfiguration())).nowPanels.wall[0].title).toBe('Sólo pared');
 });

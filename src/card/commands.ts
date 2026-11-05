@@ -233,17 +233,9 @@ export function runGesture(this: HomeManagerCard, id: string, gesture: 'tap' | '
         : choice.action === 'screen'
           ? t('Pantalla del dispositivo')
           : t('Control abierto');
-  this.feed.log.record({
-    type: 'state',
-    at: Date.now(),
-    deviceId: id,
-    deviceLabel: device.display.label,
-    entityId: 'gesture',
-    value: '',
-    message,
-  });
-  this.updateShell();
+  // Opening a sheet or a panel is not something that happened in the home: no activity (#76).
   if ('missing' in choice && choice.missing) this.status(message);
+  else if (choice.action === 'none') this.status(message);
   if (choice.action === 'none') return;
   if (choice.action === 'screen' && this.insights) {
     this.insights.openDevice(id, anchor);
@@ -269,10 +261,26 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
   const entityId = d.bindings.entityId;
   const remoteId = this.remoteOf(d);
   if (!panel && !entityId && !remoteId && !controlsOf(d).length) {
+    // An unlinked symbol says so, and lets an administrator link it right away (#76).
+    const admin = this._hass?.user?.is_admin === true;
     this.dialog(
-      t('Detalles del dispositivo'),
-      `<p>${e(d.display.label)}</p><p>${e(confidenceLabel(this.runtime.states[id]?.confidence ?? 'unknown'))}</p><p>${d.bindings.advancedPopupId ? e(t('Panel nativo pendiente: {id}', { id: d.bindings.advancedPopupId })) : e(t('Vinculá una entidad o un panel en el editor para controlar este dispositivo.'))}</p>`,
-      [{ label: t('Cerrar'), action: () => {} }],
+      d.display.label,
+      `<p>${e(d.bindings.advancedPopupId ? t('Panel nativo pendiente: {id}', { id: d.bindings.advancedPopupId }) : t('Este símbolo todavía no está conectado a un dispositivo.'))}</p>${admin ? '' : `<p>${e(t('Pedile a quien administra que lo vincule.'))}</p>`}`,
+      admin
+        ? [
+            {
+              label: t('Vincular'),
+              action: () =>
+                void (async () => {
+                  if (!this.editing) await this.toggleEdit();
+                  if (!this.editing) return;
+                  this.select(id);
+                  requestAnimationFrame(() => this.editor?.openSection('device-binding'));
+                })(),
+            },
+          ]
+        : [],
+      { side: true },
     );
     return;
   }
@@ -343,5 +351,9 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
     controlHost: this.controlHost(d),
     heldOpen: held,
     returnFocus,
+    // Wide screens keep the plan in view; a phone keeps its sheet (#59).
+    ...(this.getBoundingClientRect().width > 650
+      ? { dock: this.root.querySelector<HTMLElement>('.workspace') ?? undefined }
+      : {}),
   });
 }

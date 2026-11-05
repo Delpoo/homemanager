@@ -6,7 +6,6 @@ test('full icon index is paged, bilingual, prefix-free, accepts unknown saved na
   await page.goto('/tests/browser/fixtures/shell.html');
   await page.waitForFunction(() => window.shellHarnessReady);
   const card = page.locator('homemanager-card');
-  await card.locator('.hm-menu > summary').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-id=fan] .primary').click();
   const picker = card.locator('homemanager-icon-picker[data-device-icon]');
@@ -41,7 +40,6 @@ test('custom color previews in both themes and automatic removes the optional va
   await page.goto('/tests/browser/fixtures/shell.html');
   await page.waitForFunction(() => window.shellHarnessReady);
   const card = page.locator('homemanager-card');
-  await card.locator('.hm-menu > summary').click();
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-id=fan] .primary').click();
   const editor = card.locator('homemanager-editor');

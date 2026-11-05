@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection } from '../browser/shell-helpers.mjs';
 
 test('shortcut destination matches its label and choosing a target replaces the other target', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -19,7 +19,7 @@ test('shortcut destination matches its label and choosing a target replaces the 
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-command=settings]').click();
-  await card.locator('[data-settings=now-section]').click();
+  await showSection(card, 'now-section');
   const panel = card.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('shortcut');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
@@ -28,9 +28,7 @@ test('shortcut destination matches its label and choosing a target replaces the 
   await panel.locator('[data-field=deviceId]').selectOption('synthetic-light');
   expect(await card.evaluate(c => c.draft.nowPanels.home[0].roomId)).toBeUndefined();
 });
-test('Now editor previews selected readings, orders blocks, saves and permits a separate wall list', async ({
-  page,
-}) => {
+test('Now editor previews selected readings, orders blocks and saves', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
   await page.waitForFunction(() => window.testHarnessReady);
   const card = page.locator('homemanager-card');
@@ -38,7 +36,7 @@ test('Now editor previews selected readings, orders blocks, saves and permits a 
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-command=settings]').click();
   const editor = card.locator('homemanager-editor');
-  await editor.locator('[data-settings=now-section]').click();
+  await showSection(editor, 'now-section');
   const panel = editor.locator('homemanager-now-panel-editor');
   await panel.locator('[data-type]').selectOption('readings');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
@@ -50,10 +48,9 @@ test('Now editor previews selected readings, orders blocks, saves and permits a 
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
   await panel.getByRole('button', { name: 'Subir', exact: true }).last().click();
   expect(await card.evaluate(c => c.draft.nowPanels.home.map(b => b.type))).toEqual(['alerts', 'readings']);
-  await panel.getByLabel('Configuración del panel', { exact: true }).selectOption('wall');
-  await panel.getByRole('button', { name: 'Quitar', exact: true }).first().click();
+  // The wall list was removed with wall mode (#61): only the home list is edited.
+  await expect(panel.getByLabel('Configuración del panel', { exact: true })).toHaveCount(0);
   expect(await card.evaluate(c => c.draft.nowPanels.home.length)).toBe(2);
-  expect(await card.evaluate(c => c.draft.nowPanels.wall.length)).toBe(1);
   await page.keyboard.press('Escape');
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.locator('.shell>.status')).toContainText('Guardado');

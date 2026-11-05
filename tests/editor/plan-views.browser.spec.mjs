@@ -1,3 +1,4 @@
+import { showSection } from '../browser/shell-helpers.mjs';
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
@@ -44,6 +45,8 @@ test('changing theme during upload keeps the image in its original mode', async 
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-command=settings]').click();
+  // Plan alternatives have their own Settings section (#70, #72).
+  await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
   await editor.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
   await editor.getByLabel('Nombre', { exact: true }).fill('Original mode');
@@ -67,6 +70,8 @@ test('alternative editor checks framing, keeps positions and supports duplicate/
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-command=settings]').click();
+  // Plan alternatives have their own Settings section (#70, #72).
+  await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
   await editor.getByRole('button', { name: 'Agregar alternativa', exact: true }).click();
   await editor.getByLabel('Nombre', { exact: true }).fill('Simplificado');
@@ -166,6 +171,8 @@ test('copy with images exports bytes and imports only after backing up the curre
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-command=settings]').click();
+  // Plan alternatives have their own Settings section (#70, #72).
+  await showSection(card.locator('homemanager-editor'), 'views-section');
   const editor = card.locator('homemanager-plan-views-editor');
   const downloading = page.waitForEvent('download');
   await editor.getByRole('button', { name: 'Exportar copia con imágenes', exact: true }).click();

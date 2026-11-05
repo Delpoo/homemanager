@@ -1,7 +1,9 @@
 import { homeStart } from '../ui/home-start.js';
-import { t } from '../i18n/index.js';
 import { TaskScreen } from '../ui/task-screen.js';
-import { confirmDialog } from '../ui/confirm-dialog.js';
+import { appearanceBody } from '../editor/settings-page.js';
+import { storageBody } from '../editor/storage-section.js';
+import { helpBody } from '../shell/help.js';
+import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { describeError, listHomes, type HomeSummary } from '../integration/store.js';
 import { tokens } from '../ui/theme.js';
@@ -158,6 +160,8 @@ export class HomeManagerApp extends HTMLElement {
           title: this.tab === 'rf' ? t('Controles RF') : title,
           admin: this._hass?.user?.is_admin === true,
           app: context,
+          // RF and a new home open from Settings and go back to it (#70).
+          ...((this.tab === 'rf' || this.creating) && this.selected ? { back: 'plan' } : {}),
         });
     this.card?.setShellContext(context);
   }
@@ -185,10 +189,7 @@ export class HomeManagerApp extends HTMLElement {
       if (this.creating) this.cancelCreate();
     } else if (this._hass?.user?.is_admin === true) {
       if (command === 'rf') this.tab = 'rf';
-      else if (command === 'storage') {
-        void this.openStorage();
-        return;
-      } else if (command === 'new') {
+      else if (command === 'new') {
         this.creating = true;
         this.tab = 'plan';
         this.renderMessages(true);
@@ -203,8 +204,8 @@ export class HomeManagerApp extends HTMLElement {
     const target = (event.target as Element).closest<HTMLElement>('.toolbar [data-command]');
     if (!target) return;
     const command = target.dataset.command;
-    if (command === 'fullscreen') {
-      void this.requestFullscreen?.();
+    if (command === 'configuration' && !this.card) {
+      this.openBasicSettings();
       return;
     }
     if (command === 'info' && !this.card) return;
@@ -215,58 +216,22 @@ export class HomeManagerApp extends HTMLElement {
     this.applyTab();
     this.card.shadowRoot?.querySelector<HTMLButtonElement>(`[data-command="${command}"]`)?.click();
   };
-  private async openStorage(): Promise<void> {
-    if (!this._hass?.callWS || this._hass.user?.is_admin !== true) return;
-    const hass = this._hass;
+  /** ⚙ before any home exists: what does not need a plan (#70), so retained histories
+   * of deleted homes can still be removed. */
+  private openBasicSettings(): void {
+    const admin = this._hass?.user?.is_admin === true;
     const dialog = new TaskScreen();
     dialog.className = 'maintenance';
-    dialog.innerHTML = `<h2>${e(t('Almacenamiento'))}</h2><p>${e(t('Los historiales de hogares eliminados se conservan hasta que los elimines definitivamente. Las copias de seguridad se administran por separado.'))}</p><div class="retained"></div><p class="storage-status" role="status"></p><button type="button" class="close">${e(t('Cerrar'))}</button>`;
-    dialog.querySelector('.close')!.addEventListener('click', () => dialog.close());
+    dialog.innerHTML = `<h2>${e(t('Configuración'))}</h2><h3>${e(t('Apariencia'))}</h3>${appearanceBody()}${admin ? `<h3>${e(t('Controles RF'))}</h3><button type="button" data-app-command="rf">${e(t('Abrir controles RF'))}</button><h3>${e(t('Almacenamiento'))}</h3><div class="storage-host"></div>` : ''}<h3>${e(t('Ayuda'))}</h3>${helpBody()}`;
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    // Opening RF leaves this page.
+    dialog.addEventListener('click', event => {
+      if ((event.target as Element).closest('[data-app-command]')) dialog.close();
+    });
     this.root.append(dialog);
-    dialog.show(this.root, t('Almacenamiento'));
-    const refresh = async () => {
-      try {
-        const result = await hass.callWS!<{ bytes: number; retained_home_ids: string[] }>({
-          type: 'homemanager/storage/status',
-        });
-        const host = dialog.querySelector('.retained')!;
-        host.replaceChildren();
-        for (const homeId of result.retained_home_ids) {
-          const row = document.createElement('p'),
-            button = document.createElement('button');
-          row.textContent = homeId;
-          button.textContent = t('Eliminar historial');
-          button.type = 'button';
-          button.addEventListener('click', async () => {
-            if (
-              !(await confirmDialog(this.root, {
-                title: t('Eliminar historial'),
-                message: t('¿Eliminar definitivamente el historial de {home}?', { home: homeId }),
-                trigger: button,
-              }))
-            )
-              return;
-            button.disabled = true;
-            try {
-              await hass.callWS!({ type: 'homemanager/history/purge', home_id: homeId, confirm: true });
-              await refresh();
-            } catch (error) {
-              dialog.querySelector('.storage-status')!.textContent = describeError(error);
-              button.disabled = false;
-            }
-          });
-          row.append(button);
-          host.append(row);
-        }
-        dialog.querySelector('.storage-status')!.textContent = t('Uso de almacenamiento: {size} MiB de 64 MiB.', {
-          size: (result.bytes / 1048576).toFixed(1),
-        });
-      } catch (error) {
-        dialog.querySelector('.storage-status')!.textContent = describeError(error);
-      }
-    };
-    await refresh();
+    dialog.show(this.root, t('Configuración'));
+    const host = dialog.querySelector<HTMLElement>('.storage-host');
+    if (host && this._hass) void storageBody(host, this._hass, this.root);
   }
   private cancelCreate(): void {
     this.creating = false;
@@ -274,7 +239,7 @@ export class HomeManagerApp extends HTMLElement {
     this.renderMessages();
     this.renderHeader();
     this.applyTab();
-    this.card?.shadowRoot?.querySelector<HTMLElement>('.hm-menu summary')?.focus();
+    this.card?.shadowRoot?.querySelector<HTMLElement>('[data-command=configuration]')?.focus();
   }
   private renderMessages(creating = this.creating): void {
     const host = this.root.querySelector('.messages');

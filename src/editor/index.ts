@@ -100,6 +100,8 @@ import {
 import { applyFixes, canFix, isSafeFix, type HealthIssue, type PlanHealth } from '../model/plan-health.js';
 import { openRoomActions, type RoomViewChoices } from './room-actions.js';
 import {
+  appearanceBody,
+  firstSection,
   healthBody,
   planCard,
   settingsPage,
@@ -107,6 +109,10 @@ import {
   spacesList,
   type SettingsSection,
 } from './settings-page.js';
+import { helpBody } from '../shell/help.js';
+import { gridStep, setGridStep } from '../card/move-grid.js';
+import { storageBody } from './storage-section.js';
+import type { AppShellContext } from '../shell/top-bar.js';
 import { SERVICES as ALLOWED } from '../card/types.js';
 import {
   actionName,
@@ -226,6 +232,17 @@ export class HomeManagerEditor extends HTMLElement {
   private nowPanelEditor?: NowPanelEditor;
   private planViewsEditor?: PlanViewsEditor;
   private settingsSection: SettingsSection = 'rooms-section';
+  /** On a phone, Settings first lists its sections (#70). */
+  private settingsView: 'list' | 'section' = 'section';
+  /** The HomeManager sidebar panel's homes, when the card runs inside it. */
+  appContext?: AppShellContext;
+  private _planDirty = false;
+  /** Settings shows Guardar only with unsaved changes (#70). */
+  set planDirty(value: boolean) {
+    this._planDirty = value;
+    const save = this.root.querySelector<HTMLButtonElement>('[data-command=settings-save]');
+    if (save) save.hidden = !value;
+  }
   /** Set by the card: what a space's window shows about its geometry, and drawing a new space. */
   roomView?: (id: string) => RoomViewChoices | undefined;
   editZones?: () => void;
@@ -255,6 +272,7 @@ export class HomeManagerEditor extends HTMLElement {
       const target = (event.target as Element).closest<HTMLElement>('[data-settings]');
       if (!target) return;
       this.settingsSection = target.dataset.settings as SettingsSection;
+      this.settingsView = 'section';
       this.render();
       this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
     });
@@ -432,6 +450,15 @@ export class HomeManagerEditor extends HTMLElement {
   }
   setNarrow(narrow: boolean): void {
     this.dataset.narrow = String(narrow);
+  }
+  /** Opens one module of the sheet, for example to link a device (#76). */
+  openSection(id: string): void {
+    this.openSections.add(id);
+    const section = this.root.querySelector<HTMLDetailsElement>(`details#${CSS.escape(id)}`);
+    if (!section) return;
+    section.open = true;
+    section.scrollIntoView({ block: 'nearest' });
+    section.querySelector<HTMLElement>('summary')?.focus();
   }
   focusFirstField(): void {
     this.root.querySelector<HTMLInputElement>('#device-form [name=label]')?.focus({ preventScroll: true });
@@ -630,14 +657,51 @@ export class HomeManagerEditor extends HTMLElement {
     this.render();
     this.root.querySelector<HTMLButtonElement>('[data-command=from-entity]')?.focus();
   }
-  openSettings(): void {
+  /** Settings, grouped (#70). Without a section it opens as a list of sections on a
+   * phone and on the first section it can show on a wide screen. */
+  openSettings(section?: SettingsSection): void {
     if (!this.flushDevice()) return;
+    const available = this.settingsAvailable();
+    this.settingsSection =
+      section ?? (available.has(this.settingsSection) ? this.settingsSection : firstSection(available));
+    this.settingsView = section ? 'section' : 'list';
     this.surface = 'settings';
     this.linked = undefined;
     this.render();
   }
+  /** What this setup offers: homes and RF need the sidebar panel, storage the integration. */
+  private settingsAvailable(): Set<SettingsSection> {
+    const available = new Set<SettingsSection>([
+      'rooms-section',
+      'views-section',
+      'connect-section',
+      'now-section',
+      'appearance-section',
+      'rules-section',
+      'health-section',
+      'import-section',
+      'actions-section',
+      'panels-section',
+      'pending-section',
+      'help-section',
+    ]);
+    if (this.appContext) {
+      available.add('homes-section');
+      available.add('controls-section');
+    }
+    if (this.homeId && integrationAvailable(this._hass)) available.add('storage-section');
+    return available;
+  }
+  private homesBody(): string {
+    const app = this.appContext;
+    if (!app) return '';
+    return `<label class="field">${esc(t('Hogar que se muestra'))}<select data-app-select="home" aria-label="${esc(t('Hogar que se muestra'))}">${app.homes.map(home => option(home.home_id, home.title ?? home.home_id, app.selected ?? '')).join('')}</select></label><p class="note">${esc(t('Cada hogar tiene su propio plano, sus dispositivos y su historial.'))}</p><div class="rooms-actions"><button type="button" data-app-command="new"><ha-icon icon="mdi:home-plus-outline" aria-hidden="true"></ha-icon>${esc(t('Nuevo hogar'))}</button></div>`;
+  }
+  private controlsBody(): string {
+    return `<p class="note">${esc(t('Aprendé los botones de tus controles infrarrojos y de radio, armá sus controles y administrá los equipos que los envían.'))}</p><div class="rooms-actions"><button type="button" class="primary" data-app-command="rf"><ha-icon icon="mdi:remote" aria-hidden="true"></ha-icon>${esc(t('Abrir controles RF'))}</button></div>`;
+  }
   openRoom(id: string, view?: RoomViewChoices): void {
-    if (this.surface !== 'settings') this.openSettings();
+    if (this.surface !== 'settings') this.openSettings('rooms-section');
     openRoomActions(
       this.root,
       this.configuration,
@@ -779,6 +843,8 @@ export class HomeManagerEditor extends HTMLElement {
     const health = this.planHealth();
     return settingsPage({
       section: this.settingsSection,
+      view: this.settingsView,
+      available: this.settingsAvailable(),
       problems: conflicts ? zoneless + unclaimed : 0,
       health: health?.issues.length ?? 0,
       pending: pending.length,
@@ -792,8 +858,14 @@ export class HomeManagerEditor extends HTMLElement {
         'designer-section': '<div class="designer-host"></div>',
         'rules-section': '<div class="rules-host"></div>',
         'now-section': '<div class=now-editor-host></div>',
-        'rooms-section': this.roomsForm() + '<div class=plan-views-host></div>',
+        'rooms-section': this.roomsForm(),
+        'views-section': '<div class=plan-views-host></div>',
         'connect-section': this.connectForm(),
+        'homes-section': this.homesBody(),
+        'appearance-section': appearanceBody(gridStep()),
+        'controls-section': this.controlsBody(),
+        'storage-section': '<div class="storage-host"></div>',
+        'help-section': helpBody(),
         'health-section': health
           ? healthBody(
               health,
@@ -840,7 +912,7 @@ export class HomeManagerEditor extends HTMLElement {
     const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
     const toolbar = this._embedded
       ? ''
-      : `<div class="toolbar"><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select>${iconButton('add', t('Agregar dispositivo'), 'plus')}${iconButton('settings', t('Ajustes del plano'), 'settings')}</div>`;
+      : `<div class="toolbar"><select id="device-select" aria-label="${esc(t('Dispositivo'))}"><option value="">${esc(t('Seleccionar icono'))}</option>${configuration.catalog.devices.map(device => option(device.id, device.display.label, selected?.id ?? '')).join('')}</select>${iconButton('add', t('Agregar dispositivo'), 'plus')}${iconButton('settings', t('Configuración'), 'settings')}</div>`;
     const header = (title: string, glyph?: string) =>
       `<div class="sheet-header">${glyph ? `<span class="sheet-glyph" aria-hidden="true"><ha-icon icon="${esc(glyph)}"></ha-icon></span>` : ''}<h2>${esc(title)}</h2>${iconButton('close', t('Cerrar'), 'close')}</div>`;
     const handle = this._embedded
@@ -851,9 +923,9 @@ export class HomeManagerEditor extends HTMLElement {
     const settings =
       this.surface === 'settings'
         ? taskScreen(
-            t('Ajustes del plano'),
+            t('Configuración'),
             this.settingsForm() + '<div class="status" role="status" aria-live="polite"></div>',
-            `<button type="button" data-command="settings-save" class="primary">${esc(t('Guardar'))}</button>`,
+            `<button type="button" data-command="settings-save" class="primary"${this._planDirty ? '' : ' hidden'}>${esc(t('Guardar'))}</button>`,
             'settings-dialog',
           )
         : '';
@@ -893,6 +965,8 @@ export class HomeManagerEditor extends HTMLElement {
         },
       });
     }
+    const storageHost = this.root.querySelector<HTMLElement>('.storage-host');
+    if (storageHost && this._hass) void storageBody(storageHost, this._hass, this.root);
     const planViewsHost = this.root.querySelector('.plan-views-host');
     if (planViewsHost) {
       this.planViewsEditor ??= new PlanViewsEditor();
@@ -1515,7 +1589,22 @@ export class HomeManagerEditor extends HTMLElement {
       actionId: value(data, `control-action-${index}`),
     }));
   }
+  /** Homes, new home and RF belong to the sidebar panel: hand them up (#70). */
+  private shellCommand(command: string, homeId?: string): void {
+    this.dispatchEvent(
+      new CustomEvent('homemanager-shell-command', {
+        detail: { command, ...(homeId ? { homeId } : {}) },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
   private onClick = (event: Event): void => {
+    const app = (event.target as Element).closest<HTMLElement>('[data-app-command]');
+    if (app) {
+      this.shellCommand(app.dataset.appCommand!);
+      return;
+    }
     const button = (event.target as Element).closest<HTMLButtonElement>('button[data-command]');
     if (!button || button.disabled || !this.config) return;
     if (this.sheet && button.dataset.command !== 'design-open' && button.closest('.ctl-host, .size-host')) {
@@ -1539,6 +1628,11 @@ export class HomeManagerEditor extends HTMLElement {
       switch (button.dataset.command) {
         case 'settings-save':
           this.dispatchEvent(new CustomEvent('homemanager-save', { bubbles: true, composed: true }));
+          break;
+        case 'settings-list':
+          this.settingsView = 'list';
+          this.render();
+          this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
           break;
         case 'health-action': {
           const issue = this.planHealth()?.issues[Number(button.dataset.issue)];
@@ -1824,6 +1918,14 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (target.dataset.appSelect === 'home') {
+      this.shellCommand('home', target.value);
+      return;
+    }
+    if (target.hasAttribute('data-grid-step')) {
+      setGridStep(Number(target.value));
+      return;
+    }
     if (!this.config) return;
     if (target.hasAttribute('data-color')) {
       const hidden = this.root.querySelector<HTMLInputElement>('[name=color]');

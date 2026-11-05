@@ -1,4 +1,4 @@
-import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { openCardMenu, openAdvanced } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile } from 'node:fs/promises';
@@ -174,13 +174,15 @@ test('entity, action, source and native panel bindings are edited as drafts with
 }) => {
   await begin(page);
   await select(page);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openAdvanced(page);
   await page.getByText('Acciones lógicas', { exact: true }).click();
   await page.getByLabel('ID de acción', { exact: true }).fill('synthetic-spare-toggle');
   await page.getByLabel('Dominio', { exact: true }).selectOption('light');
   await page.getByLabel('Servicio', { exact: true }).selectOption('toggle');
   await page.getByLabel('Destinos de la acción', { exact: true }).fill('light.synthetic_spare');
   await page.getByRole('button', { name: 'Aplicar acción', exact: true }).click();
+  await openAdvanced(page);
   await page.getByText('Paneles nativos', { exact: true }).click();
   await page.getByRole('button', { name: 'Agregar control', exact: true }).click();
   await page.getByLabel('ID de panel', { exact: true }).fill('synthetic-spare-panel');
@@ -190,7 +192,7 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await page.getByLabel('Acción de control 1', { exact: true }).selectOption('synthetic-spare-toggle');
   await page.getByRole('button', { name: 'Aplicar panel', exact: true }).click();
   await page
-    .getByRole('region', { name: 'Ajustes del plano' })
+    .getByRole('region', { name: 'Configuración' })
     .getByRole('button', { name: /^(Cerrar|Volver)$/, exact: true })
     .click();
   await select(page);
@@ -439,7 +441,7 @@ test('keyboard movement stays normalized and undo restores the previous persiste
   const before = (await draft(page)).catalog.devices[0];
   await action(page, lightLabel).focus();
   await page.keyboard.press('ArrowRight');
-  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x + 0.002, 5);
+  expect((await draft(page)).catalog.devices[0].position.x).toBeCloseTo(before.position.x + 0.01, 5); // one grid cell (#90)
   expect((await draft(page)).catalog.devices[0].bindings).toEqual(before.bindings);
   await page.keyboard.press('Control+z');
   expect((await draft(page)).catalog.devices[0].position).toEqual(before.position);
@@ -447,8 +449,8 @@ test('keyboard movement stays normalized and undo restores the previous persiste
 
 test('editor export contains durable configuration only and import waits for a review', async ({ page }) => {
   await begin(page);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await page.getByText('Importar y exportar', { exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await page.getByText('Copias', { exact: true }).click();
   await page.evaluate(() => {
     const create = URL.createObjectURL;
     URL.createObjectURL = blob => {
@@ -556,8 +558,8 @@ test('an old JSON cannot silently take links away or bring spaces back', async (
   await begin(page);
   const before = await draft(page);
   const linked = before.catalog.devices.find(item => item.bindings.entityId);
-  await page.getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await page.getByText('Importar y exportar', { exact: true }).click();
+  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await page.getByText('Copias', { exact: true }).click();
   const old = structuredClone(before);
   old.catalog.devices.find(item => item.id === linked.id).bindings.entityId = null;
   old.rooms.push({ id: 'cuarto-viejo', label: 'Cuarto viejo' });

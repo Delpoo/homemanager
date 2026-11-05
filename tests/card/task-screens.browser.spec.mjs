@@ -1,3 +1,4 @@
+import { openAdvanced, showSection } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,7 +14,10 @@ test.beforeEach(async ({ page }, info) => {
   await page.route('**/*', async route => {
     const relative = decodeURIComponent(new URL(route.request().url()).pathname).slice(1);
     const file = path.resolve(root, relative);
-    if (!file.startsWith(root + path.sep) || !/^(tests\/browser\/fixtures\/|dist\/|docs\/rediseno\/)/.test(relative))
+    if (
+      !file.startsWith(root + path.sep) ||
+      !/^(tests\/browser\/fixtures\/|dist\/|docs\/rediseno\/|\.work\/editor\/)/.test(relative)
+    )
       return route.abort();
     try {
       await route.fulfill({
@@ -34,12 +38,11 @@ const screen = (page, name) => page.getByRole('region', { name, exact: true });
 async function begin(page, fixture = 'card') {
   await page.goto(`/tests/browser/fixtures/${fixture}.html`);
   await page.waitForFunction(() => window.testHarnessReady);
-  await card(page).locator('.hm-menu > summary').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
 }
 async function settings(page) {
-  await card(page).getByRole('button', { name: 'Ajustes del plano', exact: true }).click();
-  await expect(screen(page, 'Ajustes del plano')).toBeVisible();
+  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await expect(screen(page, 'Configuración')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 async function noOverflow(page) {
@@ -76,13 +79,13 @@ async function noOverflow(page) {
 test('settings is a page; sections and Back keep fields without saving', async ({ page }) => {
   await begin(page);
   await settings(page);
-  await editor(page).locator('[data-settings=actions-section]').click();
+  await showSection(editor(page), 'actions-section');
   const field = editor(page).locator('#action-form [name=actionId]');
   await field.fill('accion-pendiente');
-  await editor(page).locator('[data-settings=rooms-section]').click();
-  await editor(page).locator('[data-settings=actions-section]').click();
+  await showSection(editor(page), 'rooms-section');
+  await showSection(editor(page), 'actions-section');
   await expect(field).toHaveValue('accion-pendiente');
-  await screen(page, 'Ajustes del plano').locator('.task-back').click();
+  await screen(page, 'Configuración').locator('.task-back').click();
   await settings(page);
   await expect(field).toHaveValue('accion-pendiente');
   expect(
@@ -101,7 +104,7 @@ test('room form returns to settings, resumes its draft and confirms cancellation
   let room = screen(page, label);
   await room.getByLabel('Nombre del espacio', { exact: true }).fill('Nombre sin aplicar');
   await room.locator('.task-back').click();
-  await expect(screen(page, 'Ajustes del plano')).toBeVisible();
+  await expect(screen(page, 'Configuración')).toBeVisible();
   await editor(page).locator('[data-command=room-open][data-room=living]').click();
   room = screen(page, label);
   await expect(room.getByLabel('Nombre del espacio', { exact: true })).toHaveValue('Nombre sin aplicar');
@@ -153,7 +156,7 @@ test('plan review preserves choices on Back and import is exactly one undo step'
   await begin(page);
   const before = await page.evaluate(() => window.testHarness.card.getDraftConfiguration());
   await settings(page);
-  await editor(page).locator('[data-settings=import-section]').click();
+  await showSection(editor(page), 'import-section');
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1000 700"><rect id="room-joined" x="10" y="20" width="1000" height="700"><title>Estudio unido</title></rect></svg>';
   const upload = () =>
@@ -174,7 +177,7 @@ test('plan review preserves choices on Back and import is exactly one undo step'
   await review.locator(`[data-move="${id}"]`).check();
   await noOverflow(page);
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
-  await screen(page, 'Ajustes del plano').locator('.task-back').click();
+  await screen(page, 'Configuración').locator('.task-back').click();
   await card(page).getByRole('button', { name: 'Deshacer', exact: true }).click();
   expect(await page.evaluate(() => window.testHarness.card.getDraftConfiguration())).toEqual(before);
 });
@@ -269,12 +272,16 @@ test('learning Back keeps the candidate and button name; storage uses one explic
           : message.type === 'homemanager/history/purge'
             ? (++window.purged, {})
             : prior(message);
-    const app = document.createElement('homemanager-app');
-    document.querySelector('#mount').replaceChildren(app);
-    app.hass = hass;
-    void app.openStorage();
   });
-  const storage = screen(page, 'Almacenamiento');
+  // Storage is a section of Settings since #70; its body is shared, so mount it alone.
+  await page.evaluate(async () => {
+    const { storageBody } = await import('/.work/editor/storage-section.js');
+    const host = document.createElement('div');
+    host.attachShadow({ mode: 'open' }).innerHTML = '<section class="storage" aria-label="Almacenamiento"></section>';
+    document.querySelector('#mount').replaceChildren(host);
+    await storageBody(host.shadowRoot.querySelector('section'), window.testHarness.hass, host.shadowRoot);
+  });
+  const storage = page.getByRole('region', { name: 'Almacenamiento' });
   await expect(storage.getByText('fictional-deleted', { exact: false })).toBeVisible();
   await storage.getByRole('button', { name: 'Eliminar historial', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(1);
@@ -295,7 +302,7 @@ test('concurrent discard attempts show one confirmation and cancelling keeps the
   await editor(page).locator('[data-command=room-open][data-room=living]').click();
   const room = screen(page, label);
   await expect(room.locator('.task-head h2')).toBeFocused();
-  await expect(screen(page, 'Ajustes del plano')).toBeHidden();
+  await expect(screen(page, 'Configuración')).toBeHidden();
   await room.getByLabel('Nombre del espacio', { exact: true }).fill('Edición que sigue disponible');
   await room.evaluate(node => {
     void node.cancel();
@@ -307,7 +314,7 @@ test('concurrent discard attempts show one confirmation and cancelling keeps the
   await expect(room.getByLabel('Nombre del espacio', { exact: true })).toHaveValue('Edición que sigue disponible');
   await room.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Descartar cambios', exact: true }).click();
-  await expect(screen(page, 'Ajustes del plano')).toBeVisible();
+  await expect(screen(page, 'Configuración')).toBeVisible();
   await editor(page).locator('[data-command=room-open][data-room=living]').click();
   await expect(screen(page, label).getByLabel('Nombre del espacio', { exact: true })).toHaveValue(label);
 });
@@ -344,14 +351,15 @@ for (const dark of [false, true])
     await theme();
     await settings(page);
     for (const section of ['rooms', 'connect', 'health', 'actions', 'panels', 'pending', 'import']) {
-      await editor(page).locator(`[data-settings=${section}-section]`).click();
+      if (['actions', 'panels', 'pending'].includes(section)) await openAdvanced(editor(page));
+      await showSection(editor(page), `${section}-section`);
       await shot(`settings-${section}`);
     }
-    await editor(page).locator('[data-settings=rooms-section]').click();
+    await showSection(editor(page), 'rooms-section');
     await editor(page).locator('[data-command=room-open][data-room=living]').click();
     await shot('room');
     await editor(page).locator('homemanager-task-screen.room-actions .task-back').click();
-    await screen(page, 'Ajustes del plano').locator('.task-back').click();
+    await screen(page, 'Configuración').locator('.task-back').click();
     await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
     await shot('add');
     await editor(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();
@@ -374,7 +382,7 @@ for (const dark of [false, true])
     await begin(page);
     await theme();
     await settings(page);
-    await editor(page).locator('[data-settings=import-section]').click();
+    await showSection(editor(page), 'import-section');
     await editor(page)
       .getByLabel('Importar JSON o SVG', { exact: true })
       .setInputFiles({
