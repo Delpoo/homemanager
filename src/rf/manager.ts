@@ -30,9 +30,11 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import './remote-view.js';
 import './learn.js';
 import './devices.js';
+import './ir-manager.js';
 import type { HomeManagerRfRemote } from './remote-view.js';
 import type { HomeManagerRfLearn } from './learn.js';
 import type { HomeManagerRfDevices } from './devices.js';
+import type { HomeManagerIr } from './ir-manager.js';
 
 /** RF remotes, administrators only (the integration enforces it). A remote is
  * a name and an icon; its buttons are learned in any order and drawn as a
@@ -41,7 +43,7 @@ import type { HomeManagerRfDevices } from './devices.js';
  * which ESPHome devices can send and listen, and how to prepare the others.
  * Codes never reach this page. */
 
-type View = 'list' | 'new' | 'remote' | 'devices';
+type View = 'list' | 'new' | 'remote' | 'devices' | 'ir';
 export class HomeManagerRf extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
@@ -67,6 +69,7 @@ export class HomeManagerRf extends HTMLElement {
   private readonly remoteView = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
   private readonly learn = document.createElement('homemanager-rf-learn') as HomeManagerRfLearn;
   private readonly devices = document.createElement('homemanager-rf-devices') as HomeManagerRfDevices;
+  private readonly infrared = document.createElement('homemanager-ir-manager') as HomeManagerIr;
 
   constructor() {
     super();
@@ -90,6 +93,7 @@ export class HomeManagerRf extends HTMLElement {
     this.remoteView.updateIndicators();
     this.designer.refreshIndicators();
     if (this.view === 'devices') this.devices.hass = hass;
+    if (this.view === 'ir') this.infrared.hass = hass;
     if (first) void this.load();
   }
   get hass(): Hass | undefined {
@@ -99,6 +103,10 @@ export class HomeManagerRf extends HTMLElement {
   disconnectedCallback(): void {
     this.learn.stop();
     this.devices.stop();
+  }
+
+  stopIrCapture(): void {
+    this.infrared.stopCapture();
   }
 
   private async load(): Promise<void> {
@@ -154,12 +162,13 @@ export class HomeManagerRf extends HTMLElement {
     const restoreFocus = keepPanelFocus(this.root, '[data-button],[data-part]');
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
     let body: string;
-    if (!this.loaded) body = `<p>${e(t('Cargando…'))}</p>${status}`;
+    if (this.view === 'ir') body = '<div data-slot="infrared"></div>';
+    else if (!this.loaded) body = `<p>${e(t('Cargando…'))}</p>${status}`;
     else if (this.view === 'devices') body = this.renderDevices(status);
     else if (this.view === 'new') body = this.renderNew(status);
     else if (this.view === 'remote' && (this.remote() || this.draft)) body = this.renderRemote(status);
     else body = this.renderList(status);
-    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button></div>`;
+    const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-view="list" aria-selected="${this.view !== 'devices' && this.view !== 'ir'}">${e(t('Controles'))}</button><button type="button" role="tab" data-view="devices" aria-label="${e(t('Equipos RF'))}" aria-selected="${this.view === 'devices'}">${e(t('Equipos'))}</button><button type="button" role="tab" data-view="ir" aria-selected="${this.view === 'ir'}">${e(t('Infrarrojos'))}</button></div>`;
     const inline = this.editing && this.view === 'remote' && !!this.remote() && !this.learning;
     if (inline) {
       const remote = this.remote()!;
@@ -180,6 +189,7 @@ export class HomeManagerRf extends HTMLElement {
       ['remote', this.editing ? this.designer : this.remoteView],
       ['learn', this.learn],
       ['devices', this.devices],
+      ['infrared', this.infrared],
     ] as const)
       this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
     this.bind();
@@ -197,6 +207,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   private renderNavigation(tabs: string): string {
+    if (this.view === 'ir') return tabs;
     const cards = this.remotes.length
       ? `<div class="cards">${this.remotes.map(remote => `<button type="button" class="card" data-open="${e(remote.id)}" aria-current="${this.view === 'remote' && this.selected === remote.id}">${icon(remote.icon ?? 'mdi:remote')}<span class="info"><span class="name">${e(rfText(remote.name))}</span><span class="muted">${e(rfText(remote.description ?? t('{count} botones', { count: remote.buttons.length })))}</span></span></button>`).join('')}</div>`
       : '';
@@ -377,6 +388,7 @@ export class HomeManagerRf extends HTMLElement {
       this.bindEditSections(remote);
     }
     if (this.view === 'devices') this.devices.hass = this._hass!;
+    if (this.view === 'ir') this.infrared.hass = this._hass;
   }
 
   private bindEditSections(remote: RfRemote): void {

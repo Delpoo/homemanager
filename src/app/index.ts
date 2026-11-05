@@ -143,6 +143,7 @@ export class HomeManagerApp extends HTMLElement {
     this.root.querySelector<HTMLElement>('.card-host')!.hidden = rfTab || this.creating;
     const host = this.root.querySelector<HTMLElement>('.rf-host')!;
     host.hidden = !rfTab;
+    if (!rfTab) this.rfElement?.stopIrCapture();
     if (rfTab && !this.rfElement) {
       this.rfElement = document.createElement('homemanager-rf') as HomeManagerRf;
       if (this._hass) this.rfElement.hass = this._hass;

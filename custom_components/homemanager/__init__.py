@@ -20,6 +20,8 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .ir import DATA_IR, IrManager
+from .ir_websocket import async_register as async_register_ir
 from .plan_link import ensure_folder
 from .remotes import DATA_REMOTES, RemotesLibrary
 from .rf import RfManager
@@ -46,8 +48,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     remotes = RemotesLibrary(hass, rf)
     await remotes.async_load()
     hass.data[DATA_REMOTES] = remotes
+    hass.data[DATA_IR] = IrManager(hass, remotes)
     async_register(hass)
     async_register_rf(hass)
+    async_register_ir(hass)
     await _async_register_frontend(hass)
     await _async_update_options(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
@@ -65,6 +69,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         store.async_close()
     hass.data.pop(DATA_RF, None)
     hass.data.pop(DATA_REMOTES, None)
+    if ir := hass.data.pop(DATA_IR, None):
+        await ir.async_close()
     # Websocket commands and the static route cannot be unregistered in HA; they
     # answer "not loaded" errors through the missing store until the next setup.
     return True
