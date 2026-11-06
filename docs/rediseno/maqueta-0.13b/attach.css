@@ -1,0 +1,26 @@
+/* ——— Controles pegados al símbolo ——— */
+.aplan { position: relative; width: min(100% - 32px, 820px); aspect-ratio: 3 / 2; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ascale { position: absolute; left: 0; top: 0; width: 600px; height: 400px; transform-origin: 0 0; }
+.ascale svg { width: 100%; height: 100%; display: block; }
+.asym { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; background: var(--surface); display: grid; place-items: center; color: var(--warn); box-shadow: 0 1px 4px rgba(0,0,0,.22); z-index: 2; }
+.asym::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; background: conic-gradient(var(--warn) calc(var(--p) * 1%), color-mix(in srgb, var(--warn) 16%, transparent) 0); -webkit-mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3.5px)); mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 3.5px)); }
+.asym svg.i { width: 56%; height: 56%; }
+.asym.editing { cursor: move; } .asym.sel { outline: 2px dashed var(--edit); outline-offset: 9px; }
+.att { position: absolute; z-index: 3; display: flex; --rkey: var(--surface); --rfg: var(--ink); --racc: var(--brand); --rsub: var(--muted); }
+.att > .k { flex: 1; }
+.att > .k.relieve { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.2), 0 1px 1px rgba(0,0,0,.12); }
+.att.editing { cursor: move; } .att.editing .k { pointer-events: none; } .att.locked { cursor: default; }
+.att.sel { outline: 2px dashed var(--edit); outline-offset: 5px; border-radius: 8px; }
+.agrip { position: absolute; right: -10px; bottom: -10px; width: 14px; height: 14px; border-radius: 4px; background: var(--edit); border: 2px solid var(--surface); cursor: nwse-resize; z-index: 4; }
+.asym .agrip { right: -12px; bottom: -12px; }
+.alock { position: absolute; top: -38px; right: -6px; background: var(--ink); border-radius: 9px; padding: 2px; z-index: 4; }
+.alock .ib { color: var(--bg); }
+.alink { stroke: var(--edit); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.alist { display: grid; gap: 2px; }
+.arow { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px; border-radius: 10px; cursor: pointer; }
+.arow:hover { background: var(--s2); } .arow.on { background: var(--brand-soft); }
+.aprev { width: 60px; height: 32px; display: flex; pointer-events: none; --rkey: var(--surface); --rfg: var(--ink); --racc: var(--brand); --rsub: var(--muted); }
+.aprev .k { flex: 1; --fs: 9px !important; --isz: 14px !important; --vsz: 12px !important; box-shadow: 0 0 0 1px var(--line) !important; }
+.apick { display: grid; gap: 2px; padding: 6px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 6px; }
+.apickr { display: grid; grid-template-columns: 60px 1fr; gap: 10px; align-items: center; border: 0; background: transparent; padding: 6px; border-radius: 8px; text-align: left; font-size: 13px; }
+.apickr:hover { background: var(--s2); }

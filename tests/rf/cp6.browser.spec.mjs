@@ -167,16 +167,17 @@ for (const dark of [false, true])
     await confirm.getByRole('button', { name: 'Cancelar', exact: true }).click();
     expect(await page.evaluate(() => window.rfServer.library)).toEqual(configBefore);
     await rf(page).getByRole('button', { name: 'Volver', exact: true }).click();
-    await rf(page).getByRole('button', { name: 'Equipos RF', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Equipos', exact: true }).click();
     const devices = rf(page).locator('homemanager-rf-devices');
-    await expect(devices.getByText('Falta el paquete', { exact: true })).toBeVisible();
+    await devices.locator('details.dgroup[data-group=other] summary').click();
+    await expect(devices.locator('[data-device=sensor_b]')).toBeVisible();
     await readable(rf(page));
     await shot('devices');
     await devices
       .locator('[data-device=sensor_b]')
-      .getByRole('button', { name: 'Cómo agregarlo', exact: true })
+      .getByRole('button', { name: 'Agregar RF a este equipo', exact: true })
       .click();
-    await expect(devices.locator('pre[data-yaml]')).toContainText('hm_rf_transmitter: rf_transmitter');
+    await expect(devices.locator('pre[data-yaml=sensor_b]')).toContainText('hm_rf_transmitter: rf_transmitter');
     await readable(rf(page));
     await shot('yaml');
     const app = await home(page, dark, true);

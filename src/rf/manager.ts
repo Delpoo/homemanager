@@ -6,6 +6,7 @@ import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents, panelField, keepPanelFocus } from '../ui/panel-components.js';
 import { rfManagerStyles, rfControlsStyles, rfTestStyles, rfText, rfEditedText } from '../ui/rf-components.js';
 import { iconButton, miniWave, panelHead, panelLabel, sidePanelStyles, sourceTag } from '../ui/side-panel.js';
+import { equipmentOf } from './equipment.js';
 import {
   ROLES,
   rf,
@@ -176,6 +177,18 @@ export class HomeManagerRf extends HTMLElement {
     return this.remotes.find(item => item.id === this.selected);
   }
 
+  /** The IR receiver for a new remote: the one tapped, else the first. */
+  private irReceiver(): string {
+    return this.irReceivers.some(item => item.id === this.newReceiver)
+      ? this.newReceiver
+      : (this.irReceivers[0]?.id ?? '');
+  }
+
+  /** A new remote without a typed name takes its kind's name. */
+  private newName(): string {
+    return t(KINDS.find(([glyph]) => glyph === this.newRemote.icon)?.[1] ?? 'Control');
+  }
+
   private receiver(): string {
     const usable = (id: string | null | undefined) =>
       !!id && this.transmitters.some(item => item.id === id && item.can_capture);
@@ -215,7 +228,7 @@ export class HomeManagerRf extends HTMLElement {
           back: t('Volver'),
           close: t('Cerrar'),
         }),
-        `${this.remote() ? '' : this.stepper(1)}<div data-slot="learn"></div>${status}`,
+        `${this.wizard || !this.remote() ? this.stepper(1) : ''}<div data-slot="learn"></div>${status}`,
       );
     else if (this.view === 'entities' && this.remote()) page = this.renderEntities(this.remote()!, status);
     else if (this.view === 'settings' && this.remote()) page = this.renderSettings(this.remote()!, status);
@@ -237,26 +250,17 @@ export class HomeManagerRf extends HTMLElement {
     return `<div class="panel">${head}<div class="dbody">${body}</div>${foot ? `<div class="dfoot">${foot}</div>` : ''}</div>`;
   }
 
-  /** The ESPHome devices, as chips: a dot says whether each one is online. */
+  /** The boards that send or listen, as chips, each once with what it does (RF,
+   * IR). An energy meter or an offline board is listed in Devices only. */
   private renderNodes(): string {
-    const nodes = new Map<string, { name: string; online: boolean; rf: boolean; ir: boolean }>();
-    for (const device of this.rfDevices)
-      nodes.set(device.name, { name: device.name, online: device.online && device.has_package, rf: true, ir: false });
-    for (const transmitter of this.transmitters)
-      if (![...nodes.values()].some(node => node.name === transmitter.name))
-        nodes.set(transmitter.name, { name: transmitter.name, online: true, rf: true, ir: false });
-    for (const device of [...this.irReceivers, ...this.irEmitters]) {
-      const node = nodes.get(device.name) ?? { name: device.name, online: true, rf: false, ir: false };
-      node.ir = true;
-      nodes.set(device.name, node);
-    }
-    const chips = [...nodes.values()]
+    const chips = equipmentOf(this.rfDevices, this.transmitters, this.irReceivers, this.irEmitters)
+      .filter(item => item.group === 'remote')
       .map(
-        node =>
-          `<button type="button" class="node" data-view="devices" title="${e(node.online ? t('En línea') : t('Sin conexión o sin el paquete HomeManager RF'))}"><span class="dot ${node.online ? 'ok' : 'alert'}"></span><b>${e(rfText(node.name))}</b><span class="caps">${node.rf ? sourceTag('rf') : ''}${node.ir ? sourceTag('ir') : ''}</span></button>`,
+        item =>
+          `<button type="button" class="node" data-view="devices" title="${e(t('Equipos'))}"><span class="dot ok"></span><b>${e(rfText(item.name))}</b><span class="caps">${item.rfReady ? sourceTag('rf') : ''}${item.irReceiver || item.irEmitter ? sourceTag('ir') : ''}</span></button>`,
       )
       .join('');
-    return `<div class="nodes" role="group" aria-label="${e(t('Equipos'))}">${chips}${iconButton(t('Equipos RF'), 'mdi:chip', 'data-view="devices"')}</div>`;
+    return `<div class="nodes" role="group" aria-label="${e(t('Equipos'))}">${chips}${iconButton(t('Equipos'), 'mdi:chip', 'data-view="devices"')}</div>`;
   }
 
   private renderList(status: string): string {
@@ -284,7 +288,7 @@ export class HomeManagerRf extends HTMLElement {
     ].join('');
     const empty = canCreate
       ? `<div class="empty-state">${icon('mdi:remote')}</div>`
-      : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Primero prepará un equipo RF: un dispositivo ESPHome con el paquete HomeManager RF.'))}</span><button type="button" class="next" data-view="devices">${e(t('Ver equipos RF'))}</button></div>`;
+      : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Ningún equipo envía ni escucha controles todavía.'))}</span><button type="button" class="next" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div>`;
     return this.panel(head, `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}${status}`);
   }
 
@@ -323,15 +327,17 @@ export class HomeManagerRf extends HTMLElement {
       this.newSource === 'rf'
         ? this.transmitters.filter(item => item.can_capture)
         : this.irReceivers.map(item => ({ id: item.id, name: item.name }));
-    const chosen = this.newSource === 'rf' ? this.receiver() : '';
+    const chosen = this.newSource === 'rf' ? this.receiver() : this.irReceiver();
     const chips = listeners
       .map(
         item =>
           `<button type="button" class="chip" data-receiver="${e(item.id)}" aria-pressed="${item.id === chosen}" title="${e(t('Escucha'))}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
       )
       .join('');
-    const body = `${this.stepper(0)}<input class="title-in" name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(t('p. ej. Ventilador del living'))}" aria-label="${e(t('Nombre'))}"><div class="kinds" role="group" aria-label="${e(t('Icono'))}">${kinds}</div>${panelLabel(t('Señal'))}<div class="seg big2" role="group" aria-label="${e(t('Señal'))}">${sources}</div>${chips ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>` : ''}${status}`;
-    const ready = !!draft.name.trim() && (this.newSource === 'ir' || !!this.receiver());
+    const body = `${this.stepper(0)}<input class="title-in" name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(this.newName())}" aria-label="${e(t('Nombre'))}"><div class="kinds" role="group" aria-label="${e(t('Icono'))}">${kinds}</div>${panelLabel(t('Señal'))}<div class="seg big2" role="group" aria-label="${e(t('Señal'))}">${sources}</div>${chips ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>` : this.newSource === 'rf' ? `<div class="row-icon">${icon('mdi:ear-off')}<div class="chips"><button type="button" class="chip" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div></div>` : ''}${status}`;
+    // The name is optional (the kind's name is used). IR looks for its receivers on
+    // the next page; RF needs one that listens, else the way to Devices is right here.
+    const ready = this.newSource === 'ir' || !!chosen;
     return this.panel(
       panelHead(e(t('Nuevo control')), { back: t('Volver'), close: t('Cerrar') }),
       body,
@@ -650,7 +656,7 @@ export class HomeManagerRf extends HTMLElement {
     const root = this.root;
     const refresh = () => {
       const create = root.querySelector<HTMLButtonElement>('[data-command=create]');
-      if (create) create.disabled = !this.newRemote.name.trim() || (this.newSource === 'rf' && !this.receiver());
+      if (create) create.disabled = this.newSource === 'rf' && !this.receiver();
     };
     root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {
       this.newRemote.name = (event.target as HTMLInputElement).value;
@@ -662,6 +668,7 @@ export class HomeManagerRf extends HTMLElement {
         root
           .querySelectorAll<HTMLButtonElement>('[data-kind]')
           .forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+        root.querySelector<HTMLInputElement>('input[name=new-name]')?.setAttribute('placeholder', this.newName());
       }),
     );
     root.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(button =>
@@ -813,15 +820,16 @@ export class HomeManagerRf extends HTMLElement {
           await this.reload();
           this.show('list');
           break;
-        case 'create':
+        case 'create': {
+          const name = this.newRemote.name.trim() || this.newName();
           if (this.newSource === 'ir') {
-            this.irTitle = `${t('Aprender')} · ${this.newRemote.name.trim()}`;
+            this.irTitle = `${t('Aprender')} · ${name}`;
             this.show('ir');
-            this.infrared.startNew(this.newRemote.name.trim());
+            this.infrared.startNew(name, this.irReceiver());
             break;
           }
           this.draft = {
-            name: this.newRemote.name.trim(),
+            name,
             icon: this.newRemote.icon,
             description: this.newRemote.description?.trim() || null,
           };
@@ -829,6 +837,7 @@ export class HomeManagerRf extends HTMLElement {
           this.wizard = true;
           this.startLearn();
           break;
+        }
         case 'learn':
           this.editing = false;
           this.startLearn();

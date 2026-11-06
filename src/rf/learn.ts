@@ -224,7 +224,7 @@ export class HomeManagerRfLearn extends HTMLElement {
     const idle = !this.listening && !this.candidate;
     const target =
       this.guided && idle
-        ? `<label class="target">${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label><button type="button" class="next" data-command="guided-start"${!available || !this.target.trim() ? ' disabled' : ''}>${icon('mdi:access-point')}${e(t('Empezar'))}</button>`
+        ? `<label class="target">${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(this.nextName())}"></label><button type="button" class="next" data-command="guided-start"${!available ? ' disabled' : ''}>${icon('mdi:access-point')}${e(t('Empezar'))}</button>`
         : '';
     const evidence =
       this.guided && this.candidate
@@ -268,6 +268,12 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
       field?.focus();
       if (field && caret !== null && field.type === 'text') field.setSelectionRange(caret, caret);
     }
+  }
+
+  /** The first suggested name this remote does not use yet. */
+  private nextName(): string {
+    const used = new Set((this.remote?.buttons ?? []).map(button => button.name));
+    return buttonSuggestions().find(([label]) => !used.has(label))?.[0] ?? t('Botón');
   }
 
   private renderListen(): string {
@@ -402,10 +408,7 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
       const button = root.querySelector<HTMLButtonElement>('[data-command=guided-start]');
       if (button)
         button.disabled =
-          !this.target.trim() ||
-          !this.listen ||
-          this.receiverOnline?.(this.listen) === false ||
-          this.hass?.connection?.connected === false;
+          !this.listen || this.receiverOnline?.(this.listen) === false || this.hass?.connection?.connected === false;
     });
     this.bindForm();
     root
@@ -457,7 +460,9 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
     try {
       switch (name) {
         case 'guided-start':
-          if (this.target.trim()) this.start(this.listen);
+          // Without a typed name, the next suggested one (shown in the field).
+          if (!this.target.trim()) this.target = this.nextName();
+          this.start(this.listen);
           return;
         case 'learning-mode':
           this.guided = !this.guided;

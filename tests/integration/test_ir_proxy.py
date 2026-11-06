@@ -64,7 +64,7 @@ def setup_proxy(monkeypatch):
     transmitter = _Info("demo_emitter", "Emitter", 25, 2, _Capability.TRANSMITTER)
     receiver = _Info("demo_receiver", "Receiver", 31, 3, _Capability.RECEIVER)
     entry_id = "demo-entry"
-    emitter = SimpleNamespace(entity_id="infrared.demo_emitter", id="a" * 32, disabled=False, config_entry_id=entry_id)
+    emitter = SimpleNamespace(entity_id="infrared.demo_emitter", id="a" * 32, device_id="d" * 32, disabled=False, config_entry_id=entry_id)
     registry = SimpleNamespace(
         async_get_entity_id=lambda domain, platform, identity: emitter.entity_id if identity.endswith(":demo_emitter:2") else None,
         async_get=lambda entity_id: emitter if entity_id == emitter.entity_id else None,
@@ -91,7 +91,7 @@ def test_sends_signed_timings_to_explicit_target_with_current_key(setup_proxy, m
     [receive] = devices["receivers"]
     [send] = devices["emitters"]
     assert receive["id"] != send["id"]
-    assert all(set(device) == {"id", "name"} and device["id"].startswith("esphome:") for device in (receive, send))
+    assert all(set(device) == {"id", "name", "device", "device_name"} and device["id"].startswith("esphome:") for device in (receive, send))
     signal = IrSignal.from_dict({"carrier_hz": 37_963, "timings_us": [1200, -510, 503, -20_030]})
 
     transmitter.key = 77

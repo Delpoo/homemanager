@@ -35,6 +35,8 @@ class _Proxy:
     can_send: bool
     entity_id: str | None
     registry_id: str | None
+    device: str | None
+    device_name: str
 
 
 class IrProxy:
@@ -80,13 +82,17 @@ class IrProxy:
                     can_send=bool(info.capabilities & InfraredCapability.TRANSMITTER),
                     entity_id=entity.entity_id if entity else None,
                     registry_id=entity.id if entity else None,
+                    device=entity.device_id if entity else None,
+                    device_name=device_name or name,
                 )
 
-    def devices(self) -> dict[str, list[dict[str, str]]]:
+    def devices(self) -> dict[str, list[dict[str, str | None]]]:
         receivers = []
         emitters = []
         for target in sorted(self._targets(), key=lambda item: (item.name.casefold(), item.proxy_id)):
-            summary = {"id": target.proxy_id, "name": target.name}
+            # `device` (Home Assistant device id) and `device_name` let the Devices
+            # page show each physical board once, with its RF and IR capabilities.
+            summary = {"id": target.proxy_id, "name": target.name, "device": target.device, "device_name": target.device_name}
             if target.can_receive:
                 receivers.append(summary)
             if target.can_send:

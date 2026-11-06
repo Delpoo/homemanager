@@ -138,15 +138,21 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   await page.evaluate(() =>
     window.irFixture.emit({ candidate_id: 'demo-candidate', count: 380, duration_us: 153_000 }),
   );
-  await expect(ir.getByText(/Señal capturada: 380 duraciones/)).toBeVisible();
+  await expect(ir.getByText('Señal capturada · 153 ms')).toBeVisible();
   await expect(ir.getByRole('button', { name: 'Abrir diagnóstico avanzado' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.irFixture.active())).toBe(false);
+  // 0.13: an emitter is chosen already, so Test works at once; the technical
+  // fields wait under Settings.
+  await expect(ir.getByRole('button', { name: 'Probar', exact: true })).toBeEnabled();
+  await expect(ir.getByLabel('Portadora (Hz)')).toBeHidden();
+  await ir.locator('details.adv summary').click();
   await expect(ir.getByLabel('Portadora (Hz)')).toHaveValue('38000');
   await expect(ir.getByLabel('Origen de la portadora')).toHaveValue('estimated');
-  await expect(ir.getByRole('button', { name: 'Probar', exact: true })).toBeDisabled();
   await ir.getByLabel('Emisor IR').selectOption('infrared.send_demo');
   await ir.getByLabel('Portadora (Hz)').fill('37963');
   await ir.getByLabel('Origen de la portadora').selectOption('known');
+  await ir.getByLabel('Nombre del control').fill('Control de prueba');
+  await ir.getByLabel('Nombre del botón').fill('Encendido demo');
   await ir.getByRole('button', { name: 'Probar', exact: true }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Solicitud IR enviada');
   const sheet = page.locator('homemanager-signal-workbench');
@@ -154,9 +160,8 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   await sheet.getByRole('button', { name: 'Señal', exact: true }).click();
   await expect(sheet.locator('.signal-chart')).toContainText('Preparada');
   await sheet.getByRole('button', { name: 'Cerrar', exact: true }).click();
-  await ir.getByLabel('Nombre del control').fill('Control de prueba');
-  await ir.getByLabel('Nombre del botón').fill('Encendido demo');
-  await ir.getByRole('button', { name: 'Guardar', exact: true }).click();
+  // After Test, the person answers: 👍 saves.
+  await ir.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Guardado en Home Assistant');
   await ir.getByRole('button', { name: 'Encendido demo' }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Solicitud IR enviada');

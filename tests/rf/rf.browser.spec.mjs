@@ -212,15 +212,33 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(2);
 });
 
-test('RF devices lists every ESPHome device and gives the exact YAML to paste', async ({ page }) => {
+test('Devices shows each board once, keeps other ESPHome devices apart and says where each YAML line goes (0.13)', async ({
+  page,
+}) => {
   const rf = await setup(page);
-  await rf.getByRole('button', { name: 'Equipos RF', exact: true }).click();
+  await rf.getByRole('button', { name: 'Equipos', exact: true }).click();
   const devices = rf.locator('homemanager-rf-devices');
-  await expect(devices.getByText('Listo')).toBeVisible();
-  await expect(devices.getByText('Falta el paquete')).toBeVisible();
+  // The board with the package sends and listens to RF; the sensor does neither,
+  // so it waits closed under "Other ESPHome devices", without an RF tag.
+  const athom = devices.locator('[data-device=tx_a]');
+  await expect(athom.locator('.cap.on', { hasText: 'RF' })).toBeVisible();
+  const others = devices.locator('details.dgroup[data-group=other]');
+  await expect(others).not.toHaveAttribute('open', '');
+  await others.locator('summary').click();
   const sensor = devices.locator('[data-device=sensor_b]');
-  await sensor.getByRole('button', { name: 'Cómo agregarlo' }).click();
-  await expect(sensor.locator('pre')).toHaveText(
+  await expect(sensor.locator('.cap')).toHaveCount(0);
+  await sensor.getByRole('button', { name: 'Agregar RF a este equipo', exact: true }).click();
+  // Each section shows its title (already in the file) and the lines to add under it.
+  const [substitutions, packages] = [sensor.locator('figure.yaml').nth(0), sensor.locator('figure.yaml').nth(1)];
+  await expect(substitutions.locator('.ctx').first()).toHaveText('substitutions:');
+  await expect(substitutions.locator('.add')).toHaveText([
+    '  hm_rf_transmitter: rf_transmitter   # cambiá por el id de tu componente',
+    '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
+  ]);
+  await expect(packages.locator('.add')).toHaveText([
+    '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.13.0-beta.1',
+  ]);
+  await expect(sensor.locator('pre[data-yaml=sensor_b]')).toHaveText(
     [
       'substitutions:',
       '  hm_rf_transmitter: rf_transmitter   # cambiá por el id de tu componente',
@@ -230,20 +248,17 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.13.0-beta.1',
     ].join('\n'),
   );
-  await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(
-    'href',
-    '/hassio/ingress/5c53de3b_esphome',
-  );
-  await sensor.getByRole('button', { name: 'Copiar' }).click();
+  await substitutions.getByRole('button', { name: 'Copiar 2 líneas' }).click();
   await expect(devices.getByText(/Copiado\.|Seleccionado: copialo con Ctrl\+C\./)).toBeVisible();
+  // ESPHome Builder opens inside Home Assistant, without reloading it.
+  await sensor.getByRole('button', { name: 'Abrir ESPHome Builder' }).click();
+  expect(await page.evaluate(() => location.pathname)).toBe('/hassio/ingress/5c53de3b_esphome');
+  await page.evaluate(() => history.back());
 
-  // The device with the package can be the default receiver and be checked.
-  const athom = devices.locator('[data-device=tx_a]');
-  await athom.locator('summary').click();
-  await athom.getByRole('button', { name: 'Usar para aprender' }).click();
-  await athom.locator('summary').click();
-  await expect(athom.getByRole('button', { name: 'Receptor por defecto' })).toHaveAttribute('aria-pressed', 'true');
-  await athom.getByRole('button', { name: 'Probar recepción' }).click();
+  // The board with the package can be the default receiver and be checked.
+  await athom.getByRole('button', { name: 'Usar para aprender RF' }).click();
+  await expect(athom.getByRole('button', { name: 'Receptor RF por defecto' })).toHaveAttribute('aria-pressed', 'true');
+  await athom.getByRole('button', { name: 'Probar recepción RF' }).click();
   await page.evaluate(() => window.rfServer.heard({ confirmed: true }));
   await expect(athom.getByText('✓ Recibe bien: tipo 1, tamaño 24, pulso 400 µs.')).toBeVisible();
 });

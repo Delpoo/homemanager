@@ -1,6 +1,6 @@
 /** Fictional RF service, shared by behavioral tests and CP6 visual checks. */
 /** `version` is the package being tested, so the YAML to paste never pins an old release. */
-export async function mountRfFixture(initial, version = '0.0.0-test') {
+export async function mountRfFixture(initial, version = '0.0.0-test', { mount = true } = {}) {
   const { hass } = window.testHarness;
   const calls = [];
   const library = structuredClone(initial);
@@ -136,6 +136,7 @@ export async function mountRfFixture(initial, version = '0.0.0-test') {
         },
       }),
   };
+  if (!mount) return;
   await customElements.whenDefined('homemanager-rf');
   const element = document.createElement('homemanager-rf');
   document.querySelector('#mount').replaceChildren(element);

@@ -89,7 +89,7 @@ export const sidePanelStyles = `
 .next{display:inline-flex;align-items:center;gap:8px;height:42px;min-height:42px;padding:0 18px;border:0;border-radius:12px;background:var(--hm-brand);color:var(--hm-on-accent);font-weight:500}
 .next:disabled{opacity:.4}
 .next ha-icon{--mdc-icon-size:18px}
-.title-in{width:100%;min-height:40px;padding:2px 8px;margin-left:-8px;border:0;border-radius:8px;background:transparent;font-size:18px;font-weight:500;color:var(--hm-ink)}
+.title-in{width:100%;min-height:40px;padding:2px 8px;margin-left:-8px;border:0;border-bottom:1.5px dashed var(--hm-line);border-radius:8px 8px 0 0;background:transparent;font-size:18px;font-weight:500;color:var(--hm-ink)}.title-in:focus{border-bottom-color:var(--hm-brand)}
 .title-in:hover{background:var(--hm-surface-2)}.title-in:focus{background:var(--hm-surface);box-shadow:0 0 0 2px var(--hm-brand)}
 .status{min-height:0;margin:0;font-size:13px;color:var(--hm-muted)}.status:empty{display:none}.status.error{color:var(--hm-alert)}
 .empty-state{display:grid;justify-items:center;gap:8px;padding:28px 12px;color:var(--hm-muted);text-align:center}
