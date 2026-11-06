@@ -87,12 +87,13 @@ export function fit(this: HomeManagerCard, room: RoomId | null, animate = true) 
   this.baseScale = fitCamera(this.box, { width: r.width, height: r.height }, 24).scale;
   // A space's framing (CP8): how much of its surroundings the view keeps.
   const padding = room ? { tight: 12, normal: 34, wide: 96 }[space?.frame ?? 'normal'] : 24;
-  // The zone editor's bar stays below the plan, not over it.
-  const bar = this.zoneEdit ? this.root.querySelector<HTMLElement>('.zones-bar') : null;
-  const beside = !!bar?.closest('[data-docked]');
-  const width = beside ? r.width - bar!.offsetWidth - 10 : r.width;
-  const height = bar && !beside && r.height - bar.offsetHeight > 160 ? r.height - bar.offsetHeight - 10 : r.height;
+  // The plan editor (0.13) keeps its tools around the plan: tools on the left, the list of
+  // spaces on the right and ✓ below. The plan fits between them.
+  const tools = !!this.zoneEdit && r.width > 650;
+  const width = tools ? r.width - 64 - 214 : r.width;
+  const height = this.zoneEdit ? Math.max(160, r.height - 64) : r.height;
   const target = fitCamera(bounds, { width, height }, padding);
+  if (tools) target.x += 64;
   this.fitted = { camera: target, width: r.width };
   this.moveCamera(target, animate);
   this.root

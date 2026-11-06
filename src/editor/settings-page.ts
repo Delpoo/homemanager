@@ -41,6 +41,8 @@ export interface SettingsPage {
   pending: number;
   /** Shown above every section, so it cannot be missed. */
   notice: string;
+  /** Where the page slides from (0.13 notebook): into a section, or back to the list. */
+  direction?: 'fwd' | 'back' | '';
   bodies: Record<SettingsSection, string>;
 }
 
@@ -101,32 +103,38 @@ export function firstSection(available: ReadonlySet<SettingsSection>): SettingsS
 }
 export const settingsTitle = (id: SettingsSection) => SECTIONS.find(section => section.id === id)!.title();
 
+/** Settings as a notebook (0.13): ⚙ opens the classic menu, every section by icon and
+ * name, grouped; a section slides in over it and ← slides back. */
 export function settingsPage(page: SettingsPage): string {
   const badge = (id: SettingsSection) =>
     id === 'rooms-section' && page.problems
       ? `<span class="settings-badge warn">${page.problems}</span>`
       : id === 'health-section' && page.health
         ? `<span class="settings-badge warn">${page.health}</span>`
-        : id === 'pending-section'
-          ? `<span class="settings-badge${page.pending ? ' warn' : ''}">${page.pending}</span>`
+        : id === 'pending-section' && page.pending
+          ? `<span class="settings-badge warn">${page.pending}</span>`
           : '';
-  // 0.13: one icon per section in a strip; the name and what it is for show on hover.
-  const button = (section: SectionInfo) =>
-    `<button type="button" data-settings="${section.id}" aria-label="${esc(section.title())}" title="${esc(section.title())}: ${esc(t(PURPOSE[section.id]))}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}${badge(section.id)}</button>`;
-  const nav = GROUPS.map(group => {
-    const items = group.sections
-      .filter(id => page.available.has(id))
-      .map(id => button(SECTIONS.find(section => section.id === id)!))
-      .join('');
-    return items
-      ? `<div class="settings-group-box" role="group" aria-label="${esc(group.title())}">${items}</div>`
-      : '';
-  })
-    .filter(Boolean)
-    .join('<span class="settings-sep" aria-hidden="true"></span>');
-  const current = SECTIONS.find(section => section.id === page.section)!;
-  return `<div class="settings-page" data-view="section"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content">${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title" title="${esc(t(PURPOSE[page.section]))}">${esc(current.title())}</h3>${page.bodies[page.section] ?? ''}</section></div></div>`;
+  const slide = page.direction ? ` nb-${page.direction}` : '';
+  if (page.view === 'list') {
+    const groups = GROUPS.map(group => {
+      const rows = group.sections
+        .filter(id => page.available.has(id))
+        .map(id => {
+          const section = SECTIONS.find(item => item.id === id)!;
+          return `<button type="button" class="nb-row" data-settings="${id}" title="${esc(t(PURPOSE[id]))}">${uiIcon(section.icon)}<span class="nb-name">${esc(section.title())}</span>${badge(id)}<span class="nb-chev">${uiIcon('mdi:chevron-right')}</span></button>`;
+        })
+        .join('');
+      return rows
+        ? `<div class="nb-group" role="group" aria-label="${esc(group.title())}"><span class="nb-heading">${esc(group.title())}</span>${rows}</div>`
+        : '';
+    }).join('');
+    return `<div class="settings-page nb-list${slide}" data-view="list">${page.notice}<nav class="nb-menu" aria-label="${esc(t('Secciones de configuración'))}">${groups}</nav></div>`;
+  }
+  return `<div class="settings-page${slide}" data-view="section"><div class="settings-content">${page.notice}<section class="settings-section" id="${page.section}" aria-label="${esc(settingsTitle(page.section))}">${page.bodies[page.section] ?? ''}</section></div></div>`;
 }
+/** The group a section belongs to, for the path above its title. */
+export const settingsGroupOf = (id: SettingsSection): string =>
+  GROUPS.find(group => group.sections.includes(id))?.title() ?? '';
 /** The menu (0.13): every section by name, grouped, to open Settings right there. */
 export function navMenuMarkup(admin: boolean): string {
   const allowed = (id: SettingsSection) =>
@@ -311,6 +319,18 @@ export const settingsPageStyles = `
 .settings-chev{display:none}.settings-list{display:none}.section-purpose{margin:-8px 0 0;color:var(--hm-muted);font-size:13px;line-height:1.5}
 .settings-badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hm-surface-2,var(--hm-line));color:var(--hm-muted)}.settings-badge.warn{background:color-mix(in srgb,var(--hm-warn) 18%,transparent);color:var(--hm-warn)}
 .settings-content{flex:1;min-height:0;overflow:auto;padding:14px 16px 24px;display:grid;align-content:start;gap:14px}
+.nb-menu{display:grid;gap:4px;padding:4px 0 16px}
+.nb-group{display:grid}
+.nb-heading{padding:14px 18px 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--hm-muted)}
+.nb-row{display:flex;align-items:center;gap:14px;width:100%;min-height:48px;padding:8px 14px 8px 18px;border:0;border-radius:0;background:transparent;color:var(--hm-ink);text-align:left;font:inherit;font-size:14.5px;cursor:pointer}
+.nb-row:hover{background:var(--hm-surface-2)}.nb-row>ha-icon:first-child{--mdc-icon-size:22px;color:var(--hm-brand);flex:none}
+.nb-name{flex:1;min-width:0}.nb-chev{display:grid;color:var(--hm-muted)}.nb-chev ha-icon{--mdc-icon-size:20px}
+.settings-page.nb-fwd{animation:hm-nb-in-right .26s cubic-bezier(.2,.7,.2,1) both}
+.settings-page.nb-back{animation:hm-nb-in-left .26s cubic-bezier(.2,.7,.2,1) both}
+@keyframes hm-nb-in-right{from{transform:translateX(100%)}to{transform:none}}
+@keyframes hm-nb-in-left{from{transform:translateX(-28%);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.settings-page.nb-fwd,.settings-page.nb-back{animation:none}}
+.task-crumb{display:block;font-size:11.5px;font-weight:400;color:var(--hm-muted)}
 .settings-section{display:grid;gap:14px;min-width:0;max-width:720px}/* #66: a reading width on wide monitors */.settings-section>h3{margin:0;font-size:18px}
 .plan-card{display:flex;gap:16px;align-items:center;padding:14px;border:1px solid var(--hm-line);border-radius:16px;background:var(--hm-surface)}
 .plan-thumb{flex:none;width:160px;height:110px;border-radius:12px;overflow:hidden;background:var(--hm-bg);display:grid;place-items:center}.plan-thumb svg{width:100%;height:100%}

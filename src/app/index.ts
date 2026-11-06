@@ -189,9 +189,17 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId, irRemoteId } = (
-      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string; irRemoteId?: string }>
+    const { command, homeId, remoteId, irRemoteId, from } = (
+      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string; irRemoteId?: string; from?: string }>
     ).detail;
+    // 0.13 notebook: Controls opened from the ⚙ menu has ← back to that menu.
+    if (command === 'settings') {
+      this.tab = 'plan';
+      this.renderHeader();
+      this.applyTab();
+      void this.card?.openSettingsMenu();
+      return;
+    }
     if (command === 'home' && homeId) {
       this.select(homeId);
       return;
@@ -213,6 +221,10 @@ export class HomeManagerApp extends HTMLElement {
     }
     this.renderHeader();
     this.applyTab();
+    if (command === 'rf' && this.tab === 'rf' && this.rfElement) {
+      this.rfElement.fromSettings = from === 'settings';
+      if (from === 'settings') void this.card?.leaveSettings();
+    }
     // From a symbol's Control › Design: straight to that remote's design (#73).
     if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId);
     if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId);

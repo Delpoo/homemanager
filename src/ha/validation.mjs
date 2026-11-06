@@ -66,6 +66,9 @@ export const ROOM_SHAPE_SOURCES = Object.freeze(['svg', 'app']);
 export const ROOM_FRAMES = Object.freeze(['tight', 'normal', 'wide']);
 /** A zone is one rectangle, or up to this many merged: an L is two. */
 export const MAX_ROOM_RECTS = 12;
+/** 0.13: a space's own outline, rings of points (outer first, then holes). */
+export const MAX_OUTLINE_RINGS = 8;
+export const MAX_OUTLINE_POINTS = 200;
 export const MAX_CONFIGURATION_BYTES = 3 * 1024 * 1024;
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ENTITY = /^[a-z][a-z0-9_]*\.[a-z0-9_]+(?![\s\S])/;
@@ -423,7 +426,7 @@ function shape(configuration) {
   const roomIds = new Set();
   configuration.rooms.forEach((room, index) => {
     const path = `rooms[${index}]`;
-    fields(room, ['id', 'label'], ['icon', 'shape', 'rects', 'shapeSource', 'frame', 'nav', 'areaId'], path);
+    fields(room, ['id', 'label'], ['icon', 'shape', 'rects', 'outline', 'shapeSource', 'frame', 'nav', 'areaId'], path);
     id(room.id, `${path}.id`);
     text(room.label, `${path}.label`);
     if (Object.hasOwn(room, 'icon')) {
@@ -440,6 +443,24 @@ function shape(configuration) {
       if (!Array.isArray(room.rects) || room.rects.length < 2 || room.rects.length > MAX_ROOM_RECTS)
         invalid(`${path}.rects`, `from 2 to ${MAX_ROOM_RECTS} rectangles required`);
       room.rects.forEach((rect, at) => roomShape(rect, `${path}.rects[${at}]`));
+    }
+    if (Object.hasOwn(room, 'outline')) {
+      if (room.shapeSource !== 'app') invalid(`${path}.outline`, 'an outline is a shape of the app');
+      if (Object.hasOwn(room, 'rects')) invalid(`${path}.outline`, 'an outline replaces the rectangles');
+      if (!Array.isArray(room.outline) || room.outline.length < 1 || room.outline.length > MAX_OUTLINE_RINGS)
+        invalid(`${path}.outline`, `from 1 to ${MAX_OUTLINE_RINGS} rings required`);
+      room.outline.forEach((ring, at) => {
+        if (!Array.isArray(ring) || ring.length < 3 || ring.length > MAX_OUTLINE_POINTS)
+          invalid(`${path}.outline[${at}]`, `from 3 to ${MAX_OUTLINE_POINTS} points required`);
+        ring.forEach((point, n) => {
+          if (
+            !Array.isArray(point) ||
+            point.length !== 2 ||
+            point.some(value => typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1)
+          )
+            invalid(`${path}.outline[${at}][${n}]`, 'a point [x, y] inside the plan (0–1) required');
+        });
+      });
     }
     if (Object.hasOwn(room, 'frame')) one(room.frame, ROOM_FRAMES, `${path}.frame`);
     if (Object.hasOwn(room, 'areaId')) text(room.areaId, `${path}.areaId`);

@@ -266,6 +266,7 @@ export class HomeManagerRf extends HTMLElement {
   private renderList(status: string): string {
     const canCreate = this.transmitters.length > 0 || this.irReceivers.length > 0;
     const head = panelHead(e(t('Controles')), {
+      ...(this.fromSettings ? { back: t('Volver') } : {}),
       extra: iconButton(t('Nuevo control'), 'mdi:plus', `data-command="new"${canCreate ? '' : ' disabled'}`),
       close: t('Cerrar'),
     });
@@ -777,18 +778,30 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   /** ✕ goes back to the plan; ← one level up. */
-  private leave(): void {
+  private leave(to: 'plan' | 'settings' = 'plan'): void {
     this.learn.stop();
     this.infrared.stopCapture();
+    this.fromSettings = false;
     this.dispatchEvent(
-      new CustomEvent('homemanager-shell-command', { detail: { command: 'plan' }, bubbles: true, composed: true }),
+      new CustomEvent('homemanager-shell-command', { detail: { command: to }, bubbles: true, composed: true }),
     );
   }
+  /** Opened from the ⚙ menu: the list has ← back to it (0.13 notebook). */
+  set fromSettings(value: boolean) {
+    if (this._fromSettings === value) return;
+    this._fromSettings = value;
+    if (this.view === 'list') this.render();
+  }
+  get fromSettings(): boolean {
+    return this._fromSettings;
+  }
+  private _fromSettings = false;
 
   private async command(name: string): Promise<void> {
     const hass = this._hass;
     if (!hass) return;
     if (name === 'close') return this.leave();
+    if (name === 'back' && this.view === 'list') return this.leave('settings');
     if (name === 'back') {
       if (this.view === 'remote' && this.editing) return void this.command('edit');
       if (this.view === 'learn' && this.remote()) {

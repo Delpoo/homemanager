@@ -90,7 +90,7 @@ dt{font-weight:600}dd{margin:0}
 @media (prefers-reduced-motion:no-preference){.marker .primary{transition:background .2s,border-color .2s,transform .1s}}
 .workspace > .editor{position:absolute;z-index:6;left:16px;top:16px;width:340px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);overflow:auto;border-radius:18px;overscroll-behavior:contain}
 .editbar{display:flex;align-items:center;gap:8px;padding:8px 12px}.editbar .space{flex:1}.editbar [data-command=save][data-dirty=true]{color:var(--hm-on-accent);background:var(--hm-accent)}
-.is-editing .header [data-command=edit],.is-editing .header [data-command=configuration]{display:none}
+.is-editing .header [data-command=edit]{display:none}
 .is-editing .editor-wrap{border-top:0;background:var(--hm-edit-soft)}.is-editing .editbar{background:var(--hm-edit-soft);border-bottom:1px solid color-mix(in srgb,var(--hm-edit) 45%,var(--hm-line))}
 .edit-title.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .editbar [data-command=save]{position:relative}.editbar [data-command=save][data-count]::after{content:attr(data-count);position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--hm-edit);color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}

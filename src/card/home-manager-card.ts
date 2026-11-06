@@ -42,7 +42,7 @@ import { bindTopBar, renderTopBar, type AppShellContext } from '../shell/top-bar
 import { layer, same, type Adapter } from './card-helpers.js';
 import * as commands from './commands.js';
 import * as editing from './editing.js';
-import { configurationStyles } from './settings-screen.js';
+import { configurationStyles, openConfiguration, closeConfiguration } from './settings-screen.js';
 import { applyInitialView } from './initial-view.js';
 import { applyShowLink } from '../shell/show-link.js';
 import * as gestures from './gestures.js';
@@ -70,6 +70,14 @@ export class HomeManagerCard extends HTMLElement {
     this.updateShell();
   }
   updateShell = updateShell.bind(this);
+  /** ⚙ menu (0.13 notebook): the list of sections. */
+  openSettingsMenu(): Promise<void> {
+    return openConfiguration(this);
+  }
+  /** Leaving the ⚙ menu for a page of its own (Controls), as ← would. */
+  leaveSettings(): Promise<void> {
+    return closeConfiguration(this);
+  }
   insights?: DeviceScreenView;
   config?: CardConfig;
   draft?: Configuration;

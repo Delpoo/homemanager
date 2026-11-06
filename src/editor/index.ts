@@ -109,6 +109,8 @@ import { openRoomActions, type RoomViewChoices } from './room-actions.js';
 import {
   appearanceBody,
   firstSection,
+  settingsTitle,
+  settingsGroupOf,
   healthBody,
   planCard,
   settingsPage,
@@ -265,6 +267,8 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsSection: SettingsSection = 'rooms-section';
   /** On a phone, Settings first lists its sections (#70). */
   private settingsView: 'list' | 'section' = 'section';
+  /** The notebook's slide for the next paint: into a section or back to the list. */
+  private settingsSlide: 'fwd' | 'back' | '' = '';
   /** The HomeManager sidebar panel's homes, when the card runs inside it. */
   appContext?: AppShellContext;
   private _planDirty = false;
@@ -302,10 +306,22 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('click', event => {
       const target = (event.target as Element).closest<HTMLElement>('[data-settings]');
       if (!target) return;
-      this.settingsSection = target.dataset.settings as SettingsSection;
+      const section = target.dataset.settings as SettingsSection;
+      // 0.13: Controls is its own page beside the plan, with ← back to this menu.
+      if (section === 'controls-section') {
+        this.dispatchEvent(
+          new CustomEvent('homemanager-shell-command', {
+            detail: { command: 'rf', from: 'settings' },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        return;
+      }
+      this.settingsSection = section;
       this.settingsView = 'section';
+      this.settingsSlide = 'fwd';
       this.render();
-      this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
     });
     this.root.addEventListener('pointerdown', event => this.dragRoom(event as PointerEvent));
     this.root.addEventListener('homemanager-storage-share', event => {
@@ -1161,6 +1177,7 @@ export class HomeManagerEditor extends HTMLElement {
     return settingsPage({
       section: this.settingsSection,
       view: this.settingsView,
+      direction: this.settingsSlide,
       available: this.settingsAvailable(),
       problems: conflicts ? zoneless + unclaimed : 0,
       health: (health?.issues.length ?? 0) + this.homeStatus().length,
@@ -1249,7 +1266,7 @@ export class HomeManagerEditor extends HTMLElement {
     const settings =
       this.surface === 'settings'
         ? taskScreen(
-            t('Configuración'),
+            this.settingsView === 'section' ? settingsTitle(this.settingsSection) : t('Configuración'),
             this.settingsForm() + '<div class="status" role="status" aria-live="polite"></div>',
             `<button type="button" data-command="settings-save" class="primary"${this._planDirty ? '' : ' hidden'}>${esc(t('Guardar'))}</button>`,
             'settings-dialog',
@@ -1317,8 +1334,24 @@ export class HomeManagerEditor extends HTMLElement {
     const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
       dialog.resumeKey = 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId;
-      dialog.onBack = () => this.closeSurface();
+      // ← in a section goes back to the menu; in the menu it leaves Settings.
+      dialog.onBack = () => {
+        if (this.settingsView === 'section') {
+          this.settingsView = 'list';
+          this.settingsSlide = 'back';
+          this.render();
+          this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
+        } else this.closeSurface();
+      };
       dialog.show(this.root);
+      if (this.settingsView === 'section')
+        dialog
+          .querySelector('.task-head h2')
+          ?.insertAdjacentHTML(
+            'afterbegin',
+            `<span class="task-crumb">${esc(t('Configuración'))} › ${esc(settingsGroupOf(this.settingsSection))}</span>`,
+          );
+      this.settingsSlide = '';
     }
     // A repaint, such as the list of homes arriving, must not lose a review in progress.
     for (const task of tasks) {
@@ -2030,6 +2063,7 @@ export class HomeManagerEditor extends HTMLElement {
           break;
         case 'settings-list':
           this.settingsView = 'list';
+          this.settingsSlide = 'back';
           this.render();
           this.root.querySelector<HTMLElement>(`[data-settings="${this.settingsSection}"]`)?.focus();
           break;

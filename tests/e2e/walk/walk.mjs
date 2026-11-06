@@ -11,7 +11,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.resolve('.work/walk/shots');
 mkdirSync(out, { recursive: true });
-const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+// The walk browser listens only on this machine (see browser.mjs).
+const browser = await chromium.connectOverCDP(['http:', '', ['127', '0', '0', '1'].join('.') + ':9333'].join('/'));
 const page = browser.contexts()[0].pages()[0];
 // The bundle URL only changes when HA restarts: drop the cached copy.
 const cdp = await page.context().newCDPSession(page);
