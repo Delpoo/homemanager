@@ -99,6 +99,54 @@ def _symbol_look(display: dict) -> None:
                     hex_color(item["color"])
     if "valuePlace" in display and display["valuePlace"] not in ("inside", "beside", "below"):
         _fail()
+    # 0.13 indicators: visual marks from one reading; at most one of each type.
+    if "indicators" in display:
+        indicators = display["indicators"]
+        if not isinstance(indicators, list) or len(indicators) > 5:
+            _fail()
+        kinds = set()
+        for item in indicators:
+            _fields(item, {"type", "entity"}, {"attribute", "hidden", "min", "max", "width", "fill", "empty", "ranges", "states", "none", "position"})
+            if item["type"] not in ("ring", "border", "icon", "led", "number") or item["type"] in kinds:
+                _fail()
+            kinds.add(item["type"])
+            _entity(item["entity"])
+            if "attribute" in item and (not isinstance(item["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", item["attribute"])):
+                _fail()
+            if "hidden" in item and not isinstance(item["hidden"], bool):
+                _fail()
+            for key in ("min", "max"):
+                if key in item:
+                    _number(item[key], -1e9, 1e9)
+            if "min" in item and "max" in item and item["min"] >= item["max"]:
+                _fail()
+            if "width" in item and (type(item["width"]) is not int or not 2 <= item["width"] <= 10):
+                _fail()
+            for key in ("fill", "empty", "none"):
+                if key in item:
+                    hex_color(item[key])
+            if "position" in item and item["position"] not in ("tr", "br", "b"):
+                _fail()
+            if "ranges" in item:
+                if not isinstance(item["ranges"], list) or len(item["ranges"]) > 8:
+                    _fail()
+                for part in item["ranges"]:
+                    _fields(part, {"from", "to", "color"}, {"name"})
+                    _number(part["from"], -1e9, 1e9)
+                    _number(part["to"], -1e9, 1e9)
+                    if part["from"] > part["to"]:
+                        _fail()
+                    hex_color(part["color"])
+                    if "name" in part and (not isinstance(part["name"], str) or len(part["name"]) > 24):
+                        _fail()
+            if "states" in item:
+                states = item["states"]
+                if not isinstance(states, dict) or len(states) > 16:
+                    _fail()
+                for key, color in states.items():
+                    if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_ .-]{1,40}", key) or key in UNSAFE:
+                        _fail()
+                    hex_color(color)
     for key, low, high in (("scale", 0.5, 2.5), ("roomScale", 0.5, 2.5), ("opacity", 0, 100)):
         if key in display:
             _number(display[key], low, high)
@@ -426,7 +474,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone", "indicators"})
         _symbol_look(display)
         _text(display["label"])
         _text(display["icon"])

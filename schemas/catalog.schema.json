@@ -488,6 +488,126 @@
             "standalone": {
               "const": true,
               "$comment": "Plan 0.12 #95: a drawing or shortcut that needs no device link."
+            },
+            "indicators": {
+              "type": "array",
+              "maxItems": 5,
+              "$comment": "Plan 0.13: visual marks on the symbol from one reading; one of each type (semantic check).",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "entity"
+                ],
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "ring",
+                      "border",
+                      "icon",
+                      "led",
+                      "number"
+                    ]
+                  },
+                  "entity": {
+                    "$ref": "#/$defs/entityId"
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_]{1,80}$"
+                  },
+                  "hidden": {
+                    "type": "boolean"
+                  },
+                  "min": {
+                    "type": "number",
+                    "minimum": -1000000000.0,
+                    "maximum": 1000000000.0
+                  },
+                  "max": {
+                    "type": "number",
+                    "minimum": -1000000000.0,
+                    "maximum": 1000000000.0
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "fill": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "empty": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "none": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "position": {
+                    "enum": [
+                      "tr",
+                      "br",
+                      "b"
+                    ]
+                  },
+                  "ranges": {
+                    "type": "array",
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "from",
+                        "to",
+                        "color"
+                      ],
+                      "properties": {
+                        "from": {
+                          "type": "number",
+                          "minimum": -1000000000.0,
+                          "maximum": 1000000000.0
+                        },
+                        "to": {
+                          "type": "number",
+                          "minimum": -1000000000.0,
+                          "maximum": 1000000000.0
+                        },
+                        "color": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "maxLength": 24
+                        }
+                      }
+                    }
+                  },
+                  "states": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9_ .-]{1,40}$",
+                      "not": {
+                        "enum": [
+                          "constructor",
+                          "prototype",
+                          "__proto__"
+                        ]
+                      }
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    }
+                  }
+                }
+              },
+              "uniqueItems": true
             }
           }
         },

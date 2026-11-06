@@ -202,7 +202,6 @@ test('entity, action, source and native panel bindings are edited as drafts with
   await sheet.getByLabel('Acción de Pulsador', { exact: true }).selectOption('synthetic-spare-toggle');
   await sheet.getByLabel('Al tocar', { exact: true }).selectOption({ label: 'Pulsador' });
   if (!(await sheet.locator('[data-module=native]').isVisible())) {
-    await sheet.locator('.module-menu > summary').click();
     await sheet.locator('[data-command=module-add][data-module-id=native]').click();
   }
   if (!(await sheet.locator('#module-native').evaluate(d => d.open)))
@@ -381,7 +380,7 @@ test('room framing and layers work with a nonzero global viewBox', async ({ page
     })
     .toBeGreaterThan(1);
   await page.getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
-  const sensors = page.getByRole('button', { name: 'Sensores', exact: true });
+  const sensors = page.getByRole('button', { name: 'Dispositivos', exact: true });
   await sensors.click();
   await expect(action(page, 'Temperatura de prueba')).not.toBeVisible();
   await sensors.click();

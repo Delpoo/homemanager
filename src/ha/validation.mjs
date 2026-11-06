@@ -157,6 +157,60 @@ function symbolLook(display, path) {
   }
   if (Object.hasOwn(display, 'valuePlace'))
     one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
+  // 0.13 indicators: visual marks from one reading; at most one of each type.
+  if (Object.hasOwn(display, 'indicators')) {
+    const list = display.indicators;
+    if (!Array.isArray(list) || list.length > 5) invalid(`${path}.indicators`, 'at most 5 indicators');
+    const types = new Set();
+    list.forEach((item, index) => {
+      const where = `${path}.indicators[${index}]`;
+      fields(
+        item,
+        ['type', 'entity'],
+        ['attribute', 'hidden', 'min', 'max', 'width', 'fill', 'empty', 'ranges', 'states', 'none', 'position'],
+        where,
+      );
+      one(item.type, ['ring', 'border', 'icon', 'led', 'number'], `${where}.type`);
+      if (types.has(item.type)) invalid(where, 'one indicator of each type');
+      types.add(item.type);
+      entity(item.entity, `${where}.entity`);
+      if (
+        Object.hasOwn(item, 'attribute') &&
+        (typeof item.attribute !== 'string' || !/^[A-Za-z0-9_]{1,80}$/.test(item.attribute))
+      )
+        invalid(`${where}.attribute`, 'attribute name required');
+      if (Object.hasOwn(item, 'hidden') && typeof item.hidden !== 'boolean') invalid(`${where}.hidden`, 'boolean');
+      for (const key of ['min', 'max']) if (Object.hasOwn(item, key)) range(item[key], -1e9, 1e9, `${where}.${key}`);
+      if (Object.hasOwn(item, 'min') && Object.hasOwn(item, 'max') && item.min >= item.max)
+        invalid(where, 'min below max');
+      if (Object.hasOwn(item, 'width') && (!Number.isInteger(item.width) || item.width < 2 || item.width > 10))
+        invalid(`${where}.width`, '2 to 10');
+      for (const key of ['fill', 'empty', 'none']) if (Object.hasOwn(item, key)) hex(item[key], `${where}.${key}`);
+      if (Object.hasOwn(item, 'position')) one(item.position, ['tr', 'br', 'b'], `${where}.position`);
+      if (Object.hasOwn(item, 'ranges')) {
+        if (!Array.isArray(item.ranges) || item.ranges.length > 8) invalid(`${where}.ranges`, 'at most 8 ranges');
+        item.ranges.forEach((part, at) => {
+          const there = `${where}.ranges[${at}]`;
+          fields(part, ['from', 'to', 'color'], ['name'], there);
+          range(part.from, -1e9, 1e9, `${there}.from`);
+          range(part.to, -1e9, 1e9, `${there}.to`);
+          if (part.from > part.to) invalid(there, 'from not above to');
+          hex(part.color, `${there}.color`);
+          if (Object.hasOwn(part, 'name') && (typeof part.name !== 'string' || part.name.length > 24))
+            invalid(`${there}.name`, 'short name');
+        });
+      }
+      if (Object.hasOwn(item, 'states')) {
+        const states = item.states;
+        if (!states || typeof states !== 'object' || Array.isArray(states) || Object.keys(states).length > 16)
+          invalid(`${where}.states`, 'at most 16 states');
+        for (const [key, color] of Object.entries(states)) {
+          if (!/^[A-Za-z0-9_ .-]{1,40}$/.test(key) || UNSAFE.has(key)) invalid(`${where}.states`, 'state name');
+          hex(color, `${where}.states.${key}`);
+        }
+      }
+    });
+  }
   if (Object.hasOwn(display, 'scale')) range(display.scale, 0.5, 2.5, `${path}.scale`);
   if (Object.hasOwn(display, 'roomScale')) range(display.roomScale, 0.5, 2.5, `${path}.roomScale`);
   if (Object.hasOwn(display, 'opacity')) range(display.opacity, 0, 100, `${path}.opacity`);
@@ -438,6 +492,7 @@ function shape(configuration) {
         'disabledBaseRules',
         'color',
         'values',
+        'indicators',
         'valuePlace',
         'scale',
         'roomScale',

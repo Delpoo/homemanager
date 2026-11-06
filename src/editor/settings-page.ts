@@ -1,3 +1,4 @@
+import { tipsOn } from '../ui/tips.js';
 import { t } from '../i18n/index.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
@@ -153,7 +154,7 @@ export function appearanceBody(grid?: number): string {
   const gridField =
     grid === undefined
       ? ''
-      : `<label class="field">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label><p class="note">${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}</p>`;
+      : `<label class="field" title="${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`;
   const link = showLink();
   const linkField = `<label class="field">${esc(t('Mostrar vínculo'))}<select data-show-link>${(
     [
@@ -163,10 +164,10 @@ export function appearanceBody(grid?: number): string {
     ] as const
   )
     .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
-    .join(
-      '',
-    )}</select></label><p class="note">${esc(t('Una cadena chica en la esquina del símbolo dice si está conectado a un dispositivo. En modo edición se ve siempre.'))}</p>`;
-  return `<p class="note">${esc(t('Se guarda en este navegador: no cambia lo que ven las demás personas.'))}</p><homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
+    .join('')}</select></label>`;
+  // 0.13: hover help can be turned off; the choice stays in this browser.
+  const tips = `<label class="check"><input type="checkbox" data-tips${tipsOn() ? ' checked' : ''}><span>${esc(t('Ayudas al pasar el mouse'))}</span></label>`;
+  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${tips}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */

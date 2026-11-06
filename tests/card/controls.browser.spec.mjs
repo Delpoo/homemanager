@@ -279,11 +279,13 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   // Labels follow the control's name the next time the section is drawn.
   await editor.getByLabel('Acción de Pulsador', { exact: true }).selectOption({ label: '1H' });
   await editor.getByRole('button', { name: 'Mostrar en el plano' }).last().click();
-  await editor.getByRole('button', { name: 'Grande', exact: true }).click();
+  // 0.13: size is a percentage, not small / medium / large.
+  await editor.locator('[data-mirror=scale]').fill('125');
+  await editor.locator('[data-mirror=scale]').dispatchEvent('change');
   await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   await expect(editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true })).toHaveCount(0);
   const device = (await draft(page)).catalog.devices[0];
-  expect(device.display).toMatchObject({ size: 'l', pinned: ['pulsador'] });
+  expect(device.display).toMatchObject({ scale: 1.25, pinned: ['pulsador'] });
   expect(device.bindings.tap).toBe('ciclo');
   expect(device.bindings.remoteId).toBe('techo');
   expect(device.bindings.primaryAction).toBeNull();

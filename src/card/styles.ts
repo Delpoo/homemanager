@@ -146,8 +146,18 @@ ${editorDockStyles}
 .marker[data-shape=icon] .primary{background:transparent;border-color:transparent;box-shadow:none}
 /* #93: in edit mode, symbols of layers hidden outside editing look faded and say so. */
 .marker.layer-hidden .primary{opacity:.45;border-style:dashed}
-/* #95: link mark, bottom-left. Always in edit mode; otherwise as chosen in Appearance. */
-.symbol-link{display:none;position:absolute;left:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%;place-items:center;background:var(--hm-surface);box-shadow:0 0 0 1.5px var(--hm-line);color:var(--hm-muted)}.symbol-link ha-icon{--mdc-icon-size:12px}
-.symbol-link[data-link=unlinked]{color:var(--hm-warn)}
-.is-editing .symbol-link,.shell[data-show-link=always] .symbol-link,.shell[data-show-link=unlinked] .symbol-link[data-link=unlinked]{display:grid}
+/* #95 / 0.13: the link mark is a small dot at the bottom right that never covers the
+   icon; an unlinked symbol also gets a dashed amber outline. Always in edit mode;
+   otherwise as chosen in Appearance. */
+.symbol-link{display:none;position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:var(--hm-ok);box-shadow:0 0 0 2px var(--hm-surface)}.symbol-link ha-icon{display:none}
+.symbol-link[data-link=unlinked]{background:var(--hm-edit)}
+.is-editing .symbol-link,.shell[data-show-link=always] .symbol-link,.shell[data-show-link=unlinked] .symbol-link[data-link=unlinked]{display:block}
+.is-editing .marker[data-link=unlinked] .primary,.shell[data-show-link=always] .marker[data-link=unlinked] .primary,.shell[data-show-link=unlinked] .marker[data-link=unlinked] .primary{outline:2px dashed var(--hm-edit);outline-offset:3px}
+/* 0.13 indicators: a ring that fills, a coloured border and icon, a LED, a small number. */
+.fx-ring{position:absolute;inset:calc(-1 * var(--fw,4px) - 3px);border-radius:50%;background:conic-gradient(var(--fa) calc(var(--p) * 1%),var(--fb) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--fw,4px)),#000 calc(100% - var(--fw,4px) + 1px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--fw,4px)),#000 calc(100% - var(--fw,4px) + 1px));pointer-events:none}
+.symbol-body[data-fx-border]{box-shadow:0 0 0 3px var(--fx-border)!important}
+.symbol-body[data-fx-icon] ha-icon{color:var(--fx-icon)!important}
+.fx-led{position:absolute;top:-1px;left:-1px;width:11px;height:11px;border-radius:50%;background:var(--fc);box-shadow:0 0 0 2px var(--hm-surface),0 0 6px var(--fc);pointer-events:none}
+.fx-num{position:absolute;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--hm-ink);color:var(--hm-surface);font-size:10.5px;font-weight:700;line-height:18px;text-align:center;pointer-events:none;font-variant-numeric:tabular-nums}
+.fx-num[data-position=tr]{top:-8px;right:-10px}.fx-num[data-position=br]{bottom:-8px;right:-10px}.fx-num[data-position=b]{bottom:-20px;left:50%;transform:translateX(-50%)}
 `;

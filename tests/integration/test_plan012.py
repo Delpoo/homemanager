@@ -94,3 +94,14 @@ async def test_history_trim_keeps_the_newest_versions(hass):
     assert len(plans) == 2 and plans[-1].revision == home.revision
     with pytest.raises(ModelError):
         await store.async_trim_history("casa-ficticia", 1)
+
+
+@pytest.mark.parametrize("indicators", [
+    [{"type": "ring", "entity": "cover.sample"}, {"type": "ring", "entity": "cover.other"}],
+    [{"type": "ring", "entity": "cover.sample", "min": 50, "max": 10}],
+    [{"type": "border", "entity": "sensor.sample", "ranges": [{"from": 5, "to": 1, "color": "#000000"}]}],
+])
+def test_indicator_semantic_checks(indicators):
+    """0.13: one of each type, min below max and ranges in order."""
+    with pytest.raises(ModelError):
+        validate_configuration(_configuration({"display": {"indicators": indicators}}))

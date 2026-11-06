@@ -1,6 +1,13 @@
+import {
+  indicatorsEditor,
+  indicatorsChange,
+  indicatorsEditorStyles,
+  type IndicatorDraft,
+} from '../ui/indicators-editor.js';
+import { symbolSheetStyles } from '../ui/symbol-sheet-styles.js';
+import { PALETTE_NAMES, changeMyPalette, paletteColors, paletteName, setPaletteName } from '../ui/palettes.js';
 import { NowPanelEditor } from '../ui/now-panel-editor.js';
 import { PlanViewsEditor } from '../ui/plan-views-editor.js';
-import { COLOR_PALETTE } from '../model/color.js';
 import { t, getLanguage, setLanguage, languageFromHass } from '../i18n/index.js';
 import { validateConfiguration } from '../card/configuration.js';
 import { migrateConfiguration } from '../ha/migration.mjs';
@@ -154,6 +161,8 @@ const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyl
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
 const css =
   cssBase +
+  symbolSheetStyles +
+  indicatorsEditorStyles +
   editorSheetStyles +
   fieldErrorStyles +
   sheetStyles +
@@ -306,6 +315,10 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('submit', this.onSubmit);
     this.root.addEventListener('input', event => {
       const target = event.target as HTMLElement;
+      if (target.hasAttribute('data-fx-test')) {
+        this.fxEvent(target, true);
+        return;
+      }
       if (target.dataset.ctl !== undefined || target.dataset.sheet) this.onChange(event);
       this.schedulePreview();
     });
@@ -486,7 +499,36 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** Layers shown outside edit mode, so the sheet can say if this symbol is hidden (#93). */
   visibleLayers?: ReadonlySet<string>;
-  /** Free size, transparency and shape (#93). Written only when touched: old plans stay the same. */
+  /** Redraws the colour row after a palette change, keeping the colour chosen. */
+  private refreshColors(): void {
+    const row = this.root.querySelector<HTMLElement>('#device-form .look-row.top');
+    const color = this.root.querySelector<HTMLInputElement>('#device-form [name=color]')?.value ?? '';
+    const device = this.device();
+    if (!row) return;
+    const probe = device ? { ...device, display: { ...device.display, color: color || undefined } } : undefined;
+    row.outerHTML = this.colorFields(probe as Device | undefined);
+  }
+  /** 0.13: an icon button drawn with the full icon set; its name is the tooltip. */
+  private ib(command: string, label: string, icon: string, extra = ''): string {
+    return `<button type="button" class="ib" data-command="${esc(command)}" aria-label="${esc(label)}" title="${esc(label)}" ${extra}><ha-icon icon="${esc(icon)}" aria-hidden="true"></ha-icon></button>`;
+  }
+  /** Colour (0.13): a palette of ten, another colour, and the person's own palette. */
+  private colorFields(device?: Device): string {
+    const current = device?.display.color ?? '';
+    const name = paletteName();
+    const swatches = paletteColors(name)
+      .map(
+        color =>
+          `<button type="button" class="sw" data-command="color-palette" data-color-value="${color}" style="--c:${color}" aria-pressed="${color.toLowerCase() === current.toLowerCase()}" aria-label="${esc(t('Color {n}', { n: color }))}" title="${color}"></button>`,
+      )
+      .join('');
+    const names = PALETTE_NAMES.map(([id, label]) => option(id, t(label), name)).join('');
+    const mine =
+      name === 'mine' ? this.ib('palette-remove', t('Quitar este color de Mi paleta'), 'mdi:minus-circle-outline') : '';
+    return `<div class="look-row top" title="${esc(t('Color'))}"><ha-icon icon="mdi:palette-outline" aria-hidden="true"></ha-icon><div class="colors"><div class="swatches" role="group" aria-label="${esc(t('Paleta'))}">${swatches}<label class="sw custom" title="${esc(t('Otro color'))}"><input type="color" data-color value="${esc(current || paletteColors(name)[0])}" aria-label="${esc(t('Color libre'))}"></label>${this.ib('color-auto', t('Automático'), 'mdi:palette-swatch-variant', `aria-pressed="${!current}"`)}</div><div class="palsel"><select data-palette aria-label="${esc(t('Paleta'))}">${names}</select>${this.ib('palette-add', t('Agregar este color a Mi paleta'), 'mdi:plus-circle-outline')}${mine}</div></div><input type="hidden" name="color" value="${esc(current)}"></div>`;
+  }
+  /** Free size, transparency and shape (#93). Written only when touched: old plans stay the same.
+   * 0.13: a slider and its % side by side; shapes as drawings. */
   private lookFields(device?: Device): string {
     const scale = device?.display.scale ?? ({ s: 0.8, m: 1, l: 1.25 } as const)[device?.display.size ?? 'm'];
     const opacity = device?.display.opacity ?? 100;
@@ -498,7 +540,49 @@ export class HomeManagerEditor extends HTMLElement {
       ['dot', t('Punto chico')],
       ['icon', t('Sólo el icono')],
     ];
-    return `<div class="look-fields"><label class="field">${esc(t('Tamaño libre'))}<input type="range" name="scale" min="0.5" max="2.5" step="0.05" list="scale-marks" value="${scale}"${device?.display.scale !== undefined ? ' data-touched' : ''}><datalist id="scale-marks"><option value="0.8" label="${esc(t('Chico'))}"></option><option value="1" label="${esc(t('Mediano'))}"></option><option value="1.25" label="${esc(t('Grande'))}"></option></datalist></label>${this.configuration.symbolSizes ? `<label class="field">${esc(t('Tamaño en la vista por espacio'))}<input type="range" name="roomScale" min="0.5" max="2.5" step="0.05" value="${device?.display.roomScale ?? this.configuration.symbolSizes.room}"${device?.display.roomScale !== undefined ? ' data-touched' : ''}></label>` : ''}<label class="field">${esc(t('Opacidad del fondo'))}<input type="range" name="opacity" min="0" max="100" step="5" value="${opacity}"${device?.display.opacity !== undefined ? ' data-touched' : ''}></label><label class="field">${esc(t('Forma'))}<select name="shape">${shapes.map(([value, label]) => option(value, label, shape)).join('')}</select></label></div>`;
+    const row = (
+      name: string,
+      icon: string,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+      value: number,
+      percent: boolean,
+      touched: boolean,
+    ) =>
+      `<div class="look-row" title="${esc(label)}"><ha-icon icon="${icon}" aria-hidden="true"></ha-icon><input type="range" name="${name}" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${esc(label)}"${touched ? ' data-touched' : ''}><label class="num"><input type="number" data-mirror="${name}" min="${percent ? min * 100 : min}" max="${percent ? max * 100 : max}" step="${percent ? step * 100 : step}" value="${Math.round(percent ? value * 100 : value)}" aria-label="${esc(t('{name} en %', { name: label }))}"><span>%</span></label></div>`;
+    const room = this.configuration.symbolSizes
+      ? row(
+          'roomScale',
+          'mdi:crop-free',
+          t('Tamaño en la vista por espacio'),
+          0.5,
+          2.5,
+          0.05,
+          device?.display.roomScale ?? this.configuration.symbolSizes.room,
+          true,
+          device?.display.roomScale !== undefined,
+        )
+      : '';
+    const icons: Record<string, string> = {
+      '': 'mdi:auto-fix',
+      circle: 'mdi:circle-outline',
+      pill: 'mdi:pill',
+      dot: 'mdi:circle-small',
+      icon: 'mdi:circle-off-outline',
+    };
+    const shapeButtons = shapes
+      .map(([value, label]) =>
+        this.ib(
+          'shape-pick',
+          label,
+          icons[value],
+          `data-shape-value="${value}" role="radio" aria-checked="${value === shape}"`,
+        ),
+      )
+      .join('');
+    return `<div class="look-fields">${row('scale', 'mdi:resize', t('Tamaño'), 0.5, 2.5, 0.05, scale, true, device?.display.scale !== undefined)}${room}${row('opacity', 'mdi:circle-opacity', t('Opacidad del fondo'), 0, 100, 5, opacity, false, device?.display.opacity !== undefined)}<div class="look-row"><ha-icon icon="mdi:shape-outline" aria-hidden="true"></ha-icon><div class="seg" role="radiogroup" aria-label="${esc(t('Forma'))}">${shapeButtons}</div><input type="hidden" name="shape" value="${esc(shape)}"></div></div>`;
   }
   private lookChange(data: FormData, previous?: Device): Partial<Device['display']> {
     const touched = (name: string) =>
@@ -630,6 +714,35 @@ export class HomeManagerEditor extends HTMLElement {
     }
     return [...new Set([entityId, ...readings].filter(Boolean))];
   }
+  private fxDraft?: IndicatorDraft;
+  /** Indicators (0.13): one change at a time; trying a value repaints only the preview. */
+  private fxEvent(target: HTMLElement, live = false): boolean {
+    const host = target.closest('.fx-host');
+    if (!host || !this.fxDraft) return false;
+    const device = this.device();
+    const next = indicatorsChange(this.fxDraft, target, this.valueCandidates(device), this._hass);
+    if (!next) return true;
+    const tried = next.test !== this.fxDraft.test && JSON.stringify(next.list) === JSON.stringify(this.fxDraft.list);
+    this.fxDraft = next;
+    if (live && tried) {
+      const preview = document.createElement('div');
+      preview.innerHTML = indicatorsEditor(next, device, this.valueCandidates(device), this._hass);
+      host.querySelector('.fxprev')?.replaceWith(preview.querySelector('.fxprev')!);
+      host.querySelectorAll<HTMLInputElement>('[data-fx-test]').forEach(field => {
+        if (field !== target) field.value = String(next.test);
+      });
+      return true;
+    }
+    this.paintIndicators();
+    if (!tried) this.schedulePreview();
+    return true;
+  }
+  private paintIndicators(): void {
+    const host = this.root.querySelector<HTMLElement>('.fx-host');
+    if (!host || !this.fxDraft) return;
+    const device = this.device();
+    host.innerHTML = indicatorsEditor(this.fxDraft, device, this.valueCandidates(device), this._hass);
+  }
   private paintValues(): void {
     const host = this.root.querySelector<HTMLElement>('.values-host');
     if (!host || !this.valuesDraft) return;
@@ -736,6 +849,7 @@ export class HomeManagerEditor extends HTMLElement {
       sheet: this.sheet,
       modules: this.moduleDraft,
       values: this.valuesDraft,
+      indicators: this.fxDraft?.list,
       alerts: this.alertDraft,
     });
   }
@@ -1114,6 +1228,7 @@ export class HomeManagerEditor extends HTMLElement {
       };
       this.moduleUndo = undefined;
       this.alertDraft = alertSettingsDraft(selected);
+      this.fxDraft = { list: structuredClone(selected?.display.indicators ?? []), selected: 0 };
     }
     const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
     const toolbar = this._embedded
@@ -1124,7 +1239,7 @@ export class HomeManagerEditor extends HTMLElement {
     const handle = this._embedded
       ? `<button class="sheet-handle" type="button" data-command="sheet-expand" aria-label="${esc(this.expanded ? t('Reducir ficha') : t('Ampliar ficha'))}" aria-expanded="${this.expanded}"><span aria-hidden="true"></span></button>`
       : '';
-    const device = `${handle}${header(selected?.display.label ?? t('Dispositivo vacío'), selected?.display.icon ?? 'mdi:circle-outline')}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${this.adding ? `<button type="button" data-command="cancel-new">${esc(t('Cancelar'))}</button><span class="spacer"></span><button type="submit" form="device-form" class="primary">${esc(t('Crear'))}</button>` : `${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}`}</div>`;
+    const device = `${handle}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${this.adding ? `<button type="button" data-command="cancel-new">${esc(t('Cancelar'))}</button><span class="spacer"></span><button type="submit" form="device-form" class="primary">${esc(t('Crear'))}</button>` : `${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}`}</div>`;
     const add = `${handle}${header(t('Agregar dispositivo'))}<div class="sheet-body"><div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}</div>`;
     const settings =
       this.surface === 'settings'
@@ -1255,14 +1370,7 @@ export class HomeManagerEditor extends HTMLElement {
       infrared.length || irRemoteId
         ? `<label class="field">${esc(t('Control IR en el panel'))}<select form="device-form" name="irRemoteId" aria-label="${esc(t('Control IR en el panel'))}">${option('', t('Automático'), irRemoteId)}${irRemoteId && !infrared.some(item => item.id === irRemoteId) ? option(irRemoteId, irRemoteId, irRemoteId) : ''}${infrared.map(item => option(item.id, item.name, irRemoteId)).join('')}</select></label>`
         : '';
-    // Layer is advanced: the automatic choice follows the device (#71).
-    const layerField = `<label class="field">${esc(t('Capa'))}<select form="device-form" name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label>`;
-    const currentLayer = device ? presentationOf(device, this._hass).layer : undefined;
-    const layerNote =
-      currentLayer && this.visibleLayers
-        ? `<p class="note">${esc(this.visibleLayers.has(currentLayer) ? t('Su capa se muestra fuera de edición.') : t('Su capa está oculta fuera de edición: sólo se ve mientras editás o si mostrás esa capa.'))}</p>`
-        : '';
-    const advanced = `${layerField}${layerNote}${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
+    const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
         [
           ['fixed', 'Fijo'],
@@ -1288,11 +1396,15 @@ export class HomeManagerEditor extends HTMLElement {
         (device ? (presentationOf(device, this._hass).archetype === 'meter' ? 'value' : 'icon') : 'icon'),
     )}</div>`;
     const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"><label class="check"><input type="checkbox" name="standalone" value="true"${device?.display.standalone ? ' checked' : ''}><span>${esc(t('No necesita vínculo'))}</span></label></div>`;
-    return `<form id="device-form" novalidate><h3 class="sheet-group">${esc(t('Base'))}</h3><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
-      <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
-      <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
-
-      <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
+    const presented = device ? presentationOf(device, this._hass) : undefined;
+    const infra = presented?.layer === 'infrastructure';
+    // Unticking an automatic infrastructure symbol needs an explicit other layer.
+    const otherLayer =
+      presented?.archetype === 'meter' ? 'energy' : presented?.archetype === 'sensor' ? 'sensors' : 'controls';
+    return `<form id="device-form" novalidate><div class="symhead">${iconPicker(icon, t('Icono del dispositivo'), 'large data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"><div class="titlebox"><input class="title-in" name="label" value="${esc(device?.display.label ?? '')}" required maxlength="240" aria-label="${esc(t('Nombre del dispositivo'))}" title="${esc(t('Nombre del dispositivo'))}" placeholder="${esc(t('Nombre'))}"><label class="spacepick" title="${esc(t('Habitación del dispositivo'))}"><ha-icon icon="mdi:map-marker-outline" aria-hidden="true"></ha-icon><select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></label></div>${iconButton('close', t('Cerrar'), 'close')}</div><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">
+      <label class="switch-row" title="${esc(t('Se oculta con el filtro de infraestructura'))}"><ha-icon icon="mdi:lan" aria-hidden="true"></ha-icon><span>${esc(t('Infraestructura'))}</span><input type="checkbox" role="switch" data-infra${infra ? ' checked' : ''} aria-label="${esc(t('Infraestructura'))}"><input type="hidden" name="layer" value="${esc(device?.display.layer ?? '')}" data-other-layer="${otherLayer}"></label>
+      <div class="lbl">${esc(t('Aspecto'))}<span class="grow"></span></div>${this.lookFields(device)}${this.colorFields(device)}</div>
+      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `<div class="fx-host">${indicatorsEditor(this.fxDraft ?? { list: [], selected: 0 }, device, this.valueCandidates(device), this._hass)}</div><div class="lbl">${esc(t('Valores'))}<span class="grow"></span></div>${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
       ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
@@ -1362,20 +1474,18 @@ export class HomeManagerEditor extends HTMLElement {
         >
       )[id] ?? 'module-' + id;
     const title = `<ha-icon class="module-icon" icon="${MODULE_ICONS[id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[id]))}</span><span class="module-sum">${esc(this.moduleLine(id, device))}</span></span>`;
-    return `<div data-module="${id}" class="module-card"${active ? '' : ' hidden'}>${this.section(sectionId, title, `${body}<button type="button" data-command="module-remove" data-module-id="${id}">${esc(t('Quitar módulo'))}</button>`)}</div>`;
+    return `<div data-module="${id}" class="module-card"${active ? '' : ' hidden'}>${this.section(sectionId, title, `${body}<div class="module-foot">${this.ib('module-remove', t('Quitar módulo'), 'mdi:trash-can-outline', `data-module-id="${id}"`)}</div>`)}</div>`;
   }
   private moduleMenu(device?: Device): string {
-    return `<details class="section module-menu"><summary>${esc(t('+ Agregar'))}</summary><div class="section-body module-add-list">${moduleChoices(
-      this.moduleDevice(device),
-      this._hass,
-    )
+    // 0.13: the modules not used yet, as chips; what each does is its tooltip.
+    const chips = moduleChoices(this.moduleDevice(device), this._hass)
+      .filter(choice => !choice.present)
       .map(
         choice =>
-          `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}"${choice.present || choice.reason ? ' disabled' : ''}><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[choice.id]))}</span><span class="module-sum">${esc(t(MODULE_PURPOSE[choice.id]))}</span></span><span class="module-state">${esc(t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar')))}</span></button>`,
+          `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}" title="${esc(t(choice.reason ?? MODULE_PURPOSE[choice.id]))}" aria-label="${esc(t(MODULE_LABELS[choice.id]))}"${choice.reason ? ' disabled' : ''}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span>${esc(t(MODULE_LABELS[choice.id]))}</span></button>`,
       )
-      .join(
-        '',
-      )}</div></details><button type="button" data-command="module-undo"${this.moduleUndo ? '' : ' hidden'}>${esc(t('Deshacer cambio de módulo'))}</button>`;
+      .join('');
+    return `${chips ? `<div class="lbl">${esc(t('Agregar'))}<span class="grow"></span></div><div class="addmods module-menu" role="group" aria-label="${esc(t('Agregar'))}">${chips}</div>` : ''}${this.ib('module-undo', t('Deshacer cambio de módulo'), 'mdi:undo', this.moduleUndo ? '' : 'hidden')}`;
   }
   private updateModules(): void {
     const active = modulesOf(this.moduleDevice(), this._hass);
@@ -1852,6 +1962,8 @@ export class HomeManagerEditor extends HTMLElement {
     );
   }
   private onClick = (event: Event): void => {
+    const fxButton = (event.target as Element).closest<HTMLElement>('.fx-host button');
+    if (fxButton && this.fxEvent(fxButton)) return;
     const valueButton = (event.target as Element).closest<HTMLElement>(
       '.values-host button[data-value-move], .values-host button[data-value-range-add], .values-host button[data-value-range-remove]',
     );
@@ -2091,6 +2203,27 @@ export class HomeManagerEditor extends HTMLElement {
           if (hidden) hidden.value = button.dataset.colorValue ?? '';
           const picker = this.root.querySelector<HTMLInputElement>('[data-color]');
           if (picker && button.dataset.colorValue) picker.value = button.dataset.colorValue;
+          this.root
+            .querySelectorAll<HTMLElement>('[data-command=color-palette],[data-command=color-auto]')
+            .forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+          hidden?.dispatchEvent(new Event('input', { bubbles: true }));
+          break;
+        }
+        case 'shape-pick': {
+          const hidden = this.root.querySelector<HTMLInputElement>('#device-form [name=shape]');
+          if (hidden) hidden.value = button.dataset.shapeValue ?? '';
+          this.root
+            .querySelectorAll<HTMLElement>('[data-command=shape-pick]')
+            .forEach(item => item.setAttribute('aria-checked', String(item === button)));
+          hidden?.dispatchEvent(new Event('input', { bubbles: true }));
+          break;
+        }
+        case 'palette-add':
+        case 'palette-remove': {
+          const color = this.root.querySelector<HTMLInputElement>('#device-form [name=color]')?.value;
+          if (color) changeMyPalette(color, button.dataset.command === 'palette-add');
+          if (button.dataset.command === 'palette-add') setPaletteName('mine');
+          this.refreshColors();
           break;
         }
         case 'design-open':
@@ -2246,6 +2379,7 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (this.fxEvent(target)) return;
     if (this.valuesEvent(target)) return;
     if (
       (target as HTMLInputElement).type === 'range' &&
@@ -2279,6 +2413,35 @@ export class HomeManagerEditor extends HTMLElement {
     if (target.hasAttribute('data-color')) {
       const hidden = this.root.querySelector<HTMLInputElement>('[name=color]');
       if (hidden) hidden.value = target.value;
+      return;
+    }
+    if (target.hasAttribute('data-palette')) {
+      setPaletteName(target.value);
+      this.refreshColors();
+      return;
+    }
+    if (target.dataset.mirror) {
+      const range = this.root.querySelector<HTMLInputElement>(`#device-form [name=${target.dataset.mirror}]`);
+      if (range) {
+        const percent = range.name !== 'opacity';
+        range.value = String(Number(target.value) / (percent ? 100 : 1));
+        range.setAttribute('data-touched', '');
+        range.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+    if (target.hasAttribute('data-infra')) {
+      const hidden = this.root.querySelector<HTMLInputElement>('#device-form [name=layer]');
+      if (hidden) {
+        const checked = (target as HTMLInputElement).checked;
+        const before = hidden.value;
+        hidden.value = checked
+          ? 'infrastructure'
+          : before && before !== 'infrastructure'
+            ? before
+            : hidden.dataset.otherLayer!;
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       return;
     }
     if (target.dataset.gestureFor && this.sheet) {
@@ -2432,6 +2595,8 @@ export class HomeManagerEditor extends HTMLElement {
               ...(this.valuesDraft.place !== 'inside' ? { valuePlace: this.valuesDraft.place } : {}),
             }
           : {}),
+        // Indicators (0.13): written only once chosen.
+        ...(this.fxDraft?.list.length ? { indicators: structuredClone(this.fxDraft.list) } : {}),
         ...(value(data, 'color') ? { color: value(data, 'color') } : {}),
         ...(value(data, 'layer') ? { layer: value(data, 'layer') as NonNullable<Device['display']['layer']> } : {}),
         ...this.lookChange(data, previous),

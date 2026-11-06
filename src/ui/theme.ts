@@ -73,7 +73,11 @@ button:disabled{opacity:.45;cursor:default}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:none;box-shadow:var(--hm-focus)}
 time,.value{font-variant-numeric:tabular-nums}
 button.primary-action,button[data-variant=primary]{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent);font-weight:600}
-input,select,textarea{min-height:var(--hm-touch);border:1px solid var(--hm-line);border-radius:var(--hm-radius-sm);background:var(--hm-bg);padding:8px 10px;width:100%}
+/* 0.13: fields read as fields: their own surface and a firmer edge (they looked disabled). */
+input,select,textarea{min-height:var(--hm-touch);border:1px solid color-mix(in srgb,var(--hm-ink) 24%,transparent);border-radius:var(--hm-radius-sm);background:var(--hm-surface);padding:8px 10px;width:100%}
+input:hover:not(:disabled),select:hover:not(:disabled),textarea:hover:not(:disabled){border-color:color-mix(in srgb,var(--hm-ink) 40%,transparent)}
+input::placeholder,textarea::placeholder{color:var(--hm-muted);opacity:.8}
+input:disabled,select:disabled,textarea:disabled{opacity:.55}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--hm-accent)}
 input[type=checkbox]{width:20px;min-height:20px;accent-color:var(--hm-accent)}
 @media (prefers-reduced-motion:no-preference){button{transition:background .15s,box-shadow .15s,transform .1s}button:active:not(:disabled){transform:scale(.97)}}

@@ -8,10 +8,28 @@ const escape = (value: string) =>
     character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!,
   );
 /** The renderer consumes presentation semantics only; it knows no device kinds. */
-export function renderSymbol(spec: SymbolSpec): string {
-  const ring = spec.ring
-    ? `<span class="symbol-ring" data-tone="${spec.ring.tone}" style="--level:${spec.ring.level ?? 1}" aria-hidden="true"></span>`
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const safe = (color: string | undefined) => (color && HEX.test(color) ? color : '');
+/** 0.13 indicators: a ring that fills, a border, the icon's colour, a LED and a number. */
+function effectMarks(spec: SymbolSpec): { ring: string; extra: string; style: string } {
+  const fx = spec.effects ?? {};
+  const ring = fx.ring
+    ? `<span class="fx-ring" style="--p:${fx.ring.percent};--fa:${safe(fx.ring.color)};--fb:${safe(fx.ring.empty)};--fw:${fx.ring.width}px" aria-hidden="true"></span>`
     : '';
+  const led = fx.led ? `<span class="fx-led" style="--fc:${safe(fx.led)}" aria-hidden="true"></span>` : '';
+  const number = fx.number
+    ? `<span class="fx-num" data-position="${fx.number.position}">${escape(fx.number.text)}</span>`
+    : '';
+  const style = `${fx.border ? `--fx-border:${safe(fx.border)};` : ''}${fx.icon ? `--fx-icon:${safe(fx.icon)};` : ''}`;
+  return { ring, extra: led + number, style };
+}
+export function renderSymbol(spec: SymbolSpec): string {
+  const marks = effectMarks(spec);
+  const ring = marks.ring
+    ? marks.ring
+    : spec.ring
+      ? `<span class="symbol-ring" data-tone="${spec.ring.tone}" style="--level:${spec.ring.level ?? 1}" aria-hidden="true"></span>`
+      : '';
   const icon = spec.body.icon ? `<ha-icon icon="${escape(spec.body.icon)}" aria-hidden="true"></ha-icon>` : '';
   const value = spec.values?.length
     ? ''
@@ -39,7 +57,7 @@ export function renderSymbol(spec: SymbolSpec): string {
     : '';
   const inside = spec.place === 'inside' ? values : '';
   const outside = spec.place === 'inside' ? '' : values;
-  return `${ring}<span class="symbol-body">${icon}${value}${inside}</span>${outside}${link}${badge}${health}${spec.archetype === 'remote' ? '<span class="remote-mark" aria-hidden="true"></span>' : ''}${spec.tag ? `<span class="symbol-tag">${escape(spec.tag)}</span>` : ''}`;
+  return `${ring}<span class="symbol-body"${marks.style ? ` style="${marks.style}"` : ''}${spec.effects?.border ? ' data-fx-border' : ''}${spec.effects?.icon ? ' data-fx-icon' : ''}>${icon}${value}${inside}</span>${outside}${marks.extra}${link}${badge}${health}${spec.archetype === 'remote' ? '<span class="remote-mark" aria-hidden="true"></span>' : ''}${spec.tag ? `<span class="symbol-tag">${escape(spec.tag)}</span>` : ''}`;
 }
 
 export interface ScreenPoint {

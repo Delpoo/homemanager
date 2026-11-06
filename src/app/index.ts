@@ -1,3 +1,4 @@
+import { installTips } from '../ui/tips.js';
 import { homeStart } from '../ui/home-start.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { appearanceBody } from '../editor/settings-page.js';
@@ -95,6 +96,7 @@ export class HomeManagerApp extends HTMLElement {
   panel?: unknown;
 
   connectedCallback(): void {
+    installTips();
     if (!this.root.childElementCount) this.render();
     if (!this.unbindShell) this.unbindShell = bindTopBar(this.root);
     this.root.addEventListener('homemanager-shell-command', this.shellCommand);

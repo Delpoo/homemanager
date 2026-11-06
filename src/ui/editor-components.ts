@@ -31,7 +31,7 @@ export const editorSheetStyles = `
 .sheet-category summary small{font-weight:400;color:var(--hm-muted)}
 .sheet-body .basic{display:grid;gap:12px}.sheet-body .basic>.field{margin:0}
 .sheet-body .base-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end}
-.sheet-body .basic>.base-row{order:1}.sheet-body .basic>.size-host{order:2}.sheet-body .basic>.symbol-color{order:3}.sheet-body .basic>label:has([name=layer]){order:4}
+
 .sheet-body .symbol-size{margin:0}.sheet-body .symbol-size .seg{display:flex}
 .sheet-body .symbol-size .seg button{flex:1;min-width:0;padding:8px 5px}
 .sheet-body .section{background:var(--hm-surface);margin-top:12px}

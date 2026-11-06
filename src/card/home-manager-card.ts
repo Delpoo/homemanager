@@ -1,3 +1,4 @@
+import { installTips } from '../ui/tips.js';
 import { navMenuStyles } from '../shell/nav-menu.js';
 import { fullscreenStyles, syncFullscreen, paintFullscreenButton } from './fullscreen.js';
 import { moveGridStyles } from './move-grid.js';
@@ -130,7 +131,7 @@ export class HomeManagerCard extends HTMLElement {
   linkedClosed?: string;
   linkedAt = 0;
   linkedBusy = false;
-  enabledLayers = new Set(['controls', 'sensors', 'energy']);
+  enabledLayers = new Set(['devices']);
   private layerNamesCleanup?: () => void;
   private syncLayerChoice = () => layerView.syncLayers(this.root);
   pointers = new Map<number, { x: number; y: number }>();
@@ -265,6 +266,7 @@ export class HomeManagerCard extends HTMLElement {
     void renderPlanChoice(this);
   };
   connectedCallback() {
+    installTips();
     window.addEventListener('beforeunload', this.unloadGuard);
     document.addEventListener('fullscreenchange', this.fullscreenChanged);
     document.addEventListener('homemanager-theme-change', this.planThemeChanged);

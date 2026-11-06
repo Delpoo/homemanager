@@ -43,7 +43,6 @@ test('custom color previews in both themes and automatic removes the optional va
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card.locator('[data-id=fan] .primary').click();
   const editor = card.locator('homemanager-editor');
-  await editor.locator('.symbol-color > summary').click();
   await editor.getByLabel('Color libre', { exact: true }).fill('#7655a6');
   await editor.getByLabel('Color libre', { exact: true }).dispatchEvent('change');
   await expect
