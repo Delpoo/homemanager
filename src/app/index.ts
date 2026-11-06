@@ -1,3 +1,4 @@
+import { installTips } from '../ui/tips.js';
 import { homeStart } from '../ui/home-start.js';
 import { TaskScreen } from '../ui/task-screen.js';
 import { appearanceBody } from '../editor/settings-page.js';
@@ -21,6 +22,14 @@ import { ActivityLog } from '../model/activity.js';
 const css = `${tokens}
 :host{display:block;min-height:100dvh;background:var(--hm-bg)}
 .content{padding:0;margin:0}
+/* 0.13: Controls is a panel beside the plan; its design takes the whole stage. */
+.content.controls-open{display:grid;grid-template-columns:minmax(0,1fr) min(440px,100%);height:100dvh}
+.content.controls-open .card-host{min-width:0;overflow:hidden}
+.content.controls-open .rf-host{min-width:0;height:100dvh;overflow:hidden;border-left:1px solid var(--hm-line);background:var(--hm-surface);box-shadow:-8px 0 24px rgba(0,0,0,.06)}
+.content.controls-open:has(homemanager-rf[data-stage]){grid-template-columns:0 minmax(0,1fr)}
+@media(max-width:700px){.content.controls-open{display:block;position:relative}
+ .content.controls-open .rf-host{position:fixed;inset:auto 0 0;z-index:5;height:88dvh;border-left:0;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+ .content.controls-open:has(homemanager-rf[data-stage]) .rf-host{inset:0;height:100dvh;border-radius:0}}
 homemanager-card{--hm-shell-height:max(100dvh,450px);--hm-viewport-height:100%}
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
@@ -87,6 +96,7 @@ export class HomeManagerApp extends HTMLElement {
   panel?: unknown;
 
   connectedCallback(): void {
+    installTips();
     if (!this.root.childElementCount) this.render();
     if (!this.unbindShell) this.unbindShell = bindTopBar(this.root);
     this.root.addEventListener('homemanager-shell-command', this.shellCommand);
@@ -140,9 +150,11 @@ export class HomeManagerApp extends HTMLElement {
   private applyTab(): void {
     const rfTab = this.tab === 'rf' && this._hass?.user?.is_admin === true;
     this.root.querySelector<HTMLElement>('.messages')!.hidden = rfTab;
-    this.root.querySelector<HTMLElement>('.card-host')!.hidden = rfTab || this.creating;
+    this.root.querySelector<HTMLElement>('.card-host')!.hidden = this.creating;
+    this.root.querySelector<HTMLElement>('.content')!.classList.toggle('controls-open', rfTab);
     const host = this.root.querySelector<HTMLElement>('.rf-host')!;
     host.hidden = !rfTab;
+    if (!rfTab) this.rfElement?.stopIrCapture();
     if (rfTab && !this.rfElement) {
       this.rfElement = document.createElement('homemanager-rf') as HomeManagerRf;
       if (this._hass) this.rfElement.hass = this._hass;
@@ -154,7 +166,8 @@ export class HomeManagerApp extends HTMLElement {
     if (!header) return;
     const context = this.shellContext();
     const title = context.homes.find(home => home.home_id === this.selected)?.title ?? t('HomeManager');
-    header.hidden = !!this.selected && this.tab === 'plan' && !this.creating;
+    // The plan keeps its own top bar, also with Controls open beside it (0.13).
+    header.hidden = !!this.selected && !this.creating;
     header.innerHTML = header.hidden
       ? ''
       : renderTopBar({
@@ -176,8 +189,8 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId } = (
-      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string }>
+    const { command, homeId, remoteId, irRemoteId } = (
+      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string; irRemoteId?: string }>
     ).detail;
     if (command === 'home' && homeId) {
       this.select(homeId);
@@ -202,6 +215,7 @@ export class HomeManagerApp extends HTMLElement {
     this.applyTab();
     // From a symbol's Control › Design: straight to that remote's design (#73).
     if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId);
+    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId);
     if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
   };
   /** The same menu remains usable while the RF manager or empty view is open. */

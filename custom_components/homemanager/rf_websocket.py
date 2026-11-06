@@ -280,6 +280,7 @@ async def ws_test(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
         vol.Required("type"): "homemanager/rf/capture",
         vol.Required("transmitter"): vol.All(str, vol.Length(max=64)),
         vol.Optional("seconds", default=30): vol.All(int, vol.Range(min=1, max=MAX_CAPTURE_SECONDS)),
+        vol.Optional("diagnostics", default=False): bool,
     }
 )
 @websocket_api.async_response
@@ -299,7 +300,7 @@ async def ws_capture(hass: HomeAssistant, connection: websocket_api.ActiveConnec
         connection.send_message(websocket_api.event_message(msg_id, {"done": True}))
 
     try:
-        stop = await _rf(hass).async_capture(msg["transmitter"], msg["seconds"], report, done)
+        stop = await _rf(hass).async_capture(msg["transmitter"], msg["seconds"], report, done, diagnostics=msg["diagnostics"])
     except ModelError as error:
         connection.send_error(msg_id, error.code, str(error))
         return

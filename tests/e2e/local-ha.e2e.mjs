@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openSettings } from '../browser/shell-helpers.mjs';
 // End-to-end check against a REAL, DISPOSABLE Home Assistant running the
 // HomeManager integration. Never point it at a real installation: it creates a
 // home, saves dashboards and switches the `light.e2e_*` test entities.
@@ -171,8 +171,7 @@ async function save() {
   await status.filter({ hasText: 'Guardado en Home Assistant' }).waitFor();
 }
 async function openImport() {
-  if (!(await card.getByRole('region', { name: 'Configuración' }).isVisible()))
-    await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  if (!(await card.getByRole('region', { name: 'Configuración' }).isVisible())) await openSettings(card);
   await showSection(card, 'import-section');
 }
 

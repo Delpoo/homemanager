@@ -45,6 +45,8 @@ export interface Device {
     /** Plan 0.12 (#92): readings shown on the symbol, in order, and how each looks. */
     values?: import('../model/value-style.js').ValueStyle[];
     valuePlace?: 'inside' | 'beside' | 'below';
+    /** 0.13: ring, border, icon colour, LED and number driven by readings. */
+    indicators?: import('../model/indicator.js').Indicator[];
     /** Plan 0.12 (#93, #94): free size, size in the per-space view, background opacity (%) and shape. */
     scale?: number;
     roomScale?: number;
@@ -65,6 +67,7 @@ export interface Device {
     quickActions?: QuickAction[];
     /** RF remote drawn in the device panel (V2, optional). */
     remoteId?: string | null;
+    irRemoteId?: string | null;
     /** The device's controls, shown in its panel (V2, optional). */
     controls?: DeviceControl[];
     layout?: import('../model/control-layout.js').ControlPiece[];
@@ -136,7 +139,11 @@ export interface Hass {
   panels?: Record<string, { component_name?: string; config?: { mode?: string } }>;
   connection?: {
     connected?: boolean;
-    subscribeMessage?(callback: (message: unknown) => void, subscription: Record<string, unknown>): Promise<() => void>;
+    subscribeMessage?(
+      callback: (message: unknown) => void,
+      subscription: Record<string, unknown>,
+      options?: { resubscribe?: boolean; preCheck?: () => boolean },
+    ): Promise<() => void>;
   };
   config?: { components?: string[] };
   /** Registries exposed by HA's frontend: used to show and match areas. */

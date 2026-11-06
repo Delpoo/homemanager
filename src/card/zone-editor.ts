@@ -37,7 +37,7 @@ import type { HomeManagerCard } from './home-manager-card.js';
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
 const PLAN: RoomShape = { x: 0, y: 0, width: 1, height: 1 };
 const DOCK_WIDTH = 720;
-export type ZoneTool = 'select' | 'new' | 'add';
+export type ZoneTool = 'select' | 'new' | 'add' | 'divide' | 'merge';
 type Drag =
   | { kind: 'rect'; handle: ShapeHandle; x: number; y: number; rect: RoomShape; before: ZoneDraft; moved: boolean }
   | { kind: 'draw'; from: { x: number; y: number }; shape?: RoomShape };
@@ -83,14 +83,20 @@ const keyOf = (edit: ZoneEdit): string =>
   JSON.stringify([edit.selected, edit.tool, edit.draft.zones.map(zone => [zone.id, zone.rects.length])]);
 
 function hint(edit: ZoneEdit, zone: EditZone | undefined): string {
-  if (edit.tool === 'new') return t('Arrastrá sobre el plano para dibujar la zona.');
-  if (edit.tool === 'add' && zone)
-    return t('Arrastrá sobre el plano para agregarle un rectángulo a {room}.', { room: zone.label });
+  if (edit.tool === 'new') return t('Arrastrá sobre el plano para dibujar el espacio.');
+  if (edit.tool === 'add')
+    return zone ? t('Arrastrá para agregarle una parte a {room}.', { room: zone.label }) : t('Elegí un espacio');
+  if (edit.tool === 'divide') return t('Tocá el espacio a dividir');
+  if (edit.tool === 'merge')
+    return zone ? t('Tocá el espacio vecino para unirlo a {room}', { room: zone.label }) : t('Tocá el primer espacio');
   if (zone && !zone.rects.length) return t('Esta zona todavía no tiene forma.');
-  if (!zone) return t('Tocá una zona del plano para editarla.');
+  if (!zone) return t('Tocá un espacio');
   return t('Arrastrá la zona o sus puntos.');
 }
 
+const glyph = (name: string) => `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>`;
+/** 0.13: tools as icons in one bar at the bottom, like a robot vacuum's map editor;
+ * their names are tooltips. The space's name is edited right above it. */
 function barMarkup(edit: ZoneEdit): string {
   const zone = selectedZone(edit);
   const others = edit.draft.zones.filter(item => item.id !== edit.selected);
@@ -98,9 +104,43 @@ function barMarkup(edit: ZoneEdit): string {
     items
       .map(item => `<option value="${e(item.id)}"${item.id === selected ? ' selected' : ''}>${e(item.label)}</option>`)
       .join('');
-  const button = (command: string, label: string, enabled = true, pressed?: boolean) =>
-    `<button type="button" data-command="${command}"${enabled ? '' : ' disabled'}${pressed === undefined ? '' : ` aria-pressed="${pressed}"`}>${e(label)}</button>`;
-  return `<div class="zones-bar" role="toolbar" aria-label="${e(t('Editor de zonas'))}"><div class="zones-row"><select name="zone-pick" aria-label="${e(t('Zona'))}"><option value="">${e(t('Elegí una zona'))}</option>${options(edit.draft.zones, edit.selected ?? '')}</select><input name="zone-name" maxlength="240" aria-label="${e(t('Nombre de la zona'))}" placeholder="${e(t('Nombre de la zona'))}" value="${e(zone?.label ?? '')}"${zone ? '' : ' disabled'}></div><div class="zones-row">${button('zone-new', t('Nueva zona'), true, edit.tool === 'new')}${button('zone-add', t('Agregar rectángulo'), !!zone && zone.rects.length < MAX_RECTS, edit.tool === 'add')}${button('zone-cut', t('Quitar rectángulo'), (zone?.rects.length ?? 0) > 1)}${button('zone-adopt', t('Fusionar formas de este espacio'), canAdoptZone(zone))}<select name="zone-merge" aria-label="${e(t('Fusionar con'))}"${zone && others.length ? '' : ' disabled'}><option value="">${e(t('Fusionar con…'))}</option>${options(others)}</select>${button('zone-delete', t('Eliminar zona'), !!zone)}</div><div class="zones-row"><span class="zones-hint">${e(hint(edit, zone))}</span>${button('zone-undo', t('Deshacer'), edit.past.length > 0)}${button('zone-cancel', t('Cancelar'))}<button type="button" class="primary" data-command="zone-apply">${e(t('Aplicar'))}</button></div></div>`;
+  const tool = (command: string, label: string, icon: string, enabled = true, pressed?: boolean, extra = '') =>
+    `<button type="button" class="ztool${extra}" data-command="${command}" aria-label="${e(label)}" title="${e(label)}"${enabled ? '' : ' disabled'}${pressed === undefined ? '' : ` aria-pressed="${pressed}"`}>${glyph(icon)}</button>`;
+  const merge =
+    edit.tool === 'merge' && zone && others.length
+      ? `<select name="zone-merge" aria-label="${e(t('Fusionar con'))}"><option value="">${e(t('Fusionar con…'))}</option>${options(others)}</select>`
+      : '';
+  return `<div class="zones-bar" role="toolbar" aria-label="${e(t('Editor de zonas'))}"><div class="zones-head"><select name="zone-pick" aria-label="${e(t('Zona'))}" title="${e(t('Zona'))}"><option value="">${e(t('Elegí una zona'))}</option>${options(edit.draft.zones, edit.selected ?? '')}</select><input name="zone-name" maxlength="240" aria-label="${e(t('Nombre de la zona'))}" placeholder="${e(t('Nombre de la zona'))}" value="${e(zone?.label ?? '')}"${zone ? '' : ' disabled'}>${merge}</div><div class="zones-hint" role="status">${e(hint(edit, zone))}</div><div class="zones-tools">${tool('zone-select', t('Elegir'), 'mdi:cursor-default-outline', true, edit.tool === 'select')}${tool('zone-new', t('Dibujar espacio'), 'mdi:vector-rectangle', true, edit.tool === 'new')}${tool('zone-add', t('Agregar parte'), 'mdi:vector-square-plus', !!zone && zone.rects.length < MAX_RECTS, edit.tool === 'add')}${tool(
+    'zone-divide',
+    t('Dividir'),
+    'mdi:vector-line',
+    edit.draft.zones.some(item => item.rects.length),
+    edit.tool === 'divide',
+  )}${tool('zone-merge-tool', t('Unir'), 'mdi:vector-union', edit.draft.zones.length > 1, edit.tool === 'merge')}${tool('zone-cut', t('Quitar parte'), 'mdi:vector-square-minus', (zone?.rects.length ?? 0) > 1)}${tool('zone-adopt', t('Fusionar formas de este espacio'), 'mdi:vector-combine', canAdoptZone(zone))}${tool('zone-delete', t('Borrar espacio'), 'mdi:trash-can-outline', !!zone, undefined, ' danger')}<span class="zsep" aria-hidden="true"></span>${tool('zone-undo', t('Deshacer'), 'mdi:undo', edit.past.length > 0)}${tool('zone-cancel', t('Cancelar'), 'mdi:close')}${tool('zone-apply', t('Aplicar'), 'mdi:check', true, undefined, ' primary')}</div></div>`;
+}
+
+/** Divide: the tapped part is cut in two along its longer side; the second half is a new space. */
+function divideAt(card: HomeManagerCard, edit: ZoneEdit, zone: EditZone, at: { x: number; y: number }): void {
+  const index = Math.max(
+    0,
+    zone.rects.findIndex(rect => zoneAt({ ...edit.draft, zones: [{ ...zone, rects: [rect] }] }, at)),
+  );
+  const rect = zone.rects[index];
+  if (!rect || rect.width < MIN_RECT * 2 || rect.height < MIN_RECT * 2) {
+    card.status(t('Este espacio es muy chico para dividirlo.'));
+    return;
+  }
+  const wide = rect.width >= rect.height;
+  const first = wide ? { ...rect, width: rect.width / 2 } : { ...rect, height: rect.height / 2 };
+  const second = wide
+    ? { ...rect, x: rect.x + rect.width / 2, width: rect.width / 2 }
+    : { ...rect, y: rect.y + rect.height / 2, height: rect.height / 2 };
+  remember(edit);
+  edit.draft = updateRect(edit.draft, zone.id, index, first);
+  const taken = card.draft?.rooms.map(room => room.id) ?? [];
+  edit.draft = addZone(edit.draft, t('Zona {n}', { n: edit.draft.zones.length + 1 }), second, taken);
+  edit.tool = 'select';
+  selectZone(card, edit, edit.draft.zones.at(-1)!.id);
 }
 
 function build(layer: HTMLElement, edit: ZoneEdit): void {
@@ -122,7 +162,7 @@ function build(layer: HTMLElement, edit: ZoneEdit): void {
         `<div class="zone-rect" tabindex="0" role="group" data-handle="move" data-index="${index}" aria-label="${e(t('Rectángulo {n} de {room}: flechas para moverlo, Mayúsculas y flechas para cambiar su tamaño', { n: index + 1, room: zone!.label }))}">${HANDLES.map(handle => `<span class="zone-handle" data-handle="${handle}" aria-hidden="true"></span>`).join('')}</div>`,
     )
     .join('');
-  layer.innerHTML = `<div class="zones-fills">${fills}</div><svg class="zones-outline" aria-hidden="true"></svg>${rects}${edit.tool === 'select' ? '' : '<div class="zones-draw"><div class="zone-preview" hidden></div></div>'}${names}${barMarkup(edit)}`;
+  layer.innerHTML = `<div class="zones-fills">${fills}</div><svg class="zones-outline" aria-hidden="true"></svg>${rects}${edit.tool === 'new' || edit.tool === 'add' ? '<div class="zones-draw"><div class="zone-preview" hidden></div></div>' : ''}${names}${barMarkup(edit)}`;
 }
 
 /** Draws in screen space; called with every camera frame. */
@@ -251,6 +291,21 @@ export function tapZone(this: HomeManagerCard, point: { x: number; y: number }):
   if (!edit) return;
   const at = normalized(this, point);
   const zone = zoneAt(edit.draft, at);
+  if (edit.tool === 'divide') {
+    if (zone) divideAt(this, edit, zone, at);
+    else this.renderZoneEdit();
+    return;
+  }
+  if (edit.tool === 'merge' && zone && edit.selected && zone.id !== edit.selected) {
+    const merged = mergeZones(edit.draft, zone.id, edit.selected);
+    if (merged) {
+      remember(edit);
+      edit.draft = merged;
+      edit.tool = 'select';
+    } else this.status(t('Sólo se unen espacios que se tocan.'));
+    this.renderZoneEdit();
+    return;
+  }
   if (zone?.id === edit.selected && zone) {
     // Within the selected zone it picks the rectangle under the finger.
     const index = zone.rects.findIndex(rect => zoneAt({ ...edit.draft, zones: [{ ...zone, rects: [rect] }] }, at));
@@ -435,8 +490,17 @@ export function zoneCommand(this: HomeManagerCard, command: string, trigger?: HT
   if (!edit) return;
   const selected = edit.selected;
   switch (command) {
+    case 'zone-select':
+      edit.tool = 'select';
+      break;
     case 'zone-new':
       edit.tool = edit.tool === 'new' ? 'select' : 'new';
+      break;
+    case 'zone-divide':
+      edit.tool = edit.tool === 'divide' ? 'select' : 'divide';
+      break;
+    case 'zone-merge-tool':
+      edit.tool = edit.tool === 'merge' ? 'select' : 'merge';
       break;
     case 'zone-add':
       edit.tool = edit.tool === 'add' ? 'select' : 'add';
@@ -630,22 +694,20 @@ export const zoneEditStyles = `
 .zone-handle[data-handle=se]{left:100%;top:100%;cursor:nwse-resize}.zone-handle[data-handle=s]{left:50%;top:100%;cursor:ns-resize}.zone-handle[data-handle=sw]{left:0;top:100%;cursor:nesw-resize}.zone-handle[data-handle=w]{left:0;top:50%;cursor:ew-resize}
 .zones-draw{position:absolute;inset:0;z-index:2;pointer-events:auto;touch-action:none;cursor:crosshair}
 .zone-preview{position:absolute;box-sizing:border-box;border:2px dashed var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 18%,transparent)}
-.zones-bar{position:absolute;left:10px;right:10px;bottom:10px;max-width:780px;margin:auto;display:grid;gap:6px;padding:8px;background:var(--hm-surface);border:1px solid var(--hm-line);border-radius:14px;box-shadow:var(--hm-shadow);pointer-events:auto;font-size:13px;z-index:3}
-.zones-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.zones-row select,.zones-row input,.zones-row button{min-height:36px;box-sizing:border-box;border:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit}
-.zones-row select,.zones-row input{flex:1 1 130px;min-width:0;padding:0 8px;border-radius:10px}
-.zones-row button{padding:0 12px;border-radius:18px;cursor:pointer}
-.zones-row button:disabled,.zones-row select:disabled,.zones-row input:disabled{opacity:.45;cursor:default}
-.zones-row button[aria-pressed=true]{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 16%,var(--hm-surface))}
-.zones-row button.primary{background:var(--hm-brand);border-color:var(--hm-brand);color:var(--hm-on-accent,#fff)}
-.zones-row:nth-child(2){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-.zones-row:nth-child(2)>*{flex:none}
-.zones-row:nth-child(3) button{flex:1 1 auto}
-.zones-hint{flex:1 1 100%;color:var(--hm-muted,inherit);font-size:12px}
-[data-docked] .zones-bar{left:auto;width:264px;top:10px;margin:0;align-content:start;overflow:auto}
-[data-docked] .zones-row:nth-child(2){flex-wrap:wrap;overflow:visible}
-[data-docked] .zones-row:nth-child(2)>*{flex:1 1 100%}
-[data-docked] .zones-row select,[data-docked] .zones-row input{flex:1 1 100%}
+.zones-bar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);display:grid;justify-items:center;gap:6px;pointer-events:auto;font-size:13px;z-index:3}
+.zones-head{display:flex;align-items:center;gap:6px;padding:6px;border-radius:14px;background:var(--hm-surface);box-shadow:var(--hm-shadow);max-width:100%}
+.zones-head select,.zones-head input{min-height:36px;box-sizing:border-box;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;padding:0 8px;min-width:0}
+.zones-head select{width:auto;max-width:150px}.zones-head input{width:190px}.zones-head input:disabled{opacity:.5}
+.zones-hint{padding:4px 12px;border-radius:999px;background:var(--hm-ink);color:var(--hm-surface);font-size:12.5px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.zones-tools{display:flex;align-items:center;gap:2px;padding:4px;border-radius:16px;background:var(--hm-surface);box-shadow:var(--hm-shadow);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.ztool{flex:none;display:grid;place-items:center;width:42px;height:42px;min-height:42px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--hm-ink);cursor:pointer}
+.ztool ha-icon{--mdc-icon-size:22px}.ztool:hover:not(:disabled){background:var(--hm-surface-2)}
+.ztool:disabled{opacity:.35;cursor:default}
+.ztool[aria-pressed=true]{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.ztool.danger{color:var(--hm-alert)}.ztool.primary{background:var(--hm-brand);color:var(--hm-on-accent,#fff)}
+.zsep{flex:none;width:1px;height:24px;margin:0 4px;background:var(--hm-line)}
+/* Wide screens: the bar sits on the right so it never covers the corner being dragged. */
+[data-docked] .zones-bar{left:auto;right:10px;transform:none;justify-items:end}
 .zone-moves{display:grid;gap:6px;max-height:50vh;overflow:auto}
-@media(max-width:650px){.zones-row:nth-child(2){flex-wrap:wrap;overflow:visible}.zones-row:nth-child(2)>*{flex:1 1 130px}.zones-row select,.zones-row input,.zones-row button{min-height:44px}}
+@media(max-width:650px){.zones-head{flex-wrap:wrap}.zones-head input{width:140px}.ztool{width:40px;height:44px}}
 `;

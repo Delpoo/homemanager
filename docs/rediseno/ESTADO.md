@@ -4,9 +4,9 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** el propietario prueba `v0.12.0-beta.1` con la lista de [plan-0.12.md](plan-0.12.md) y anota lo que haya que corregir.
+**Siguiente paso:** plan 0.13 ([plan-0.13.md](plan-0.13.md)), maqueta aprobada. Hecho: lote 1a (#108, menús y Configuración al costado) y Controles (#109, sobre #107). Falta: limpieza 1b y el resto de pantallas. Nada fusionado ni publicado.
 
-**Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) y el plan 0.12 en `v0.12.0-beta.1` (#104), publicada a pedido del propietario el 2026-11-05 para probarla. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
+**Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) el plan 0.12 en `v0.12.0-beta.1` (#104) y el plan 0.13 (lotes 1 a 5 y Controles) en `v0.13.0-beta.1`, publicadas a pedido del propietario para probarlas. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
 ## Plan 0.12
 
@@ -65,6 +65,8 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 ## Bitácora
 
+- 2026-11-06 - Claude - **0.13 / Controles (#109).** #107 integrado sin conflictos (11 archivos sin formato, corregidos). Panel Controles al costado del plano, aprender RF/IR con anillo, paso Probar, diseñador libre con modelo ampliado y compatible en los tres validadores y el esquema. Capturas en Chrome; sin fusión ni versión.
+
 - 2026-11-03 - Codex - **Lote 4 / E11-E13.** Alternativas con imágenes privadas y copia completa, Ahora editable por hogar/pared, mouse PC y modo pared real. Un commit por etapa; E11 aislada aprueba tipos y 280 pruebas, conjunto 284. Recorridos focales y 34 capturas ficticias con referencias y antes/después. Validación HA y E2E sólo en runner desechable de CI. Resultado final y limitaciones en reporte del PR. Sin fusiones, versiones ni acceso a la casa.
 
 - 2026-11-02 - Codex - **Lote 3 / PR #56 y regresión de cierre.** E09 y E10 transferidos por conector; árboles comprobados idénticos a los commits locales. Integración inicial: 247 pruebas por versión HA. Recorrido CP6 reprodujo jerga en aprendizaje y falta del icono Guardar; corregidos sin cambiar contadores, se conserva nombre accesible. Nueve casos de escritorio y siete móviles repetidos; 279 pruebas de código, formato y ocho capturas actualizadas. CI final y reporte en PR, sin main, release ni lote 4.
@@ -107,6 +109,7 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 
 Una línea por entrega, la más reciente arriba: `AAAA-MM-DD · agente · etapa · qué pasó`.
 
+- 2026-11-05 · Claude · plan 0.13 · Al probar v0.12.0-beta.1 el propietario pidió un rediseño mayor. Maqueta interactiva de todas las pantallas y plan por lotes con prueba visual obligatoria.
 - 2026-11-05 · Claude · plan 0.12 · Lotes B a F implementados de corrido (decisión 12 de #99): Configuración ⚙, pantalla completa, modo edición ámbar, paneles al costado, ficha y valores del símbolo, atajos a programas, gestos a apps, Estado de la casa, almacenamiento, reglas base agrupadas, Ahora editable, ayuda y glosario. PR #100 a #102 y el de los lotes D a F, sin fusionar. Auditoría del 2026-11-04 en #69 y #79; decisiones del propietario en #99.
 - 2026-11-05 · Claude · plan 0.12 · Lote A terminado: cancelar un dispositivo nuevo (#88), copia de recuperación del borrador (#89), texto guiado RF (#64) y limpieza de imágenes (#63). Check 289, navegador 488 aprobadas y 4 omitidas. pytest sólo en CI: Home Assistant no se instala en este Windows.
 - 2026-11-05 · Claude · plan 0.12 · Lote A empezado desde main 97d4ad4 por pedido del propietario («comenza vos a implementar todo»). Plan copiado en plan-0.12.md.

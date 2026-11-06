@@ -1,11 +1,23 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { installPanelComponents } from '../ui/panel-components.js';
-import { rfRemoteStyles, rfText, remoteCell, remoteWidget, positionRemoteWidget } from '../ui/rf-components.js';
-import type { RfButton, RfRemote, RfWidget } from '../integration/rf.js';
-import { COLUMNS, MAX_HEIGHT, MAX_ROWS, buttonById, layoutOf, place, rows } from './layout.js';
+import {
+  rfRemoteStyles,
+  rfText,
+  remoteCell,
+  remoteWidget,
+  positionRemoteWidget,
+  remoteGrid,
+  remoteBody,
+  remotePieceStyles,
+  knobDial,
+  sparkline,
+} from '../ui/rf-components.js';
+import type { RfButton, RfWidget } from '../integration/rf.js';
+import type { DrawableRemote } from './layout.js';
+import { MAX_HEIGHT, MAX_ROWS, buttonById, columnsOf, layoutOf, place, rows } from './layout.js';
 import { icon } from './catalog.js';
-import { readingValue } from '../model/control-layout.js';
+import { drawnPieces, readingValue } from '../model/control-layout.js';
 import { controlViewStyles } from '../ui/control-view.js';
 
 /** A remote drawn as a remote: its widgets on a four-column grid.
@@ -21,7 +33,7 @@ const GAP = 10;
 
 export class HomeManagerRfRemote extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
-  private _remote: RfRemote | null = null;
+  private _remote: DrawableRemote | null = null;
   private _editing = false;
   private drag: {
     id: string;
@@ -43,13 +55,16 @@ export class HomeManagerRfRemote extends HTMLElement {
   estimated = true;
   preview = false;
   private sentSteps = new Map<string, number>();
+  /** Recent numeric readings of each chart, newest last (only while open). */
+  private samples = new Map<string, number[]>();
 
   constructor() {
     super();
     installPanelComponents(
       this.root,
       'rf-remote-view',
-      rfRemoteStyles(COLUMNS, ROW, GAP) +
+      rfRemoteStyles(4, ROW, GAP) +
+        remotePieceStyles +
         controlViewStyles +
         `
       [data-reading]{font-size:24px;font-weight:500;text-align:center;line-height:1.1}
@@ -59,12 +74,12 @@ export class HomeManagerRfRemote extends HTMLElement {
     );
   }
 
-  set remote(remote: RfRemote | null) {
+  set remote(remote: DrawableRemote | null) {
     if (remote?.id !== this._remote?.id) this.sentSteps.clear();
     this._remote = remote;
     this.render();
   }
-  get remote(): RfRemote | null {
+  get remote(): DrawableRemote | null {
     return this._remote;
   }
   set editing(editing: boolean) {
@@ -78,6 +93,9 @@ export class HomeManagerRfRemote extends HTMLElement {
   private layout(): RfWidget[] {
     return this._remote ? layoutOf(this._remote) : [];
   }
+  private columns(): number {
+    return columnsOf(this.layout());
+  }
 
   // Rendering -------------------------------------------------------------
 
@@ -87,16 +105,22 @@ export class HomeManagerRfRemote extends HTMLElement {
       this.root.innerHTML = '';
       return;
     }
-    const layout = this.layout();
-    const height = Math.max(1, rows(layout) + (this._editing ? 1 : 0));
+    const all = this.layout();
+    const layout = drawnPieces(all);
+    const columns = this.columns();
+    const height = Math.max(1, rows(all) + (this._editing ? 1 : 0));
     const cells = this._editing
-      ? Array.from({ length: height * COLUMNS }, (_, index) =>
-          remoteCell((index % COLUMNS) + 1, Math.floor(index / COLUMNS) + 1),
+      ? Array.from({ length: height * columns }, (_, index) =>
+          remoteCell((index % columns) + 1, Math.floor(index / columns) + 1),
         ).join('')
       : '';
     const widgets = layout.map(widget => this.renderWidget(remote, widget)).join('');
     const empty = layout.length ? '' : `<p class="empty">${e(t('Este control todavía no tiene botones.'))}</p>`;
-    this.root.innerHTML = `<div class="body${this._editing ? ' editing' : ''}"><div class="grid">${cells}${widgets}${empty}</div><p class="live" role="status" aria-live="polite"></p></div>`;
+    this.root.innerHTML = remoteBody(
+      columns,
+      `body${this._editing ? ' editing' : ''}`,
+      `${remoteGrid(columns, `${cells}${widgets}${empty}`)}<p class="live" role="status" aria-live="polite"></p>`,
+    );
     for (const widget of layout) {
       const content = this.renderContent?.(widget);
       if (content) this.root.querySelector(`[data-content="${widget.id}"]`)?.append(content);
@@ -104,18 +128,19 @@ export class HomeManagerRfRemote extends HTMLElement {
     this.bind();
   }
 
-  private name(widget: RfWidget, remote: RfRemote): string {
+  private name(widget: RfWidget, remote: DrawableRemote): string {
     if (widget.label) return rfText(widget.label);
     return widget.buttons.map(id => buttonById(remote, id)?.name ?? t('Botón')).join(' / ');
   }
 
-  private renderWidget(remote: RfRemote, widget: RfWidget): string {
+  private renderWidget(remote: DrawableRemote, widget: RfWidget): string {
     const buttons = widget.buttons.map(id => buttonById(remote, id)).filter((item): item is RfButton => !!item);
     const send = (button: RfButton, inner: string, label = button.name) =>
       `<button type="button" data-send="${e(button.id)}" aria-label="${e(rfText(label))}">${inner}</button>`;
+    // 0.13: an icon or a text can be hidden; the name stays for screen readers.
     const key = (button: RfButton, text: string, glyph: string | null) =>
-      `<button type="button" class="key" data-send="${e(button.id)}">${icon(glyph)}<span>${e(rfText(text))}</span></button>`;
-    const cap = widget.label ? `<div class="cap">${e(rfText(widget.label))}</div>` : '';
+      `<button type="button" class="key" data-send="${e(button.id)}"${widget.hideLabel ? ` aria-label="${e(rfText(text))}"` : ''}>${widget.hideIcon ? '' : icon(glyph)}${widget.hideLabel ? '' : `<span>${e(rfText(text))}</span>`}</button>`;
+    const cap = widget.label && !widget.hideLabel ? `<div class="cap">${e(rfText(widget.label))}</div>` : '';
     let content = '';
     switch (widget.type) {
       case 'indicator':
@@ -126,6 +151,19 @@ export class HomeManagerRfRemote extends HTMLElement {
         break;
       case 'separator':
         content = '<hr>';
+        break;
+      case 'knob': {
+        const reached = this.sentSteps.get(widget.id) ?? -1;
+        const next = buttons[(reached + 1) % buttons.length];
+        if (next)
+          content = `<button type="button" class="knob" data-send="${e(next.id)}" data-cycle="${e(widget.id)}" aria-label="${e(`${this.name(widget, remote)} · ${next.name}`)}">${knobDial(reached + 1, buttons.length, reached >= 0 ? String(reached + 1) : '–')}</button>${cap}`;
+        break;
+      }
+      case 'preset':
+        content = `<button type="button" class="key" data-preset="${e(widget.id)}" aria-label="${e(this.name(widget, remote))}">${widget.hideIcon ? '' : icon(widget.icon ?? 'mdi:playlist-play')}${widget.hideLabel ? '' : `<span>${e(rfText(widget.label ?? t('Preset')))}</span>`}</button>`;
+        break;
+      case 'graph':
+        content = `${cap}<output data-reading="${e(widget.id)}">${e(readingValue(widget, this.readValues?.()))}</output><span data-spark="${e(widget.id)}">${sparkline(this.samples.get(widget.id) ?? [])}</span>`;
         break;
       case 'cycle': {
         const index = ((this.sentSteps.get(widget.id) ?? -1) + 1) % buttons.length;
@@ -155,7 +193,10 @@ export class HomeManagerRfRemote extends HTMLElement {
       case 'updown': {
         const [down, up] = buttons;
         if (down && up)
-          content = `<div class="updown">${send(down, '−')}<div class="cap">${e(rfText(widget.label ?? `${down.name} / ${up.name}`))}</div>${send(up, '+')}</div>`;
+          content =
+            widget.orientation === 'vertical'
+              ? `<div class="updown">${send(up, '+')}<div class="cap">${e(rfText(widget.label ?? `${down.name} / ${up.name}`))}</div>${send(down, '−')}</div>`
+              : `<div class="updown">${send(down, '−')}<div class="cap">${e(rfText(widget.label ?? `${down.name} / ${up.name}`))}</div>${send(up, '+')}</div>`;
         break;
       }
       case 'steps':
@@ -165,7 +206,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         content = `${cap}<div class="row">${buttons.map(button => send(button, e(rfText(button.name)))).join('')}</div>`;
         break;
     }
-    if (this.renderContent && !['indicator', 'title', 'separator'].includes(widget.type))
+    if (this.renderContent && !['indicator', 'title', 'separator', 'graph', 'preset', 'knob'].includes(widget.type))
       content = `<div data-content="${e(widget.id)}"></div>`;
     const label = this.name(widget, remote);
 
@@ -196,6 +237,9 @@ export class HomeManagerRfRemote extends HTMLElement {
       root
         .querySelectorAll<HTMLButtonElement>('[data-send]')
         .forEach(button => button.addEventListener('click', () => void this.send(button)));
+      root
+        .querySelectorAll<HTMLButtonElement>('[data-preset]')
+        .forEach(button => button.addEventListener('click', () => void this.runPreset(button)));
       return;
     }
     root
@@ -253,21 +297,80 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
   }
 
+  /** A preset sends its steps in order; a pause waits; nothing claims the result. */
+  private async runPreset(button: HTMLButtonElement): Promise<void> {
+    const widget = this.layout().find(item => item.id === button.dataset.preset);
+    const live = this.root.querySelector<HTMLElement>('.live')!;
+    if (!widget?.sequence) return;
+    if (this.preview) {
+      live.textContent = t('Vista previa: no se envían comandos.');
+      return;
+    }
+    const element = button.closest('.widget');
+    element?.classList.add('running');
+    button.disabled = true;
+    try {
+      for (const step of widget.sequence) {
+        if ('wait' in step) await new Promise(resolve => window.setTimeout(resolve, step.wait));
+        else
+          for (let time = 0; time < (step.times ?? 1); time++) {
+            await this.onPress?.(step.button);
+            await new Promise(resolve => window.setTimeout(resolve, 250));
+          }
+      }
+      live.classList.remove('error');
+      live.textContent = t('Enviado: {name}', { name: rfText(widget.label ?? t('Preset')) });
+    } catch (error) {
+      live.classList.add('error');
+      live.textContent = t('No se pudo enviar {name}: {message}', {
+        name: rfText(widget.label ?? t('Preset')),
+        message: (error as { message?: string })?.message ?? '',
+      });
+    } finally {
+      element?.classList.remove('running');
+      button.disabled = false;
+    }
+  }
+
   updateIndicators(): void {
     for (const piece of this.layout()) {
       const output = this.root.querySelector<HTMLOutputElement>(`[data-reading="${piece.id}"]`);
-      if (output) output.textContent = readingValue(piece, this.readValues?.());
+      const value = readingValue(piece, this.readValues?.());
+      if (output) output.textContent = value;
+      if (piece.type !== 'graph') continue;
+      const number = Number(value);
+      if (!Number.isFinite(number)) continue;
+      const list = this.samples.get(piece.id) ?? [];
+      if (list.at(-1) !== number) list.push(number);
+      this.samples.set(piece.id, list.slice(-48));
+      const spark = this.root.querySelector<HTMLElement>(`[data-spark="${piece.id}"]`);
+      if (spark) spark.innerHTML = sparkline(list);
     }
   }
 
   // Edit mode -------------------------------------------------------------
 
-  private cell(event: PointerEvent): [number, number] {
-    const rect = this.root.querySelector<HTMLElement>('.grid')!.getBoundingClientRect();
-    const column = (rect.width - GAP * (COLUMNS - 1)) / COLUMNS;
-    const x = Math.floor((event.clientX - rect.left + GAP / 2) / (column + GAP));
-    const y = Math.floor((event.clientY - rect.top + GAP / 2) / (ROW + GAP));
-    return [Math.max(0, Math.min(COLUMNS - 1, x)), Math.max(0, Math.min(MAX_ROWS - 1, y))];
+  /** The cell under a point, for dropping a learned button on the grid (0.13). */
+  cellAt(clientX: number, clientY: number): { x: number; y: number } | null {
+    const grid = this.root.querySelector<HTMLElement>('.grid');
+    if (!grid) return null;
+    const rect = grid.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top) return null;
+    const [x, y] = this.cell({ clientX, clientY } as PointerEvent);
+    return { x, y };
+  }
+
+  private cell(event: Pick<PointerEvent, 'clientX' | 'clientY'>): [number, number] {
+    const grid = this.root.querySelector<HTMLElement>('.grid')!;
+    const rect = grid.getBoundingClientRect();
+    const computed = getComputedStyle(grid);
+    const columns = this.columns();
+    const gap = parseFloat(computed.columnGap) || GAP;
+    const row = parseFloat(computed.gridAutoRows) || ROW;
+    const column = (rect.width - gap * (columns - 1)) / columns;
+    const x = Math.floor((event.clientX - rect.left + gap / 2) / (column + gap));
+    const y = Math.floor((event.clientY - rect.top + gap / 2) / (row + gap));
+    return [Math.max(0, Math.min(columns - 1, x)), Math.max(0, Math.min(MAX_ROWS - 1, y))];
   }
 
   private startDrag(event: PointerEvent, element: HTMLElement): void {
@@ -294,12 +397,12 @@ export class HomeManagerRfRemote extends HTMLElement {
         drag.mode === 'move'
           ? {
               ...drag.box,
-              x: Math.max(0, Math.min(COLUMNS - drag.box.w, cx - drag.offset[0])),
+              x: Math.max(0, Math.min(this.columns() - drag.box.w, cx - drag.offset[0])),
               y: Math.max(0, cy - drag.offset[1]),
             }
           : {
               ...drag.box,
-              w: Math.max(1, Math.min(COLUMNS - drag.box.x, cx - drag.box.x + 1)),
+              w: Math.max(1, Math.min(this.columns() - drag.box.x, cx - drag.box.x + 1)),
               h: Math.max(1, Math.min(MAX_HEIGHT, cy - drag.box.y + 1)),
             };
       if (box.x === drag.box.x && box.y === drag.box.y && box.w === drag.box.w && box.h === drag.box.h) return;

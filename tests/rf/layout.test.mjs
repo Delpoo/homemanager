@@ -69,14 +69,20 @@ test('placing a widget pushes the ones it covers down and keeps it in the grid',
       ['c', 1, 2],
     ],
   );
-  // Resizing beyond the grid is clamped: four columns, three rows high at most.
-  const wide = place(layout, 'a', { w: 9, h: 9 });
-  assert.deepEqual([wide[0].w, wide[0].h], [4, 3]);
+  // Resizing beyond the grid is clamped: four columns, twelve rows high at most (0.13).
+  const wide = place(layout, 'a', { w: 9, h: 20 });
+  assert.deepEqual([wide[0].w, wide[0].h], [4, 12]);
   assert.deepEqual(
     wide.slice(1).map(item => item.y),
-    [3, 4],
+    [12, 13],
   );
-  assert.equal(rows(wide), 5);
+  assert.equal(rows(wide), 14);
+  // A canvas widens the grid; it is never moved or counted as a piece.
+  const canvas = { id: 'grid', type: 'canvas', x: 0, y: 0, w: 8, h: 6, buttons: [], label: null, icon: null };
+  const roomy = place([canvas, ...layout], 'a', { x: 6, w: 2 });
+  assert.deepEqual([roomy[1].x, roomy[1].w], [6, 2]);
+  assert.deepEqual(roomy[0], canvas);
+  assert.deepEqual(freeSpot([canvas, widget('x', 0, 0, 7)], 1, 1), { x: 7, y: 0 });
   // Unknown ids change nothing.
   assert.equal(place(layout, 'missing', { x: 2 }), layout);
 });

@@ -25,9 +25,9 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
   await tool(page, 'Configuración').click();
   const screen = editor(page).locator('homemanager-task-screen.settings-dialog');
   await expect(screen.locator('.task-head h2')).toHaveText('Configuración');
-  // No edit bar or spaces rail behind it, and no second Save.
+  // No edit bar behind it and no second Save; 0.13: the plan stays in view beside it.
   await expect(card(page).locator('.editbar')).toBeHidden();
-  await expect(card(page).locator('nav.rooms')).toBeHidden();
+  await expect(card(page).locator('.viewport')).toBeVisible();
   const save = screen.getByRole('button', { name: 'Guardar', exact: true });
   await expect(save).toBeHidden();
   const nav = screen.locator('.settings-nav');
@@ -36,19 +36,14 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
   // Duplicates are gone: one Rules, layers only under Appearance.
   await expect(nav.getByRole('button', { name: 'Reglas' })).toHaveCount(1);
   if (testInfo.project.name === 'mobile') {
-    // A phone first lists the sections, then opens one; nothing scrolls sideways.
-    await expect(screen.locator('.settings-content')).toBeHidden();
+    // Nothing scrolls sideways on a phone.
     const overflow = await screen.evaluate(node => node.scrollWidth - node.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
   }
   await nav.locator('[data-settings="appearance-section"]').click();
   await expect(screen.locator('homemanager-layer-choice')).toBeVisible();
   await expect(screen.locator('#settings-title')).toHaveText('Apariencia');
-  if (testInfo.project.name === 'mobile') {
-    await screen.getByRole('button', { name: 'Todas las secciones' }).click();
-    await expect(nav).toBeVisible();
-    await nav.locator('[data-settings="rooms-section"]').click();
-  } else await nav.locator('[data-settings="rooms-section"]').click();
+  await nav.locator('[data-settings="rooms-section"]').click();
   // A change makes Save appear; leaving asks before discarding it.
   await page.evaluate(() => {
     const harness = window.testHarness;

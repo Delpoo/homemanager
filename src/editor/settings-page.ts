@@ -1,3 +1,4 @@
+import { tipsOn } from '../ui/tips.js';
 import { t } from '../i18n/index.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
@@ -52,7 +53,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'now-section', title: () => t('Panel Ahora'), icon: 'mdi:view-dashboard-outline' },
   { id: 'appearance-section', title: () => t('Apariencia'), icon: 'mdi:palette-outline' },
   { id: 'view-section', title: () => t('Tamaño y vista inicial'), icon: 'mdi:magnify-plus-outline' },
-  { id: 'controls-section', title: () => t('Controles RF'), icon: 'mdi:remote' },
+  { id: 'controls-section', title: () => t('Controles'), icon: 'mdi:remote' },
   { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
   { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
   { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
@@ -65,7 +66,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'designer-section', title: () => t('Diseñador de controles'), icon: 'mdi:remote' },
 ];
 const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: true }[] = [
-  { title: () => t('Mi casa'), sections: ['rooms-section', 'views-section', 'connect-section', 'homes-section'] },
+  { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
   { title: () => t('Reglas'), sections: ['rules-section'] },
@@ -109,21 +110,37 @@ export function settingsPage(page: SettingsPage): string {
         : id === 'pending-section'
           ? `<span class="settings-badge${page.pending ? ' warn' : ''}">${page.pending}</span>`
           : '';
+  // 0.13: one icon per section in a strip; the name and what it is for show on hover.
   const button = (section: SectionInfo) =>
-    `<button type="button" data-settings="${section.id}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}<span>${esc(section.title())}</span>${badge(section.id)}<span class="settings-chev" aria-hidden="true">${uiIcon('mdi:chevron-right')}</span></button>`;
+    `<button type="button" data-settings="${section.id}" aria-label="${esc(section.title())}" title="${esc(section.title())}: ${esc(t(PURPOSE[section.id]))}"${section.id === page.section ? ' aria-current="page"' : ''}>${uiIcon(section.icon)}${badge(section.id)}</button>`;
   const nav = GROUPS.map(group => {
     const items = group.sections
       .filter(id => page.available.has(id))
       .map(id => button(SECTIONS.find(section => section.id === id)!))
       .join('');
-    if (!items) return '';
-    const heading = `<span class="settings-group">${esc(group.title())}</span>`;
-    return group.advanced
-      ? `<details class="settings-advanced"${group.sections.includes(page.section) ? ' open' : ''}><summary>${heading}</summary>${items}</details>`
-      : `<div class="settings-group-box" role="group" aria-label="${esc(group.title())}">${heading}${items}</div>`;
-  }).join('');
+    return items
+      ? `<div class="settings-group-box" role="group" aria-label="${esc(group.title())}">${items}</div>`
+      : '';
+  })
+    .filter(Boolean)
+    .join('<span class="settings-sep" aria-hidden="true"></span>');
   const current = SECTIONS.find(section => section.id === page.section)!;
-  return `<div class="settings-page" data-view="${page.view}"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content"><button type="button" class="settings-list" data-command="settings-list">${uiIcon('mdi:arrow-left')}<span>${esc(t('Todas las secciones'))}</span></button>${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title">${esc(current.title())}</h3><p class="section-purpose">${esc(t(PURPOSE[page.section]))}</p>${page.bodies[page.section] ?? ''}</section></div></div>`;
+  return `<div class="settings-page" data-view="section"><nav class="settings-nav" aria-label="${esc(t('Secciones de configuración'))}">${nav}</nav><div class="settings-content">${page.notice}<section class="settings-section" id="${page.section}" aria-labelledby="settings-title"><h3 id="settings-title" title="${esc(t(PURPOSE[page.section]))}">${esc(current.title())}</h3>${page.bodies[page.section] ?? ''}</section></div></div>`;
+}
+/** The menu (0.13): every section by name, grouped, to open Settings right there. */
+export function navMenuMarkup(admin: boolean): string {
+  const allowed = (id: SettingsSection) =>
+    id !== 'designer-section' && (admin || id === 'appearance-section' || id === 'help-section');
+  return GROUPS.map(group => {
+    const items = group.sections
+      .filter(allowed)
+      .map(id => {
+        const section = SECTIONS.find(item => item.id === id)!;
+        return `<button type="button" class="nav-item" data-command="nav-open" data-section="${id}">${uiIcon(section.icon)}<span>${esc(section.title())}</span></button>`;
+      })
+      .join('');
+    return items ? `<div class="nav-group"><span class="nav-heading">${esc(group.title())}</span>${items}</div>` : '';
+  }).join('');
 }
 
 /** Light and dark, which layers the plan shows and, for editors, the grid: per browser. */
@@ -137,7 +154,7 @@ export function appearanceBody(grid?: number): string {
   const gridField =
     grid === undefined
       ? ''
-      : `<label class="field">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label><p class="note">${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}</p>`;
+      : `<label class="field" title="${esc(t('En modo edición, los símbolos saltan de celda en celda. Con Alt se mueven libres; en pantallas táctiles, mantené pulsado un símbolo para moverlo.'))}">${esc(t('Cuadrícula al mover'))}<select data-grid-step>${steps.map(([value, label]) => `<option value="${value}"${value === grid ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`;
   const link = showLink();
   const linkField = `<label class="field">${esc(t('Mostrar vínculo'))}<select data-show-link>${(
     [
@@ -147,10 +164,10 @@ export function appearanceBody(grid?: number): string {
     ] as const
   )
     .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
-    .join(
-      '',
-    )}</select></label><p class="note">${esc(t('Una cadena chica en la esquina del símbolo dice si está conectado a un dispositivo. En modo edición se ve siempre.'))}</p>`;
-  return `<p class="note">${esc(t('Se guarda en este navegador: no cambia lo que ven las demás personas.'))}</p><homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
+    .join('')}</select></label>`;
+  // 0.13: hover help can be turned off; the choice stays in this browser.
+  const tips = `<label class="check"><input type="checkbox" data-tips${tipsOn() ? ' checked' : ''}><span>${esc(t('Ayudas al pasar el mouse'))}</span></label>`;
+  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${tips}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */
@@ -228,7 +245,12 @@ function statusText(issue: StatusIssue): { title: string; detail: string; fix: s
     case 'unknown-state':
       return { title: issue.label, detail: t('Home Assistant no sabe su estado'), fix: t('Ver dispositivo') };
     case 'remote-missing':
-      return { title: issue.label, detail: t('Usa un control RF que ya no existe'), fix: t('Elegir control') };
+      return {
+        title: issue.label,
+        detail:
+          issue.source === 'ir' ? t('Usa un control IR que ya no existe') : t('Usa un control RF que ya no existe'),
+        fix: t('Elegir control'),
+      };
     case 'view-image':
       return {
         title: issue.name,
@@ -278,16 +300,17 @@ export const settingsPageStyles = `
 .settings-dialog{width:min(1040px,calc(100vw - 24px));height:min(780px,calc(100dvh - 32px));padding:0;display:flex;flex-direction:column;overflow:hidden}
 .settings-dialog[open]{display:flex}
 .settings-dialog>.sheet-header{position:static;margin:0;padding:14px 18px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface)}
-.settings-page{flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr)}
-.settings-nav{display:flex;flex-direction:column;gap:4px;padding:14px 10px;border-right:1px solid var(--hm-line);background:var(--hm-surface);overflow:auto}
-.settings-nav button{display:flex;align-items:center;gap:10px;justify-content:flex-start;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:12px;background:transparent;color:var(--hm-muted);font-size:14px;text-align:left}
-.settings-nav button ha-icon{--mdc-icon-size:20px;flex:none}.settings-nav button span:first-of-type{flex:1}
-.settings-nav button[aria-current=page]{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-ink);font-weight:600}
-.settings-group-box{display:grid;gap:2px;margin-bottom:8px}.settings-group{display:block;padding:6px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hm-muted)}
+.settings-page{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
+.settings-nav{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:2px;min-width:0;padding:6px 8px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface)}
+.settings-nav button{position:relative;display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--hm-ink)}
+.settings-nav button:hover{background:var(--hm-surface-2)}.settings-nav button ha-icon{--mdc-icon-size:22px}
+.settings-nav button[aria-current=page]{background:var(--hm-brand);color:var(--hm-on-accent)}
+.settings-nav .settings-badge{position:absolute;top:1px;right:1px;min-width:16px;height:16px;padding:0 4px;font-size:10px}
+.settings-group-box{display:flex;flex-wrap:wrap;gap:2px}.settings-sep{flex:none;width:1px;height:22px;margin:0 4px;background:var(--hm-line)}
 .settings-advanced>summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center}.settings-advanced>summary::-webkit-details-marker{display:none}.settings-advanced>summary::after{content:'▸';margin-left:auto;padding-right:12px;color:var(--hm-muted)}.settings-advanced[open]>summary::after{content:'▾'}
 .settings-chev{display:none}.settings-list{display:none}.section-purpose{margin:-8px 0 0;color:var(--hm-muted);font-size:13px;line-height:1.5}
 .settings-badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hm-surface-2,var(--hm-line));color:var(--hm-muted)}.settings-badge.warn{background:color-mix(in srgb,var(--hm-warn) 18%,transparent);color:var(--hm-warn)}
-.settings-content{overflow:auto;padding:18px 22px 24px;display:grid;align-content:start;gap:14px}
+.settings-content{flex:1;min-height:0;overflow:auto;padding:14px 16px 24px;display:grid;align-content:start;gap:14px}
 .settings-section{display:grid;gap:14px;min-width:0;max-width:720px}/* #66: a reading width on wide monitors */.settings-section>h3{margin:0;font-size:18px}
 .plan-card{display:flex;gap:16px;align-items:center;padding:14px;border:1px solid var(--hm-line);border-radius:16px;background:var(--hm-surface)}
 .plan-thumb{flex:none;width:160px;height:110px;border-radius:12px;overflow:hidden;background:var(--hm-bg);display:grid;place-items:center}.plan-thumb svg{width:100%;height:100%}
@@ -299,13 +322,7 @@ export const settingsPageStyles = `
 .rooms-actions{display:flex;gap:8px;flex-wrap:wrap}.rooms-actions button{display:inline-flex;align-items:center;gap:8px}.rooms-actions ha-icon{--mdc-icon-size:18px}
 @media(max-width:720px){
 .settings-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}
-.settings-page{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
-.settings-page{grid-template-rows:minmax(0,1fr)}
-.settings-page[data-view=list] .settings-content,.settings-page[data-view=section] .settings-nav{display:none}
-.settings-nav{border-right:0;padding:10px 12px}
-.settings-nav button{min-height:52px;color:var(--hm-ink)}.settings-nav button[aria-current=page]{background:transparent;font-weight:400}.settings-chev{display:inline-flex;color:var(--hm-muted)}
-.settings-list{display:inline-flex;align-items:center;gap:8px;justify-self:start;border:0;background:transparent;color:var(--hm-accent);padding:0;min-height:44px}
-.settings-content{padding:14px 14px 20px}
+.settings-content{padding:12px 14px 20px}
 .plan-thumb{width:110px;height:80px}
 }
 `;

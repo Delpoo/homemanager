@@ -1,4 +1,4 @@
-import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
@@ -25,11 +25,10 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
   const before = await card.evaluate(c => c.getDraftConfiguration());
   await card.locator('[data-id=synthetic-light] .primary').click();
-  await editor.locator('.module-menu > summary').click();
   await editor.locator('[data-command=module-add][data-module-id=indicators]').click();
-  // Layer moved to Más opciones (#71).
-  await editor.locator('#device-options > summary').click();
-  await editor.locator('[name=layer]').selectOption('controls');
+  // 0.13: the infrastructure switch; turned off again it names the layer explicitly.
+  await editor.locator('[data-infra]').check();
+  await editor.locator('[data-infra]').uncheck();
   await editor.locator('#module-gestures > summary').click();
   await editor.locator('[data-gesture=tap]').selectOption('@screen');
   await editor.locator('[data-gesture=hold]').selectOption('@none');
@@ -37,12 +36,11 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await picker.locator('.trigger').click();
   await picker.getByRole('searchbox').fill('rocket-launch');
   await picker.getByRole('option', { name: 'rocket-launch', exact: true }).click();
-  await editor.locator('.symbol-color > summary').click();
   await editor.getByLabel('Color libre', { exact: true }).fill('#7655a6');
   await editor.getByLabel('Color libre', { exact: true }).dispatchEvent('change');
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
   // Rules live only in Settings since #70.
-  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card);
   await openFirstSection(page);
   await showSection(editor, 'rules-section');
   const rules = card.locator('homemanager-rules-editor');

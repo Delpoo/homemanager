@@ -9,10 +9,8 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   const rf = await setup(page);
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
   await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
-  const icons = rf.locator('homemanager-icon-picker').first();
-  await icons.locator('.trigger').click();
-  await icons.getByRole('searchbox').fill('ceiling-fan');
-  await icons.getByRole('option', { name: 'ceiling-fan', exact: true }).click();
+  // 0.13: the kind of appliance chooses the icon.
+  await rf.getByRole('button', { name: 'Ventilador', exact: true }).click();
   expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();
@@ -67,8 +65,11 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   });
   expect(JSON.stringify(await page.evaluate(() => window.rfServer.calls))).not.toMatch(/"code"/);
 
-  // The learned button is already on the drawn remote, and sends.
+  // 0.13: a new remote goes from Learn to Test; it can be kept without designing.
   await rf.getByRole('button', { name: 'Listo', exact: true }).click();
+  await expect(rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true })).toBeVisible();
+  await rf.getByRole('button', { name: 'Guardar sin diseñar', exact: true }).click();
+  // The learned button is already on the drawn remote, and sends.
   await rf.locator('homemanager-rf-remote').getByRole('button', { name: 'Velocidad 1' }).click();
   await expect(rf.getByText('Enviado: Velocidad 1')).toBeVisible();
   await expect
@@ -78,11 +79,13 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
 
 test('learning says when a signal is not recognised and listens with the chosen receiver', async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
-  await rf.getByRole('button', { name: /Techo/ }).click();
+  await rf.locator('[data-open=techo]').click();
   await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  // A saved remote waits for the button to learn; free mode listens at once.
+  await rf.getByRole('button', { name: 'Modo libre', exact: true }).click();
   await page.evaluate(() => window.rfServer.send({ noise: 4 }));
   await expect(rf.getByText('Llega señal, pero no se reconoce')).toBeVisible();
-  await rf.getByLabel('Escucha').selectOption('tx_b');
+  await rf.getByRole('group', { name: 'Escucha' }).getByRole('button', { name: 'Emisor B' }).click();
   await expect
     .poll(() =>
       page.evaluate(() =>
@@ -100,8 +103,8 @@ test('learning says when a signal is not recognised and listens with the chosen 
 
 test("parts decide Home Assistant's fan and light, so the light's off is not the fan's", async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
-  await rf.getByRole('button', { name: /Techo/ }).click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'En Home Assistant', exact: true }).click();
   await rf.getByRole('button', { name: 'Agregar ventilador', exact: true }).click();
   await rf.getByRole('button', { name: 'Agregar luz', exact: true }).click();
   const fan = rf.locator('.part[data-kind=fan]');
@@ -140,23 +143,27 @@ test("parts decide Home Assistant's fan and light, so the light's off is not the
 
 test('the remote is designed on a grid: add, move, resize and remove elements', async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
-  await rf.getByRole('button', { name: /Techo/ }).click();
+  await rf.locator('[data-open=techo]').click();
   const remote = rf.locator('homemanager-rf-remote');
   // Until designed, every button is drawn.
   await expect(remote.getByRole('button')).toHaveCount(6);
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
-  await rf.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const editor = rf.getByRole('region', { name: 'Agregar elemento' });
+  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
+  // 0.13: a piece is added from the panel and its learned buttons are chosen there.
+  const editor = rf.locator('homemanager-control-designer');
   await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
-  await editor.getByLabel('Paso 1', { exact: true }).selectOption('v1');
-  await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(editor.getByText('Elegí al menos 2 botones.')).toBeVisible();
-  await editor.getByLabel('Paso 2', { exact: true }).selectOption('v2');
-  await editor.getByRole('button', { name: 'Agregar paso', exact: true }).click();
-  await editor.getByLabel('Paso 3', { exact: true }).selectOption('v3');
-  await editor.getByLabel('Etiqueta (opcional)').fill('Velocidad');
-  await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(editor).toHaveCount(0);
+  for (const [step, id] of [
+    ['Paso 1', 'v1'],
+    ['Paso 2', 'v2'],
+    ['Paso 3', 'v3'],
+  ])
+    await editor.getByLabel(step, { exact: true }).selectOption(id);
+  const label = editor.locator('[name=widget-label]');
+  await label.fill('Velocidad');
+  await label.dispatchEvent('change');
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.at(-1).label)
+    .toBe('Velocidad');
+  const saved = (await calls(page, 'homemanager/rf/layout/save')).length;
   let layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
   expect(layout.at(-1)).toMatchObject({
     type: 'steps',
@@ -171,7 +178,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   const off = remote.getByRole('group', { name: 'Apagar', exact: true });
   await off.focus();
   await page.keyboard.press('Shift+ArrowRight');
-  await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(2);
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(saved + 1);
   layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
   expect(layout.find(widget => widget.id === 'b-off')).toMatchObject({ x: 0, y: 0, w: 2 });
   expect(layout.find(widget => widget.id === 'b-v1')).toMatchObject({ x: 1, y: 1 });
@@ -190,8 +197,9 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
     )
     .toMatchObject({ x: 3, y: 5 });
 
-  // Removing asks first; the button itself stays learned.
-  await off.getByRole('button', { name: 'Eliminar Apagar' }).click();
+  // Removing asks first; the button itself stays learned. A tap selects the piece.
+  await off.click();
+  await editor.getByRole('button', { name: 'Quitar elemento', exact: true }).click();
   const confirm = rf.getByRole('dialog', { name: '¿Quitar «Apagar» del control?' });
   await confirm.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect
@@ -199,14 +207,14 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
       (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.some(widget => widget.id === 'b-off'),
     )
     .toBe(false);
-  await rf.getByRole('button', { name: 'Terminar edición', exact: true }).click();
+  await rf.locator('.dfoot [data-command=edit]').click();
   await expect(remote.getByRole('button', { name: 'Apagar' })).toHaveCount(0);
   await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(2);
 });
 
 test('RF devices lists every ESPHome device and gives the exact YAML to paste', async ({ page }) => {
   const rf = await setup(page);
-  await rf.getByRole('tab', { name: 'Equipos RF' }).click();
+  await rf.getByRole('button', { name: 'Equipos RF', exact: true }).click();
   const devices = rf.locator('homemanager-rf-devices');
   await expect(devices.getByText('Listo')).toBeVisible();
   await expect(devices.getByText('Falta el paquete')).toBeVisible();
@@ -219,7 +227,7 @@ test('RF devices lists every ESPHome device and gives the exact YAML to paste', 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.12.0-beta.1',
+      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.13.0-beta.1',
     ].join('\n'),
   );
   await expect(sensor.getByRole('link', { name: 'Abrir ESPHome Builder' })).toHaveAttribute(
@@ -315,4 +323,28 @@ test('speed stops send on tap, including the current stop, and once per drag', a
   await dialog.getByRole('button', { name: 'Marcar como apagado', exact: true }).click();
   expect(await page.evaluate(() => window.assumed)).toEqual([false]);
   expect(await page.evaluate(() => window.sent.length)).toBe(3);
+});
+
+test('Test sends each button, asks whether it reacted and tunes one setting at a time (0.13)', async ({ page }) => {
+  const rf = await setup(page, { remotes: [ceiling()] });
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'Probar botones', exact: true }).click();
+  await rf.getByRole('button', { name: 'Enviar Apagar', exact: true }).click();
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/press')).at(-1))
+    .toMatchObject({ remote_id: 'techo', button_id: 'off' });
+  await rf.getByRole('button', { name: 'Sí, reaccionó', exact: true }).click();
+  await expect(rf.getByText('Funcionó', { exact: true })).toBeVisible();
+  await rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true }).click();
+  await rf.getByRole('button', { name: 'No reaccionó', exact: true }).click();
+  // A failed button offers the transmission settings, one step each.
+  await rf.getByRole('button', { name: 'Pulso más largo', exact: true }).click();
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/remote/save')).at(-1)?.remote.pulse_us).toBe(425);
+  await rf.getByRole('button', { name: 'Más repeticiones', exact: true }).click();
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/remote/save')).at(-1)?.remote.repeats).toBe(6);
+  // The optional checks open the technical sheet of the last button tried.
+  await rf.getByRole('button', { name: 'Cámara' }).click();
+  await expect(
+    page.locator('homemanager-signal-workbench').getByRole('button', { name: 'Pruebas', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });

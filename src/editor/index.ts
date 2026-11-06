@@ -1,6 +1,13 @@
+import {
+  indicatorsEditor,
+  indicatorsChange,
+  indicatorsEditorStyles,
+  type IndicatorDraft,
+} from '../ui/indicators-editor.js';
+import { symbolSheetStyles } from '../ui/symbol-sheet-styles.js';
+import { PALETTE_NAMES, changeMyPalette, paletteColors, paletteName, setPaletteName } from '../ui/palettes.js';
 import { NowPanelEditor } from '../ui/now-panel-editor.js';
 import { PlanViewsEditor } from '../ui/plan-views-editor.js';
-import { COLOR_PALETTE } from '../model/color.js';
 import { t, getLanguage, setLanguage, languageFromHass } from '../i18n/index.js';
 import { validateConfiguration } from '../card/configuration.js';
 import { migrateConfiguration } from '../ha/migration.mjs';
@@ -27,6 +34,7 @@ import {
   type NativePanel,
 } from '../card/types.js';
 import { rf, type RfRemote } from '../integration/rf.js';
+import { remotes as remoteLibrary, type IrRemote } from '../integration/remotes.js';
 import { serviceLabel, suggestControls } from '../card/device-controls.js';
 import {
   moveRoom,
@@ -153,6 +161,8 @@ const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyl
 :host{display:block;font:14px var(--hm-font);color:var(--primary-text-color,var(--hm-text))}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
 const css =
   cssBase +
+  symbolSheetStyles +
+  indicatorsEditorStyles +
   editorSheetStyles +
   fieldErrorStyles +
   sheetStyles +
@@ -305,6 +315,10 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('submit', this.onSubmit);
     this.root.addEventListener('input', event => {
       const target = event.target as HTMLElement;
+      if (target.hasAttribute('data-fx-test')) {
+        this.fxEvent(target, true);
+        return;
+      }
       if (target.dataset.ctl !== undefined || target.dataset.sheet) this.onChange(event);
       this.schedulePreview();
     });
@@ -443,7 +457,14 @@ export class HomeManagerEditor extends HTMLElement {
   /** A different symbol cannot silently discard an invalid field. */
   selectDevice(id: string | null): boolean {
     if (id === this._selectedDeviceId && (id === null || this.surface === 'device')) return true;
-    if (id !== this._selectedDeviceId && !this.flushDevice()) return false;
+    let reverted: string | undefined;
+    if (id !== this._selectedDeviceId && !this.flushDevice()) {
+      // A new symbol still asks to be finished; anything else never traps the person (0.13):
+      // the symbol with an error goes back to what it was, and the next one opens.
+      if (this.adding || !id) return false;
+      reverted = this.device()?.display.label;
+      this.revertDevice();
+    }
     this.surface = id ? 'device' : null;
     this._selectedDeviceId = id;
     this.adding = false;
@@ -452,6 +473,7 @@ export class HomeManagerEditor extends HTMLElement {
     this.openedConfiguration = this.config ? clone(this.configuration) : undefined;
 
     this.render();
+    if (reverted) this.notice(t('Los cambios de {name} tenían un error y no se aplicaron.', { name: reverted }));
     return true;
   }
   get selectedDeviceId(): string | null {
@@ -477,7 +499,36 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** Layers shown outside edit mode, so the sheet can say if this symbol is hidden (#93). */
   visibleLayers?: ReadonlySet<string>;
-  /** Free size, transparency and shape (#93). Written only when touched: old plans stay the same. */
+  /** Redraws the colour row after a palette change, keeping the colour chosen. */
+  private refreshColors(): void {
+    const row = this.root.querySelector<HTMLElement>('#device-form .look-row.top');
+    const color = this.root.querySelector<HTMLInputElement>('#device-form [name=color]')?.value ?? '';
+    const device = this.device();
+    if (!row) return;
+    const probe = device ? { ...device, display: { ...device.display, color: color || undefined } } : undefined;
+    row.outerHTML = this.colorFields(probe as Device | undefined);
+  }
+  /** 0.13: an icon button drawn with the full icon set; its name is the tooltip. */
+  private ib(command: string, label: string, icon: string, extra = ''): string {
+    return `<button type="button" class="ib" data-command="${esc(command)}" aria-label="${esc(label)}" title="${esc(label)}" ${extra}><ha-icon icon="${esc(icon)}" aria-hidden="true"></ha-icon></button>`;
+  }
+  /** Colour (0.13): a palette of ten, another colour, and the person's own palette. */
+  private colorFields(device?: Device): string {
+    const current = device?.display.color ?? '';
+    const name = paletteName();
+    const swatches = paletteColors(name)
+      .map(
+        color =>
+          `<button type="button" class="sw" data-command="color-palette" data-color-value="${color}" style="--c:${color}" aria-pressed="${color.toLowerCase() === current.toLowerCase()}" aria-label="${esc(t('Color {n}', { n: color }))}" title="${color}"></button>`,
+      )
+      .join('');
+    const names = PALETTE_NAMES.map(([id, label]) => option(id, t(label), name)).join('');
+    const mine =
+      name === 'mine' ? this.ib('palette-remove', t('Quitar este color de Mi paleta'), 'mdi:minus-circle-outline') : '';
+    return `<div class="look-row top" title="${esc(t('Color'))}"><ha-icon icon="mdi:palette-outline" aria-hidden="true"></ha-icon><div class="colors"><div class="swatches" role="group" aria-label="${esc(t('Paleta'))}">${swatches}<label class="sw custom" title="${esc(t('Otro color'))}"><input type="color" data-color value="${esc(current || paletteColors(name)[0])}" aria-label="${esc(t('Color libre'))}"></label>${this.ib('color-auto', t('Automático'), 'mdi:palette-swatch-variant', `aria-pressed="${!current}"`)}</div><div class="palsel"><select data-palette aria-label="${esc(t('Paleta'))}">${names}</select>${this.ib('palette-add', t('Agregar este color a Mi paleta'), 'mdi:plus-circle-outline')}${mine}</div></div><input type="hidden" name="color" value="${esc(current)}"></div>`;
+  }
+  /** Free size, transparency and shape (#93). Written only when touched: old plans stay the same.
+   * 0.13: a slider and its % side by side; shapes as drawings. */
   private lookFields(device?: Device): string {
     const scale = device?.display.scale ?? ({ s: 0.8, m: 1, l: 1.25 } as const)[device?.display.size ?? 'm'];
     const opacity = device?.display.opacity ?? 100;
@@ -489,7 +540,49 @@ export class HomeManagerEditor extends HTMLElement {
       ['dot', t('Punto chico')],
       ['icon', t('Sólo el icono')],
     ];
-    return `<div class="look-fields"><label class="field">${esc(t('Tamaño libre'))}<input type="range" name="scale" min="0.5" max="2.5" step="0.05" list="scale-marks" value="${scale}"${device?.display.scale !== undefined ? ' data-touched' : ''}><datalist id="scale-marks"><option value="0.8" label="${esc(t('Chico'))}"></option><option value="1" label="${esc(t('Mediano'))}"></option><option value="1.25" label="${esc(t('Grande'))}"></option></datalist></label>${this.configuration.symbolSizes ? `<label class="field">${esc(t('Tamaño en la vista por espacio'))}<input type="range" name="roomScale" min="0.5" max="2.5" step="0.05" value="${device?.display.roomScale ?? this.configuration.symbolSizes.room}"${device?.display.roomScale !== undefined ? ' data-touched' : ''}></label>` : ''}<label class="field">${esc(t('Opacidad del fondo'))}<input type="range" name="opacity" min="0" max="100" step="5" value="${opacity}"${device?.display.opacity !== undefined ? ' data-touched' : ''}></label><label class="field">${esc(t('Forma'))}<select name="shape">${shapes.map(([value, label]) => option(value, label, shape)).join('')}</select></label></div>`;
+    const row = (
+      name: string,
+      icon: string,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+      value: number,
+      percent: boolean,
+      touched: boolean,
+    ) =>
+      `<div class="look-row" title="${esc(label)}"><ha-icon icon="${icon}" aria-hidden="true"></ha-icon><input type="range" name="${name}" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${esc(label)}"${touched ? ' data-touched' : ''}><label class="num"><input type="number" data-mirror="${name}" min="${percent ? min * 100 : min}" max="${percent ? max * 100 : max}" step="${percent ? step * 100 : step}" value="${Math.round(percent ? value * 100 : value)}" aria-label="${esc(t('{name} en %', { name: label }))}"><span>%</span></label></div>`;
+    const room = this.configuration.symbolSizes
+      ? row(
+          'roomScale',
+          'mdi:crop-free',
+          t('Tamaño en la vista por espacio'),
+          0.5,
+          2.5,
+          0.05,
+          device?.display.roomScale ?? this.configuration.symbolSizes.room,
+          true,
+          device?.display.roomScale !== undefined,
+        )
+      : '';
+    const icons: Record<string, string> = {
+      '': 'mdi:auto-fix',
+      circle: 'mdi:circle-outline',
+      pill: 'mdi:pill',
+      dot: 'mdi:circle-small',
+      icon: 'mdi:circle-off-outline',
+    };
+    const shapeButtons = shapes
+      .map(([value, label]) =>
+        this.ib(
+          'shape-pick',
+          label,
+          icons[value],
+          `data-shape-value="${value}" role="radio" aria-checked="${value === shape}"`,
+        ),
+      )
+      .join('');
+    return `<div class="look-fields">${row('scale', 'mdi:resize', t('Tamaño'), 0.5, 2.5, 0.05, scale, true, device?.display.scale !== undefined)}${room}${row('opacity', 'mdi:circle-opacity', t('Opacidad del fondo'), 0, 100, 5, opacity, false, device?.display.opacity !== undefined)}<div class="look-row"><ha-icon icon="mdi:shape-outline" aria-hidden="true"></ha-icon><div class="seg" role="radiogroup" aria-label="${esc(t('Forma'))}">${shapeButtons}</div><input type="hidden" name="shape" value="${esc(shape)}"></div></div>`;
   }
   private lookChange(data: FormData, previous?: Device): Partial<Device['display']> {
     const touched = (name: string) =>
@@ -509,14 +602,19 @@ export class HomeManagerEditor extends HTMLElement {
     return look;
   }
   /** Settings › Screens › Size and initial view (#94). */
+  /** Size and initial view (0.13): a switch, sliders with their value, the initial view
+   * as icons; what each does is in its tooltip. */
   private viewBody(): string {
     const sizes = this.configuration.symbolSizes;
     const shown = sizes ?? DEFAULT_SIZES;
-    const slider = (key: keyof typeof shown, label: string) =>
-      `<label class="field">${esc(label)} <output>${shown[key].toFixed(2)}</output><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}"${sizes ? '' : ' disabled'}></label>`;
+    const slider = (key: keyof typeof shown, label: string, icon: string) =>
+      `<div class="look-row" title="${esc(label)}"><ha-icon icon="${icon}" aria-hidden="true"></ha-icon><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}" aria-label="${esc(label)}"${sizes ? '' : ' disabled'}><output>${Math.round(shown[key] * 100)} %</output></div>`;
     const initial = this.configuration.initialView;
-    return `<label class="check"><input type="checkbox" data-sizes-on${sizes ? ' checked' : ''}><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span></label><p class="note">${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}</p><div class="grid">${slider('house', t('Casa entera'))}${slider('room', t('Vista por espacio'))}${slider('min', t('Mínimo'))}${slider('max', t('Máximo'))}</div><h4>${esc(t('Vista inicial'))}</h4><p class="note">${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}</p><div class="rooms-actions"><button type="button" data-command="view-save" class="primary">${esc(t('Guardar la vista actual como inicial'))}</button><button type="button" data-command="view-save-local">${esc(t('Sólo en este equipo'))}</button>${initial ? `<button type="button" data-command="view-clear">${esc(t('Quitar vista inicial'))}</button>` : ''}<button type="button" data-command="view-clear-local">${esc(t('Olvidar la de este equipo'))}</button></div>`;
+    const growth = `<label class="switch-row" title="${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}"><ha-icon icon="mdi:magnify-expand" aria-hidden="true"></ha-icon><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span><input type="checkbox" role="switch" data-sizes-on${sizes ? ' checked' : ''}></label>`;
+    const view = `<div class="lbl">${esc(t('Vista inicial'))}<span class="grow"></span></div><div class="view-row"><span class="view-state" title="${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}"><ha-icon icon="${initial ? 'mdi:image-filter-center-focus' : 'mdi:fit-to-screen-outline'}" aria-hidden="true"></ha-icon></span>${this.ib('view-save', t('Guardar la vista actual como inicial'), 'mdi:content-save-outline')}${this.ib('view-save-local', t('Sólo en este equipo'), 'mdi:monitor-cellphone')}${initial ? this.ib('view-clear', t('Quitar vista inicial'), 'mdi:delete-outline') : ''}${this.ib('view-clear-local', t('Olvidar la de este equipo'), 'mdi:monitor-off')}</div>`;
+    return `${growth}<div class="look-fields">${slider('house', t('Casa entera'), 'mdi:home-outline')}${slider('room', t('Vista por espacio'), 'mdi:crop-free')}${slider('min', t('Mínimo'), 'mdi:arrow-collapse')}${slider('max', t('Máximo'), 'mdi:arrow-expand')}</div>${view}`;
   }
+
   /** Next to the symbol › what the device can do, one tap from a shortcut (#96). */
   private shortcutsBody(device?: Device): string {
     const actions = device ? deviceActions(device, this._hass) : [];
@@ -552,7 +650,10 @@ export class HomeManagerEditor extends HTMLElement {
   /** Last storage share seen, so Home status can warn from 80 % (#74, #75). */
   storageShare?: number;
   private homeStatus(): StatusIssue[] {
-    return homeStatus(this.configuration, this._hass, { storageShare: this.storageShare });
+    return homeStatus(this.configuration, this._hass, {
+      storageShare: this.storageShare,
+      ...(this.irRemotes ? { irRemotes: new Set(this.irRemotes.map(item => item.id)) } : {}),
+    });
   }
   /** A Home status button opens the right place (#74). */
   private statusAction(issue: StatusIssue): void {
@@ -617,6 +718,35 @@ export class HomeManagerEditor extends HTMLElement {
       }
     }
     return [...new Set([entityId, ...readings].filter(Boolean))];
+  }
+  private fxDraft?: IndicatorDraft;
+  /** Indicators (0.13): one change at a time; trying a value repaints only the preview. */
+  private fxEvent(target: HTMLElement, live = false): boolean {
+    const host = target.closest('.fx-host');
+    if (!host || !this.fxDraft) return false;
+    const device = this.device();
+    const next = indicatorsChange(this.fxDraft, target, this.valueCandidates(device), this._hass);
+    if (!next) return true;
+    const tried = next.test !== this.fxDraft.test && JSON.stringify(next.list) === JSON.stringify(this.fxDraft.list);
+    this.fxDraft = next;
+    if (live && tried) {
+      const preview = document.createElement('div');
+      preview.innerHTML = indicatorsEditor(next, device, this.valueCandidates(device), this._hass);
+      host.querySelector('.fxprev')?.replaceWith(preview.querySelector('.fxprev')!);
+      host.querySelectorAll<HTMLInputElement>('[data-fx-test]').forEach(field => {
+        if (field !== target) field.value = String(next.test);
+      });
+      return true;
+    }
+    this.paintIndicators();
+    if (!tried) this.schedulePreview();
+    return true;
+  }
+  private paintIndicators(): void {
+    const host = this.root.querySelector<HTMLElement>('.fx-host');
+    if (!host || !this.fxDraft) return;
+    const device = this.device();
+    host.innerHTML = indicatorsEditor(this.fxDraft, device, this.valueCandidates(device), this._hass);
   }
   private paintValues(): void {
     const host = this.root.querySelector<HTMLElement>('.values-host');
@@ -724,6 +854,7 @@ export class HomeManagerEditor extends HTMLElement {
       sheet: this.sheet,
       modules: this.moduleDraft,
       values: this.valuesDraft,
+      indicators: this.fxDraft?.list,
       alerts: this.alertDraft,
     });
   }
@@ -846,6 +977,8 @@ export class HomeManagerEditor extends HTMLElement {
    * phone and on the first section it can show on a wide screen. */
   openSettings(section?: SettingsSection): void {
     if (!this.flushDevice()) return;
+    // 0.13: images and Home Assistant areas are part of «Plano y espacios».
+    if (section === 'views-section' || section === 'connect-section') section = 'rooms-section';
     const available = this.settingsAvailable();
     this.settingsSection =
       section ?? (available.has(this.settingsSection) ? this.settingsSection : firstSection(available));
@@ -858,8 +991,6 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsAvailable(): Set<SettingsSection> {
     const available = new Set<SettingsSection>([
       'rooms-section',
-      'views-section',
-      'connect-section',
       'now-section',
       'appearance-section',
       'view-section',
@@ -1046,9 +1177,9 @@ export class HomeManagerEditor extends HTMLElement {
           : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Diseñar control.'))}</p>`,
         'rules-section': '<div class="rules-host"></div>',
         'now-section': '<div class=now-editor-host></div>',
-        'rooms-section': this.roomsForm(),
-        'views-section': '<div class=plan-views-host></div>',
-        'connect-section': this.connectForm(),
+        'rooms-section': `${this.roomsForm()}<div class="lbl">${esc(t('Imágenes'))}<span class="grow"></span></div><div class=plan-views-host></div><div class="lbl">${esc(t('Home Assistant'))}<span class="grow"></span></div>${this.connectForm()}`,
+        'views-section': '',
+        'connect-section': '',
         'homes-section': this.homesBody(),
         'appearance-section': appearanceBody(gridStep()),
         'view-section': this.viewBody(),
@@ -1102,6 +1233,7 @@ export class HomeManagerEditor extends HTMLElement {
       };
       this.moduleUndo = undefined;
       this.alertDraft = alertSettingsDraft(selected);
+      this.fxDraft = { list: structuredClone(selected?.display.indicators ?? []), selected: 0 };
     }
     const quick = uiButton(t('Agregar dispositivo desde Home Assistant'), 'pick-new', 'secondary', 'mdi:plus');
     const toolbar = this._embedded
@@ -1112,7 +1244,7 @@ export class HomeManagerEditor extends HTMLElement {
     const handle = this._embedded
       ? `<button class="sheet-handle" type="button" data-command="sheet-expand" aria-label="${esc(this.expanded ? t('Reducir ficha') : t('Ampliar ficha'))}" aria-expanded="${this.expanded}"><span aria-hidden="true"></span></button>`
       : '';
-    const device = `${handle}${header(selected?.display.label ?? t('Dispositivo vacío'), selected?.display.icon ?? 'mdi:circle-outline')}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${this.adding ? `<button type="button" data-command="cancel-new">${esc(t('Cancelar'))}</button><span class="spacer"></span><button type="submit" form="device-form" class="primary">${esc(t('Crear'))}</button>` : `${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}`}</div>`;
+    const device = `${handle}<div class="sheet-body">${this.deviceForm(selected)}</div><div class="sheet-tools">${this.adding ? `<button type="button" data-command="cancel-new">${esc(t('Cancelar'))}</button><span class="spacer"></span><button type="submit" form="device-form" class="primary">${esc(t('Crear'))}</button>` : `${selected ? `${iconButton('delete', t('Eliminar dispositivo'), 'trash', 'data-danger="true"')}${iconButton('move', t('Mover en el plano'), 'move')}${iconButton('revert-device', t('Deshacer cambios de este dispositivo'), 'undo')}` : ''}<span class="spacer"></span>${submitIconButton('device-form', this._embedded ? t('Listo') : t('Guardar dispositivo'), 'check')}`}</div>`;
     const add = `${handle}${header(t('Agregar dispositivo'))}<div class="sheet-body"><div class="add-menu"><button type="button" data-command="from-entity">${esc(t('Desde Home Assistant'))}</button><button type="button" data-command="add">${esc(t('Dispositivo vacío'))}</button></div>${this.fromEntity ? quick : ''}</div>`;
     const settings =
       this.surface === 'settings'
@@ -1148,6 +1280,7 @@ export class HomeManagerEditor extends HTMLElement {
         remote: designRemote(designDevice, this.configuration, controls),
         controls,
         estimated: false,
+        trayTitle: t('Acciones'),
         readValues: () => this._hass?.states ?? {},
         renderContent: p => renderDesignPiece(p, controls, host),
         save: layout => {
@@ -1221,29 +1354,28 @@ export class HomeManagerEditor extends HTMLElement {
     } catch {
       /* No thumbnail for a plan that cannot be drawn. */
     }
-    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
+    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}${this.ib('review-spaces', t('Revisar espacios con el plano'), 'mdi:file-compare')}</div>${spacesList(this.configuration, zoneIds)}
       ${candidates.length ? `<h4>${esc(t('Zonas detectadas en el plano'))}</h4><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">${esc(t('Agregar {room}', { room: zone.label ?? zone.id }))}</button>`).join('')}<button type="button" data-command="room-add-all">${esc(t('Agregar todas ({count})', { count: candidates.length }))}</button></div>` : ''}
-      <details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`;
+      ${this.editZones ? '' : `<details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`}`;
   }
   private deviceForm(device?: Device): string {
     const fixed = device?.mobility === 'fixed' && !this.allowFixedPosition;
     const panels = Object.keys(this.configuration.panels);
     const panelId = device?.bindings.advancedPopupId ?? '';
     const remoteId = device?.bindings.remoteId ?? '';
+    const irRemoteId = device?.bindings.irRemoteId ?? '';
     const help = (label: string, text: string) =>
       `<span class="field-title">${esc(label)}${helpTip(label, text)}</span>`;
     const icon = device?.display.icon ?? 'mdi:lightbulb-outline';
     const remotes = this.remotes.length
       ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se dibuja en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
       : '';
-    // Layer is advanced: the automatic choice follows the device (#71).
-    const layerField = `<label class="field">${esc(t('Capa'))}<select form="device-form" name="layer">${option('', t('Automático'), device?.display.layer ?? '')}${['controls', 'sensors', 'energy', 'infrastructure'].map(id => option(id, t(({ controls: 'Controles', sensors: 'Sensores', energy: 'Energía', infrastructure: 'Infraestructura' } as Record<string, string>)[id]), device?.display.layer ?? '')).join('')}</select></label>`;
-    const currentLayer = device ? presentationOf(device, this._hass).layer : undefined;
-    const layerNote =
-      currentLayer && this.visibleLayers
-        ? `<p class="note">${esc(this.visibleLayers.has(currentLayer) ? t('Su capa se muestra fuera de edición.') : t('Su capa está oculta fuera de edición: sólo se ve mientras editás o si mostrás esa capa.'))}</p>`
+    const infrared = this.irRemotes ?? [];
+    const irField =
+      infrared.length || irRemoteId
+        ? `<label class="field">${esc(t('Control IR en el panel'))}<select form="device-form" name="irRemoteId" aria-label="${esc(t('Control IR en el panel'))}">${option('', t('Automático'), irRemoteId)}${irRemoteId && !infrared.some(item => item.id === irRemoteId) ? option(irRemoteId, irRemoteId, irRemoteId) : ''}${infrared.map(item => option(item.id, item.name, irRemoteId)).join('')}</select></label>`
         : '';
-    const advanced = `${layerField}${layerNote}${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
+    const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
         [
           ['fixed', 'Fijo'],
@@ -1269,12 +1401,16 @@ export class HomeManagerEditor extends HTMLElement {
         (device ? (presentationOf(device, this._hass).archetype === 'meter' ? 'value' : 'icon') : 'icon'),
     )}</div>`;
     const binding = `<div class="field">${help(t('Dispositivo de Home Assistant'), t('Elegí el dispositivo y las lecturas que querés mostrar. Los controles actuales se conservan.'))}<div data-binding-summary>${this.bindingSummary(device?.bindings)}</div><input type="hidden" name="entityId" value="${esc(device?.bindings.entityId ?? '')}"><input type="hidden" name="deviceId" value="${esc(device?.bindings.deviceId ?? '')}"><input type="hidden" name="readings" value="${esc(device?.bindings.readings ? JSON.stringify(device.bindings.readings) : '')}"><label class="check"><input type="checkbox" name="standalone" value="true"${device?.display.standalone ? ' checked' : ''}><span>${esc(t('No necesita vínculo'))}</span></label></div>`;
-    return `<form id="device-form" novalidate><h3 class="sheet-group">${esc(t('Base'))}</h3><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">${input('label', t('Nombre del dispositivo'), device?.display.label ?? '', 'required maxlength="240"')}
-      <div class="base-row"><div class="field"><span class="field-title">${esc(t('Icono del dispositivo'))}</span>${iconPicker(icon, t('Icono del dispositivo'), 'wide data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"></div><div class="field">${help(t('Habitación del dispositivo'), t('Agrupa el dispositivo en un espacio del plano. No cambia su área en Home Assistant.'))}<select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></div></div>
-      <details class="symbol-color"><summary>${esc(t('Color'))}</summary><div class="field"><label>${esc(t('Color'))}<input type="color" data-color value="${esc(device?.display.color ?? COLOR_PALETTE[0])}" aria-label="${esc(t('Color libre'))}"></label><input type="hidden" name="color" value="${esc(device?.display.color ?? '')}"><div class="palette" role="group" aria-label="${esc(t('Paleta sugerida'))}">${COLOR_PALETTE.map((color, index) => `<button type="button" data-command="color-palette" data-color-value="${color}" aria-label="${esc(t('Color {n}', { n: index + 1 }))}" style="border-bottom:5px solid ${color}"><ha-icon icon="mdi:circle" style="color:${color}"></ha-icon></button>`).join('')}<button type="button" data-command="color-auto">${esc(t('Automático'))}</button></div><small>${esc(t('El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.'))}</small></div></details><div class="size-host">${renderSymbolSize(this.sheet!.size)}</div>${this.lookFields(device)}</div>
-
-      <h3 class="sheet-group">${esc(t('Módulos'))}</h3>${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
+    const presented = device ? presentationOf(device, this._hass) : undefined;
+    const infra = presented?.layer === 'infrastructure';
+    // Unticking an automatic infrastructure symbol needs an explicit other layer.
+    const otherLayer =
+      presented?.archetype === 'meter' ? 'energy' : presented?.archetype === 'sensor' ? 'sensors' : 'controls';
+    return `<form id="device-form" novalidate><div class="symhead">${iconPicker(icon, t('Icono del dispositivo'), 'large data-device-icon')}<input type="hidden" name="icon" value="${esc(icon)}"><div class="titlebox"><input class="title-in" name="label" value="${esc(device?.display.label ?? '')}" required maxlength="240" aria-label="${esc(t('Nombre del dispositivo'))}" title="${esc(t('Nombre del dispositivo'))}" placeholder="${esc(t('Nombre'))}"><label class="spacepick" title="${esc(t('Habitación del dispositivo'))}"><ha-icon icon="mdi:map-marker-outline" aria-hidden="true"></ha-icon><select name="roomId" aria-label="${esc(t('Habitación del dispositivo'))}">${this.roomOptions(device ? (device.roomId ?? '') : '')}</select></label></div>${iconButton('close', t('Cerrar'), 'close')}</div><div class="basic"><input type="hidden" name="kind" value="${esc(device?.kind ?? '')}">
+      <label class="switch-row" title="${esc(t('Se oculta con el filtro de infraestructura'))}"><ha-icon icon="mdi:lan" aria-hidden="true"></ha-icon><span>${esc(t('Infraestructura'))}</span><input type="checkbox" role="switch" data-infra${infra ? ' checked' : ''} aria-label="${esc(t('Infraestructura'))}"><input type="hidden" name="layer" value="${esc(device?.display.layer ?? '')}" data-other-layer="${otherLayer}"></label>
+      <div class="lbl">${esc(t('Aspecto'))}<span class="grow"></span></div>${this.lookFields(device)}${this.colorFields(device)}</div>
+      ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `<div class="fx-host">${indicatorsEditor(this.fxDraft ?? { list: [], selected: 0 }, device, this.valueCandidates(device), this._hass)}</div><div class="lbl">${esc(t('Valores'))}<span class="grow"></span></div>${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
+      ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1343,20 +1479,18 @@ export class HomeManagerEditor extends HTMLElement {
         >
       )[id] ?? 'module-' + id;
     const title = `<ha-icon class="module-icon" icon="${MODULE_ICONS[id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[id]))}</span><span class="module-sum">${esc(this.moduleLine(id, device))}</span></span>`;
-    return `<div data-module="${id}" class="module-card"${active ? '' : ' hidden'}>${this.section(sectionId, title, `${body}<button type="button" data-command="module-remove" data-module-id="${id}">${esc(t('Quitar módulo'))}</button>`)}</div>`;
+    return `<div data-module="${id}" class="module-card"${active ? '' : ' hidden'}>${this.section(sectionId, title, `${body}<div class="module-foot">${this.ib('module-remove', t('Quitar módulo'), 'mdi:trash-can-outline', `data-module-id="${id}"`)}</div>`)}</div>`;
   }
   private moduleMenu(device?: Device): string {
-    return `<details class="section module-menu"><summary>${esc(t('+ Agregar'))}</summary><div class="section-body module-add-list">${moduleChoices(
-      this.moduleDevice(device),
-      this._hass,
-    )
+    // 0.13: the modules not used yet, as chips; what each does is its tooltip.
+    const chips = moduleChoices(this.moduleDevice(device), this._hass)
+      .filter(choice => !choice.present)
       .map(
         choice =>
-          `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}"${choice.present || choice.reason ? ' disabled' : ''}><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span class="module-text"><span class="module-name">${esc(t(MODULE_LABELS[choice.id]))}</span><span class="module-sum">${esc(t(MODULE_PURPOSE[choice.id]))}</span></span><span class="module-state">${esc(t(choice.present ? 'Ya está' : (choice.reason ?? 'Agregar')))}</span></button>`,
+          `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}" title="${esc(t(choice.reason ?? MODULE_PURPOSE[choice.id]))}" aria-label="${esc(t(MODULE_LABELS[choice.id]))}"${choice.reason ? ' disabled' : ''}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span>${esc(t(MODULE_LABELS[choice.id]))}</span></button>`,
       )
-      .join(
-        '',
-      )}</div></details><button type="button" data-command="module-undo"${this.moduleUndo ? '' : ' hidden'}>${esc(t('Deshacer cambio de módulo'))}</button>`;
+      .join('');
+    return `${chips ? `<div class="lbl">${esc(t('Agregar'))}<span class="grow"></span></div><div class="addmods module-menu" role="group" aria-label="${esc(t('Agregar'))}">${chips}</div>` : ''}${this.ib('module-undo', t('Deshacer cambio de módulo'), 'mdi:undo', this.moduleUndo ? '' : 'hidden')}`;
   }
   private updateModules(): void {
     const active = modulesOf(this.moduleDevice(), this._hass);
@@ -1533,6 +1667,7 @@ export class HomeManagerEditor extends HTMLElement {
   /** RF remotes, to choose the one a device's panel draws. Admins only, like
    * the editor itself; without the RF manager the list stays empty. */
   private remotes: RfRemote[] = [];
+  private irRemotes?: IrRemote[];
   private loadRemotes(): void {
     const hass = this._hass;
     if (!hass?.callWS || hass.user?.is_admin !== true) return;
@@ -1542,12 +1677,25 @@ export class HomeManagerEditor extends HTMLElement {
         if (library.remotes.length && this.surface === 'device') this.render();
       })
       .catch(() => undefined);
+    void remoteLibrary
+      .library(hass)
+      .then(items => {
+        if (this._hass?.connection !== hass.connection) return;
+        this.irRemotes = items;
+        if (items.length && this.surface === 'device') this.render();
+      })
+      .catch(() => undefined);
   }
   private remoteOf(entityId: string | null): string | null {
     const entity = entityId ? this._hass?.states[entityId] : undefined;
     const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
     const chosen = this.root.querySelector<HTMLSelectElement>('#device-form [name=remoteId], [name=remoteId]')?.value;
     return chosen || this.device()?.bindings.remoteId || (typeof fromEntity === 'string' ? fromEntity : null);
+  }
+  private irRemoteOf(entityId: string | null): string | null {
+    const fromEntity = entityId ? this._hass?.states[entityId]?.attributes?.homemanager_ir_remote : undefined;
+    const chosen = this.root.querySelector<HTMLSelectElement>('[name=irRemoteId]')?.value;
+    return chosen || this.device()?.bindings.irRemoteId || (typeof fromEntity === 'string' ? fromEntity : null);
   }
   /** What a step can do without writing an action by hand: the simple services
    * of the device's entity, and for an RF remote also its other parts (a light
@@ -1564,6 +1712,11 @@ export class HomeManagerEditor extends HTMLElement {
           found.push({ value: `new:${domain}.${service}:${id}`, label: serviceLabel(service, domain), group });
     };
     if (entityId) add(entityId);
+    const infrared = this.irRemoteOf(entityId);
+    if (infrared) {
+      for (const [id, state] of Object.entries(this._hass?.states ?? {}))
+        if (id !== entityId && state.attributes?.homemanager_ir_remote === infrared) add(id);
+    }
     const remote = this.remoteOf(entityId);
     if (remote) {
       const remoteName = this.remotes.find(item => item.id === remote)?.name ?? '';
@@ -1814,6 +1967,8 @@ export class HomeManagerEditor extends HTMLElement {
     );
   }
   private onClick = (event: Event): void => {
+    const fxButton = (event.target as Element).closest<HTMLElement>('.fx-host button');
+    if (fxButton && this.fxEvent(fxButton)) return;
     const valueButton = (event.target as Element).closest<HTMLElement>(
       '.values-host button[data-value-move], .values-host button[data-value-range-add], .values-host button[data-value-range-remove]',
     );
@@ -1902,8 +2057,9 @@ export class HomeManagerEditor extends HTMLElement {
           this.linkedReview?.();
           break;
         case 'zones-edit':
-          this.closeSurface();
+          // Zones are edited in edit mode: say so before Settings closes (0.13).
           this.editZones?.();
+          this.closeSurface();
           break;
         case 'settings-import':
           this.settingsSection = 'import-section';
@@ -2052,6 +2208,27 @@ export class HomeManagerEditor extends HTMLElement {
           if (hidden) hidden.value = button.dataset.colorValue ?? '';
           const picker = this.root.querySelector<HTMLInputElement>('[data-color]');
           if (picker && button.dataset.colorValue) picker.value = button.dataset.colorValue;
+          this.root
+            .querySelectorAll<HTMLElement>('[data-command=color-palette],[data-command=color-auto]')
+            .forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+          hidden?.dispatchEvent(new Event('input', { bubbles: true }));
+          break;
+        }
+        case 'shape-pick': {
+          const hidden = this.root.querySelector<HTMLInputElement>('#device-form [name=shape]');
+          if (hidden) hidden.value = button.dataset.shapeValue ?? '';
+          this.root
+            .querySelectorAll<HTMLElement>('[data-command=shape-pick]')
+            .forEach(item => item.setAttribute('aria-checked', String(item === button)));
+          hidden?.dispatchEvent(new Event('input', { bubbles: true }));
+          break;
+        }
+        case 'palette-add':
+        case 'palette-remove': {
+          const color = this.root.querySelector<HTMLInputElement>('#device-form [name=color]')?.value;
+          if (color) changeMyPalette(color, button.dataset.command === 'palette-add');
+          if (button.dataset.command === 'palette-add') setPaletteName('mine');
+          this.refreshColors();
           break;
         }
         case 'design-open':
@@ -2062,6 +2239,17 @@ export class HomeManagerEditor extends HTMLElement {
               this.dispatchEvent(
                 new CustomEvent('homemanager-shell-command', {
                   detail: { command: 'rf', remoteId: device.bindings.remoteId },
+                  bubbles: true,
+                  composed: true,
+                }),
+              );
+              break;
+            }
+            const infrared = device && this.irRemoteOf(device.bindings.entityId);
+            if (infrared && this.appContext) {
+              this.dispatchEvent(
+                new CustomEvent('homemanager-shell-command', {
+                  detail: { command: 'rf', irRemoteId: infrared },
                   bubbles: true,
                   composed: true,
                 }),
@@ -2196,6 +2384,7 @@ export class HomeManagerEditor extends HTMLElement {
   };
   private onChange = (event: Event): void => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (this.fxEvent(target)) return;
     if (this.valuesEvent(target)) return;
     if (
       (target as HTMLInputElement).type === 'range' &&
@@ -2229,6 +2418,35 @@ export class HomeManagerEditor extends HTMLElement {
     if (target.hasAttribute('data-color')) {
       const hidden = this.root.querySelector<HTMLInputElement>('[name=color]');
       if (hidden) hidden.value = target.value;
+      return;
+    }
+    if (target.hasAttribute('data-palette')) {
+      setPaletteName(target.value);
+      this.refreshColors();
+      return;
+    }
+    if (target.dataset.mirror) {
+      const range = this.root.querySelector<HTMLInputElement>(`#device-form [name=${target.dataset.mirror}]`);
+      if (range) {
+        const percent = range.name !== 'opacity';
+        range.value = String(Number(target.value) / (percent ? 100 : 1));
+        range.setAttribute('data-touched', '');
+        range.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+    if (target.hasAttribute('data-infra')) {
+      const hidden = this.root.querySelector<HTMLInputElement>('#device-form [name=layer]');
+      if (hidden) {
+        const checked = (target as HTMLInputElement).checked;
+        const before = hidden.value;
+        hidden.value = checked
+          ? 'infrastructure'
+          : before && before !== 'infrastructure'
+            ? before
+            : hidden.dataset.otherLayer!;
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       return;
     }
     if (target.dataset.gestureFor && this.sheet) {
@@ -2285,7 +2503,7 @@ export class HomeManagerEditor extends HTMLElement {
       this.proposeCategory(target.value);
       return;
     }
-    if (target.getAttribute('name') === 'remoteId') {
+    if (['remoteId', 'irRemoteId'].includes(target.getAttribute('name') ?? '')) {
       this.refreshSuggestions();
       return;
     }
@@ -2357,6 +2575,9 @@ export class HomeManagerEditor extends HTMLElement {
       ((KINDS as readonly string[]).includes(suggested) ? suggested : CATEGORY_KIND[category])) as Device['kind'];
     // Without RF remotes the field is not shown: keep what the device had.
     const remoteId = data.has('remoteId') ? value(data, 'remoteId') || null : (previous?.bindings.remoteId ?? null);
+    const irRemoteId = data.has('irRemoteId')
+      ? value(data, 'irRemoteId') || null
+      : (previous?.bindings.irRemoteId ?? null);
     const device: Device = {
       id,
       display: {
@@ -2379,6 +2600,8 @@ export class HomeManagerEditor extends HTMLElement {
               ...(this.valuesDraft.place !== 'inside' ? { valuePlace: this.valuesDraft.place } : {}),
             }
           : {}),
+        // Indicators (0.13): written only once chosen.
+        ...(this.fxDraft?.list.length ? { indicators: structuredClone(this.fxDraft.list) } : {}),
         ...(value(data, 'color') ? { color: value(data, 'color') } : {}),
         ...(value(data, 'layer') ? { layer: value(data, 'layer') as NonNullable<Device['display']['layer']> } : {}),
         ...this.lookChange(data, previous),
@@ -2402,6 +2625,7 @@ export class HomeManagerEditor extends HTMLElement {
         primaryAction: tap?.type === 'button' ? tap.steps[0].actionId : null,
         advancedPopupId: value(data, 'panelId') || null,
         ...(remoteId ? { remoteId } : {}),
+        ...(irRemoteId ? { irRemoteId } : {}),
         ...(keepControls
           ? {
               ...(previous.bindings.controls ? { controls: clone(previous.bindings.controls) } : {}),
@@ -2527,7 +2751,11 @@ export class HomeManagerEditor extends HTMLElement {
       if (file.size > 5 * 1024 * 1024) throw new Error(t('El archivo excede 5 MiB.'));
       const source = await file.text();
       if (generation !== this.importGeneration) return;
-      this.previewImport(source, /\.svg$/i.test(file.name) || file.type === 'image/svg+xml');
+      // 0.13: the content decides, not the name or the type the browser guessed.
+      if (/^(\x89PNG|\xFF\xD8\xFF)/.test(source.slice(0, 4)) || /^image\/(png|jpe?g)$/.test(file.type))
+        throw new Error(t('Las imágenes PNG o JPG van en Alternativas del plano.'));
+      const svg = /^\s*(<\?xml|<svg|<!--|<!doctype svg)/i.test(source) || /\.svg$/i.test(file.name);
+      this.previewImport(source, svg);
     } catch (error) {
       if (generation === this.importGeneration) this.notice(error instanceof Error ? error.message : String(error));
     }

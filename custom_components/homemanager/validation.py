@@ -99,6 +99,54 @@ def _symbol_look(display: dict) -> None:
                     hex_color(item["color"])
     if "valuePlace" in display and display["valuePlace"] not in ("inside", "beside", "below"):
         _fail()
+    # 0.13 indicators: visual marks from one reading; at most one of each type.
+    if "indicators" in display:
+        indicators = display["indicators"]
+        if not isinstance(indicators, list) or len(indicators) > 5:
+            _fail()
+        kinds = set()
+        for item in indicators:
+            _fields(item, {"type", "entity"}, {"attribute", "hidden", "min", "max", "width", "fill", "empty", "ranges", "states", "none", "position"})
+            if item["type"] not in ("ring", "border", "icon", "led", "number") or item["type"] in kinds:
+                _fail()
+            kinds.add(item["type"])
+            _entity(item["entity"])
+            if "attribute" in item and (not isinstance(item["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", item["attribute"])):
+                _fail()
+            if "hidden" in item and not isinstance(item["hidden"], bool):
+                _fail()
+            for key in ("min", "max"):
+                if key in item:
+                    _number(item[key], -1e9, 1e9)
+            if "min" in item and "max" in item and item["min"] >= item["max"]:
+                _fail()
+            if "width" in item and (type(item["width"]) is not int or not 2 <= item["width"] <= 10):
+                _fail()
+            for key in ("fill", "empty", "none"):
+                if key in item:
+                    hex_color(item[key])
+            if "position" in item and item["position"] not in ("tr", "br", "b"):
+                _fail()
+            if "ranges" in item:
+                if not isinstance(item["ranges"], list) or len(item["ranges"]) > 8:
+                    _fail()
+                for part in item["ranges"]:
+                    _fields(part, {"from", "to", "color"}, {"name"})
+                    _number(part["from"], -1e9, 1e9)
+                    _number(part["to"], -1e9, 1e9)
+                    if part["from"] > part["to"]:
+                        _fail()
+                    hex_color(part["color"])
+                    if "name" in part and (not isinstance(part["name"], str) or len(part["name"]) > 24):
+                        _fail()
+            if "states" in item:
+                states = item["states"]
+                if not isinstance(states, dict) or len(states) > 16:
+                    _fail()
+                for key, color in states.items():
+                    if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_ .-]{1,40}", key) or key in UNSAFE:
+                        _fail()
+                    hex_color(color)
     for key, low, high in (("scale", 0.5, 2.5), ("roomScale", 0.5, 2.5), ("opacity", 0, 100)):
         if key in display:
             _number(display[key], low, high)
@@ -426,7 +474,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone", "indicators"})
         _symbol_look(display)
         _text(display["label"])
         _text(display["icon"])
@@ -473,7 +521,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 if "forMinutes" in rule and rule["forMinutes"] < 0:
                     _fail()
         bindings = device["bindings"]
-        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "controls", "tap", "deviceId", "readings", "hold", "layout"})
+        _fields(bindings, {"entityId", "primaryAction", "advancedPopupId"}, {"quickActions", "remoteId", "irRemoteId", "controls", "tap", "deviceId", "readings", "hold", "layout"})
         if "layout" in bindings:
             validate_control_layout(bindings["layout"])
         if "deviceId" in bindings:
@@ -493,6 +541,9 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for name in ("entityId", "primaryAction", "advancedPopupId", "remoteId"):
             if bindings.get(name) is not None:
                 (_entity if name == "entityId" else _id)(bindings[name])
+        if (infrared := bindings.get("irRemoteId")) is not None:
+            if not isinstance(infrared, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", infrared):
+                _fail()
         if "quickActions" in bindings:
             # Up to four actions offered when the icon is held (contract V2, optional).
             if not isinstance(bindings["quickActions"], list) or len(bindings["quickActions"]) > 4:
@@ -693,21 +744,30 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
 
 
 def validate_control_layout(layout: Any) -> None:
-    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1)}
+    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1), 'knob': (2, 12), 'preset': (1, 12), 'graph': (0, 0), 'canvas': (0, 0)}
     if not isinstance(layout, list) or len(layout) > 64:
+        _fail()
+    # 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
+    canvases = [p for p in layout if isinstance(p, dict) and p.get("type") == "canvas"]
+    if len(canvases) > 1:
+        _fail()
+    columns = canvases[0].get("w") if canvases else 4
+    if type(columns) is not int or not 2 <= columns <= 30:
         _fail()
     ids = set()
     for p in layout:
-        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute"})
+        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute", "bg", "fg", "shape", "hideIcon", "hideLabel", "orientation", "sequence"})
         if not isinstance(p["id"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", p["id"]) or p["id"] in UNSAFE or p["id"] in ids:
             _fail()
         ids.add(p["id"])
         if not isinstance(p["type"], str) or p["type"] not in counts:
             _fail()
-        for k, low, high in [("x", 0, 3), ("y", 0, 39), ("w", 1, 4), ("h", 1, 3)]:
+        canvas = p["type"] == "canvas"
+        bounds = [("x", 0, 0), ("y", 0, 0), ("w", 2, 30), ("h", 2, 40)] if canvas else [("x", 0, columns - 1), ("y", 0, 39), ("w", 1, columns), ("h", 1, 12)]
+        for k, low, high in bounds:
             if type(p[k]) is not int or not low <= p[k] <= high:
                 _fail()
-        if p["x"] + p["w"] > 4:
+        if p["x"] + p["w"] > (30 if canvas else columns):
             _fail()
         low, high = counts[p["type"]]
         if not isinstance(p["buttons"], list) or not low <= len(p["buttons"]) <= high:
@@ -722,3 +782,26 @@ def validate_control_layout(layout: Any) -> None:
             _entity(p["reading"])
         if "attribute" in p and (not isinstance(p["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", p["attribute"])):
             _fail()
+        for key in ("bg", "fg"):
+            if key in p and (not isinstance(p[key], str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", p[key])):
+                _fail()
+        if "shape" in p and p["shape"] not in ("round", "square"):
+            _fail()
+        for key in ("hideIcon", "hideLabel"):
+            if key in p and not isinstance(p[key], bool):
+                _fail()
+        if "orientation" in p and (p["orientation"] != "vertical" or p["type"] not in ("updown", "slider", "steps")):
+            _fail()
+        if p["type"] == "preset" or "sequence" in p:
+            sequence = p.get("sequence")
+            if p["type"] != "preset" or not isinstance(sequence, list) or not 1 <= len(sequence) <= 24:
+                _fail()
+            for step in sequence:
+                if isinstance(step, dict) and set(step) == {"wait"}:
+                    if type(step["wait"]) is not int or not 50 <= step["wait"] <= 5000:
+                        _fail()
+                elif isinstance(step, dict) and "button" in step and set(step) <= {"button", "times"}:
+                    if step["button"] not in p["buttons"] or ("times" in step and (type(step["times"]) is not int or not 1 <= step["times"] <= 10)):
+                        _fail()
+                else:
+                    _fail()

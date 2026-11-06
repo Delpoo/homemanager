@@ -79,6 +79,7 @@ await build({
     'src/model/plan-views.ts',
     'src/model/device-catalog.ts',
     'src/model/symbol-spec.ts',
+    'src/model/indicator.ts',
     'src/model/alerts.ts',
     'src/model/alert-settings.ts',
     'src/model/activity.ts',

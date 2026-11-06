@@ -1,4 +1,4 @@
-import { openFirstSection } from '../browser/shell-helpers.mjs';
+import { openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -49,9 +49,9 @@ test('dock opens and previews without saving, then reverts this device', async (
     expect(result.viewport.right).toBeLessThanOrEqual(result.dock.left + 1);
   } else {
     expect(result.dock.height).toBeLessThanOrEqual(result.viewport.height * 0.55 + 1);
-    // The sheet now opens with Base and its headings (#71): bring the size into view first.
-    await editor.getByRole('button', { name: 'Grande', exact: true }).scrollIntoViewIfNeeded();
-    const size = await editor.getByRole('button', { name: 'Grande', exact: true }).boundingBox();
+    // The size slider is in view above the footer (0.13).
+    await editor.locator('#device-form [name=scale]').scrollIntoViewIfNeeded();
+    const size = await editor.locator('#device-form [name=scale]').boundingBox();
     const footer = await editor.locator('.sheet-tools').boundingBox();
     expect(size.y + size.height).toBeLessThanOrEqual(footer.y);
     await editor.getByRole('button', { name: 'Ampliar ficha' }).click();
@@ -75,8 +75,11 @@ test('valid previews survive switching, undo together and discard without saving
   const editor = await edit(page);
   const card = page.locator('homemanager-card');
   await editor.locator('[name=label]').fill('Borrador sintético');
-  await editor.getByRole('button', { name: 'Grande', exact: true }).click();
-  await expect(card.locator('[data-id=fan]')).toHaveClass(/size-l/);
+  await editor.locator('[data-mirror=scale]').fill('125');
+  await editor.locator('[data-mirror=scale]').dispatchEvent('change');
+  await expect
+    .poll(() => card.evaluate(c => c.getDraftConfiguration().catalog.devices.find(d => d.id === 'fan').display.scale))
+    .toBe(1.25);
   await card.evaluate(node => node.select('lamp'));
   await editor.locator('[name=label]').fill('Otra luz');
   await card.evaluate(node => node.select('fan'));
@@ -99,7 +102,6 @@ test('advanced fields stay available and invalid drafts cannot overwrite the pla
   const editor = await edit(page);
   await editor.locator('details.advanced > summary').click();
   for (const name of ['id', 'mobility', 'x', 'y']) await expect(editor.locator(`[name=${name}]`)).toBeVisible();
-  await editor.locator('.module-menu > summary').click();
   await editor.locator('[data-command=module-add][data-module-id=native]').click();
   await editor.locator('#module-native > summary').click();
   await expect(editor.locator('[name=panelId]')).toBeVisible();
@@ -112,9 +114,15 @@ test('advanced fields stay available and invalid drafts cannot overwrite the pla
     )
     .toBe(0.4);
   await editor.locator('[name=label]').fill('');
+  // 0.13: touching another symbol never traps the person; the broken change is not kept.
   await page.locator('homemanager-card').evaluate(node => node.select('lamp'));
-  await expect(editor.locator('[name=label]')).toHaveValue('');
-  expect(await page.locator('homemanager-card').evaluate(node => node.selected)).toBe('fan');
+  await expect(editor.locator('[name=label]')).toHaveValue('Luz Living');
+  expect(await page.locator('homemanager-card').evaluate(node => node.selected)).toBe('lamp');
+  expect(
+    await page
+      .locator('homemanager-card')
+      .evaluate(node => node.draft.catalog.devices.find(d => d.id === 'fan').display.label),
+  ).not.toBe('');
   await editor.locator('[name=label]').fill('Nombre válido');
   await editor.getByRole('button', { name: 'Listo', exact: true }).click();
   await expect(editor).toBeHidden();
@@ -142,9 +150,12 @@ test('live controls, icons, category and HA updates retain the unsaved device', 
   await editor.locator('#device-controls-section').getByRole('button', { name: 'Quitar módulo', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Quitar módulo', exact: true }).click();
   await expect(editor.locator('.ctl-host')).toBeHidden();
-  await expect(editor.getByRole('button', { name: 'Grande', exact: true })).toBeVisible();
-  await editor.getByRole('button', { name: 'Grande', exact: true }).click();
-  await expect(card.locator('[data-id=lamp]')).toHaveClass(/size-l/);
+  await expect(editor.locator('#device-form [name=scale]')).toBeVisible();
+  await editor.locator('[data-mirror=scale]').fill('125');
+  await editor.locator('[data-mirror=scale]').dispatchEvent('change');
+  await expect
+    .poll(() => card.evaluate(c => c.getDraftConfiguration().catalog.devices.find(d => d.id === 'lamp').display.scale))
+    .toBe(1.25);
   expect(await page.evaluate(() => window.testHarness.calls.length)).toBe(0);
 });
 
@@ -159,7 +170,7 @@ test('settings and fullscreen remain reachable while the dock is open', async ({
   await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
   await expect(card.locator('homemanager-editor [name=label]')).toBeVisible();
   await page.evaluate(() => document.exitFullscreen());
-  await card.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card);
   await openFirstSection(page);
   await expect(card.getByRole('region', { name: 'Configuración', exact: true })).toBeVisible();
 });

@@ -6,8 +6,8 @@ test('editing exposes guided learning; evidence is real, one target is retained,
 }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open=techo]').click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
-  const learn = rf.locator('.rf-learning homemanager-rf-learn');
+  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  const learn = rf.locator('homemanager-rf-learn');
   await expect(learn).toBeVisible();
   expect(await calls(page, 'homemanager/rf/capture')).toEqual([]);
   await learn.getByLabel('Botón que querés aprender', { exact: true }).fill('Temporizador de prueba');
@@ -45,14 +45,14 @@ test('an offline receiver explains setup and does not start capture', async ({ p
     ];
   });
   await rf.locator('[data-open=techo]').click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
-  const learn = rf.locator('.rf-learning homemanager-rf-learn');
+  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  const learn = rf.locator('homemanager-rf-learn');
   await expect(learn).toContainText('No hay un receptor disponible');
   await learn.getByLabel('Botón que querés aprender').fill('Luz');
   await expect(learn.getByRole('button', { name: 'Empezar', exact: true })).toBeDisabled();
   expect(await calls(page, 'homemanager/rf/capture')).toEqual([]);
   await learn.getByRole('button', { name: 'Abrir Equipos RF', exact: true }).click();
-  await expect(rf.getByRole('heading', { name: 'Equipos ESPHome', exact: true })).toBeVisible();
+  await expect(rf.getByRole('heading', { name: 'Equipos', exact: true })).toBeVisible();
 });
 
 test('without a configured receiver the visible panel explains setup without capture', async ({ page }) => {
@@ -62,8 +62,8 @@ test('without a configured receiver the visible panel explains setup without cap
     node.rfDevices = [];
   });
   await rf.locator('[data-open=techo]').click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
-  const learn = rf.locator('.rf-learning homemanager-rf-learn');
+  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  const learn = rf.locator('homemanager-rf-learn');
   await expect(learn).toContainText('No hay un receptor disponible');
   await learn.getByLabel('Botón que querés aprender').fill('Luz');
   await expect(learn.getByRole('button', { name: 'Empezar', exact: true })).toBeDisabled();

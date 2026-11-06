@@ -18,29 +18,24 @@ export async function chooseTheme(page, scope, value) {
   await editor.locator('homemanager-theme-choice').getByRole('combobox').selectOption(value);
   await editor.locator('homemanager-task-screen.settings-dialog .task-back').click();
 }
-/** Logical actions, native panels and pending references are folded under Advanced (#70). */
-export async function openAdvanced(scope) {
-  const advanced = scope.locator('.settings-advanced').first();
-  // On a phone the section list may be closed behind the open section.
-  const list = scope.locator('[data-command=settings-list]').first();
-  if (!(await advanced.isVisible()) && (await list.isVisible())) await list.click();
-  if (!(await advanced.evaluate(node => node.open))) await advanced.locator('summary').click();
-}
-/** Opens a Settings section from any view: on a phone it first goes back to the list (#70). */
-export async function showSection(scope, id) {
-  const button = scope.locator(`[data-settings="${id}"]`).first();
-  if (!(await button.isVisible())) {
-    const list = scope.locator('[data-command=settings-list]').first();
-    if (await list.isVisible()) await list.click();
-    const advanced = scope.locator('.settings-advanced').first();
-    if (!(await button.isVisible()) && (await advanced.count()) && !(await advanced.evaluate(node => node.open)))
-      await advanced.locator('summary').click();
+/** 0.13: the ☰ in the room rail is the one door to Settings, in or out of edit mode.
+ * Without a section it opens the first one, as Settings did before. */
+export async function openSettings(scope, section) {
+  const menu = scope.locator('[data-command=nav-menu]');
+  // On a phone an open symbol sheet covers the rail: close it first, as a person would.
+  if (!(await menu.first().isVisible())) {
+    const page = typeof scope.page === 'function' ? scope.page() : scope;
+    await page.keyboard.press('Escape');
   }
-  await button.click();
+  await scope.locator('[data-command=nav-menu]:visible').first().click();
+  const items = scope.locator('.nav-drawer .nav-item');
+  await (section ? items.and(scope.locator(`[data-section="${section}"]`)) : items.first()).click();
 }
-/** On a phone Settings opens as a list (#70): open the section a wide screen starts on. */
-export async function openFirstSection(page) {
-  const list = page.locator('homemanager-editor .settings-page[data-view=list]');
-  await page.waitForTimeout(50);
-  if (await list.isVisible()) await list.locator('[data-settings="rooms-section"]').click();
+/** 0.13: every section has its icon in the strip; nothing is folded any more. */
+export async function openAdvanced() {}
+/** Opens a Settings section by its icon in the strip (0.13). */
+export async function showSection(scope, id) {
+  await scope.locator(`[data-settings="${id}"]`).first().click();
 }
+/** 0.13: Settings always opens on a section, also on a phone. */
+export async function openFirstSection() {}

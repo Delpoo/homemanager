@@ -122,6 +122,62 @@
           ]
         }
       }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          },
+          {
+            "type": "led",
+            "entity": "binary_sensor.sample",
+            "states": {
+              "on": "#3F8F5F",
+              "off": "#D0453A"
+            },
+            "none": "#9AA59F"
+          },
+          {
+            "type": "border",
+            "entity": "sensor.sample_temperature",
+            "ranges": [
+              {
+                "from": -10,
+                "to": 17,
+                "color": "#4F8FBF",
+                "name": "Fresco"
+              },
+              {
+                "from": 18,
+                "to": 50,
+                "color": "#D98B1F"
+              }
+            ]
+          },
+          {
+            "type": "number",
+            "entity": "sensor.sample_clients",
+            "position": "br",
+            "hidden": true
+          },
+          {
+            "type": "icon",
+            "entity": "climate.sample",
+            "states": {
+              "cool": "#4F8FBF",
+              "heat": "#D0453A"
+            }
+          }
+        ]
+      }
     }
   ],
   "invalid": [
@@ -280,6 +336,221 @@
         "baseRules": {
           "noise": {}
         }
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          },
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "glow",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "not an entity",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "{{x}}",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 20,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "red",
+            "empty": "#DCD8EE"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE",
+            "position": "left"
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE",
+            "states": {
+              "__proto__": "#000000"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE",
+            "extra": 1
+          }
+        ]
+      }
+    },
+    {
+      "display": {
+        "indicators": [
+          {
+            "type": "ring",
+            "entity": "cover.sample",
+            "attribute": "current_position",
+            "min": 0,
+            "max": 100,
+            "width": 4,
+            "fill": "#6F6BB8",
+            "empty": "#DCD8EE"
+          },
+          {
+            "type": "led",
+            "entity": "binary_sensor.sample",
+            "states": {
+              "on": "#3F8F5F",
+              "off": "#D0453A"
+            },
+            "none": "#9AA59F"
+          },
+          {
+            "type": "border",
+            "entity": "sensor.sample_temperature",
+            "ranges": [
+              {
+                "from": -10,
+                "to": 17,
+                "color": "#4F8FBF",
+                "name": "Fresco"
+              },
+              {
+                "from": 18,
+                "to": 50,
+                "color": "#D98B1F"
+              }
+            ]
+          },
+          {
+            "type": "number",
+            "entity": "sensor.sample_clients",
+            "position": "br",
+            "hidden": true
+          },
+          {
+            "type": "icon",
+            "entity": "climate.sample"
+          },
+          {
+            "type": "icon",
+            "entity": "climate.other"
+          }
+        ]
       }
     }
   ]

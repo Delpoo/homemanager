@@ -12,7 +12,6 @@ async function edit(page, id = 'fan') {
 test('modules are independent, preview immediately, keep data and undo removal', async ({ page }) => {
   await edit(page);
   await expect(editor(page).getByRole('radio', { name: 'Interruptor', exact: true })).toHaveCount(0);
-  await editor(page).locator('.module-menu > summary').click();
   await editor(page).locator('[data-command=module-add][data-module-id=indicators]').click();
   await expect(editor(page).locator('[data-module=indicators]')).toBeVisible();
   await expect
@@ -27,14 +26,13 @@ test('modules are independent, preview immediately, keep data and undo removal',
   await expect(module).toBeHidden();
   await editor(page).getByRole('button', { name: 'Deshacer cambio de módulo' }).click();
   await expect(module).toBeVisible();
-  // Layer is in Más opciones since #71.
-  await editor(page).locator('#device-options > summary').click();
-  await editor(page).locator('[name=layer]').selectOption('energy');
+  // 0.13: one switch says whether it is infrastructure.
+  await editor(page).locator('[data-infra]').check();
   await expect
     .poll(() =>
       card(page).evaluate(c => c.getDraftConfiguration().catalog.devices.find(d => d.id === 'fan').display.layer),
     )
-    .toBe('energy');
+    .toBe('infrastructure');
 });
 
 test('tap and hold are independently editable, keyboard hold works and context menu preserves control access', async ({

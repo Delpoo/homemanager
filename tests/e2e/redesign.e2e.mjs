@@ -1,4 +1,4 @@
-import { showSection } from '../browser/shell-helpers.mjs';
+import { showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { chromium, expect } from '@playwright/test';
 import { readFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -146,10 +146,10 @@ try {
   await expect.poll(() => page.locator('homemanager-app').evaluate(app => app.hass?.user?.is_admin)).toBe(true);
   console.log('ok: legacy plan loads from actual persistent HA storage');
   await card.getByRole('button', { name: /^(Editar plano|Edit plan)$/ }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   const editor = card.locator('homemanager-editor');
   // Plan 0.12: every Settings section is a page of its own (#70) and adding is a card (#72).
-  await showSection(editor, 'views-section');
+  await showSection(editor, 'rooms-section');
   const views = editor.locator('homemanager-plan-views-editor');
   await views.getByRole('button', { name: /^(\+ Agregar alternativa|\+ Add alternative)$/ }).click();
   await views.getByLabel(/^(Nombre|Name)$/).fill('E2E alternative');
@@ -162,10 +162,10 @@ try {
   console.log('ok: authenticated upload, actual image storage and browser preview');
   await showSection(editor, 'now-section');
   const panel = editor.locator('homemanager-now-panel-editor');
-  await panel.locator('[data-type]').selectOption('reading');
   await panel.getByRole('button', { name: /^(Agregar bloque|Add block)$/ }).click();
+  await panel.locator('[data-add-type=reading]').click();
   await panel.locator('[data-field=readings]').selectOption('sensor.e2e_temperature');
-  await expect(panel.locator('.preview')).toContainText('22');
+  await expect(panel.locator('.w.sel .preview')).toContainText('22');
   await page.keyboard.press('Escape');
   await card.getByRole('button', { name: /^(Guardar cambios|Save changes)$/ }).click();
   await expect(card.locator('.shell>.status')).toContainText(/Guardado en Home Assistant|Saved in Home Assistant/, {

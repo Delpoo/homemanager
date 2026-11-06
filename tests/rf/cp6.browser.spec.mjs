@@ -98,10 +98,11 @@ for (const dark of [false, true])
     await shot('list');
     await rf(page).getByRole('button', { name: 'Nuevo control', exact: true }).click();
     await expect(rf(page).getByRole('textbox', { name: 'Nombre', exact: true })).toBeVisible();
-    await expect(rf(page).locator('.k-field-title homemanager-help-tip')).toHaveCount(1);
+    // 0.13: names and kinds as symbols, nothing to explain.
+    await expect(rf(page).locator('.k-field-title homemanager-help-tip')).toHaveCount(0);
     await readable(rf(page));
     await shot('new');
-    await rf(page).getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Volver', exact: true }).click();
     await rf(page).locator('[data-open=techo]').click();
     await readable(rf(page));
     await shot('remote');
@@ -109,6 +110,7 @@ for (const dark of [false, true])
     await expect(rf(page).getByText('Enviado: Apagar', { exact: true })).toBeVisible();
     await expect(rf(page).getByText('confirmado', { exact: true })).toHaveCount(0);
     await rf(page).getByRole('button', { name: 'Aprender botones', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Modo libre', exact: true }).click();
     const learn = rf(page).locator('homemanager-rf-learn');
     await expect(learn.getByText('Pulsá un botón del control', { exact: true })).toBeVisible();
     await readable(rf(page));
@@ -127,21 +129,18 @@ for (const dark of [false, true])
     await readable(rf(page));
     await shot('trial');
     await learn.getByRole('button', { name: 'Listo', exact: true }).click();
-    await rf(page).getByRole('button', { name: 'Editar', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Diseñar', exact: true }).click();
     await readable(rf(page));
     await shot('designer');
-    await rf(page).getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-    const widget = rf(page).getByRole('region', { name: 'Agregar elemento', exact: true });
-    await expect(widget).toBeVisible();
-    const dialogBox = await widget.boundingBox();
-    const choicesBox = await widget.locator('.types').boundingBox();
-    expect(choicesBox.width).toBeGreaterThan(dialogBox.width * 0.65);
-    const save = widget.getByRole('button', { name: 'Guardar', exact: true });
-    await expect(save.locator('ha-icon')).toHaveAttribute('icon', 'mdi:check');
-    expect(await save.textContent()).toBe('');
+    // 0.13: pieces are added from the designer's panel; brands open their own row.
+    const designer = rf(page).locator('homemanager-control-designer');
+    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
+    await expect(designer.getByRole('group', { name: 'Marca' })).toBeVisible();
     await readable(rf(page));
     await shot('widget');
-    await widget.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
+    await rf(page).locator('.dfoot [data-command=edit]').click();
+    await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
     await rf(page).getByRole('button', { name: 'Agregar ventilador', exact: true }).click();
     await expect(rf(page).locator('.part')).toBeVisible();
     await rf(page)
@@ -149,13 +148,15 @@ for (const dark of [false, true])
       .evaluate(node => node.scrollIntoView({ block: 'center' }));
     await readable(rf(page));
     await shot('roles');
-    await rf(page).locator('summary').filter({ hasText: 'Avanzado' }).click();
+    await rf(page).getByRole('button', { name: 'Volver', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Emisor y ajustes', exact: true }).click();
     await rf(page)
       .locator('form.settings')
       .evaluate(node => node.scrollIntoView({ block: 'center' }));
     await readable(rf(page));
     await shot('settings');
-    await expect(rf(page).locator('form.settings .k-field-title homemanager-help-tip')).toHaveCount(2);
+    await expect(rf(page).locator('form.settings .k-field-title homemanager-help-tip')).toHaveCount(1);
+    await rf(page).getByRole('button', { name: 'Volver', exact: true }).click();
     const configBefore = await page.evaluate(() => structuredClone(window.rfServer.library));
     await rf(page).getByRole('button', { name: 'Eliminar control', exact: true }).click();
     const confirm = rf(page).getByRole('dialog');
@@ -165,7 +166,8 @@ for (const dark of [false, true])
     await shot('confirm');
     await confirm.getByRole('button', { name: 'Cancelar', exact: true }).click();
     expect(await page.evaluate(() => window.rfServer.library)).toEqual(configBefore);
-    await rf(page).getByRole('tab', { name: 'Equipos RF', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Volver', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Equipos RF', exact: true }).click();
     const devices = rf(page).locator('homemanager-rf-devices');
     await expect(devices.getByText('Falta el paquete', { exact: true })).toBeVisible();
     await readable(rf(page));
@@ -219,7 +221,6 @@ test('readable RF fields preserve stored names when only an icon or role changes
     ],
   });
   await rf(page).locator('[data-open=techo]').click();
-  await rf(page).getByRole('button', { name: 'Editar', exact: true }).click();
   await readable(rf(page));
   const initial = await page.evaluate(() => structuredClone(window.rfServer.library));
   const picker = rf(page).locator('[data-button=off] homemanager-icon-picker');
@@ -230,6 +231,7 @@ test('readable RF fields preserve stored names when only an icon or role changes
   initial[0].buttons[0].icon = 'mdi:power-off';
   expect(await page.evaluate(() => window.rfServer.library)).toEqual(initial);
   expect(await page.evaluate(() => window.rfServer.library[0].buttons[0].name)).toBe('Apagar_luz');
+  await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
   await rf(page).locator('[data-part=fan] [data-role=off]').selectOption('off');
   await expect.poll(() => page.evaluate(() => window.rfServer.library[0].parts[0].roles.off)).toBe('off');
   initial[0].parts[0].roles.off = 'off';
@@ -254,19 +256,18 @@ test('RF follows the global theme choice and cancellation restores logical focus
   };
   const background = () =>
     rf(page)
-      .locator('.rf-workspace')
+      .locator('.panel')
       .evaluate(node => getComputedStyle(node).backgroundColor);
   await choose('dark');
-  await expect.poll(background).toBe('rgb(18, 23, 20)');
+  await expect.poll(background).toBe('rgb(27, 34, 30)');
   await app.evaluate(node => {
     node.hass = { ...window.testHarness.hass, themes: { darkMode: true } };
   });
   await choose('light');
-  await expect.poll(background).toBe('rgb(244, 245, 240)');
+  await expect.poll(background).toBe('rgb(255, 255, 255)');
   await choose('auto');
-  await expect.poll(background).toBe('rgb(18, 23, 20)');
+  await expect.poll(background).toBe('rgb(27, 34, 30)');
   await rf(page).locator('[data-open=techo]').click();
-  await rf(page).getByRole('button', { name: 'Editar', exact: true }).click();
   const trigger = rf(page).getByRole('button', { name: 'Eliminar control', exact: true });
   await trigger.click();
   const dialog = rf(page).getByRole('dialog');

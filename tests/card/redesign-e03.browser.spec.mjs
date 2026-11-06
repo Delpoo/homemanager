@@ -1,4 +1,4 @@
-import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 const card = page => page.locator('homemanager-card');
 async function start(page) {
@@ -9,24 +9,25 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
   await start(page);
   const layers = card(page).getByRole('navigation', { name: 'Capas', exact: true });
   expect((await layers.innerText()).trim()).toBe('');
-  for (const label of ['Controles', 'Sensores', 'Energía', 'Infraestructura']) {
+  // 0.13: two filters, infrastructure and every other device.
+  for (const label of ['Dispositivos', 'Infraestructura']) {
     await expect(layers.getByRole('button', { name: label, exact: true })).toHaveAttribute('title', label);
   }
   await expect(layers.getByRole('button', { name: 'Infraestructura', exact: true })).toHaveAttribute(
     'aria-pressed',
     'false',
   );
-  await layers.getByRole('button', { name: 'Sensores', exact: true }).click();
+  await layers.getByRole('button', { name: 'Dispositivos', exact: true }).click();
   await expect(card(page).locator('[data-id=leak]')).toHaveCount(0);
   await layers.getByRole('button', { name: 'Minimizar capas', exact: true }).click();
-  await expect(layers.getByRole('button', { name: 'Controles', exact: true })).toBeHidden();
+  await expect(layers.getByRole('button', { name: 'Dispositivos', exact: true })).toBeHidden();
   await page.reload();
   await page.waitForFunction(() => window.shellHarnessReady);
   await expect(layers.getByRole('button', { name: 'Mostrar capas', exact: true })).toHaveAttribute(
     'aria-expanded',
     'false',
   );
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   const settings = page.getByRole('region', { name: 'Configuración', exact: true });
   // Layers live in Settings › Appearance since #70.
@@ -38,7 +39,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
   await page.reload();
   await page.waitForFunction(() => window.shellHarnessReady);
   await expect(layers).toBeHidden();
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   await showSection(settings, 'appearance-section');
   await settings.getByRole('checkbox', { name: /Mostrar capas/ }).check();
@@ -47,7 +48,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
 });
 test('holding a layer exposes its name without toggling it', async ({ page }) => {
   await start(page);
-  const button = card(page).locator('.layers').getByRole('button', { name: 'Sensores', exact: true });
+  const button = card(page).locator('.layers').getByRole('button', { name: 'Dispositivos', exact: true });
   await button.dispatchEvent('pointerdown', { pointerType: 'touch' });
   await expect(button).toHaveAttribute('data-tooltip', 'true');
   await button.dispatchEvent('pointerup', { pointerType: 'touch' });
@@ -67,17 +68,16 @@ test('zero alerts stay discreet, real alerts turn red and reveal their hidden la
   const pill = card(page).getByRole('button', { name: 'Alertas', exact: true });
   // With no alerts the pill hides (#76, vision §3).
   await expect(pill).toBeHidden();
-  await card(page).locator('.layers').getByRole('button', { name: 'Sensores', exact: true }).click();
+  await card(page).locator('.layers').getByRole('button', { name: 'Dispositivos', exact: true }).click();
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'on', { device_class: 'moisture' }),
   );
   await expect(pill).toHaveAttribute('data-active', 'true');
   await pill.click();
   await expect(card(page).locator('[data-id=leak] .primary')).toBeFocused();
-  await expect(card(page).locator('.layers').getByRole('button', { name: 'Sensores', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(
+    card(page).locator('.layers').getByRole('button', { name: 'Dispositivos', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await page.evaluate(() =>
     window.testHarness.updateState('binary_sensor.synthetic_leak', 'off', { device_class: 'moisture' }),
   );
@@ -128,5 +128,5 @@ test('Spanish and English visits use readable names, states, activity and layer 
   await card(page).getByRole('button', { name: 'Aire Dormitorio', exact: true }).click();
   await expect(view.getByRole('button', { name: 'Heat', exact: true })).toBeVisible();
   await expect(view.getByRole('button', { name: 'Fan only', exact: true })).toBeVisible();
-  await expect(card(page).locator('.layers').getByRole('button', { name: 'Sensors', exact: true })).toBeVisible();
+  await expect(card(page).locator('.layers').getByRole('button', { name: 'Devices', exact: true })).toBeVisible();
 });

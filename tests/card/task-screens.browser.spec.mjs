@@ -1,4 +1,4 @@
-import { openAdvanced, openFirstSection, showSection } from '../browser/shell-helpers.mjs';
+import { openAdvanced, openFirstSection, showSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -41,7 +41,7 @@ async function begin(page, fixture = 'card') {
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
 }
 async function settings(page) {
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   await expect(screen(page, 'Configuración')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -215,22 +215,20 @@ test('native controls replace the plan and Back restores the trigger', async ({ 
   await expect(trigger).toBeFocused();
 });
 
-test('RF element Back resumes its fields and only cancellation opens a dialog', async ({ page }) => {
+test('the RF designer applies each change at once and stays inside the screen (0.13)', async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open]').first().click();
   await rf.locator('[data-command=edit]').click();
-  await rf.locator('[data-command=add-widget]').click();
-  let widget = screen(page, 'Agregar elemento');
-  await widget.locator('[name=widget-label]').fill('Etiqueta pendiente');
-  await widget.locator('.task-back').click();
-  await rf.locator('[data-command=add-widget]').click();
-  widget = screen(page, 'Agregar elemento');
-  await expect(widget.locator('[name=widget-label]')).toHaveValue('Etiqueta pendiente');
+  const designer = rf.locator('homemanager-control-designer');
+  await designer.getByRole('button', { name: 'Título', exact: true }).click();
+  const label = designer.locator('[name=widget-label]');
+  await label.fill('Etiqueta pendiente');
+  await label.dispatchEvent('change');
+  await expect
+    .poll(() => page.evaluate(() => window.rfServer.library[0].layout?.at(-1)?.label))
+    .toBe('Etiqueta pendiente');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await noOverflow(page);
-  await widget.getByRole('button', { name: 'Cancelar', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(1);
-  await page.keyboard.press('Escape');
-  await expect(widget).toBeVisible();
 });
 
 test('leaving an edited plan asks before discarding and cancellation keeps the draft', async ({ page }) => {
@@ -251,13 +249,14 @@ test('learning Back keeps the candidate and button name; storage uses one explic
   await rf.locator('[data-open]').first().click();
   await rf.locator('[data-command=learn]').click();
   const learn = rf.locator('homemanager-rf-learn');
+  await learn.getByRole('button', { name: 'Modo libre', exact: true }).click();
   await expect(learn.getByText('Pulsá un botón del control', { exact: true })).toBeVisible();
   await page.evaluate(() =>
     window.rfServer.heard({ frames: 3, burst_frames: 3, confirmed: true, confirmed_by: 'frames' }),
   );
   await expect(learn.getByText('Señal reconocida', { exact: true })).toBeVisible();
   await learn.getByLabel('Nombre del botón').fill('Nombre pendiente');
-  await rf.locator('homemanager-task-screen.learning-page .task-back').click();
+  await rf.locator('.dh [data-command=back]').click();
   await rf.locator('[data-command=learn]').click();
   await expect(learn.getByLabel('Nombre del botón')).toHaveValue('Nombre pendiente');
   await expect(learn.getByText(/Lista para aprender/)).toBeVisible();
@@ -353,7 +352,7 @@ for (const dark of [false, true])
     await begin(page, 'picker');
     await theme();
     await settings(page);
-    for (const section of ['rooms', 'connect', 'health', 'actions', 'panels', 'pending', 'import']) {
+    for (const section of ['rooms', 'health', 'actions', 'panels', 'pending', 'import']) {
       if (['actions', 'panels', 'pending'].includes(section)) await openAdvanced(editor(page));
       await showSection(editor(page), `${section}-section`);
       await shot(`settings-${section}`);
@@ -413,9 +412,8 @@ for (const dark of [false, true])
     }, dark);
     await rf.locator('[data-open]').first().click();
     await rf.locator('[data-command=edit]').click();
-    await rf.locator('[data-command=add-widget]').click();
+    await rf.locator('homemanager-control-designer').getByRole('button', { name: 'Perilla', exact: true }).click();
     await shot('rf-widget');
-    await screen(page, 'Agregar elemento').locator('.task-back').click();
     await rf.locator('[data-command=edit]').click();
     await rf.locator('[data-command=learn]').click();
     await shot('rf-learn');

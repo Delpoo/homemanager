@@ -66,3 +66,12 @@ test('device programs and modes are allowed actions; a select needs its option (
     assertActionDefinition({ domain: 'vacuum', service: 'set_fan_speed', target: { entity_id: 'vacuum.ficticio' } }),
   );
 });
+test('indicators: one of each type, min below max and ranges in order are semantic checks (0.13)', () => {
+  const ring = { type: 'ring', entity: 'cover.sample', min: 0, max: 100 };
+  for (const indicators of [
+    [ring, { ...ring, entity: 'cover.other' }],
+    [{ ...ring, min: 50, max: 10 }],
+    [{ type: 'border', entity: 'sensor.sample', ranges: [{ from: 5, to: 1, color: '#000000' }] }],
+  ])
+    assert.throws(() => assertConfiguration(configuration({ display: { indicators } })), JSON.stringify(indicators));
+});

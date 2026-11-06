@@ -18,7 +18,6 @@ test('a legacy meter gets indicators and can add controls without categories', a
   await begin(page, 'Temperatura de prueba');
   await expect(editor(page).getByRole('group', { name: 'Categoría' })).toHaveCount(0);
   await expect(editor(page).getByRole('group', { name: 'Qué muestra el símbolo' })).toBeVisible();
-  await editor(page).locator('.module-menu > summary').click();
   await editor(page).locator('[data-command=module-add][data-module-id=control]').click();
   await editor(page).locator('#device-controls-section > summary').click();
   await expect(editor(page).getByRole('button', { name: 'Ciclo', exact: true })).toBeVisible();
@@ -27,7 +26,6 @@ test('a legacy meter gets indicators and can add controls without categories', a
 test('adding indicators keeps legacy kind, category, archetype and all controls', async ({ page }) => {
   await begin(page, 'Luz de prueba');
   const before = await device(page, 'synthetic-light');
-  await editor(page).locator('.module-menu > summary').click();
   await editor(page).locator('[data-command=module-add][data-module-id=indicators]').click();
   await editor(page).locator('#module-indicators > summary').click();
   await editor(page).getByRole('radio', { name: 'Los dos', exact: true }).check();
@@ -43,7 +41,6 @@ test('adding indicators keeps legacy kind, category, archetype and all controls'
 });
 test('relinking cannot replace a chosen module set or its controls', async ({ page }) => {
   await begin(page, 'Temperatura de prueba');
-  await editor(page).locator('.module-menu > summary').click();
   await editor(page).locator('[data-command=module-add][data-module-id=control]').click();
   await chooseAnyEntity(page, 'light.synthetic_spare');
   await expect(editor(page).locator('[data-module=control]')).toBeVisible();

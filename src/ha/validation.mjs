@@ -157,6 +157,60 @@ function symbolLook(display, path) {
   }
   if (Object.hasOwn(display, 'valuePlace'))
     one(display.valuePlace, ['inside', 'beside', 'below'], `${path}.valuePlace`);
+  // 0.13 indicators: visual marks from one reading; at most one of each type.
+  if (Object.hasOwn(display, 'indicators')) {
+    const list = display.indicators;
+    if (!Array.isArray(list) || list.length > 5) invalid(`${path}.indicators`, 'at most 5 indicators');
+    const types = new Set();
+    list.forEach((item, index) => {
+      const where = `${path}.indicators[${index}]`;
+      fields(
+        item,
+        ['type', 'entity'],
+        ['attribute', 'hidden', 'min', 'max', 'width', 'fill', 'empty', 'ranges', 'states', 'none', 'position'],
+        where,
+      );
+      one(item.type, ['ring', 'border', 'icon', 'led', 'number'], `${where}.type`);
+      if (types.has(item.type)) invalid(where, 'one indicator of each type');
+      types.add(item.type);
+      entity(item.entity, `${where}.entity`);
+      if (
+        Object.hasOwn(item, 'attribute') &&
+        (typeof item.attribute !== 'string' || !/^[A-Za-z0-9_]{1,80}$/.test(item.attribute))
+      )
+        invalid(`${where}.attribute`, 'attribute name required');
+      if (Object.hasOwn(item, 'hidden') && typeof item.hidden !== 'boolean') invalid(`${where}.hidden`, 'boolean');
+      for (const key of ['min', 'max']) if (Object.hasOwn(item, key)) range(item[key], -1e9, 1e9, `${where}.${key}`);
+      if (Object.hasOwn(item, 'min') && Object.hasOwn(item, 'max') && item.min >= item.max)
+        invalid(where, 'min below max');
+      if (Object.hasOwn(item, 'width') && (!Number.isInteger(item.width) || item.width < 2 || item.width > 10))
+        invalid(`${where}.width`, '2 to 10');
+      for (const key of ['fill', 'empty', 'none']) if (Object.hasOwn(item, key)) hex(item[key], `${where}.${key}`);
+      if (Object.hasOwn(item, 'position')) one(item.position, ['tr', 'br', 'b'], `${where}.position`);
+      if (Object.hasOwn(item, 'ranges')) {
+        if (!Array.isArray(item.ranges) || item.ranges.length > 8) invalid(`${where}.ranges`, 'at most 8 ranges');
+        item.ranges.forEach((part, at) => {
+          const there = `${where}.ranges[${at}]`;
+          fields(part, ['from', 'to', 'color'], ['name'], there);
+          range(part.from, -1e9, 1e9, `${there}.from`);
+          range(part.to, -1e9, 1e9, `${there}.to`);
+          if (part.from > part.to) invalid(there, 'from not above to');
+          hex(part.color, `${there}.color`);
+          if (Object.hasOwn(part, 'name') && (typeof part.name !== 'string' || part.name.length > 24))
+            invalid(`${there}.name`, 'short name');
+        });
+      }
+      if (Object.hasOwn(item, 'states')) {
+        const states = item.states;
+        if (!states || typeof states !== 'object' || Array.isArray(states) || Object.keys(states).length > 16)
+          invalid(`${where}.states`, 'at most 16 states');
+        for (const [key, color] of Object.entries(states)) {
+          if (!/^[A-Za-z0-9_ .-]{1,40}$/.test(key) || UNSAFE.has(key)) invalid(`${where}.states`, 'state name');
+          hex(color, `${where}.states.${key}`);
+        }
+      }
+    });
+  }
   if (Object.hasOwn(display, 'scale')) range(display.scale, 0.5, 2.5, `${path}.scale`);
   if (Object.hasOwn(display, 'roomScale')) range(display.roomScale, 0.5, 2.5, `${path}.roomScale`);
   if (Object.hasOwn(display, 'opacity')) range(display.opacity, 0, 100, `${path}.opacity`);
@@ -438,6 +492,7 @@ function shape(configuration) {
         'disabledBaseRules',
         'color',
         'values',
+        'indicators',
         'valuePlace',
         'scale',
         'roomScale',
@@ -486,7 +541,7 @@ function shape(configuration) {
     fields(
       device.bindings,
       ['entityId', 'primaryAction', 'advancedPopupId'],
-      ['quickActions', 'remoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold', 'layout'],
+      ['quickActions', 'remoteId', 'irRemoteId', 'controls', 'tap', 'deviceId', 'readings', 'hold', 'layout'],
       `${path}.bindings`,
     );
     if (Object.hasOwn(device.bindings, 'layout'))
@@ -511,6 +566,9 @@ function shape(configuration) {
         if (key === 'entityId') entity(device.bindings[key], `${path}.bindings.${key}`);
         else id(device.bindings[key], `${path}.bindings.${key}`);
       }
+    const infrared = device.bindings.irRemoteId;
+    if (infrared != null && (typeof infrared !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(infrared)))
+      invalid(`${path}.bindings.irRemoteId`, 'invalid infrared remote ID');
     if (Object.hasOwn(device.bindings, 'quickActions')) {
       const quick = device.bindings.quickActions;
       if (!Array.isArray(quick) || quick.length > 4)
@@ -844,21 +902,43 @@ export function assertControlLayout(layout, path = 'layout') {
     title: [0, 0],
     separator: [0, 0],
     control: [1, 1],
+    knob: [2, 12],
+    preset: [1, 12],
+    graph: [0, 0],
+    canvas: [0, 0],
   };
   if (!Array.isArray(layout) || layout.length > 64) invalid(path, 'array of at most 64 pieces required');
+  // 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
+  const canvases = layout.filter(p => p && typeof p === 'object' && p.type === 'canvas');
+  if (canvases.length > 1) invalid(path, 'at most one canvas');
+  const columns = canvases.length ? canvases[0].w : 4;
+  if (!Number.isInteger(columns) || columns < 2 || columns > 30) invalid(path, 'invalid canvas');
   const ids = new Set();
   for (const p of layout) {
-    fields(p, ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'], ['reading', 'attribute'], path);
+    fields(
+      p,
+      ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'],
+      ['reading', 'attribute', 'bg', 'fg', 'shape', 'hideIcon', 'hideLabel', 'orientation', 'sequence'],
+      path,
+    );
     if (typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(p.id) || UNSAFE.has(p.id) || ids.has(p.id))
       invalid(path, 'unique piece id required');
     ids.add(p.id);
     one(p.type, Object.keys(counts), path);
-    for (const [k, low, high] of [
-      ['x', 0, 3],
-      ['y', 0, 39],
-      ['w', 1, 4 - p.x],
-      ['h', 1, 3],
-    ])
+    const canvas = p.type === 'canvas';
+    for (const [k, low, high] of canvas
+      ? [
+          ['x', 0, 0],
+          ['y', 0, 0],
+          ['w', 2, 30],
+          ['h', 2, 40],
+        ]
+      : [
+          ['x', 0, columns - 1],
+          ['y', 0, 39],
+          ['w', 1, columns - p.x],
+          ['h', 1, 12],
+        ])
       if (!Number.isInteger(p[k]) || p[k] < low || p[k] > high) invalid(path, 'invalid piece bounds');
     const [min, max] = counts[p.type];
     if (!Array.isArray(p.buttons) || p.buttons.length < min || p.buttons.length > max)
@@ -869,5 +949,33 @@ export function assertControlLayout(layout, path = 'layout') {
     if (p.reading !== undefined) entity(p.reading, path);
     if (p.attribute !== undefined && (typeof p.attribute !== 'string' || !/^[a-zA-Z0-9_]{1,80}$/.test(p.attribute)))
       invalid(path, 'invalid attribute');
+    for (const key of ['bg', 'fg'])
+      if (p[key] !== undefined && (typeof p[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(p[key])))
+        invalid(path, `invalid ${key}`);
+    if (p.shape !== undefined && p.shape !== 'round' && p.shape !== 'square') invalid(path, 'invalid shape');
+    for (const key of ['hideIcon', 'hideLabel'])
+      if (p[key] !== undefined && typeof p[key] !== 'boolean') invalid(path, `invalid ${key}`);
+    if (
+      p.orientation !== undefined &&
+      (p.orientation !== 'vertical' || !['updown', 'slider', 'steps'].includes(p.type))
+    )
+      invalid(path, 'invalid orientation');
+    if (p.type === 'preset' || p.sequence !== undefined) {
+      if (p.type !== 'preset' || !Array.isArray(p.sequence) || p.sequence.length < 1 || p.sequence.length > 24)
+        invalid(path, 'a preset needs 1-24 steps');
+      for (const step of p.sequence) {
+        const keys = step && typeof step === 'object' ? Object.keys(step) : [];
+        if (keys.length === 1 && keys[0] === 'wait') {
+          if (!Number.isInteger(step.wait) || step.wait < 50 || step.wait > 5000) invalid(path, 'invalid wait');
+        } else if (
+          keys.includes('button') &&
+          keys.every(key => key === 'button' || key === 'times') &&
+          p.buttons.includes(step.button) &&
+          (step.times === undefined || (Number.isInteger(step.times) && step.times >= 1 && step.times <= 10))
+        ) {
+          /* a learned button of this preset */
+        } else invalid(path, 'invalid preset step');
+      }
+    }
   }
 }

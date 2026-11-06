@@ -72,6 +72,8 @@ export interface ModelDevice {
     /** Plan 0.12 (#92): readings shown on the symbol, in order, and how each looks. */
     values?: import('./value-style.js').ValueStyle[];
     valuePlace?: 'inside' | 'beside' | 'below';
+    /** 0.13: ring, border, icon colour, LED and number driven by readings. */
+    indicators?: import('./indicator.js').Indicator[];
     /** Plan 0.12 (#93, #94): free size, size in the per-space view, background opacity (%) and shape. */
     scale?: number;
     roomScale?: number;
@@ -87,6 +89,7 @@ export interface ModelDevice {
     primaryAction?: string | null;
     advancedPopupId?: string | null;
     remoteId?: string | null;
+    irRemoteId?: string | null;
     tap?: import('./gestures.js').GestureBinding;
     hold?: import('./gestures.js').GestureBinding;
     controls?: { id: string; type: string }[];

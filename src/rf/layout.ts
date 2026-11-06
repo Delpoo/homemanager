@@ -1,15 +1,19 @@
 import type { RfButton, RfPart, RfRemote, RfWidget, WidgetType } from '../integration/rf.js';
 
+export type DrawableRemote = Pick<RfRemote, 'id' | 'buttons' | 'parts' | 'layout'>;
+
 /** Grid of the remote designer: same limits as rf_model.py, which validates
  * every saved layout. Widgets never overlap: placing one pushes the widgets it
  * lands on further down. */
 
 export const COLUMNS = 4;
 export const MAX_ROWS = 40;
-export const MAX_HEIGHT = 3;
+export const MAX_HEIGHT = 12;
+/** Columns of this layout's grid: its canvas piece, or four (0.13). */
+export const columnsOf = (layout: readonly RfWidget[]): number => gridOf(layout).columns;
 /** Buttons each widget type uses, as [minimum, maximum]. */
 export { PIECE_INPUTS as WIDGET_BUTTONS, PIECE_SIZE as WIDGET_SIZE } from '../model/control-layout.js';
-import { PIECE_INPUTS as WIDGET_BUTTONS, PIECE_SIZE as WIDGET_SIZE } from '../model/control-layout.js';
+import { PIECE_INPUTS as WIDGET_BUTTONS, PIECE_SIZE as WIDGET_SIZE, gridOf } from '../model/control-layout.js';
 
 type Box = Pick<RfWidget, 'x' | 'y' | 'w' | 'h'>;
 
@@ -18,7 +22,11 @@ export function overlaps(a: Box, b: Box): boolean {
 }
 
 export function rows(layout: RfWidget[]): number {
-  return layout.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0);
+  const drawn = layout.filter(widget => widget.type !== 'canvas');
+  return Math.max(
+    drawn.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0),
+    gridOf(layout).rows ?? 0,
+  );
 }
 
 export function uniqueId(layout: RfWidget[], base: string): string {
@@ -35,31 +43,32 @@ export function uniqueId(layout: RfWidget[], base: string): string {
   return id;
 }
 
-function clamp(widget: RfWidget): RfWidget {
-  const w = Math.max(1, Math.min(COLUMNS, widget.w));
+function clamp(widget: RfWidget, columns = COLUMNS): RfWidget {
+  const w = Math.max(1, Math.min(columns, widget.w));
   const h = Math.max(1, Math.min(MAX_HEIGHT, widget.h));
-  const x = Math.max(0, Math.min(COLUMNS - w, widget.x));
+  const x = Math.max(0, Math.min(columns - w, widget.x));
   const y = Math.max(0, Math.min(MAX_ROWS - h, widget.y));
   return { ...widget, x, y, w, h };
 }
 
 /** First free spot, row by row, for a widget of this size. */
 export function freeSpot(layout: RfWidget[], w: number, h: number): { x: number; y: number } {
+  const columns = columnsOf(layout);
+  const drawn = layout.filter(widget => widget.type !== 'canvas');
   for (let y = 0; y < MAX_ROWS; y++)
-    for (let x = 0; x + w <= COLUMNS; x++)
-      if (!layout.some(widget => overlaps(widget, { x, y, w, h }))) return { x, y };
+    for (let x = 0; x + w <= columns; x++) if (!drawn.some(widget => overlaps(widget, { x, y, w, h }))) return { x, y };
   return { x: 0, y: rows(layout) };
 }
 
 /** Moves and/or resizes one widget; the widgets it covers move down. */
 export function place(layout: RfWidget[], id: string, box: Partial<Box>): RfWidget[] {
   const moved = layout.find(widget => widget.id === id);
-  if (!moved) return layout;
-  const target = clamp({ ...moved, ...box });
+  if (!moved || moved.type === 'canvas') return layout;
+  const target = clamp({ ...moved, ...box }, columnsOf(layout));
   const settled: RfWidget[] = [target];
   let overflow = false;
   const others = layout
-    .filter(widget => widget.id !== id)
+    .filter(widget => widget.id !== id && widget.type !== 'canvas')
     .sort((a, b) => a.y - b.y || a.x - b.x)
     .map(widget => {
       let y = widget.y;
@@ -73,7 +82,9 @@ export function place(layout: RfWidget[], id: string, box: Partial<Box>): RfWidg
       return placed;
     });
   if (overflow || settled.some((a, i) => settled.some((b, j) => j > i && overlaps(a, b)))) return layout;
-  const byId = new Map([target, ...others].map(widget => [widget.id, widget]));
+  const byId = new Map(
+    [target, ...others, ...layout.filter(widget => widget.type === 'canvas')].map(widget => [widget.id, widget]),
+  );
   return layout.map(widget => byId.get(widget.id)!);
 }
 

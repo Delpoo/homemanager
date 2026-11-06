@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { openCardMenu, showSection } from '../browser/shell-helpers.mjs';
+import { openCardMenu, showSection, openSettings } from '../browser/shell-helpers.mjs';
 
 test('shortcut destination matches its label and choosing a target replaces the other target', async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
@@ -18,11 +18,11 @@ test('shortcut destination matches its label and choosing a target replaces the 
   await expect(card.locator('homemanager-insights')).toContainText('Luz de prueba');
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   await showSection(card, 'now-section');
   const panel = card.locator('homemanager-now-panel-editor');
-  await panel.locator('[data-type]').selectOption('shortcut');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
+  await panel.locator('[data-add-type=shortcut]').click();
   await panel.locator('[data-field=roomId]').selectOption('living');
   expect(await card.evaluate(c => c.draft.nowPanels.home[0].deviceId)).toBeUndefined();
   await panel.locator('[data-field=deviceId]').selectOption('synthetic-light');
@@ -34,18 +34,18 @@ test('Now editor previews selected readings, orders blocks and saves', async ({ 
   const card = page.locator('homemanager-card');
   await openCardMenu(page);
   await card.getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card.locator('[data-command=settings]').click();
+  await openSettings(card);
   const editor = card.locator('homemanager-editor');
   await showSection(editor, 'now-section');
   const panel = editor.locator('homemanager-now-panel-editor');
-  await panel.locator('[data-type]').selectOption('readings');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
+  await panel.locator('[data-add-type=readings]').click();
   await panel.locator('input[data-check-field=readings][value="sensor.synthetic_temperature"]').check();
   await panel.getByLabel('Título', { exact: true }).fill('Lectura de prueba');
   await panel.getByLabel('Título', { exact: true }).dispatchEvent('change');
-  await expect(panel.locator('.preview')).toContainText('23');
-  await panel.locator('[data-type]').selectOption('alerts');
+  await expect(panel.locator('.w.sel .preview')).toContainText('23');
   await panel.getByRole('button', { name: 'Agregar bloque', exact: true }).click();
+  await panel.locator('[data-add-type=alerts]').click();
   await panel.getByRole('button', { name: 'Subir', exact: true }).last().click();
   // Customizing starts from what Now shows today (#62).
   expect(await card.evaluate(c => c.draft.nowPanels.home.map(b => b.type))).toEqual([

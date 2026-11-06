@@ -30,7 +30,9 @@ export function currentDashboardPath(hass: Hass): string | undefined {
     ? segment
     : undefined;
 }
-export const layer = (d: Device, hass?: Hass) => presentationOf(d, hass).layer;
+/** 0.13: two filters only — infrastructure, and every other device. */
+export const layer = (d: Device, hass?: Hass) =>
+  presentationOf(d, hass).layer === 'infrastructure' ? 'infrastructure' : 'devices';
 export interface Adapter {
   configure(c: Configuration): void;
   setHass(h: Hass | null): void;

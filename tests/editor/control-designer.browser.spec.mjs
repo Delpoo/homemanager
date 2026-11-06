@@ -2,56 +2,68 @@ import { test, expect } from '../browser/local-test.mjs';
 import { setup, ceiling, calls } from '../browser/rf-helpers.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
-test('RF combines minus, estimated value and plus; preview is the runtime grid, undo preserves buttons', async ({
+test('RF free designer: pieces from the panel, explicit learned buttons, look, undo and test mode (0.13)', async ({
   page,
 }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open=techo]').click();
-  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
+  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
   const designer = rf.locator('homemanager-control-designer');
   const before = await page.evaluate(() => structuredClone(window.rfServer.library[0].buttons));
-  for (const [type, label, ref] of [
-    ['button', '−', 'off'],
-    ['indicator', 'Velocidad', null],
-    ['button', '+', 'v1'],
-  ]) {
-    await designer.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-    const form = designer.locator('homemanager-task-screen.editor');
-    await form.locator(`[data-type=${type}]`).click();
-    await form.locator('[name=widget-label]').fill(label);
-    if (ref) await form.locator('[name=slot-0]').selectOption(ref);
-    await form.getByRole('button', { name: 'Guardar', exact: true }).click();
-    await expect(form).toHaveCount(0);
-  }
-  const layout = await page.evaluate(() => window.rfServer.library[0].layout);
-  expect(layout.slice(-3).map(p => p.label)).toEqual(['−', 'Velocidad', '+']);
-  await designer.getByRole('button', { name: 'Vista previa', exact: true }).click();
+  const last = () => page.evaluate(() => window.rfServer.library[0].layout?.at(-1));
+  // A pair takes two learned buttons; each slot says which one it sends.
+  await designer.getByRole('button', { name: 'Subir / bajar', exact: true }).click();
+  await expect.poll(async () => (await last())?.type).toBe('updown');
+  await designer.getByLabel('Menos', { exact: true }).selectOption('off');
+  await designer.getByLabel('Más', { exact: true }).selectOption('v1');
+  await expect.poll(async () => (await last())?.buttons).toEqual(['off', 'v1']);
+  const label = designer.locator('[name=widget-label]');
+  await label.fill('Velocidad');
+  await label.dispatchEvent('change');
+  await expect.poll(async () => (await last())?.label).toBe('Velocidad');
+  // Look: a colour from the palette and a shape, saved with the piece.
+  await designer.getByRole('button', { name: 'Fondo #D0453A', exact: true }).click();
+  await expect.poll(async () => (await last())?.bg).toBe('#D0453A');
+  await designer.getByRole('button', { name: 'Redondo', exact: true }).click();
+  await expect.poll(async () => (await last())?.shape).toBe('round');
+  // A reading needs no button.
+  await designer.getByRole('button', { name: 'Indicador de valor', exact: true }).click();
+  await expect.poll(async () => (await last())?.type).toBe('indicator');
   await expect(designer.locator('[data-reading]')).toHaveText('—');
-  await expect(designer).toContainText('Estimado');
-  const geometry = await designer
-    .locator('homemanager-rf-remote')
-    .evaluate(v =>
-      [...v.shadowRoot.querySelectorAll('[data-widget]')].map(n => [
-        n.dataset.widget,
-        n.style.gridColumn,
-        n.style.gridRow,
-      ]),
-    );
+  // Undo goes back one change; learned buttons are never touched.
+  const count = (await page.evaluate(() => window.rfServer.library[0].layout)).length;
   await designer.getByRole('button', { name: 'Deshacer diseño', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => window.rfServer.library[0].layout.length)).toBe(layout.length - 1);
+  await expect.poll(() => page.evaluate(() => window.rfServer.library[0].layout.length)).toBe(count - 1);
   expect(await page.evaluate(() => window.rfServer.library[0].buttons)).toEqual(before);
-  await rf.getByRole('button', { name: 'Terminar edición', exact: true }).click();
-  const actual = await rf
-    .locator('homemanager-rf-remote')
-    .evaluate(v =>
-      [...v.shadowRoot.querySelectorAll('[data-widget]')].map(n => [
-        n.dataset.widget,
-        n.style.gridColumn,
-        n.style.gridRow,
-      ]),
-    );
-  expect(actual).toEqual(geometry.slice(0, -1));
   expect(await calls(page, 'homemanager/rf/press')).toEqual([]);
+  // Test mode: a tap on the designed remote sends for real.
+  await designer.getByRole('button', { name: 'Modo prueba: tocar envía', exact: true }).click();
+  await designer.locator('homemanager-rf-remote').getByRole('button', { name: 'Velocidad 2' }).first().click();
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/press')).at(-1)?.button_id).toBe('v2');
+  await rf.locator('.dfoot [data-command=edit]').click();
+});
+
+test('a preset sends its steps in order, with its pauses (0.13)', async ({ page }) => {
+  const layout = [
+    {
+      id: 'night',
+      type: 'preset',
+      x: 0,
+      y: 0,
+      w: 2,
+      h: 1,
+      buttons: ['off', 'v1'],
+      label: 'Noche',
+      icon: null,
+      sequence: [{ button: 'off' }, { wait: 50 }, { button: 'v1', times: 2 }],
+    },
+  ];
+  const rf = await setup(page, { remotes: [ceiling({ layout })] });
+  await rf.locator('[data-open=techo]').click();
+  await rf.locator('homemanager-rf-remote').getByRole('button', { name: 'Noche', exact: true }).click();
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/press')).map(call => call.button_id))
+    .toEqual(['off', 'v1', 'v1']);
 });
 
 test('HA uses the same designer, persists layout and opens the designed control before folded extras', async ({
@@ -69,12 +81,11 @@ test('HA uses the same designer, persists layout and opens the designed control 
   await editor.getByRole('button', { name: 'Diseñar control', exact: true }).click();
   const designer = editor.locator('homemanager-control-designer');
   await expect(designer).toBeVisible();
-  await designer.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const form = designer.locator('homemanager-task-screen.editor');
-  await form.locator('[data-type=title]').click();
-  await form.locator('[name=widget-label]').fill('Mi control');
-  await form.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(form).toHaveCount(0);
+  await designer.getByRole('button', { name: 'Título', exact: true }).click();
+  const label = designer.locator('[name=widget-label]');
+  await label.fill('Mi control');
+  await label.dispatchEvent('change');
+  await expect(designer.locator('homemanager-rf-remote')).toContainText('Mi control');
   await editor.getByRole('button', { name: 'Volver', exact: true }).click();
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.getByRole('button', { name: 'Guardar cambios', exact: true })).toBeDisabled();

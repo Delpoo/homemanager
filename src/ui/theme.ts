@@ -63,6 +63,8 @@ export const tokens = `
   --hm-edit:#F0B455;--hm-edit-ink:#F7CD86;--hm-edit-soft:color-mix(in srgb,#F0B455 16%,var(--hm-bg));
 }}
 *{box-sizing:border-box}
+/* 0.13: thin, quiet scrollbars instead of the system's black bar. */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--hm-muted) 45%,transparent) transparent}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;min-height:var(--hm-touch);border-radius:var(--hm-radius-sm);border:1px solid var(--hm-line);background:var(--hm-bg);padding:0 14px}
@@ -71,7 +73,11 @@ button:disabled{opacity:.45;cursor:default}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:none;box-shadow:var(--hm-focus)}
 time,.value{font-variant-numeric:tabular-nums}
 button.primary-action,button[data-variant=primary]{background:var(--hm-accent);border-color:var(--hm-accent);color:var(--hm-on-accent);font-weight:600}
-input,select,textarea{min-height:var(--hm-touch);border:1px solid var(--hm-line);border-radius:var(--hm-radius-sm);background:var(--hm-bg);padding:8px 10px;width:100%}
+/* 0.13: fields read as fields: their own surface and a firmer edge (they looked disabled). */
+input,select,textarea{min-height:var(--hm-touch);border:1px solid color-mix(in srgb,var(--hm-ink) 24%,transparent);border-radius:var(--hm-radius-sm);background:var(--hm-surface);padding:8px 10px;width:100%}
+input:hover:not(:disabled),select:hover:not(:disabled),textarea:hover:not(:disabled){border-color:color-mix(in srgb,var(--hm-ink) 40%,transparent)}
+input::placeholder,textarea::placeholder{color:var(--hm-muted);opacity:.8}
+input:disabled,select:disabled,textarea:disabled{opacity:.55}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--hm-accent)}
 input[type=checkbox]{width:20px;min-height:20px;accent-color:var(--hm-accent)}
 @media (prefers-reduced-motion:no-preference){button{transition:background .15s,box-shadow .15s,transform .1s}button:active:not(:disabled){transform:scale(.97)}}

@@ -50,7 +50,6 @@ test.beforeEach(async ({ page }) => {
 
 test('a program becomes a shortcut next to the symbol without designing a control (#96)', async ({ page }) => {
   await card(page).locator('[data-id="synthetic-sensor"] .primary').click();
-  await editor(page).locator('.module-menu > summary').click();
   const add = editor(page).locator('[data-command=module-add][data-module-id=pinned]');
   if (await add.isEnabled()) await add.click();
   await editor(page).locator('#module-pinned > summary').click();

@@ -1,3 +1,4 @@
+import { effectsOf, type Effects } from './indicator.js';
 import { validColor, symbolTones, readableColor } from './color.js';
 import type { VisualResult } from './visual-rules.js';
 import { activeStateOf, presentationOf } from './archetype.js';
@@ -40,6 +41,8 @@ export interface SymbolSpec {
   opacity: number | null;
   /** #95: linked to Home Assistant, not yet, or needs no link. */
   link: 'linked' | 'unlinked' | null;
+  /** 0.13 indicators: what the readings paint on the symbol now. */
+  effects: Effects;
 }
 
 const SENSOR_ICONS: Record<string, [string, string]> = {
@@ -143,9 +146,10 @@ export function symbolSpec(
     opacity: device.display.opacity ?? null,
     link: device.display.standalone
       ? null
-      : device.bindings.entityId || device.bindings.deviceId || device.bindings.remoteId
+      : device.bindings.entityId || device.bindings.deviceId || device.bindings.remoteId || device.bindings.irRemoteId
         ? 'linked'
         : 'unlinked',
+    effects: effectsOf(device, hass),
   };
 }
 

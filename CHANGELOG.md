@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0-beta.1 — beta
+
+Plan 0.13: rediseño con maqueta aprobada por el propietario. Versión de prueba: falta su validación.
+
+- **Menús y Configuración:** ☰ con todas las secciones; Configuración y los editores abren en un panel al costado del plano (nunca pantalla completa), con íconos y ayudas al pasar el mouse que se pueden apagar. Arriba, ☀/🌙 y el selector de casa.
+- **Controles RF e IR (incluye #107):** panel al costado con RF e IR juntos; aprender con anillo de escucha (RF e IR por ESPHome IR Proxy); paso Probar con 👍/👎 y ajustes; comprobaciones con la ficha técnica; diseñador libre con grilla a medida, perilla, preset, gráfico, botones de marca, colores y forma.
+- **Ficha del símbolo:** ícono, nombre y espacio arriba; interruptor Infraestructura; tamaño y opacidad en %; formas con dibujos; paletas de colores y Mi paleta; módulos como tarjetas.
+- **Indicadores:** anillo, borde, color del ícono, LED y número a partir de cualquier lectura, con colores por rango o estado y vista previa.
+- **Plano y espacios:** herramientas en íconos (dibujar, agregar parte, dividir, unir, borrar) y un solo lugar para plano, espacios, imágenes y áreas de Home Assistant.
+- **Ahora:** bloques como tarjetas con su contenido en vivo y galería. **Tamaño y vista** sin textos.
+- **Arreglos:** importar reconoce el archivo por su contenido; tocar otro símbolo cambia la ficha; barras de desplazamiento finas; campos con mejor contraste; dos filtros (Dispositivos e Infraestructura) y marca de vínculo que no tapa el ícono.
+
+Los datos anteriores se conservan: los campos nuevos (diseño libre e indicadores) son opcionales y se validan igual en la integración, la tarjeta y el esquema. Pendiente en esta beta: Alertas, Automatizaciones, Mantenimiento y Avanzado con el nuevo diseño; IR sin prueba física de extremo a extremo; base de controles IR. Antes de actualizar, guardar una copia completa de Home Assistant ([procedimiento](docs/release-beta2.md)).
+
 ## 0.12.0-beta.1 — beta
 
 Plan 0.12 (#99): las observaciones del propietario y las auditorías del 2026-11-04, en seis lotes.

@@ -1,4 +1,4 @@
-import { showSection, openFirstSection } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { mkdir } from 'node:fs/promises';
 const card = page => page.locator('homemanager-card');
@@ -236,7 +236,7 @@ test('capture the five requested visual scenarios and the import review', async 
   await shot('activity');
   await shot('menu');
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
-  await card(page).getByRole('button', { name: 'Configuración', exact: true }).click();
+  await openSettings(card(page));
   await openFirstSection(page);
   const editor = card(page).locator('homemanager-editor');
   await showSection(editor, 'import-section');

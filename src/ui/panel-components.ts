@@ -5,13 +5,16 @@ import './help-tip.js';
 
 /** Shared §6 fields, actions and §11 dialog frame. No screen owns these rules. */
 const installed = new WeakMap<ShadowRoot, Set<string>>();
+/** 0.13: thin, quiet scrollbars in every panel, also those that inherit the theme. */
+const thinScrollbars =
+  '*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--hm-muted,#888) 45%,transparent) transparent}';
 export function installPanelComponents(root: ShadowRoot, name: string, styles = '', ownTheme = false): void {
   const names = installed.get(root) ?? new Set<string>();
   if (names.has(name)) return;
   names.add(name);
   installed.set(root, names);
   const sheet = new CSSStyleSheet();
-  sheet.replaceSync((ownTheme ? tokens : '') + componentStyles + panelStyles + styles);
+  sheet.replaceSync((ownTheme ? tokens : '') + thinScrollbars + componentStyles + panelStyles + styles);
   root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
 }
 export function panelField(title: string, field: string, help?: string): string {

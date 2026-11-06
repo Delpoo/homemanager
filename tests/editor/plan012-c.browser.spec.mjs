@@ -15,7 +15,9 @@ test.beforeEach(async ({ page }) => {
 test('the sheet has Base and Modules, and each module says what it does without opening it (#71)', async ({
   page,
 }, testInfo) => {
-  await expect(editor(page).locator('.sheet-group')).toHaveText(['Base', 'Módulos']);
+  // 0.13: no Base / Modules headings; the head holds icon, name and space.
+  await expect(editor(page).locator('.sheet-group')).toHaveCount(0);
+  await expect(editor(page).locator('.symhead [name=label]')).toBeVisible();
   const gestures = editor(page).locator('#module-gestures > summary');
   await expect(gestures.locator('.module-name')).toHaveText('Gestos');
   await expect(gestures.locator('.module-sum')).toContainText('Tocar:');
@@ -35,17 +37,17 @@ test('the sheet has Base and Modules, and each module says what it does without 
   expect(visible).not.toMatch(/\b(?:light|sensor|switch|script)\.[a-z0-9_]+/);
   expect(visible).not.toContain('Mayús+Enter');
   // + Agregar is a list with one sentence per module.
-  await editor(page).locator('.module-menu > summary').click();
+  // 0.13: chips; what each module does is its tooltip.
   const rows = editor(page).locator('.module-add-row');
-  await expect(rows.first().locator('.module-sum')).not.toBeEmpty();
-  await expect(rows.filter({ hasText: 'Indicadores' }).locator('.module-sum')).toContainText('Muestra valores');
+  await expect(rows.first()).toHaveAttribute('title', /.+/);
+  await expect(rows.filter({ hasText: 'Indicadores' })).toHaveAttribute('title', /Muestra valores/);
   if (testInfo.project.name === 'mobile') await expect(card(page).locator('nav.rooms')).toBeHidden();
 });
 
 test('free size, opacity and shape are saved and drawn; a hidden layer is faded while editing (#93)', async ({
   page,
 }) => {
-  await editor(page).locator('#device-form [name=shape]').selectOption('pill');
+  await editor(page).locator('[data-command=shape-pick][data-shape-value=pill]').click();
   const slider = editor(page).locator('#device-form [name=scale]');
   await slider.fill('1.5');
   await slider.dispatchEvent('change');
@@ -94,10 +96,12 @@ test('outside editing the link mark follows Show link: unlinked by default, alwa
 
 test('the initial view is saved, ⌂ returns to it and it opens after a reload (#94)', async ({ page }) => {
   await card(page).getByRole('button', { name: 'Salir de edición', exact: true }).click();
+  // Leaving edit mode gives the plan its room back; zoom once it has settled.
+  await page.waitForTimeout(600);
   await card(page).getByRole('button', { name: 'Acercar', exact: true }).click();
   await card(page).getByRole('button', { name: 'Acercar', exact: true }).click();
   await page.waitForTimeout(500);
-  const saved = await page.evaluate(() => ({ ...window.testHarness.card.camera }));
+  const fitted = await page.evaluate(() => window.testHarness.card.baseScale);
   await card(page).locator('.hm-tools [data-command=configuration]').click();
   const settings = card(page).locator('homemanager-editor');
   await settings.locator('[data-settings="view-section"]').click();
@@ -106,7 +110,10 @@ test('the initial view is saved, ⌂ returns to it and it opens after a reload (
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
   await page.waitForTimeout(500);
   await card(page).getByRole('button', { name: 'Vista inicial', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeCloseTo(saved.scale, 3);
+  // 0.13: Settings sits beside the plan, so what is saved is what that narrower plan showed.
+  await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeGreaterThan(fitted * 1.2);
+  await page.waitForTimeout(500);
+  const saved = await page.evaluate(() => ({ ...window.testHarness.card.camera }));
   await page.reload();
   await page.waitForFunction(() => window.testHarnessReady);
   await expect.poll(() => page.evaluate(() => window.testHarness.card.camera.scale)).toBeCloseTo(saved.scale, 3);
