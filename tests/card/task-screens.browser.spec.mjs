@@ -16,15 +16,16 @@ test.beforeEach(async ({ page }, info) => {
     const file = path.resolve(root, relative);
     if (
       !file.startsWith(root + path.sep) ||
-      !/^(tests\/browser\/fixtures\/|dist\/|docs\/rediseno\/|\.work\/editor\/)/.test(relative)
+      !/^(tests\/browser\/fixtures\/|dist\/|docs\/rediseno\/|\.work\/editor\/|src\/ha\/[a-z-]+\.mjs$)/.test(relative)
     )
       return route.abort();
     try {
       await route.fulfill({
         status: 200,
         contentType:
-          { '.html': 'text/html', '.js': 'text/javascript', '.svg': 'image/svg+xml' }[path.extname(file)] ??
-          'application/octet-stream',
+          { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.svg': 'image/svg+xml' }[
+            path.extname(file)
+          ] ?? 'application/octet-stream',
         body: await readFile(file),
       });
     } catch {
