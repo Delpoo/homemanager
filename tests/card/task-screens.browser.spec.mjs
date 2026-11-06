@@ -352,7 +352,7 @@ for (const dark of [false, true])
     await begin(page, 'picker');
     await theme();
     await settings(page);
-    for (const section of ['rooms', 'connect', 'health', 'actions', 'panels', 'pending', 'import']) {
+    for (const section of ['rooms', 'health', 'actions', 'panels', 'pending', 'import']) {
       if (['actions', 'panels', 'pending'].includes(section)) await openAdvanced(editor(page));
       await showSection(editor(page), `${section}-section`);
       await shot(`settings-${section}`);

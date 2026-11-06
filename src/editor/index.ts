@@ -972,6 +972,8 @@ export class HomeManagerEditor extends HTMLElement {
    * phone and on the first section it can show on a wide screen. */
   openSettings(section?: SettingsSection): void {
     if (!this.flushDevice()) return;
+    // 0.13: images and Home Assistant areas are part of «Plano y espacios».
+    if (section === 'views-section' || section === 'connect-section') section = 'rooms-section';
     const available = this.settingsAvailable();
     this.settingsSection =
       section ?? (available.has(this.settingsSection) ? this.settingsSection : firstSection(available));
@@ -984,8 +986,6 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsAvailable(): Set<SettingsSection> {
     const available = new Set<SettingsSection>([
       'rooms-section',
-      'views-section',
-      'connect-section',
       'now-section',
       'appearance-section',
       'view-section',
@@ -1172,9 +1172,9 @@ export class HomeManagerEditor extends HTMLElement {
           : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Diseñar control.'))}</p>`,
         'rules-section': '<div class="rules-host"></div>',
         'now-section': '<div class=now-editor-host></div>',
-        'rooms-section': this.roomsForm(),
-        'views-section': '<div class=plan-views-host></div>',
-        'connect-section': this.connectForm(),
+        'rooms-section': `${this.roomsForm()}<div class="lbl">${esc(t('Imágenes'))}<span class="grow"></span></div><div class=plan-views-host></div><div class="lbl">${esc(t('Home Assistant'))}<span class="grow"></span></div>${this.connectForm()}`,
+        'views-section': '',
+        'connect-section': '',
         'homes-section': this.homesBody(),
         'appearance-section': appearanceBody(gridStep()),
         'view-section': this.viewBody(),
@@ -1349,9 +1349,9 @@ export class HomeManagerEditor extends HTMLElement {
     } catch {
       /* No thumbnail for a plan that cannot be drawn. */
     }
-    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}<button type="button" data-command="review-spaces">${esc(t('Revisar espacios con el plano'))}</button></div>${spacesList(this.configuration, zoneIds)}
+    return `${planCard(content, zones.length, rooms.length)}<div class="rooms-actions">${this.editZones ? `<button type="button" class="primary" data-command="zones-edit"><ha-icon icon="mdi:vector-square-edit" aria-hidden="true"></ha-icon>${esc(t('Editar zonas'))}</button>` : ''}${this.ib('review-spaces', t('Revisar espacios con el plano'), 'mdi:file-compare')}</div>${spacesList(this.configuration, zoneIds)}
       ${candidates.length ? `<h4>${esc(t('Zonas detectadas en el plano'))}</h4><div class="toolbar">${candidates.map(zone => `<button type="button" data-command="room-add-zone" data-room="${esc(zone.id)}" data-label="${esc(zone.label ?? '')}">${esc(t('Agregar {room}', { room: zone.label ?? zone.id }))}</button>`).join('')}<button type="button" data-command="room-add-all">${esc(t('Agregar todas ({count})', { count: candidates.length }))}</button></div>` : ''}
-      <details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`;
+      ${this.editZones ? '' : `<details class="section" id="room-add-section"${this.openSections.has('room-add-section') ? ' open' : ''}><summary>${esc(t('Agregar un espacio sin dibujarlo'))}</summary><div class="section-body"><form id="room-add-form"><div class="grid">${input('roomId', t('ID del nuevo espacio'), '', `placeholder="${esc(t('kebab-case, p. ej. estudio'))}" pattern="[a-z0-9]+(-[a-z0-9]+)*"`)}${input('roomLabel', t('Nombre del nuevo espacio'), '', 'maxlength="240"')}</div><div class="actions"><button type="submit">${esc(t('Agregar espacio'))}</button></div></form></div></details>`}`;
   }
   private deviceForm(device?: Device): string {
     const fixed = device?.mobility === 'fixed' && !this.allowFixedPosition;

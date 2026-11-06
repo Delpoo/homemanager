@@ -149,7 +149,7 @@ try {
   await openSettings(card);
   const editor = card.locator('homemanager-editor');
   // Plan 0.12: every Settings section is a page of its own (#70) and adding is a card (#72).
-  await showSection(editor, 'views-section');
+  await showSection(editor, 'rooms-section');
   const views = editor.locator('homemanager-plan-views-editor');
   await views.getByRole('button', { name: /^(\+ Agregar alternativa|\+ Add alternative)$/ }).click();
   await views.getByLabel(/^(Nombre|Name)$/).fill('E2E alternative');

@@ -81,7 +81,7 @@ const open = async (page, { areas = true } = {}) => {
   await button(page, 'Editar plano').click();
   await openSettings(page);
   await openFirstSection(page);
-  await showSection(editor(page), 'connect-section');
+  await showSection(editor(page), 'rooms-section');
 };
 
 test('each space is offered its area, and only the named areas are created', async ({ page }) => {
@@ -118,7 +118,7 @@ test('each space is offered its area, and only the named areas are created', asy
   // Applying again creates nothing: the button has nothing to do.
   await openSettings(page);
   await openFirstSection(page);
-  await showSection(editor(page), 'connect-section');
+  await showSection(editor(page), 'rooms-section');
   await expect(editor(page).locator('.connect').getByRole('button', { name: 'Vincular', exact: true })).toBeDisabled();
   expect(await page.evaluate(() => window.createdAreas)).toEqual(['Baño Norte']);
 });

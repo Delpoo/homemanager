@@ -66,7 +66,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'designer-section', title: () => t('Diseñador de controles'), icon: 'mdi:remote' },
 ];
 const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: true }[] = [
-  { title: () => t('Mi casa'), sections: ['rooms-section', 'views-section', 'connect-section', 'homes-section'] },
+  { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
   { title: () => t('Reglas'), sections: ['rules-section'] },

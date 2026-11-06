@@ -76,9 +76,9 @@ test('a plan without zones offers to draw, and ends with three spaces drawn in t
   await expect(offer).toBeVisible();
   await offer.getByRole('button', { name: 'Dibujar el primero', exact: true }).click();
   await draw(page, 'Living', [0.05, 0.05]);
-  await button(page, 'Nueva zona').click();
+  await button(page, 'Dibujar espacio').click();
   await draw(page, 'Cocina', [0.4, 0.05]);
-  await button(page, 'Nueva zona').click();
+  await button(page, 'Dibujar espacio').click();
   await draw(page, 'Baño Norte', [0.05, 0.5]);
   await button(page, 'Aplicar').click();
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
@@ -163,7 +163,7 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
     .click();
   await settings.getByRole('button', { name: 'Editar zonas', exact: true }).click();
   await expect(settings).toHaveCount(0);
-  await button(page, 'Nueva zona').click();
+  await button(page, 'Dibujar espacio').click();
   await draw(page, 'Garaje', [0.02, 0.02]);
   await button(page, 'Aplicar').click();
   await expect(card(page).locator('.zones-bar')).toHaveCount(0);
