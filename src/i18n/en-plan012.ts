@@ -373,4 +373,5 @@ export const enPlan012: Record<string, string> = {
   'Aprender más botones de {name}': 'Learn more buttons for {name}',
   'Enviar {name}': 'Send {name}',
   'Sin conexión o sin el paquete HomeManager RF': 'Offline or without the HomeManager RF package',
+  'Tocá para escuchar': 'Tap to listen',
 };
