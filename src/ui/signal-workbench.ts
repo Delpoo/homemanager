@@ -70,6 +70,7 @@ export class SignalPreview extends HTMLElement {
 }
 
 type Tab = 'summary' | 'signal' | 'decode' | 'emission' | 'tests';
+export type SignalTab = Tab;
 type Trace = { label: string; sample: SignalSample; comparison?: SignalComparison };
 const tabs: [Tab, string][] = [
   ['summary', 'Resumen'],
@@ -221,9 +222,10 @@ class SignalWorkbench extends HTMLElement {
     });
   }
 
-  open(hass: Hass, target: SignalTarget): void {
+  open(hass: Hass, target: SignalTarget, tab?: SignalTab): void {
     this.hass = hass;
     this.target = target;
+    if (tab) this.tab = tab;
     this.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
     this.render();
     this.dialog.showModal();
@@ -631,10 +633,11 @@ class SignalWorkbench extends HTMLElement {
   }
 }
 
-export function openSignal(hass: Hass, target: SignalTarget): void {
+/** Opens the technical sheet; Controls › Test opens it on Emission or Tests (0.13). */
+export function openSignal(hass: Hass, target: SignalTarget, tab?: SignalTab): void {
   const sheet = new SignalWorkbench();
   document.body.append(sheet);
-  sheet.open(hass, target);
+  sheet.open(hass, target, tab);
 }
 
 if (!customElements.get('homemanager-signal-preview'))

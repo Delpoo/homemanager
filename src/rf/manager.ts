@@ -4,7 +4,7 @@ import { learningWorkspaceStyles } from '../ui/learning-components.js';
 import { t } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents, panelField, keepPanelFocus } from '../ui/panel-components.js';
-import { rfManagerStyles, rfControlsStyles, rfText, rfEditedText } from '../ui/rf-components.js';
+import { rfManagerStyles, rfControlsStyles, rfTestStyles, rfText, rfEditedText } from '../ui/rf-components.js';
 import { iconButton, miniWave, panelHead, panelLabel, sidePanelStyles, sourceTag } from '../ui/side-panel.js';
 import {
   ROLES,
@@ -19,7 +19,7 @@ import {
 import { remotes as irApi, type IrDevice, type IrRemote } from '../integration/remotes.js';
 import { icon, kindLabel, roleLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
-import { openSignal } from '../ui/signal-workbench.js';
+import { openSignal, type SignalTab } from '../ui/signal-workbench.js';
 import './remote-view.js';
 import './learn.js';
 import './devices.js';
@@ -36,7 +36,8 @@ import type { HomeManagerIr } from './ir-manager.js';
  * Assistant gets (fans and lights) and the transmission settings each have their own
  * page in the same panel. Codes never reach this page. */
 
-type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn';
+type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn' | 'test';
+type Trial = 'sent' | 'ok' | 'no';
 type Source = 'rf' | 'ir';
 /** What kind of appliance a new remote is for: only its icon follows from it. */
 const KINDS: [string, string][] = [
@@ -64,6 +65,9 @@ export class HomeManagerRf extends HTMLElement {
   private newSource: Source = 'rf';
   private newReceiver = '';
   private irTitle = '';
+  /** New remote: Learn › Test › Design follow each other (0.13). */
+  private wizard = false;
+  private trials = new Map<string, Trial>();
   private editing = false;
   private learning = false;
   private readonly designer = new ControlDesigner();
@@ -84,7 +88,7 @@ export class HomeManagerRf extends HTMLElement {
     installPanelComponents(
       this.root,
       'rf-manager',
-      rfManagerStyles + learningWorkspaceStyles + sidePanelStyles + rfControlsStyles,
+      rfManagerStyles + learningWorkspaceStyles + sidePanelStyles + rfControlsStyles + rfTestStyles,
       true,
     );
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
@@ -204,6 +208,7 @@ export class HomeManagerRf extends HTMLElement {
         `<div data-slot="devices"></div>${status}`,
       );
     else if (this.view === 'new') page = this.renderNew(status);
+    else if (this.view === 'test' && this.remote()) page = this.renderTest(this.remote()!, status);
     else if (this.view === 'learn' && (this.remote() || this.draft))
       page = this.panel(
         panelHead(`${e(t('Aprender'))} · ${e(rfText((this.remote() ?? this.draft)!.name))}`, {
@@ -348,7 +353,7 @@ export class HomeManagerRf extends HTMLElement {
         `<div data-slot="remote"></div>${status}`,
         `<span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="edit"', 'primary')}`,
       );
-    const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Diseñar'), 'mdi:pencil-ruler', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
+    const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Probar botones'), 'mdi:play-circle-outline', 'data-command="test"')}${iconButton(t('Diseñar'), 'mdi:pencil-ruler', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
     const buttons = remote.buttons.length
       ? `<div class="list">${remote.buttons
           .map(
@@ -379,6 +384,61 @@ export class HomeManagerRf extends HTMLElement {
           `<option value="${e(button.id)}"${button.id === selected ? ' selected' : ''}>${e(rfText(button.name))}</option>`,
       )
       .join('')}`;
+  }
+
+  /** Test (0.13): every button sends; the person says whether the appliance reacted.
+   * When it did not, the transmission is adjusted one step at a time and sent again.
+   * Checking that the signal left (echo, a second receiver, a camera) is optional. */
+  private renderTest(remote: RfRemote, status: string): string {
+    const rows = remote.buttons
+      .map(button => {
+        const trial = this.trials.get(button.id);
+        const name = rfText(button.name);
+        const said =
+          trial === 'ok'
+            ? t('Funcionó')
+            : trial === 'no'
+              ? t('No reaccionó')
+              : trial === 'sent'
+                ? t('Enviado · ¿reaccionó?')
+                : t('Sin probar');
+        const answer =
+          trial === 'sent'
+            ? iconButton(t('Sí, reaccionó'), 'mdi:thumb-up-outline', `data-trial-ok="${e(button.id)}"`) +
+              iconButton(t('No reaccionó'), 'mdi:thumb-down-outline', `data-trial-no="${e(button.id)}"`)
+            : trial === 'ok'
+              ? `<span class="ok-mark" title="${e(t('Funcionó'))}">${icon('mdi:check-circle')}</span>`
+              : '';
+        const tune =
+          trial === 'no'
+            ? `<div class="tune">${icon('mdi:tune')}<span class="pill">${iconButton(t('Pulso más corto'), 'mdi:minus', 'data-tune="pulse:-1"')}<b>${remote.pulse_us} µs</b>${iconButton(t('Pulso más largo'), 'mdi:plus', 'data-tune="pulse:1"')}</span><span class="pill">${iconButton(t('Menos repeticiones'), 'mdi:minus', 'data-tune="repeats:-1"')}<b>${icon('mdi:repeat')}${remote.repeats}</b>${iconButton(t('Más repeticiones'), 'mdi:plus', 'data-tune="repeats:1"')}</span>${this.transmitters
+                .map(
+                  item =>
+                    `<button type="button" class="chip" data-tune-transmitter="${e(item.id)}" aria-pressed="${item.id === remote.transmitter}">${icon('mdi:broadcast')}${e(rfText(item.name))}</button>`,
+                )
+                .join(
+                  '',
+                )}${iconButton(t('Probar otra vez'), 'mdi:play', `data-trial-send="${e(button.id)}"`, 'send')}</div>`
+            : '';
+        return `<div class="trow"><div class="li">${miniWave(button.fingerprint || button.id)}<span class="t"><b>${e(name)}</b><span>${e(said)}</span></span>${iconButton(t('Enviar {name}', { name }), 'mdi:play', `data-trial-send="${e(button.id)}"`, `send${trial === 'sent' ? ' pulse' : ''}`)}${answer}</div>${tune}</div>`;
+      })
+      .join('');
+    const checks: [SignalTab, string, string, string][] = [
+      ['emission', 'mdi:sine-wave', t('Auto-eco'), t('El mismo equipo escucha lo que envía')],
+      ['emission', 'mdi:access-point-network', t('Receptor B'), t('Otro equipo escucha')],
+      ['tests', 'mdi:camera-outline', t('Cámara'), t('Ver el destello del LED')],
+    ];
+    const check = checks
+      .map(
+        ([tab, glyph, label, tip]) =>
+          `<button type="button" class="check" data-check="${tab}" title="${e(tip)}"${remote.buttons.length ? '' : ' disabled'}>${icon(glyph)}<b>${e(label)}</b></button>`,
+      )
+      .join('');
+    return this.panel(
+      panelHead(`${e(t('Probar'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
+      `${this.wizard ? this.stepper(2) : ''}<div class="list">${rows}</div>${panelLabel(t('Comprobar (opcional)'))}<div class="checks">${check}</div>${status}`,
+      `${iconButton(t('Guardar sin diseñar'), 'mdi:content-save-outline', 'data-command="finish"')}<span class="grow"></span><button type="button" class="next" data-command="edit">${icon('mdi:pencil-ruler')}${e(t('Diseñar'))}</button>`,
+    );
   }
 
   /** What Home Assistant gets: a fan or a light whose roles name the buttons. */
@@ -485,6 +545,7 @@ export class HomeManagerRf extends HTMLElement {
       }),
     );
     if (this.view === 'new') this.bindNew();
+    if (this.view === 'test' && remote) this.bindTest(remote);
     if (remote && (this.view === 'remote' || this.view === 'entities' || this.view === 'settings')) {
       this.remoteView.readValues = () => this._hass?.states ?? {};
       this.designer.configure({
@@ -504,6 +565,79 @@ export class HomeManagerRf extends HTMLElement {
     }
     if (this.view === 'devices') this.devices.hass = this._hass!;
     if (this.view === 'ir') this.infrared.hass = this._hass;
+  }
+
+  private bindTest(remote: RfRemote): void {
+    const root = this.root;
+    const last = () => [...this.trials.keys()].at(-1) ?? remote.buttons[0]?.id;
+    root.querySelectorAll<HTMLButtonElement>('[data-trial-send]').forEach(button =>
+      button.addEventListener(
+        'click',
+        () =>
+          void this.run(async () => {
+            const id = button.dataset.trialSend!;
+            await rf.press(this._hass!, remote.id, id);
+            this.trials.delete(id);
+            this.trials.set(id, 'sent');
+          }),
+      ),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-trial-ok],[data-trial-no]').forEach(button =>
+      button.addEventListener('click', () => {
+        const id = button.dataset.trialOk ?? button.dataset.trialNo!;
+        this.trials.set(id, button.dataset.trialOk ? 'ok' : 'no');
+        this.render();
+      }),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-tune]').forEach(button =>
+      button.addEventListener('click', () => {
+        const [field, step] = button.dataset.tune!.split(':');
+        const pulse = Math.min(2000, Math.max(50, remote.pulse_us + (field === 'pulse' ? Number(step) * 25 : 0)));
+        const repeats = Math.min(20, Math.max(1, remote.repeats + (field === 'repeats' ? Number(step) : 0)));
+        void this.tune(remote, { pulse_us: pulse, repeats });
+      }),
+    );
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-tune-transmitter]')
+      .forEach(button =>
+        button.addEventListener(
+          'click',
+          () => void this.tune(remote, { transmitter: button.dataset.tuneTransmitter! }),
+        ),
+      );
+    root.querySelectorAll<HTMLButtonElement>('[data-check]').forEach(button =>
+      button.addEventListener('click', () => {
+        const id = last();
+        if (id && this._hass)
+          openSignal(
+            this._hass,
+            { source: 'rf', remote_id: remote.id, button_id: id },
+            button.dataset.check as SignalTab,
+          );
+      }),
+    );
+  }
+
+  /** One transmission setting at a time; the next send uses it. */
+  private async tune(
+    remote: RfRemote,
+    change: Partial<Pick<RfRemote, 'pulse_us' | 'repeats' | 'transmitter'>>,
+  ): Promise<void> {
+    await this.run(async () => {
+      await rf.saveRemote(
+        this._hass!,
+        {
+          name: remote.name,
+          transmitter: change.transmitter ?? remote.transmitter,
+          pulse_us: change.pulse_us ?? remote.pulse_us,
+          repeats: change.repeats ?? remote.repeats,
+          wait_us: remote.wait_us,
+        },
+        remote.id,
+      );
+      await this.reload();
+      this.say(t('Ajustes guardados. Probá un botón.'));
+    });
   }
 
   private bindNew(): void {
@@ -653,7 +787,8 @@ export class HomeManagerRf extends HTMLElement {
         this.say('');
         return this.render();
       }
-      if ((this.view === 'entities' || this.view === 'settings') && this.remote()) return this.show('remote');
+      if ((this.view === 'entities' || this.view === 'settings' || this.view === 'test') && this.remote())
+        return this.show('remote');
       return void this.command('list');
     }
     await this.run(async () => {
@@ -665,6 +800,7 @@ export class HomeManagerRf extends HTMLElement {
           this.show('new');
           break;
         case 'list':
+          this.wizard = false;
           this.closeLearn(false);
           this.draft = null;
           this.selected = null;
@@ -684,13 +820,26 @@ export class HomeManagerRf extends HTMLElement {
             description: this.newRemote.description?.trim() || null,
           };
           this.selected = null;
+          this.wizard = true;
           this.startLearn();
           break;
         case 'learn':
           this.editing = false;
           this.startLearn();
           break;
+        case 'test':
+          this.trials = new Map();
+          this.show('test');
+          break;
+        case 'finish':
+          this.wizard = false;
+          this.show('remote');
+          break;
         case 'edit':
+          if (this.view === 'test') {
+            this.wizard = false;
+            this.view = 'remote';
+          }
           this.editing = !this.editing;
           if (this.editing) this.closeLearn(false);
           this.say('');
@@ -749,7 +898,10 @@ export class HomeManagerRf extends HTMLElement {
       this.draft = null;
       this.view = 'list';
       this.say(t('No se guardó: el control necesita al menos un botón.'));
-    } else if (this.view === 'learn') this.view = this.remote() ? 'remote' : 'list';
+    } else if (this.view === 'learn') {
+      this.view = this.remote() ? (this.wizard ? 'test' : 'remote') : 'list';
+      this.trials = new Map();
+    }
     if (render) this.render();
   }
 

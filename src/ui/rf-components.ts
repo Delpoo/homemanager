@@ -115,3 +115,16 @@ input,select{box-sizing:border-box;width:100%;min-width:0;color:var(--hm-ink)}
 .editor{display:grid;gap:8px}.editor form{display:grid;gap:7px}
 .danger{color:var(--hm-alert)}
 `;
+/** 0.13 Test step: rows that send, a thumbs answer, a tuning row, three checks. */
+export const rfTestStyles = `
+.trow{border-bottom:1px solid var(--hm-line)}.trow:last-child{border-bottom:0}.trow .li{border:0}
+.ib.send.pulse{animation:hm-ping 1.2s ease-out}
+@keyframes hm-ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--hm-brand) 45%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.ok-mark{display:grid;place-items:center;width:40px;color:var(--hm-ok)}
+.tune{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 4px 10px 28px;color:var(--hm-muted)}
+.tune .pill{display:inline-flex;align-items:center;gap:2px;padding:0 4px;border:1px solid var(--hm-line);border-radius:999px;color:var(--hm-ink)}
+.tune .pill .ib{width:30px;height:30px;min-height:30px}.tune .pill b{display:inline-flex;align-items:center;gap:3px;font-weight:500;font-size:13px}
+.checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.check{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;padding:14px 6px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);font-size:12.5px;color:var(--hm-muted)}
+.check ha-icon{--mdc-icon-size:28px;color:var(--hm-brand)}.check b{color:var(--hm-ink);font-weight:500}
+`;

@@ -65,8 +65,11 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   });
   expect(JSON.stringify(await page.evaluate(() => window.rfServer.calls))).not.toMatch(/"code"/);
 
-  // The learned button is already on the drawn remote, and sends.
+  // 0.13: a new remote goes from Learn to Test; it can be kept without designing.
   await rf.getByRole('button', { name: 'Listo', exact: true }).click();
+  await expect(rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true })).toBeVisible();
+  await rf.getByRole('button', { name: 'Guardar sin diseñar', exact: true }).click();
+  // The learned button is already on the drawn remote, and sends.
   await rf.locator('homemanager-rf-remote').getByRole('button', { name: 'Velocidad 1' }).click();
   await expect(rf.getByText('Enviado: Velocidad 1')).toBeVisible();
   await expect
@@ -315,4 +318,28 @@ test('speed stops send on tap, including the current stop, and once per drag', a
   await dialog.getByRole('button', { name: 'Marcar como apagado', exact: true }).click();
   expect(await page.evaluate(() => window.assumed)).toEqual([false]);
   expect(await page.evaluate(() => window.sent.length)).toBe(3);
+});
+
+test('Test sends each button, asks whether it reacted and tunes one setting at a time (0.13)', async ({ page }) => {
+  const rf = await setup(page, { remotes: [ceiling()] });
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'Probar botones', exact: true }).click();
+  await rf.getByRole('button', { name: 'Enviar Apagar', exact: true }).click();
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/press')).at(-1))
+    .toMatchObject({ remote_id: 'techo', button_id: 'off' });
+  await rf.getByRole('button', { name: 'Sí, reaccionó', exact: true }).click();
+  await expect(rf.getByText('Funcionó', { exact: true })).toBeVisible();
+  await rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true }).click();
+  await rf.getByRole('button', { name: 'No reaccionó', exact: true }).click();
+  // A failed button offers the transmission settings, one step each.
+  await rf.getByRole('button', { name: 'Pulso más largo', exact: true }).click();
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/remote/save')).at(-1)?.remote.pulse_us).toBe(425);
+  await rf.getByRole('button', { name: 'Más repeticiones', exact: true }).click();
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/remote/save')).at(-1)?.remote.repeats).toBe(6);
+  // The optional checks open the technical sheet of the last button tried.
+  await rf.getByRole('button', { name: 'Cámara' }).click();
+  await expect(
+    page.locator('homemanager-signal-workbench').getByRole('button', { name: 'Pruebas', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });
