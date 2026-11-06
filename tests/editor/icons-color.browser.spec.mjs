@@ -26,7 +26,10 @@ test('full icon index is paged, bilingual, prefix-free, accepts unknown saved na
   expect(
     await picker
       .getByRole('option')
-      .evaluateAll(nodes => nodes.every(node => !node.getAttribute('title').includes('mdi:'))),
+      // The option under the pointer lends its title to the hover bubble (0.13): read either.
+      .evaluateAll(nodes =>
+        nodes.every(node => !(node.getAttribute('title') ?? node.getAttribute('aria-label') ?? '').includes('mdi:')),
+      ),
   ).toBe(true);
   await picker.getByRole('searchbox').fill('rocket-launch');
   await picker.getByRole('option', { name: 'rocket-launch', exact: true }).click();
