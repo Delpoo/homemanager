@@ -18,24 +18,29 @@ export async function chooseTheme(page, scope, value) {
   await editor.locator('homemanager-theme-choice').getByRole('combobox').selectOption(value);
   await editor.locator('homemanager-task-screen.settings-dialog .task-back').click();
 }
-/** 0.13: the ☰ in the room rail is the one door to Settings, in or out of edit mode.
- * Without a section it opens the first one, as Settings did before. */
+/** 0.13 notebook: ⚙ is the one door to Settings, in or out of edit mode. It opens the
+ * menu; a section slides in from it. Without a section it stays on the menu. */
 export async function openSettings(scope, section) {
-  const menu = scope.locator('[data-command=nav-menu]');
-  // On a phone an open symbol sheet covers the rail: close it first, as a person would.
-  if (!(await menu.first().isVisible())) {
+  const gear = scope.locator('.hm-tools [data-command=configuration]');
+  // On a phone an open symbol sheet covers the top bar: close it first, as a person would.
+  if (!(await gear.first().isVisible())) {
     const page = typeof scope.page === 'function' ? scope.page() : scope;
     await page.keyboard.press('Escape');
   }
-  await scope.locator('[data-command=nav-menu]:visible').first().click();
-  const items = scope.locator('.nav-drawer .nav-item');
-  await (section ? items.and(scope.locator(`[data-section="${section}"]`)) : items.first()).click();
+  const editor = scope.locator('homemanager-editor');
+  // Already in Settings: back to its menu first.
+  const back = editor.locator('homemanager-task-screen.settings-dialog .task-back');
+  if ((await editor.locator('.settings-page[data-view=section]').count()) && (await back.isVisible()))
+    await back.click();
+  if (!(await editor.locator('.settings-page[data-view=list]').count()))
+    await scope.locator('.hm-tools [data-command=configuration]:visible').first().click();
+  if (section) await editor.locator(`.nb-row[data-settings="${section}"]`).click();
 }
 /** 0.13: every section has its icon in the strip; nothing is folded any more. */
 export async function openAdvanced() {}
-/** Opens a Settings section by its icon in the strip (0.13). */
+/** Opens a Settings section from the ⚙ menu (0.13 notebook), going back to it first. */
 export async function showSection(scope, id) {
-  await scope.locator(`[data-settings="${id}"]`).first().click();
+  await openSettings(scope, id);
 }
 /** 0.13: Settings always opens on a section, also on a phone. */
 export async function openFirstSection() {}

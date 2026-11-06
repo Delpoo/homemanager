@@ -1,3 +1,4 @@
+import { pathOf } from '../model/polygon.js';
 import { t } from '../i18n/index.js';
 import { type Room, type RoomId } from './types.js';
 import {
@@ -768,6 +769,22 @@ export function createRoomHighlight(svg: SVGSVGElement, roomId: RoomId): SVGSVGE
   });
 }
 /** The same overlay for a space's own rectangles (D22), in plan coordinates: merged, without seams. */
+/** A highlight drawn from path data in plan coordinates (an outline with straight sides). */
+export function createPathHighlight(svg: SVGSVGElement, d: string): SVGSVGElement {
+  return highlightOverlay(svg, () => mode => {
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill-rule', 'evenodd');
+    if (mode === 'mask') path.setAttribute('fill', '#000');
+    else {
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--hm-brand)');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('vector-effect', 'non-scaling-stroke');
+    }
+    return path;
+  });
+}
 export function createRectHighlight(svg: SVGSVGElement, rects: readonly ViewBox[]): SVGSVGElement {
   return highlightOverlay(svg, () => mode => {
     const group = document.createElementNS(SVG_NS, 'g');
@@ -916,6 +933,8 @@ export function spaceAt(svg: SVGSVGElement, normalized: Point, box: ViewBox, roo
 }
 export function createSpaceHighlight(svg: SVGSVGElement, room: Room, box: ViewBox): SVGSVGElement | null {
   if (!ownsShape(room) && roomZone(svg, room.id)) return createRoomHighlight(svg, room.id);
+  // 0.13: an outline of the app is drawn as itself, holes included.
+  if (room.outline) return createPathHighlight(svg, pathOf(room.outline, box.width, box.height, box.x, box.y));
   return room.shape
     ? createRectHighlight(
         svg,

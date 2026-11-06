@@ -18,8 +18,8 @@ export default async (page, { shot, app, card, check }) => {
     await app.getByRole('menuitemradio', { name: /Casa de prueba/ }).click();
     await page.waitForTimeout(2000);
   }
-  await card.locator('[data-command=nav-menu]:visible').click();
-  await card.locator('.nav-drawer .nav-item', { hasText: 'Controles' }).click();
+  await card.locator('.hm-tools [data-command=configuration]:visible').click();
+  await card.locator('.nb-row[data-settings=controls-section]').click();
   await page.waitForTimeout(1500);
   const rf = app.locator('homemanager-rf');
   await shot('10a-controls');

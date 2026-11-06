@@ -17,6 +17,11 @@ await build({
   define: { __HOMEMANAGER_VERSION__: JSON.stringify(version) },
   minify: true,
   legalComments: 'none',
+  // Licences of bundled third-party code travel with the bundle (polygon-clipping, 0.13).
+  banner: {
+    js: `/*!
+${readFileSync(new URL('./third-party-notices.txt', import.meta.url), 'utf8').replaceAll('*/', '* /')}*/`,
+  },
   charset: 'utf8',
 });
 cpSync(path.join(root, 'schemas'), path.join(root, 'dist/schemas'), { recursive: true });
@@ -96,6 +101,7 @@ await build({
     'src/model/base-rules.ts',
     'src/editor/storage-section.ts',
     'src/shell/runtime-feed.ts',
+    'src/model/polygon.ts',
   ],
   outbase: 'src',
   outdir: '.work',

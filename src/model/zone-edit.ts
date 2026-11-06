@@ -1,23 +1,27 @@
 import { suggestedRoomIcon } from './archetype.js';
+import { rectsOf, type Point, type RoomShape } from './room-shapes.js';
 import {
-  MIN_RECT,
-  boundsOfRects,
-  rectsOf,
-  shapeContains,
-  type Point,
-  type RoomShape,
-  type ShapeHandle,
-} from './room-shapes.js';
-
-export { MIN_RECT };
+  areaOf,
+  bboxOf,
+  cutGeom,
+  fitGeom,
+  geomContains,
+  geomOfRects,
+  intersect,
+  strokeCrosses,
+  subtract,
+  tidyGeom,
+  unionAll,
+  type Geom,
+  type Pt,
+} from './polygon.js';
 
 /**
- * The zone editor's draft (roadmap 0.10): the drawing is only a background, zones are
- * rectangles that merge. Nothing here touches the plan until `applyDraft`. Pure.
+ * The plan editor's draft (0.13): every space is a shape with straight sides, edited like
+ * in a drawing program (unir, restar, intersecar, cortar con un trazo, puntos). The drawing
+ * is only a background. Nothing here touches the plan until `applyDraft`. Pure.
  */
-export const MAX_RECTS = 12;
-/** How close (share of the plan) an edge must be to catch another rectangle's edge. */
-export const SNAP = 0.006;
+export const MIN_RECT = 0.01;
 
 export interface ZoneRoom {
   id: string;
@@ -25,6 +29,7 @@ export interface ZoneRoom {
   icon?: string;
   shape?: RoomShape;
   rects?: RoomShape[];
+  outline?: [number, number][][];
   shapeSource?: 'svg' | 'app';
 }
 export interface ZoneDevice {
@@ -37,10 +42,11 @@ export interface EditZone {
   id: string;
   label: string;
   icon?: string;
-  rects: RoomShape[];
-  /** Its rectangles changed: on apply it stops following the SVG. */
+  /** Outline, then holes; empty when the space has no shape yet. */
+  geom: Geom;
+  /** Its shape changed: on apply it stops following the SVG. */
   shapeChanged: boolean;
-  /** Its rectangles are a copy of an SVG zone with several shapes (#98). */
+  /** Its shape is a copy of an SVG zone. */
   fromDrawing?: boolean;
   labelChanged: boolean;
   isNew: boolean;
@@ -58,7 +64,14 @@ export interface DeviceMove {
   to: string | null;
 }
 
-/** Every space as rectangles: its zone's current copy while it follows the SVG, else what it owns. */
+/** A space's shape now: its outline, else its rectangles as one outline. */
+export function geomOfRoom(room: Pick<ZoneRoom, 'outline' | 'rects' | 'shape'>): Geom {
+  if (room.outline) return room.outline.map(ring => ring.map(([x, y]): Pt => [x, y]));
+  const rects = rectsOf({ id: '', ...room });
+  return rects.length ? (geomOfRects(rects) ?? []) : [];
+}
+
+/** Every space as a shape: its zone's current copy while it follows the SVG, else what it owns. */
 export function startDraft(
   rooms: readonly ZoneRoom[],
   zoneCopies: Readonly<Record<string, (RoomShape & { rects?: RoomShape[] }) | null>>,
@@ -68,14 +81,12 @@ export function startDraft(
     removed: [],
     zones: rooms.map(room => {
       const copy = room.shapeSource === 'app' ? null : zoneCopies[room.id];
-      const rects = copy
-        ? (copy.rects ?? [{ x: copy.x, y: copy.y, width: copy.width, height: copy.height }])
-        : rectsOf(room);
+      const geom = copy ? (geomOfRects(copy.rects ?? [copy]) ?? []) : geomOfRoom(room);
       return {
         id: room.id,
         label: room.label,
         ...(room.icon ? { icon: room.icon } : {}),
-        rects: rects.map(rect => ({ ...rect })),
+        geom,
         ...(copy ? { fromDrawing: true } : {}),
         shapeChanged: false,
         labelChanged: false,
@@ -106,60 +117,17 @@ const change = (draft: ZoneDraft, id: string, update: (zone: EditZone) => EditZo
   ...draft,
   zones: draft.zones.map(zone => (zone.id === id ? update(zone) : zone)),
 });
-export function addZone(draft: ZoneDraft, label: string, rect: RoomShape, taken: readonly string[]): ZoneDraft {
+/** A new space with this shape, last (on top). */
+export function addZone(draft: ZoneDraft, label: string, geom: Geom, taken: readonly string[]): ZoneDraft {
   const id = newZoneId(label, [...taken, ...draft.zones.map(zone => zone.id)]);
-  const zone: EditZone = { id, label, rects: [rect], shapeChanged: true, labelChanged: true, isNew: true };
+  const zone: EditZone = { id, label, geom, shapeChanged: true, labelChanged: true, isNew: true };
   return { ...draft, zones: [...draft.zones, zone] };
 }
-/** Adding to a zone merges: it reads as one room. At the limit the draft stays as it is. */
-export function addRect(draft: ZoneDraft, id: string, rect: RoomShape): ZoneDraft {
-  return change(draft, id, zone =>
-    zone.rects.length >= MAX_RECTS ? zone : { ...zone, rects: [...zone.rects, rect], shapeChanged: true },
-  );
-}
-export function updateRect(draft: ZoneDraft, id: string, index: number, rect: RoomShape): ZoneDraft {
-  return change(draft, id, zone => ({
-    ...zone,
-    rects: zone.rects.map((item, at) => (at === index ? rect : item)),
-    shapeChanged: true,
-  }));
-}
-export function removeRect(draft: ZoneDraft, id: string, index: number): ZoneDraft {
-  return change(draft, id, zone => ({
-    ...zone,
-    rects: zone.rects.filter((_, at) => at !== index),
-    shapeChanged: true,
-  }));
-}
-/**
- * «Fusionar formas de este espacio» (#98): an SVG zone made of several shapes becomes a
- * shape of the app, drawn as one outline with no inner seams. Undone like any other edit.
- */
-export const canAdoptZone = (zone: EditZone | undefined): boolean =>
-  !!zone && !!zone.fromDrawing && !zone.shapeChanged && zone.rects.length > 1;
-export function adoptZone(draft: ZoneDraft, id: string): ZoneDraft {
-  return change(draft, id, zone => (canAdoptZone(zone) ? { ...zone, shapeChanged: true } : zone));
+export function setGeom(draft: ZoneDraft, id: string, geom: Geom): ZoneDraft {
+  return change(draft, id, zone => ({ ...zone, geom, shapeChanged: true }));
 }
 export function renameZone(draft: ZoneDraft, id: string, label: string): ZoneDraft {
   return change(draft, id, zone => ({ ...zone, label, labelChanged: true }));
-}
-/** Two zones become one room; the first one's devices follow. Null when they would not fit. */
-export function mergeZones(draft: ZoneDraft, from: string, into: string): ZoneDraft | null {
-  const source = draft.zones.find(zone => zone.id === from),
-    target = draft.zones.find(zone => zone.id === into);
-  if (!source || !target || from === into || source.rects.length + target.rects.length > MAX_RECTS) return null;
-  const merged = { ...draft.merged, [from]: into };
-  // Whatever had already merged into the first one follows it.
-  for (const [key, value] of Object.entries(merged)) if (value === from) merged[key] = into;
-  return {
-    zones: draft.zones
-      .filter(zone => zone.id !== from)
-      .map(zone =>
-        zone.id === into ? { ...zone, rects: [...zone.rects, ...source.rects], shapeChanged: true } : zone,
-      ),
-    merged,
-    removed: source.isNew ? draft.removed : [...draft.removed, from],
-  };
 }
 export function removeZone(draft: ZoneDraft, id: string): ZoneDraft {
   const zone = draft.zones.find(item => item.id === id);
@@ -170,61 +138,110 @@ export function removeZone(draft: ZoneDraft, id: string): ZoneDraft {
     removed: zone.isNew ? draft.removed : [...draft.removed, id],
   };
 }
-
-/** Edges catch nearby edges of other rectangles, so parts of a home fit without gaps. Size is kept when moving. */
-export function snapRect(
-  rect: RoomShape,
-  others: readonly RoomShape[],
-  handle: ShapeHandle,
-  tolerance = SNAP,
-): RoomShape {
-  const nearest = (value: number, lines: readonly number[]) => {
-    let best = value,
-      gap = tolerance;
-    for (const line of lines)
-      if (Math.abs(line - value) <= gap) {
-        best = line;
-        gap = Math.abs(line - value);
-      }
-    return best;
-  };
-  const xs = others.flatMap(other => [other.x, other.x + other.width]),
-    ys = others.flatMap(other => [other.y, other.y + other.height]);
-  let left = rect.x,
-    top = rect.y,
-    right = rect.x + rect.width,
-    bottom = rect.y + rect.height;
-  if (handle === 'move') {
-    const shift = (start: number, end: number, lines: readonly number[]) => {
-      const a = nearest(start, lines) - start,
-        b = nearest(end, lines) - end;
-      return !a ? b : !b ? a : Math.abs(a) <= Math.abs(b) ? a : b;
-    };
-    const dx = shift(left, right, xs),
-      dy = shift(top, bottom, ys);
-    left += dx;
-    right += dx;
-    top += dy;
-    bottom += dy;
-  } else {
-    if (handle.includes('w')) left = nearest(left, xs);
-    if (handle.includes('e')) right = nearest(right, xs);
-    if (handle.includes('n')) top = nearest(top, ys);
-    if (handle.includes('s')) bottom = nearest(bottom, ys);
+/** The others disappear into `into`; whatever had merged into them follows. */
+function absorb(draft: ZoneDraft, into: string, others: readonly string[]): ZoneDraft {
+  const merged = { ...draft.merged };
+  let removed = draft.removed;
+  for (const from of others) {
+    merged[from] = into;
+    for (const [key, value] of Object.entries(merged)) if (value === from) merged[key] = into;
+    const zone = draft.zones.find(item => item.id === from);
+    if (zone && !zone.isNew) removed = [...removed, from];
   }
-  if (right - left < MIN_RECT || bottom - top < MIN_RECT) return rect;
-  const r = (value: number) => Math.round(value * 1e6) / 1e6;
-  // Rounding never pushes a rectangle past the plan's edge.
-  const x = r(left),
-    y = r(top);
-  return { x, y, width: Math.min(r(right - left), r(1 - x)), height: Math.min(r(bottom - top), r(1 - y)) };
+  return { zones: draft.zones.filter(zone => !others.includes(zone.id)), merged, removed };
 }
+/** Unir: one shape, one outline; the first space keeps its name, the others' devices follow it.
+ * Shapes that do not touch are joined across the gap between them. Null when nothing to join. */
+export function unionZones(draft: ZoneDraft, ids: readonly string[]): ZoneDraft | null {
+  const zones = ids.map(id => draft.zones.find(zone => zone.id === id)).filter(zone => zone?.geom.length) as EditZone[];
+  if (zones.length < 2) return null;
+  const geom = unionAll(zones.map(zone => zone.geom));
+  const fitted = geom && fitGeom(geom);
+  if (!fitted) return null;
+  return absorb(
+    setGeom(draft, zones[0].id, fitted),
+    zones[0].id,
+    zones.slice(1).map(zone => zone.id),
+  );
+}
+/** Restar: the first space loses what the others cover; they stay as they are. Pieces left
+ * apart become spaces of their own. Null when nothing would be left. */
+export function subtractZones(draft: ZoneDraft, ids: readonly string[], taken: readonly string[]): ZoneDraft | null {
+  const [first, ...rest] = ids.map(id => draft.zones.find(zone => zone.id === id)).filter(Boolean) as EditZone[];
+  if (!first || !rest.length) return null;
+  const pieces = subtract(
+    first.geom,
+    rest.map(zone => zone.geom),
+  );
+  if (!pieces.length) return null;
+  let next = setGeom(draft, first.id, pieces[0]);
+  pieces.slice(1).forEach((geom, index) => {
+    next = addZone(next, `${first.label} ${index + 2}`, geom, taken);
+  });
+  return next;
+}
+/** Intersecar: the first space keeps only what all of them share; the others disappear into it. */
+export function intersectZones(draft: ZoneDraft, ids: readonly string[]): ZoneDraft | null {
+  const zones = ids.map(id => draft.zones.find(zone => zone.id === id)).filter(Boolean) as EditZone[];
+  if (zones.length < 2) return null;
+  const geom = intersect(zones.map(zone => zone.geom));
+  if (!geom) return null;
+  return absorb(
+    setGeom(draft, zones[0].id, geom),
+    zones[0].id,
+    zones.slice(1).map(zone => zone.id),
+  );
+}
+/** Cortar con un trazo: every space the stroke crosses (only the chosen ones, when any) ends in
+ * pieces; the largest keeps the space, the rest are new spaces next to it. */
+export function cutZones(
+  draft: ZoneDraft,
+  a: Pt,
+  b: Pt,
+  only: readonly string[],
+  taken: readonly string[],
+): { draft: ZoneDraft; pieces: string[] } | null {
+  const shaped = draft.zones.filter(zone => zone.geom.length && strokeCrosses(zone.geom, a, b));
+  // Only the chosen spaces, unless the stroke crosses none of them.
+  const chosenHit = shaped.filter(zone => only.includes(zone.id));
+  const hit = chosenHit.length ? chosenHit : shaped;
+  let next = draft;
+  const pieces: string[] = [];
+  for (const zone of hit) {
+    const parts = cutGeom(zone.geom, a, b);
+    if (parts.length < 2) continue;
+    next = setGeom(next, zone.id, parts[0]);
+    pieces.push(zone.id);
+    parts.slice(1).forEach((geom, index) => {
+      next = addZone(next, `${zone.label} ${index + 2}`, geom, taken);
+      pieces.push(next.zones.at(-1)!.id);
+    });
+  }
+  return pieces.length ? { draft: next, pieces } : null;
+}
+/** Moves, scales, turns or flips spaces: any change of their points that keeps them inside the plan. */
+export function transformZones(draft: ZoneDraft, ids: readonly string[], f: (p: Pt) => Pt): ZoneDraft {
+  let next = draft;
+  for (const id of ids) {
+    const zone = next.zones.find(item => item.id === id);
+    if (!zone?.geom.length) continue;
+    const geom = fitGeom(tidyGeom(zone.geom.map(ring => ring.map(f))));
+    if (geom) next = setGeom(next, id, geom);
+  }
+  return next;
+}
+/** Spaces drawn later are on top; front and back change that order. */
+export function reorderZones(draft: ZoneDraft, ids: readonly string[], to: 'front' | 'back'): ZoneDraft {
+  const chosen = draft.zones.filter(zone => ids.includes(zone.id));
+  const rest = draft.zones.filter(zone => !ids.includes(zone.id));
+  return { ...draft, zones: to === 'front' ? [...rest, ...chosen] : [...chosen, ...rest] };
+}
+export const zoneBox = (zones: readonly EditZone[]) => bboxOf(zones.map(zone => zone.geom));
 
-/** The zone a point falls in: when zones overlap, the smallest is the more specific one. */
+/** The space a point falls in: when spaces overlap, the smallest is the more specific one. */
 export function zoneAt(draft: ZoneDraft, point: Point): EditZone | null {
-  const area = (zone: EditZone) => zone.rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
-  const hits = draft.zones.filter(zone => zone.rects.some(rect => shapeContains(rect, point)));
-  return hits.sort((a, b) => area(a) - area(b))[0] ?? null;
+  const hits = draft.zones.filter(zone => zone.geom.length && geomContains(zone.geom, [point.x, point.y]));
+  return hits.sort((a, b) => areaOf(a.geom) - areaOf(b.geom))[0] ?? null;
 }
 
 /**
@@ -263,18 +280,19 @@ export function applyDraft<
       taken.push(id);
     }
   const named = (id: string | null) => (id && final.get(id)) ?? id;
+  // The rooms keep their order (it is the order of the space rail); new ones go last.
   for (const room of next.rooms) {
     const zone = draft.zones.find(item => item.id === room.id);
     if (!zone) continue;
     if (zone.labelChanged) room.label = zone.label.trim();
-    if (zone.shapeChanged) writeRects(room, zone.rects);
+    if (zone.shapeChanged) writeGeom(room, zone.geom);
     rooms.push(room);
   }
   for (const zone of draft.zones)
     if (zone.isNew) {
       const label = zone.label.trim();
       const room: ZoneRoom = { id: final.get(zone.id)!, label, icon: suggestedRoomIcon(label) };
-      writeRects(room, zone.rects);
+      writeGeom(room, zone.geom);
       rooms.push(room);
     }
   next.rooms = rooms as T['rooms'];
@@ -286,14 +304,17 @@ export function applyDraft<
   }
   return next;
 }
-function writeRects(room: ZoneRoom, rects: readonly RoomShape[]): void {
+const r6 = (value: number) => Math.round(value * 1e6) / 1e6;
+function writeGeom(room: ZoneRoom, geom: Geom): void {
   delete room.rects;
-  if (!rects.length) {
+  delete room.outline;
+  if (!geom.length) {
     delete room.shape;
     delete room.shapeSource;
     return;
   }
-  room.shape = boundsOfRects(rects);
-  if (rects.length > 1) room.rects = rects.map(rect => ({ ...rect }));
+  const box = bboxOf([geom]);
+  room.shape = { x: r6(box.x), y: r6(box.y), width: r6(box.width), height: r6(box.height) };
+  room.outline = geom.map(ring => ring.map(([x, y]): [number, number] => [r6(x), r6(y)]));
   room.shapeSource = 'app';
 }

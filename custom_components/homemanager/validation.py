@@ -41,6 +41,9 @@ DEVICE_CATEGORIES = ("switch", "equipment", "remote", "meter", "plant", "alert",
 ROOM_SHAPE_SOURCES = ("svg", "app")
 ROOM_FRAMES = ("tight", "normal", "wide")
 MAX_ROOM_RECTS = 12
+# 0.13: a space's own outline, rings of points (outer first, then holes).
+MAX_OUTLINE_RINGS = 8
+MAX_OUTLINE_POINTS = 200
 
 
 def _fail() -> None:
@@ -418,7 +421,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         _fail()
     room_ids: set[str] = set()
     for room in rooms:
-        _fields(room, {"id", "label"}, {"icon", "shape", "rects", "shapeSource", "frame", "nav", "areaId"})
+        _fields(room, {"id", "label"}, {"icon", "shape", "rects", "outline", "shapeSource", "frame", "nav", "areaId"})
         if "areaId" in room:
             _text(room["areaId"])
         _id(room["id"])
@@ -437,6 +440,16 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                 _fail()
             for rect in rects:
                 _shape(rect)
+        if "outline" in room:
+            outline = room["outline"]
+            if room.get("shapeSource") != "app" or "rects" in room or type(outline) is not list or not 1 <= len(outline) <= MAX_OUTLINE_RINGS:
+                _fail()
+            for ring in outline:
+                if type(ring) is not list or not 3 <= len(ring) <= MAX_OUTLINE_POINTS:
+                    _fail()
+                for point in ring:
+                    if type(point) is not list or len(point) != 2 or any(type(value) not in (int, float) or isinstance(value, bool) or not 0 <= value <= 1 for value in point):
+                        _fail()
         if "frame" in room and room["frame"] not in ROOM_FRAMES:
             _fail()
         if "nav" in room:

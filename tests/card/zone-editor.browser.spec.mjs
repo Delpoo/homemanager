@@ -1,33 +1,19 @@
-import { openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
+import { openSettings } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 
 // Synthetic plan: living on the left; kitchen top right; office bottom right. Zones in the SVG.
+// 0.13: spaces are shapes with straight sides, edited like in a drawing program.
 const card = page => page.locator('homemanager-card');
-const button = (page, name) =>
-  card(page).getByRole('button', {
-    name:
-      name === 'Guardar dispositivo' ? /^(Guardar dispositivo|Listo)$/ : name === 'Cerrar' ? /^(Cerrar|Volver)$/ : name,
-    exact: true,
-  });
+const tool = (page, command) => card(page).locator(`[data-command="${command}"]`).first();
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const room = async (page, id) => (await draft(page)).rooms.find(item => item.id === id);
-const roomOf = async (page, id) => (await draft(page)).catalog.devices.find(item => item.id === id).roomId;
-const pick = page => card(page).getByRole('combobox', { name: 'Zona', exact: true });
-const nameField = page => card(page).getByRole('textbox', { name: 'Nombre de la zona', exact: true });
+const editing = page => page.evaluate(() => window.testHarness.card.zoneEdit);
+const zones = async page => (await editing(page)).draft.zones.map(zone => zone.id);
 const moves = page => page.getByRole('region', { name: 'Dispositivos que cambian de espacio', exact: true });
-const confirmMoves = async page => {
-  await moves(page).getByRole('button', { name: 'Aplicar', exact: true }).click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-};
-const begin = async page => {
-  await button(page, 'Editar plano').click();
-  await expect(button(page, 'Guardar cambios')).toBeVisible();
-};
 const openEditor = async page => {
-  await openSettings(page);
-  await openFirstSection(page);
+  await openSettings(card(page), 'rooms-section');
   await card(page).locator('homemanager-editor').getByRole('button', { name: 'Editar zonas', exact: true }).click();
-  await expect(card(page).locator('.zones-bar')).toBeVisible();
+  await expect(card(page).locator('.zvtools')).toBeVisible();
 };
 /** A point of the plan (0 to 1) on the screen. */
 const screen = (page, x, y) =>
@@ -42,132 +28,124 @@ const screen = (page, x, y) =>
     },
     [x, y],
   );
+const tapOnPlan = async (page, x, y, modifiers = []) => {
+  const point = await screen(page, x, y);
+  for (const key of modifiers) await page.keyboard.down(key);
+  await page.mouse.click(point.x, point.y);
+  for (const key of modifiers) await page.keyboard.up(key);
+};
 const dragOnPlan = async (page, from, to) => {
   const a = await screen(page, ...from),
     b = await screen(page, ...to);
   await page.mouse.move(a.x, a.y);
   await page.mouse.down();
-  await page.mouse.move(b.x, b.y, { steps: 5 });
-  await page.mouse.up();
-};
-const tapOnPlan = async (page, x, y) => {
-  const point = await screen(page, x, y);
-  await page.mouse.click(point.x, point.y);
-};
-const dragHandle = async (page, handle, dx, dy) => {
-  const box = await card(page).locator(`.zone-rect[data-active] .zone-handle[data-handle=${handle}]`).boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 4 });
+  await page.mouse.move(b.x, b.y, { steps: 6 });
   await page.mouse.up();
 };
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/tests/browser/fixtures/card.html');
   await page.waitForFunction(() => window.testHarnessReady);
-  await begin(page);
+  await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
 });
 
-test('the editor shows every zone over the plan, and a tap picks one', async ({ page }) => {
+test('every space is a shape over the plan; a tap chooses it, Shift adds, the list does the same', async ({ page }) => {
   await openEditor(page);
-  // Three zones, each with its name; the plan's own controls step aside.
-  await expect(card(page).locator('.zone-name')).toHaveCount(3);
-  await expect(card(page).locator('.zones-outline path')).toHaveCount(3);
-  await expect(button(page, 'Guardar cambios')).toBeHidden();
+  await expect(card(page).locator('.zshape')).toHaveCount(3);
+  await expect(card(page).locator('.zlabel')).toHaveCount(3);
   await expect(card(page).locator('.rooms')).toBeHidden();
-  await expect(pick(page)).toHaveValue('');
   await tapOnPlan(page, 0.72, 0.22);
-  await expect(pick(page)).toHaveValue('kitchen');
-  await expect(card(page).locator('.zone-rect')).toHaveCount(1);
-  await tapOnPlan(page, 0.72, 0.72);
-  await expect(pick(page)).toHaveValue('office');
-  // Choosing from the list is the same.
-  await pick(page).selectOption('living');
-  await expect(nameField(page)).toHaveValue((await room(page, 'living')).label);
+  expect((await editing(page)).chosen).toEqual(['kitchen']);
+  await tapOnPlan(page, 0.72, 0.72, ['Shift']);
+  expect((await editing(page)).chosen).toEqual(['kitchen', 'office']);
+  await expect(card(page).locator('.zctx [data-command=zone-union]')).toBeVisible();
+  // The list of spaces (beside the plan on a wide screen) chooses the same way.
+  const item = card(page).locator('[data-zone-item=living]');
+  if (await item.isVisible()) await item.click();
+  else await tapOnPlan(page, 0.2, 0.5);
+  expect((await editing(page)).chosen).toEqual(['living']);
 });
 
-test('two rectangles merged into an L stay one zone, with no seam, and answer by their parts', async ({ page }) => {
+test('Unir leaves one outline with the first name; its devices follow; applying saves the outline', async ({
+  page,
+}) => {
   await openEditor(page);
-  await button(page, 'Dibujar espacio').click();
-  await dragOnPlan(page, [0.1, 0.1], [0.3, 0.2]);
-  await expect(nameField(page)).toBeFocused();
-  await page.keyboard.type('Baño Sur');
-  await button(page, 'Agregar parte').click();
-  await expect(button(page, 'Agregar parte')).toHaveAttribute('aria-pressed', 'true');
-  await dragOnPlan(page, [0.1, 0.2], [0.18, 0.35]);
-  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  const zone = await room(page, 'bano-sur');
-  expect(zone.label).toBe('Baño Sur');
-  expect(zone.shapeSource).toBe('app');
-  expect(zone.rects).toHaveLength(2);
-  expect(zone.shape.width).toBeCloseTo(0.2, 2);
-  expect(zone.shape.height).toBeCloseTo(0.25, 2);
-  // The new part caught the first one's edge: they touch, with no gap.
-  expect(zone.rects[1].y).toBeCloseTo(zone.rects[0].y + zone.rects[0].height, 6);
-  // Reopened, it is still one zone of two rectangles, and Save keeps it valid.
-  await openEditor(page);
-  await pick(page).selectOption('bano-sur');
-  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
-  await button(page, 'Cancelar').click();
-  await button(page, 'Guardar cambios').click();
-  await expect(card(page).locator('.shell > .status')).not.toContainText('no válid');
+  await tapOnPlan(page, 0.72, 0.22);
+  await tapOnPlan(page, 0.72, 0.72, ['Shift']);
+  await card(page).locator('.zctx [data-command=zone-union]').click();
+  expect(await zones(page)).toEqual(['living', 'kitchen']);
+  const kitchen = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen');
+  expect(kitchen.geom).toHaveLength(1);
+  await tool(page, 'zone-apply').click();
+  await moves(page).getByRole('button', { name: 'Aplicar', exact: true }).click();
+  await expect(card(page).locator('.zvtools')).toHaveCount(0);
+  const saved = await room(page, 'kitchen');
+  expect(saved.shapeSource).toBe('app');
+  expect(saved.outline[0].length).toBeGreaterThanOrEqual(4);
+  expect(await room(page, 'office')).toBeUndefined();
+  expect((await draft(page)).catalog.devices.every(device => device.roomId !== 'office')).toBe(true);
 });
 
-test('a resize stops following the SVG, in one undo step; going back to the zone still works', async ({ page }) => {
+test('a stroke cuts a space in two; undo and redo step through it', async ({ page }) => {
   await openEditor(page);
-  await tapOnPlan(page, 0.72, 0.72);
-  const rect = card(page).locator('.zone-rect[data-active]');
-  const before = await rect.boundingBox();
-  await dragHandle(page, 'se', -20, -20);
-  const after = await rect.boundingBox();
-  expect(after.width).toBeLessThan(before.width);
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  const edited = await room(page, 'office');
-  expect(edited.shapeSource).toBe('app');
-  expect(edited.shape.x + edited.shape.width).toBeLessThanOrEqual(1);
-  // Coordinates stay on the fine grid: this is what used to block a save.
-  for (const value of Object.values(edited.shape)) expect(Math.round(value * 1e6) / 1e6).toBe(value);
-  await button(page, 'Deshacer').click();
-  expect((await room(page, 'office')).shapeSource).toBeUndefined();
-  await button(page, 'Rehacer').click();
-  const label = (await room(page, 'office')).label;
-  await card(page)
-    .locator('.rooms')
-    .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
-    .click();
-  const dialog = page.getByRole('region', { name: label, exact: true });
-  await dialog.getByRole('button', { name: 'Volver a la zona del SVG', exact: true }).click();
-  expect((await room(page, 'office')).shape).toBeUndefined();
+  await tool(page, 'zone-tool-cut').click();
+  await dragOnPlan(page, [0.25, 0.01], [0.25, 0.99]);
+  expect(await zones(page)).toEqual(['living', 'kitchen', 'office', 'living-2']);
+  expect((await editing(page)).tool).toBe('select');
+  await page.keyboard.press('Control+z');
+  expect(await zones(page)).toEqual(['living', 'kitchen', 'office']);
+  await page.keyboard.press('Control+Shift+z');
+  expect(await zones(page)).toHaveLength(4);
 });
 
-test('a drag holds on to its rectangle even when the pointer leaves it', async ({ page }) => {
+test('a rectangle becomes a new space named right away; a free shape closes on its first point', async ({ page }) => {
   await openEditor(page);
-  await tapOnPlan(page, 0.72, 0.72);
-  const rect = card(page).locator('.zone-rect[data-active]');
-  await rect.evaluate(element => (element.dataset.same = 'yes'));
-  const box = await rect.boundingBox();
-  const handle = await card(page).locator('.zone-rect[data-active] .zone-handle[data-handle=nw]').boundingBox();
-  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
-  await page.mouse.down();
-  // Far out of the rectangle, in several steps: it keeps following.
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
-  await page.mouse.move(box.x - 40, box.y - 40, { steps: 6 });
-  await page.mouse.up();
-  const after = await rect.boundingBox();
-  expect(after.x).toBeLessThan(box.x - 20);
-  expect(after.width).toBeGreaterThan(box.width + 20);
-  // The same element: nothing was rebuilt under the finger.
-  await expect(rect).toHaveAttribute('data-same', 'yes');
-  await expect(button(page, 'Deshacer')).toBeEnabled();
+  await tool(page, 'zone-tool-rect').click();
+  await dragOnPlan(page, [0.05, 0.05], [0.2, 0.2]);
+  const input = card(page).locator('[name="zone-rename"]');
+  await expect(input).toBeFocused();
+  await input.fill('Placard');
+  await input.press('Enter');
+  expect((await editing(page)).draft.zones.at(-1).label).toBe('Placard');
+  await tool(page, 'zone-tool-poly').click();
+  for (const [x, y] of [
+    [0.3, 0.6],
+    [0.45, 0.6],
+    [0.45, 0.8],
+    [0.3, 0.8],
+    [0.3, 0.6],
+  ])
+    await tapOnPlan(page, x, y);
+  await expect(card(page).locator('[name="zone-rename"]')).toBeFocused();
+  await card(page).locator('[name="zone-rename"]').press('Escape');
+  expect((await editing(page)).draft.zones.at(-1).geom[0]).toHaveLength(4);
 });
 
-test('the top menu cannot drop zones that are not applied yet', async ({ page }) => {
+test('points: a double tap edits them, the middle of a side adds one, Supr removes it', async ({ page }) => {
   await openEditor(page);
-  await pick(page).selectOption('kitchen');
-  await button(page, 'Borrar espacio').click();
+  // Away from the name tag, whose double tap renames.
+  const p = await screen(page, 0.6, 0.08);
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(p.x, p.y);
+  expect((await editing(page)).tool).toBe('points');
+  await expect(card(page).locator('.zv')).toHaveCount(4);
+  await card(page).locator('.zmid').first().click();
+  await expect(card(page).locator('.zv')).toHaveCount(5);
+  await card(page).locator('[data-command=zone-vertex-delete]').click();
+  await expect(card(page).locator('.zv')).toHaveCount(4);
+});
+
+test('arrows move the chosen space; Escape lets go; the top menu waits until it is applied or cancelled', async ({
+  page,
+}) => {
+  await openEditor(page);
+  await tapOnPlan(page, 0.72, 0.22);
+  const before = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
+  await page.keyboard.press('ArrowLeft');
+  const after = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
+  expect(after[0]).toBeLessThan(before[0]);
+  await page.keyboard.press('Escape');
+  expect((await editing(page)).chosen).toEqual([]);
   await page.evaluate(() => {
     const command = document.createElement('button');
     command.dataset.command = 'configuration';
@@ -176,221 +154,15 @@ test('the top menu cannot drop zones that are not applied yet', async ({ page })
     command.remove();
   });
   await expect(card(page).locator('.shell > .status')).toContainText('Terminá de editar las zonas');
-  await expect(card(page).locator('.zones-bar')).toBeVisible();
-  await expect(card(page).locator('.zone-name')).toHaveCount(2);
+  // Cancelling with changes asks first; the plan stays as it was.
+  await tool(page, 'zone-cancel').click();
+  await page.getByRole('button', { name: 'Descartar cambios', exact: true }).click();
+  await expect(card(page).locator('.zvtools')).toHaveCount(0);
+  expect((await room(page, 'kitchen')).outline).toBeUndefined();
 });
 
-test('renaming alone keeps the zone on the SVG', async ({ page }) => {
-  await openEditor(page);
-  await pick(page).selectOption('kitchen');
-  await nameField(page).fill('  Cocina grande ');
-  await button(page, 'Aplicar').click();
-  await expect(moves(page)).toHaveCount(0);
-  const kitchen = await room(page, 'kitchen');
-  expect(kitchen.label).toBe('Cocina grande');
-  expect(kitchen.shape).toBeUndefined();
-  expect(kitchen.shapeSource).toBeUndefined();
-});
-
-test('a zone needs a name', async ({ page }) => {
-  await openEditor(page);
-  await pick(page).selectOption('kitchen');
-  await nameField(page).fill('   ');
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.shell > .status')).toContainText('Escribí el nombre');
-  await expect(card(page).locator('.zones-bar')).toBeVisible();
-  await expect(nameField(page)).toBeFocused();
-});
-
-test('merging two zones keeps the name of the one in hand, and its devices follow', async ({ page }) => {
-  await openEditor(page);
-  await pick(page).selectOption('office');
-  // 0.13: «Unir» shows the list of neighbours (or a tap joins them).
-  await button(page, 'Unir').click();
-  await card(page).getByRole('combobox', { name: 'Fusionar con', exact: true }).selectOption('kitchen');
-  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
-  await expect(card(page).locator('.zone-name')).toHaveCount(2);
-  await button(page, 'Aplicar').click();
-  // The fan was in the kitchen: it is told, and it goes.
-  await expect(moves(page).getByRole('checkbox')).toHaveCount(1);
-  await confirmMoves(page);
-  const after = await draft(page);
-  expect(after.rooms.map(item => item.id).sort()).toEqual(['living', 'office']);
-  const office = after.rooms.find(item => item.id === 'office');
-  expect(office.rects).toHaveLength(2);
-  expect(await roomOf(page, 'synthetic-fan')).toBe('office');
-  // One undo brings it all back.
-  await button(page, 'Deshacer').click();
-  expect((await draft(page)).rooms.map(item => item.id).sort()).toEqual(['kitchen', 'living', 'office']);
-  expect(await roomOf(page, 'synthetic-fan')).toBe('kitchen');
-});
-
-test('deleting a zone leaves its devices without a space, and says so first', async ({ page }) => {
-  await openEditor(page);
-  await pick(page).selectOption('office');
-  await button(page, 'Borrar espacio').click();
-  await expect(pick(page)).toHaveValue('');
-  await button(page, 'Aplicar').click();
-  await expect(moves(page)).toContainText('Sin espacio');
-  // It cannot stay in a space that is gone.
-  await expect(moves(page).getByRole('checkbox')).toBeDisabled();
-  await confirmMoves(page);
-  expect((await draft(page)).rooms.some(item => item.id === 'office')).toBe(false);
-  expect(await roomOf(page, 'synthetic-sensor')).toBe(null);
-});
-
-test('a zone that grows over a device offers to move it; unticked, it stays where it was', async ({ page }) => {
-  await openEditor(page);
-  await pick(page).selectOption('office');
-  // A new part of the office, small and right over the light in the living.
-  await button(page, 'Agregar parte').click();
-  await dragOnPlan(page, [0.2, 0.28], [0.3, 0.38]);
-  await button(page, 'Aplicar').click();
-  await expect(moves(page)).toBeVisible();
-  // Going back keeps the work.
-  await moves(page).getByRole('button', { name: 'Volver', exact: true }).click();
-  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
-  await button(page, 'Aplicar').click();
-  const light = moves(page).getByRole('checkbox');
-  await expect(light).toBeChecked();
-  await light.uncheck();
-  await moves(page).getByRole('button', { name: 'Volver', exact: true }).click();
-  await button(page, 'Aplicar').click();
-  await expect(moves(page).getByRole('checkbox')).not.toBeChecked();
-  await confirmMoves(page);
-  expect((await room(page, 'office')).rects).toHaveLength(2);
-  expect(await roomOf(page, 'synthetic-light')).toBe('living');
-  await button(page, 'Deshacer').click();
-  await openEditor(page);
-  await pick(page).selectOption('office');
-  await button(page, 'Agregar parte').click();
-  await dragOnPlan(page, [0.2, 0.28], [0.3, 0.38]);
-  await button(page, 'Aplicar').click();
-  await confirmMoves(page);
-  expect(await roomOf(page, 'synthetic-light')).toBe('office');
-});
-
-test('the keyboard moves and resizes; its own undo steps back; Escape leaves the tool', async ({ page }) => {
-  await openEditor(page);
-  await tapOnPlan(page, 0.72, 0.72);
-  const rect = card(page).locator('.zone-rect[data-active]');
-  await rect.focus();
-  const before = await rect.boundingBox();
-  await page.keyboard.press('ArrowLeft');
-  await page.keyboard.press('Shift+ArrowLeft');
-  const after = await rect.boundingBox();
-  expect(after.x).toBeLessThan(before.x);
-  expect(after.width).toBeLessThan(before.width);
-  // Control-Z steps inside the editor, not the plan behind it.
-  await page.keyboard.press('Control+z');
-  await page.keyboard.press('Control+z');
-  const back = await rect.boundingBox();
-  expect(back.x).toBeCloseTo(before.x, 1);
-  expect(back.width).toBeCloseTo(before.width, 1);
-  await button(page, 'Agregar parte').click();
+test('the rail plus opens the editor drawing a new space', async ({ page }) => {
+  await card(page).getByRole('button', { name: 'Nuevo espacio', exact: true }).click();
+  await expect(card(page).locator('.zvtools [data-command=zone-tool-rect]')).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page).locator('.zones-draw')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(card(page).locator('.zones-draw')).toHaveCount(0);
-});
-
-test('a drag too small draws nothing, and cancelling leaves the plan as it was', async ({ page }) => {
-  const before = await draft(page);
-  await openEditor(page);
-  // Nothing edited: it just closes.
-  await button(page, 'Cancelar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  await openEditor(page);
-  await button(page, 'Dibujar espacio').click();
-  await dragOnPlan(page, [0.5, 0.5], [0.505, 0.505]);
-  await expect(card(page).locator('.shell > .status')).toContainText('Arrastrá un poco más');
-  await dragOnPlan(page, [0.1, 0.1], [0.3, 0.3]);
-  await pick(page).selectOption('kitchen');
-  await button(page, 'Borrar espacio').click();
-  // With work in it, it asks first.
-  await button(page, 'Cancelar').click();
-  await page.getByRole('button', { name: 'Descartar cambios', exact: true }).last().click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  expect(await draft(page)).toEqual(before);
-  await expect(button(page, 'Guardar cambios')).toBeVisible();
-});
-
-test('the space window opens the editor on that zone; a space with no shape starts drawing', async ({ page }) => {
-  const label = (await room(page, 'office')).label;
-  await card(page)
-    .locator('.rooms')
-    .getByRole('button', { name: `Encuadrar ${label}`, exact: true })
-    .click();
-  await page
-    .getByRole('region', { name: label, exact: true })
-    .getByRole('button', { name: 'Editar forma en el plano', exact: true })
-    .click();
-  await expect(pick(page)).toHaveValue('office');
-  await expect(card(page).locator('.zone-rect')).toHaveCount(1);
-  await expect(card(page).locator('homemanager-editor').getByRole('dialog')).toHaveCount(0);
-  await button(page, 'Cancelar').click();
-  // The rail's plus starts a new zone.
-  await button(page, 'Nuevo espacio').click();
-  await expect(button(page, 'Dibujar espacio')).toHaveAttribute('aria-pressed', 'true');
-  await expect(card(page).locator('.zones-draw')).toBeVisible();
-});
-
-test('«Fusionar formas de este espacio» turns an SVG zone of three shapes into one L of the app, and undoes (#98)', async ({
-  page,
-}) => {
-  // Synthetic plan: the office zone is a group of three rectangles drawn as an L.
-  await page.route('**/tests/browser/fixtures/harness.js', async route => {
-    const body = (await (await route.fetch()).text()).replace(
-      '<rect id="room-office" x="500" y="355" width="470" height="305" fill="#dce8e8" stroke="#415d51"/>',
-      '<g id="room-office" fill="#dce8e8" stroke="#415d51"><rect x="500" y="355" width="235" height="150"/><rect x="500" y="505" width="235" height="155"/><rect x="735" y="355" width="235" height="150"/></g>',
-    );
-    await route.fulfill({ body, contentType: 'text/javascript' });
-  });
-  await page.goto('/tests/browser/fixtures/card.html');
-  await page.waitForFunction(() => window.testHarnessReady);
-  await begin(page);
-  await openEditor(page);
-  await pick(page).selectOption('office');
-  // The editor measures the zone: an L is two rectangles, whatever the drawing used.
-  await expect(card(page).locator('.zone-rect')).toHaveCount(2);
-  const adopt = button(page, 'Fusionar formas de este espacio');
-  await expect(adopt).toBeEnabled();
-  await adopt.click();
-  await expect(adopt).toBeDisabled();
-  await button(page, 'Deshacer').click();
-  await expect(adopt).toBeEnabled();
-  await adopt.click();
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
-  const office = await room(page, 'office');
-  expect(office.shapeSource).toBe('app');
-  expect(office.rects).toHaveLength(2);
-  // Still an L: the bottom right corner belongs to no rectangle.
-  const inside = (x, y) => office.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height);
-  expect(inside(0.6, 0.5)).toBe(true);
-  expect(inside(0.85, 0.85)).toBe(false);
-  // One undo step for the whole editor, like any other zone edit.
-  await button(page, 'Deshacer').click();
-  expect((await room(page, 'office')).shapeSource).not.toBe('app');
-});
-
-test('Dividir cuts a space in two and Unir joins two neighbours with a tap (0.13)', async ({ page }) => {
-  await openEditor(page);
-  await button(page, 'Dividir').click();
-  await expect(button(page, 'Dividir')).toHaveAttribute('aria-pressed', 'true');
-  await tapOnPlan(page, 0.72, 0.22);
-  // The second half is a new space, chosen and ready to be named.
-  await expect(card(page).locator('.zone-name')).toHaveCount(4);
-  await expect(pick(page)).not.toHaveValue('kitchen');
-  // Unir: the space in hand absorbs the one tapped next.
-  await pick(page).selectOption('kitchen');
-  await button(page, 'Unir').click();
-  const center = await page.evaluate(() => {
-    const zones = window.testHarness.card.zoneEdit.draft.zones;
-    const rect = zones.at(-1).rects[0];
-    return [rect.x + rect.width / 2, rect.y + rect.height / 2];
-  });
-  await tapOnPlan(page, ...center);
-  await expect(card(page).locator('.zone-name')).toHaveCount(3);
-  await expect(pick(page)).toHaveValue('kitchen');
-  await expect(nameField(page)).toHaveValue(/.+/);
 });

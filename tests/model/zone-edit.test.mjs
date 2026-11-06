@@ -1,24 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_ROOM_RECTS } from '../../src/ha/validation.mjs';
+import { assertConfiguration } from '../../src/ha/validation.mjs';
 import {
-  MAX_RECTS,
-  addRect,
   addZone,
-  adoptZone,
   applyDraft,
-  canAdoptZone,
+  cutZones,
   deviceMoves,
-  mergeZones,
+  geomOfRoom,
+  intersectZones,
   newZoneId,
-  removeRect,
   removeZone,
   renameZone,
-  snapRect,
+  reorderZones,
   startDraft,
-  updateRect,
+  subtractZones,
+  transformZones,
+  unionZones,
   zoneAt,
 } from '../../.work/model/zone-edit.js';
+import { areaOf, rectGeom } from '../../.work/model/polygon.js';
 
 const left = { x: 0, y: 0, width: 0.5, height: 1 };
 const right = { x: 0.5, y: 0, width: 0.5, height: 0.5 };
@@ -40,222 +40,124 @@ const plan = () => ({
   },
 });
 const draftOf = (config = plan()) => startDraft(config.rooms, { kitchen: right, office: corner, living: right });
+const zone = (draft, id) => draft.zones.find(item => item.id === id);
+const close = (a, b) => Math.abs(a - b) < 1e-6;
 
-test('the draft shows every space as rectangles: its own, else its zone; without either it has none yet', () => {
+test('el borrador muestra cada espacio como forma: la propia, si no la de su zona; sin ninguna, vacío', () => {
   const draft = startDraft(plan().rooms, {
     kitchen: right,
     office: { ...corner, rects: [corner, right] },
     living: right,
   });
-  // A shape drawn in the app wins over the zone with its name.
-  assert.deepEqual(draft.zones.find(zone => zone.id === 'living').rects, [left]);
-  assert.deepEqual(draft.zones.find(zone => zone.id === 'kitchen').rects, [right]);
-  assert.deepEqual(draft.zones.find(zone => zone.id === 'office').rects, [corner, right]);
-  assert.deepEqual(draft.zones.find(zone => zone.id === 'old').rects, []);
-  assert.equal(
-    draft.zones.every(zone => !zone.shapeChanged && !zone.labelChanged && !zone.isNew),
-    true,
-  );
-  assert.equal(MAX_RECTS, MAX_ROOM_RECTS);
+  // Una forma hecha en la app gana a la zona con su nombre.
+  assert.ok(close(areaOf(zone(draft, 'living').geom), 0.5));
+  assert.equal(zone(draft, 'kitchen').geom[0].length, 4);
+  // Varios rectángulos de una zona del dibujo pasan a un solo contorno.
+  assert.equal(zone(draft, 'office').geom.length, 1);
+  assert.ok(close(areaOf(zone(draft, 'office').geom), 0.5));
+  assert.deepEqual(zone(draft, 'old').geom, []);
+  assert.ok(draft.zones.every(item => !item.shapeChanged && !item.labelChanged && !item.isNew));
+  // Lo guardado antes de 0.13 con rectángulos se lee como contorno.
+  const l = geomOfRoom({
+    shape: { x: 0, y: 0, width: 0.4, height: 0.4 },
+    rects: [
+      { x: 0, y: 0, width: 0.4, height: 0.2 },
+      { x: 0, y: 0.2, width: 0.2, height: 0.2 },
+    ],
+  });
+  assert.equal(l[0].length, 6);
 });
 
-test('a new zone gets a readable, unique id; names with accents are fine', () => {
-  assert.equal(newZoneId('Baño Norte', []), 'bano-norte');
+test('un espacio nuevo tiene un id legible y único; los acentos no molestan', () => {
+  assert.equal(newZoneId('Baño de servicio', []), 'bano-de-servicio');
   assert.equal(newZoneId('Living', ['living']), 'living-2');
-  assert.equal(newZoneId('   ', []), 'espacio');
-  const draft = addZone(draftOf(), 'Living', right, ['living']);
-  const zone = draft.zones.at(-1);
-  assert.equal(zone.id, 'living-2');
-  assert.equal(zone.isNew, true);
-  assert.deepEqual(zone.rects, [right]);
+  const draft = addZone(draftOf(), 'Lavadero', rectGeom(0, 0, 0.1, 0.1), ['living', 'kitchen']);
+  assert.equal(draft.zones.at(-1).id, 'lavadero');
+  assert.equal(draft.zones.at(-1).isNew, true);
 });
 
-test('adding merges into one zone, up to the limit; rectangles move and go; nothing mutates', () => {
-  const start = draftOf();
-  const snapshot = structuredClone(start);
-  const two = addRect(start, 'living', right);
-  assert.deepEqual(two.zones.find(zone => zone.id === 'living').rects, [left, right]);
-  assert.equal(two.zones.find(zone => zone.id === 'living').shapeChanged, true);
-  assert.deepEqual(start, snapshot);
-  const moved = updateRect(two, 'living', 1, corner);
-  assert.deepEqual(moved.zones.find(zone => zone.id === 'living').rects, [left, corner]);
-  assert.deepEqual(removeRect(moved, 'living', 0).zones.find(zone => zone.id === 'living').rects, [corner]);
-  let full = start;
-  for (let i = 0; i < MAX_RECTS + 3; i++) full = addRect(full, 'old', right);
-  assert.equal(full.zones.find(zone => zone.id === 'old').rects.length, MAX_RECTS);
-  const renamed = renameZone(start, 'kitchen', 'Cocina nueva');
-  assert.equal(renamed.zones.find(zone => zone.id === 'kitchen').label, 'Cocina nueva');
-  assert.equal(renamed.zones.find(zone => zone.id === 'kitchen').shapeChanged, false);
+test('unir deja una sola forma con el nombre del primero, y sus dispositivos lo siguen', () => {
+  const draft = unionZones(draftOf(), ['kitchen', 'office']);
+  assert.equal(zone(draft, 'office'), undefined);
+  assert.equal(zone(draft, 'kitchen').geom.length, 1);
+  assert.equal(zone(draft, 'kitchen').geom[0].length, 4, 'dos mitades forman un rectángulo sin costura');
+  assert.deepEqual(draft.merged, { office: 'kitchen' });
+  assert.deepEqual(draft.removed, ['office']);
+  // Unir en cadena: lo que ya se había unido sigue al nuevo dueño.
+  const chain = unionZones(draft, ['living', 'kitchen']);
+  assert.deepEqual(chain.merged, { office: 'living', kitchen: 'living' });
+  assert.equal(unionZones(draftOf(), ['kitchen']), null);
 });
 
-test('merging makes one room of two, and its devices follow; merging in a chain still lands right', () => {
-  const merged = mergeZones(draftOf(), 'kitchen', 'living');
-  assert.deepEqual(merged.zones.find(zone => zone.id === 'living').rects, [left, right]);
-  assert.equal(
-    merged.zones.some(zone => zone.id === 'kitchen'),
-    false,
-  );
-  assert.deepEqual(merged.merged, { kitchen: 'living' });
-  assert.deepEqual(merged.removed, ['kitchen']);
-  const chain = mergeZones(merged, 'living', 'office');
-  assert.deepEqual(chain.merged, { kitchen: 'office', living: 'office' });
-  assert.equal(mergeZones(draftOf(), 'kitchen', 'kitchen'), null);
-  assert.equal(mergeZones(draftOf(), 'kitchen', 'nowhere'), null);
-  let full = draftOf();
-  for (let i = 0; i < MAX_RECTS - 2; i++) full = addRect(full, 'living', right);
-  assert.equal(mergeZones(full, 'kitchen', 'living').zones[0].rects.length, MAX_RECTS);
-  assert.equal(mergeZones(addRect(full, 'living', right), 'kitchen', 'living'), null);
+test('restar, intersecar y cortar con un trazo', () => {
+  const draft = addZone(draftOf(), 'Placard', rectGeom(0.4, 0.4, 0.2, 0.2), []);
+  const placard = draft.zones.at(-1).id;
+  const sub = subtractZones(draft, ['living', placard], []);
+  assert.ok(close(areaOf(zone(sub, 'living').geom), 0.5 - 0.1 * 0.2));
+  assert.ok(zone(sub, placard), 'el que resta queda como estaba');
+  const both = intersectZones(draft, ['living', placard]);
+  assert.ok(close(areaOf(zone(both, 'living').geom), 0.1 * 0.2));
+  assert.equal(intersectZones(draftOf(), ['kitchen', 'office']), null, 'sólo se tocan: no hay nada en común');
+  const cut = cutZones(draftOf(), [0.25, -0.1], [0.25, 1.1], [], []);
+  assert.equal(cut.pieces.length, 2);
+  assert.ok(close(areaOf(zone(cut.draft, 'living').geom), 0.25));
+  assert.equal(cutZones(draftOf(), [0.9, 0.9], [0.95, 0.95], ['living'], []), null);
 });
 
-test('edges catch nearby edges; far ones stay; moving keeps the size', () => {
-  const others = [left];
-  // The left edge catches the wall at 0.5, within the tolerance.
-  assert.deepEqual(snapRect({ x: 0.503, y: 0.2, width: 0.2, height: 0.2 }, others, 'w'), {
-    x: 0.5,
-    y: 0.2,
-    width: 0.203,
-    height: 0.2,
-  });
-  assert.deepEqual(snapRect({ x: 0.503, y: 0.2, width: 0.2, height: 0.2 }, others, 'move'), {
-    x: 0.5,
-    y: 0.2,
-    width: 0.2,
-    height: 0.2,
-  });
-  const far = { x: 0.6, y: 0.2, width: 0.2, height: 0.2 };
-  assert.deepEqual(snapRect(far, others, 'move'), far);
-  assert.deepEqual(snapRect(far, [], 'se'), far);
+test('mover, escalar y voltear nunca sacan una forma del plano; adelante y atrás cambian el orden', () => {
+  const moved = transformZones(draftOf(), ['living'], ([x, y]) => [x + 0.8, y]);
+  assert.ok(areaOf(zone(moved, 'living').geom) < 0.5, 'lo que sale del plano se corta');
+  const gone = transformZones(draftOf(), ['living'], ([x, y]) => [x + 5, y]);
+  assert.ok(close(areaOf(zone(gone, 'living').geom), 0.5), 'si quedaría afuera entero, no se mueve');
+  assert.equal(reorderZones(draftOf(), ['living'], 'front').zones.at(-1).id, 'living');
 });
 
-test('a point belongs to the smallest zone around it', () => {
-  const draft = addRect(draftOf(), 'old', { x: 0.1, y: 0.1, width: 0.1, height: 0.1 });
-  assert.equal(zoneAt(draft, { x: 0.15, y: 0.15 }).id, 'old');
-  assert.equal(zoneAt(draft, { x: 0.3, y: 0.3 }).id, 'living');
-  assert.equal(zoneAt(startDraft([], {}), { x: 0.3, y: 0.3 }), null);
+test('un punto pertenece al espacio más chico que lo rodea', () => {
+  const draft = addZone(draftOf(), 'Placard', rectGeom(0.1, 0.1, 0.1, 0.1), []);
+  assert.equal(zoneAt(draft, { x: 0.15, y: 0.15 }).label, 'Placard');
+  assert.equal(zoneAt(draft, { x: 0.3, y: 0.8 }).id, 'living');
+  assert.equal(zoneAt(draftOf(), { x: 2, y: 2 }), null);
 });
 
-test('only what the edit caused moves: resized, merged and removed zones, not old mismatches', () => {
+test('sólo se mueve lo que causó la edición; al aplicar se guarda el contorno y los ids nuevos salen del nombre', () => {
   const config = plan();
-  const devices = config.catalog.devices;
-  assert.deepEqual(deviceMoves(devices, draftOf(config)), []);
-  // A mismatch that was already there is the diagnosis's business.
-  const stale = [...devices, device('lamp', 'kitchen', 0.2, 0.8)];
-  assert.deepEqual(deviceMoves(stale, draftOf(config)), []);
-  // Living grows over everything and the office shrinks away from the desk. The oven stays: the
-  // kitchen around it is still the smaller, more specific zone.
-  const grown = updateRect(draftOf(config), 'living', 0, { x: 0, y: 0, width: 1, height: 1 });
-  const moves = deviceMoves(devices, updateRect(grown, 'office', 0, { x: 0.9, y: 0.9, width: 0.1, height: 0.1 }));
-  assert.deepEqual(
-    moves.map(move => [move.deviceId, move.from, move.to]),
-    [['desk', 'office', 'living']],
-  );
-  // Merged: the oven follows, though it sits in the merged rectangle anyway.
-  const merged = mergeZones(draftOf(config), 'kitchen', 'living');
-  assert.deepEqual(deviceMoves(devices, merged), [
-    { deviceId: 'oven', label: 'Dispositivo oven', from: 'kitchen', to: 'living' },
-  ]);
-  // Removed: its device stays without a space, and says so.
-  assert.deepEqual(deviceMoves(devices, removeZone(draftOf(config), 'office')), [
-    { deviceId: 'desk', label: 'Dispositivo desk', from: 'office', to: null },
-  ]);
-});
-
-test('applying writes what changed and nothing else, and no device keeps a space that is gone', () => {
-  const config = plan();
-  const snapshot = structuredClone(config);
-  const part = { x: 0, y: 0, width: 0.2, height: 0.2 };
-  let draft = addRect(draftOf(config), 'living', part);
-  draft = renameZone(draft, 'kitchen', 'Cocina nueva');
+  let draft = unionZones(draftOf(config), ['kitchen', 'office']);
+  draft = renameZone(draft, 'kitchen', 'Cocina comedor');
   draft = addZone(
     draft,
-    'Baño Norte',
-    corner,
+    'Galería',
+    rectGeom(0.05, 0.05, 0.1, 0.1),
     config.rooms.map(room => room.id),
   );
   draft = removeZone(draft, 'old');
-  draft = removeZone(draft, 'office');
-  const next = applyDraft(config, draft, []);
-  assert.deepEqual(config, snapshot);
-  assert.deepEqual(
-    next.rooms.map(room => room.id),
-    ['living', 'kitchen', 'bano-norte'],
-  );
-  const living = next.rooms[0];
-  assert.deepEqual(living.rects, [left, part]);
-  assert.deepEqual(living.shape, left);
-  assert.equal(living.shapeSource, 'app');
-  // A rename alone does not make a zone stop following the SVG, nor invent a shape.
-  assert.deepEqual(next.rooms[1], { id: 'kitchen', label: 'Cocina nueva', icon: 'mdi:pot-steam' });
-  assert.equal(next.rooms[2].id, 'bano-norte');
-  assert.equal(next.rooms[2].label, 'Baño Norte');
-  assert.deepEqual(next.rooms[2].shape, corner);
-  assert.equal(next.rooms[2].shapeSource, 'app');
-  assert.equal(typeof next.rooms[2].icon, 'string');
-  // Its space is gone, even without a chosen move.
-  assert.equal(next.catalog.devices.find(item => item.id === 'desk').roomId, null);
-  assert.equal(next.catalog.devices.length, 3);
-});
-
-test('moves apply as chosen; a zone left with no rectangles goes back to having no shape', () => {
-  const config = plan();
-  const merged = mergeZones(draftOf(config), 'kitchen', 'living');
-  const next = applyDraft(config, merged, []);
-  // Not chosen, but its space merged: it follows.
-  assert.equal(next.catalog.devices.find(item => item.id === 'oven').roomId, 'living');
-  const moved = applyDraft(config, draftOf(config), [{ deviceId: 'sofa', label: '', from: 'living', to: 'office' }]);
-  assert.equal(moved.catalog.devices.find(item => item.id === 'sofa').roomId, 'office');
-  const empty = applyDraft(config, removeRect(draftOf(config), 'living', 0), []);
-  assert.deepEqual(empty.rooms[0], { id: 'living', label: 'Living' });
-});
-
-test('a new zone takes its ID from its final name, and devices follow it', () => {
-  const config = plan();
-  let draft = addZone(draftOf(config), 'Zona 5', { x: 0.1, y: 0.1, width: 0.2, height: 0.2 }, ['living']);
-  const provisional = draft.zones.at(-1).id;
-  draft = renameZone(draft, provisional, '  Baño Sur ');
   const moves = deviceMoves(config.catalog.devices, draft);
   assert.deepEqual(
-    moves.map(move => [move.deviceId, move.from, move.to]),
-    [['sofa', 'living', provisional]],
+    moves.map(move => [move.deviceId, move.to]),
+    [['desk', 'kitchen']],
   );
   const next = applyDraft(config, draft, moves);
-  assert.equal(next.rooms.at(-1).id, 'bano-sur');
-  assert.equal(next.rooms.at(-1).label, 'Baño Sur');
-  assert.equal(next.catalog.devices.find(item => item.id === 'sofa').roomId, 'bano-sur');
-  // A removed space's ID is not reused: its devices must not silently adopt the new zone.
-  const again = renameZone(addZone(removeZone(draftOf(config), 'office'), 'Zona', corner, []), 'zona', 'Oficina');
-  const reused = applyDraft(config, again, []);
-  assert.equal(reused.rooms.at(-1).id.startsWith('oficina'), true);
-  const named = renameZone(addZone(removeZone(draftOf(config), 'office'), 'Zona', corner, []), 'zona', 'Office');
-  assert.equal(applyDraft(config, named, []).rooms.at(-1).id, 'office-2');
-  assert.equal(applyDraft(config, named, []).catalog.devices.find(item => item.id === 'desk').roomId, null);
-});
-
-test('a snap never leaves a rectangle below the minimum nor past the plan', () => {
-  const thin = { x: 0.5, y: 0.1, width: 0.021, height: 0.2 };
-  assert.deepEqual(snapRect(thin, [{ x: 0.505, y: 0, width: 0.1, height: 0.1 }], 'w'), thin);
-  const rect = snapRect({ x: 0.3333335, y: 0, width: 0.6666665, height: 0.5 }, [], 'move');
-  assert.equal(rect.x + rect.width <= 1, true);
-});
-
-test('an SVG zone of several shapes can become one shape of the app, keeping its L (#98)', () => {
-  const rooms = [
-    { id: 'l', label: 'Espacio L' },
-    { id: 'one', label: 'Espacio uno' },
-  ];
-  const copies = {
-    l: { x: 0, y: 0, width: 1, height: 1, rects: [left, right] },
-    one: { x: 0.5, y: 0.5, width: 0.5, height: 0.5 },
-  };
-  const draft = startDraft(rooms, copies);
-  const [l, one] = draft.zones;
-  assert.equal(canAdoptZone(l), true);
-  assert.equal(canAdoptZone(one), false, 'a single shape has nothing to merge');
-  const adopted = adoptZone(draft, 'l');
-  assert.equal(canAdoptZone(adopted.zones[0]), false, 'once is enough');
-  assert.deepEqual(adoptZone(draft, 'one'), draft);
-  const next = applyDraft({ rooms: structuredClone(rooms), catalog: { devices: [] } }, adopted, []);
-  assert.equal(next.rooms[0].shapeSource, 'app');
-  assert.deepEqual(next.rooms[0].rects, [left, right]);
-  assert.equal(next.rooms[1].shapeSource, undefined, 'the other space keeps following the SVG');
+  const kitchen = next.rooms.find(room => room.id === 'kitchen');
+  assert.equal(kitchen.label, 'Cocina comedor');
+  assert.equal(kitchen.shapeSource, 'app');
+  assert.equal(kitchen.rects, undefined);
+  assert.deepEqual(kitchen.shape, { x: 0.5, y: 0, width: 0.5, height: 1 });
+  assert.equal(kitchen.outline[0].length, 4);
+  assert.deepEqual(
+    next.rooms.map(room => room.id),
+    ['living', 'kitchen', 'galeria'],
+    'el orden de la barra se mantiene; lo nuevo va al final',
+  );
+  assert.equal(next.catalog.devices.find(item => item.id === 'desk').roomId, 'kitchen');
+  // Lo que se aplica pasa la misma validación que el plano guardado.
+  assert.doesNotThrow(() =>
+    assertConfiguration({
+      schemaVersion: 2,
+      rooms: next.rooms,
+      catalog: { schemaVersion: 2, devices: [] },
+      architecture: { format: 'svg', content: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>' },
+      actions: {},
+      panels: {},
+      stateSources: {},
+    }),
+  );
 });

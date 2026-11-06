@@ -1,3 +1,4 @@
+import { areaOf, geomContains } from './polygon.js';
 /** D22: spaces own their shape. Pure rules; measuring SVG zones stays in card/geometry. */
 export interface RoomShape {
   x: number;
@@ -11,6 +12,8 @@ export interface ShapedRoom {
   shape?: RoomShape;
   /** A zone of merged rectangles: an L is two. */
   rects?: RoomShape[];
+  /** 0.13: an outline of the app (outer ring, then holes). */
+  outline?: [number, number][][];
   shapeSource?: 'svg' | 'app';
 }
 export interface Box {
@@ -33,7 +36,12 @@ export const ownsShape = (room: ShapedRoom): boolean => room.shapeSource === 'ap
 /** A zone's rectangles: its merged parts, else its one shape. */
 export const rectsOf = (room: ShapedRoom): RoomShape[] => room.rects ?? (room.shape ? [room.shape] : []);
 export const roomContains = (room: ShapedRoom, point: Point): boolean =>
-  rectsOf(room).some(rect => shapeContains(rect, point));
+  room.outline
+    ? geomContains(room.outline, [point.x, point.y])
+    : rectsOf(room).some(rect => shapeContains(rect, point));
+/** How much of the plan a space covers. */
+export const roomArea = (room: ShapedRoom): number =>
+  room.outline ? areaOf(room.outline) : rectsOf(room).reduce((sum, rect) => sum + rect.width * rect.height, 0);
 
 export function shapeContains(shape: RoomShape, point: Point): boolean {
   return (
@@ -88,7 +96,7 @@ export function roomAtPoint(
     const byZone = zoneHits.filter(id => rooms.some(room => room.id === id && !ownsShape(room)));
     return byZone.length === 1 ? byZone[0] : null;
   }
-  const area = (room: ShapedRoom) => rectsOf(room).reduce((sum, rect) => sum + rect.width * rect.height, 0);
+  const area = roomArea;
   const sorted = [...byShape].sort((a, b) => area(a) - area(b));
   return sorted.length > 1 && area(sorted[0]) === area(sorted[1]) ? null : sorted[0].id;
 }

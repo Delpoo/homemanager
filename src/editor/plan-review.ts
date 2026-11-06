@@ -6,6 +6,7 @@ import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { mergeRoom, planImportReport, type PlanImportReport } from '../model/plan-import.js';
 import { ownsShape, roomContains, withZoneShapes, type RoomShape } from '../model/room-shapes.js';
 import { startDraft } from '../model/zone-edit.js';
+import { bboxOf } from '../model/polygon.js';
 
 /** The import report plus the spaces drawn by hand whose zone the new plan redraws (D22). */
 export type PlanReview = PlanImportReport & { drawn?: { roomId: string; label: string }[] };
@@ -79,7 +80,14 @@ export function spaceRects(configuration: Configuration): Record<string, RoomSha
   return mounted(configuration, ({ svg, box }) => {
     const ids = configuration.rooms.map(room => room.id);
     const draft = startDraft(configuration.rooms, zoneShapes(svg, box, ids));
-    return Object.fromEntries(draft.zones.map(zone => [zone.id, zone.rects]));
+    // 0.13: a shape's box is where new devices are spread.
+    return Object.fromEntries(
+      draft.zones.map(zone => {
+        if (!zone.geom.length) return [zone.id, []];
+        const box = bboxOf([zone.geom]);
+        return [zone.id, [{ x: box.x, y: box.y, width: box.width, height: box.height }]];
+      }),
+    );
   });
 }
 /** After an import, every space that follows the SVG keeps a copy of its zone (D22). */
