@@ -487,4 +487,5 @@ export const enPlan012: Record<string, string> = {
   'Sólo se unen espacios que se tocan.': 'Only touching spaces can be joined.',
   Imágenes: 'Images',
   'Home Assistant': 'Home Assistant',
+  'Arrastrar para mover': 'Drag to move',
 };
