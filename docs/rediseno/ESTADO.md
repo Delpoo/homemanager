@@ -6,7 +6,7 @@ Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su
 
 **Siguiente paso:** plan 0.13 ([plan-0.13.md](plan-0.13.md)), maqueta aprobada. Hecho: lote 1a (#108, menús y Configuración al costado) y Controles (#109, sobre #107). Falta: limpieza 1b y el resto de pantallas. Nada fusionado ni publicado.
 
-**Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) y el plan 0.12 en `v0.12.0-beta.1` (#104), publicada a pedido del propietario el 2026-11-05 para probarla. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
+**Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) el plan 0.12 en `v0.12.0-beta.1` (#104) y el plan 0.13 (lotes 1 a 5 y Controles) en `v0.13.0-beta.1`, publicadas a pedido del propietario para probarlas. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
 ## Plan 0.12
 
