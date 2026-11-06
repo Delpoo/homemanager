@@ -357,7 +357,7 @@ test('the sidebar panel lists homes, lets an administrator start one and hosts t
   await app.locator('homemanager-card .hm-tools [data-command=configuration]').click();
   await showSection(app.locator('homemanager-editor'), 'homes-section');
   await expect(app.getByLabel('Hogar que se muestra', { exact: true })).toHaveValue('mi-casa');
-  await app.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
+  await app.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-close').click();
   await expect(
     app.locator('homemanager-card').getByRole('button', { name: 'Luz de prueba', exact: true }),
   ).toBeVisible();

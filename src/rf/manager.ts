@@ -558,7 +558,18 @@ export class HomeManagerRf extends HTMLElement {
       this.designer.configure({
         key: remote.id,
         remote,
+        name: remote.name,
         estimated: true,
+        // 0.13: the same remote for another fan or light, on this or another transmitter.
+        duplicate: {
+          emitters: this.transmitters.map(item => ({ id: item.id, name: item.name })),
+          current: remote.transmitter,
+          run: async (name, transmitter) => {
+            const copy = await rf.duplicateRemote(this._hass!, remote.id, name, transmitter);
+            this.remotes = [...this.remotes, copy];
+            this.open(copy.id);
+          },
+        },
         readValues: () => this._hass?.states ?? {},
         save: async layout => {
           const saved = await rf.saveLayout(this._hass!, remote.id, layout);

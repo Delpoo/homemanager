@@ -58,6 +58,10 @@ export function widgetLabel(type: WidgetType): string {
     preset: t('Preset'),
     graph: t('Gráfico'),
     canvas: t('Lienzo'),
+    dpad: t('Cruceta'),
+    numpad: t('Teclado numérico'),
+    transport: t('Reproducción'),
+    colors: t('Botones de colores'),
   };
   return labels[type];
 }
@@ -79,6 +83,10 @@ export function widgetHelp(type: WidgetType): string {
     preset: t('Una secuencia de botones y pausas con un solo toque.'),
     graph: t('Muestra cómo cambió una lectura.'),
     canvas: t('Columnas y filas del control.'),
+    dpad: t('Arriba, abajo, izquierda, derecha y OK.'),
+    numpad: t('Del 0 al 9, guion y Entrar.'),
+    transport: t('Anterior, retroceder, reproducir, adelantar y siguiente.'),
+    colors: t('Rojo, verde, amarillo y azul.'),
   };
   return help[type];
 }

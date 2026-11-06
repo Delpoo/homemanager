@@ -34,7 +34,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
   await showSection(settings, 'appearance-section');
   await settings.getByRole('checkbox', { name: /Mostrar capas/ }).uncheck();
   // Leaving Settings opened from ⚙ also leaves editing (#70).
-  await settings.getByRole('button', { name: 'Volver', exact: true }).click();
+  await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await expect(layers).toBeHidden();
   await page.reload();
   await page.waitForFunction(() => window.shellHarnessReady);
@@ -43,7 +43,7 @@ test('layers are icons, filter, minimize persistently and can be hidden from set
   await openFirstSection(page);
   await showSection(settings, 'appearance-section');
   await settings.getByRole('checkbox', { name: /Mostrar capas/ }).check();
-  await settings.getByRole('button', { name: 'Volver', exact: true }).click();
+  await settings.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await expect(layers).toBeVisible();
 });
 test('holding a layer exposes its name without toggling it', async ({ page }) => {

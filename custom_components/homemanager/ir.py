@@ -178,6 +178,15 @@ class IrManager:
 
         return await asyncio.shield(self._hass.async_create_task(commit(), "HomeManager IR edit"))
 
+    async def async_duplicate(self, remote_id: str, name: str, emitter: str | None) -> dict[str, Any]:
+        async def commit() -> dict[str, Any]:
+            async with self._save_lock:
+                if self._hass.is_stopping:
+                    raise ModelError("ir_save_failed", "Home Assistant is shutting down")
+                return await self._library.async_duplicate_ir_remote(remote_id, name, emitter)
+
+        return await asyncio.shield(self._hass.async_create_task(commit(), "HomeManager IR duplicate"))
+
     def settings(self, remote_id: str) -> dict[str, Any]:
         remote = self._library.ir_remote(remote_id)
         return {"emitter": remote.emitter, "buttons": {button_id: {"emitter": button.emitter,

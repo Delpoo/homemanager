@@ -134,6 +134,14 @@ export const rf = {
     ws<null>(hass, { type: 'homemanager/rf/default_receiver', receiver }),
   saveRemote: (hass: Hass, remote: Partial<RfSettings & RfAbout> & { name: string }, remoteId?: string) =>
     ws<RfRemote>(hass, { type: 'homemanager/rf/remote/save', remote, ...(remoteId ? { remote_id: remoteId } : {}) }),
+  /** 0.13: the same remote for another appliance, with its design. */
+  duplicateRemote: (hass: Hass, remoteId: string, name: string, transmitter?: string) =>
+    ws<RfRemote>(hass, {
+      type: 'homemanager/rf/remote/duplicate',
+      remote_id: remoteId,
+      name,
+      ...(transmitter ? { transmitter } : {}),
+    }),
   deleteRemote: (hass: Hass, remoteId: string) =>
     ws<null>(hass, { type: 'homemanager/rf/remote/delete', remote_id: remoteId }),
   saveParts: (hass: Hass, remoteId: string, parts: (Omit<RfPart, 'id'> & { id?: string })[]) =>

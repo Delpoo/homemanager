@@ -10,6 +10,7 @@ from typing import Any
 
 from .const import MAX_CONFIGURATION_BYTES, MAX_PLAN_BYTES, SCHEMA_VERSION
 from .errors import ModelError
+from .piece_look import BLOCK_SLOTS, LOOK_KEYS, LookError, check_piece, inputs
 from .svg import validate_svg
 
 UNSAFE = frozenset({"__proto__", "prototype", "constructor"})
@@ -757,7 +758,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
 
 
 def validate_control_layout(layout: Any) -> None:
-    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1), 'knob': (2, 12), 'preset': (1, 12), 'graph': (0, 0), 'canvas': (0, 0)}
+    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1), 'knob': (2, 12), 'preset': (1, 12), 'graph': (0, 0), 'canvas': (0, 0), **{kind: (0, len(keys)) for kind, keys in BLOCK_SLOTS.items()}}
     if not isinstance(layout, list) or len(layout) > 64:
         _fail()
     # 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
@@ -769,7 +770,7 @@ def validate_control_layout(layout: Any) -> None:
         _fail()
     ids = set()
     for p in layout:
-        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute", "bg", "fg", "shape", "hideIcon", "hideLabel", "orientation", "sequence"})
+        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute", "bg", "fg", "shape", "hideIcon", "hideLabel", "orientation", "sequence", *LOOK_KEYS})
         if not isinstance(p["id"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", p["id"]) or p["id"] in UNSAFE or p["id"] in ids:
             _fail()
         ids.add(p["id"])
@@ -782,11 +783,15 @@ def validate_control_layout(layout: Any) -> None:
                 _fail()
         if p["x"] + p["w"] > (30 if canvas else columns):
             _fail()
-        low, high = counts[p["type"]]
+        low, high = inputs(p["type"], p, counts[p["type"]])
         if not isinstance(p["buttons"], list) or not low <= len(p["buttons"]) <= high:
             _fail()
         for ref in p["buttons"]:
             _id(ref)
+        try:
+            check_piece(p, p["type"], p["buttons"], lambda ref: bool(ID.fullmatch(ref)) and ref not in UNSAFE)
+        except LookError:
+            _fail()
         if p["label"] is not None:
             _text(p["label"], 40)
         if p["icon"] is not None and (not isinstance(p["icon"], str) or not MDI_ICON.fullmatch(p["icon"])):

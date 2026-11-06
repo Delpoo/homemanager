@@ -1,0 +1,50 @@
+{
+  "buttons": ["a-1", "a-2", "a-3", "a-4"],
+  "valid": [
+    [
+      { "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 10, "buttons": [], "label": null, "icon": null, "theme": "arena", "bg": "#F4EDE1", "radius": 30, "gap": 10 },
+      { "id": "power", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": "Encender", "icon": "mdi:power", "fontSize": 13, "fontWeight": 700, "iconSize": 26, "border": "#FFFFFF", "radius": 999, "relief": "outline", "anim": "flash", "hold": "repeat" },
+      { "id": "netflix", "type": "button", "x": 1, "y": 0, "w": 1, "h": 1, "buttons": ["a-2"], "label": "Netflix", "icon": null, "brand": "Netflix", "hold": "other", "holdButton": "a-3" },
+      { "id": "temp", "type": "updown", "x": 0, "y": 1, "w": 1, "h": 3, "buttons": ["a-1", "a-2"], "label": "Temperatura", "icon": null, "orientation": "vertical", "values": { "min": 16, "max": 30, "step": 1, "unit": "°" }, "display": "value", "valueSize": 26, "wrap": false },
+      { "id": "speed", "type": "steps", "x": 1, "y": 1, "w": 2, "h": 1, "buttons": ["a-3"], "label": "Velocidad", "icon": null, "names": ["Auto", "Baja", "Media", "Alta"], "sendBy": "advance", "wrap": true, "display": "name", "active": "#3F7FBF" },
+      { "id": "fan", "type": "knob", "x": 1, "y": 2, "w": 2, "h": 2, "buttons": ["a-1", "a-2", "a-3", "a-4"], "label": null, "icon": null, "names": ["Apagado", "1", "2", "3"], "sendBy": "level" },
+      { "id": "channel", "type": "slider", "x": 0, "y": 4, "w": 3, "h": 1, "buttons": ["a-3", "a-4"], "label": "CH", "icon": null, "values": { "min": 1, "max": 999, "step": 1 }, "sendBy": "updown", "display": "dots", "hold": "repeat" },
+      { "id": "mode", "type": "modes", "x": 0, "y": 5, "w": 3, "h": 1, "buttons": ["a-1", "a-2", "a-3"], "label": "Modo", "icon": null, "options": [{ "label": "Frío", "icon": "mdi:snowflake" }, { "label": "Calor", "icon": "mdi:fire" }, { "label": null, "icon": null }], "display": "list", "relief": "flat" },
+      { "id": "timer", "type": "cycle", "x": 0, "y": 6, "w": 1, "h": 1, "buttons": ["a-4", "a-4"], "label": null, "icon": null, "options": [{ "label": "1 h" }, { "label": "4 h" }], "wrap": true },
+      { "id": "pad", "type": "dpad", "x": 0, "y": 7, "w": 3, "h": 3, "buttons": ["a-1", "a-2", "a-3"], "label": null, "icon": null, "slots": { "up": "a-1", "down": "a-2", "ok": "a-3" }, "radius": 999 },
+      { "id": "chart", "type": "graph", "x": 1, "y": 6, "w": 2, "h": 1, "buttons": [], "label": "Consumo", "icon": null, "reading": "sensor.synthetic_power", "period": "7d" }
+    ],
+    [
+      { "id": "empty-pad", "type": "numpad", "x": 0, "y": 0, "w": 3, "h": 4, "buttons": [], "label": null, "icon": null },
+      { "id": "keys", "type": "colors", "x": 0, "y": 4, "w": 3, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "slots": { "red": "a-1" } },
+      { "id": "play", "type": "transport", "x": 0, "y": 5, "w": 3, "h": 1, "buttons": ["a-2", "a-3"], "label": null, "icon": null, "slots": { "play": "a-2", "ff": "a-3" } }
+    ]
+  ],
+  "invalid": [
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "fontSize": 80 }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "fontWeight": 600 }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "radius": 61 }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "relief": "raised" }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "border": "white" }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "hold": "other" }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "holdButton": "a-2" }],
+    [{ "id": "p", "type": "toggle", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "brand": "Netflix" }],
+    [{ "id": "p", "type": "updown", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null }],
+    [{ "id": "p", "type": "updown", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "values": { "min": 5, "max": 5, "step": 1 } }],
+    [{ "id": "p", "type": "updown", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "values": { "min": 1, "max": 5, "step": 1 }, "names": ["a", "b"] }],
+    [{ "id": "p", "type": "steps", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "names": ["Baja", "Media", "Alta"] }],
+    [{ "id": "p", "type": "steps", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "sendBy": "advance" }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "wrap": true }],
+    [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 2, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "options": [{ "label": "Uno" }] }],
+    [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 2, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "display": "dots" }],
+    [{ "id": "p", "type": "dpad", "x": 0, "y": 0, "w": 3, "h": 3, "buttons": ["a-1"], "label": null, "icon": null, "slots": { "middle": "a-1" } }],
+    [{ "id": "p", "type": "dpad", "x": 0, "y": 0, "w": 3, "h": 3, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "slots": { "up": "a-1" } }],
+    [{ "id": "p", "type": "dpad", "x": 0, "y": 0, "w": 3, "h": 3, "buttons": ["a-1"], "label": null, "icon": null }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "slots": { "up": "a-1" } }],
+    [{ "id": "p", "type": "graph", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": [], "label": null, "icon": null, "period": "1y" }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "theme": "claro" }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 4, "h": 4, "buttons": [], "label": null, "icon": null, "theme": "neon" }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 4, "h": 4, "buttons": [], "label": null, "icon": null, "gap": 40 }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 4, "h": 4, "buttons": [], "label": null, "icon": null, "radius": 999 }]
+  ]
+}

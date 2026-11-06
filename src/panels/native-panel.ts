@@ -344,6 +344,14 @@ export class HomeManagerPanel extends HTMLElement {
       view.estimated = false;
       view.readValues = () => source.hass()?.states ?? {};
       view.renderContent = p => renderDesignPiece(p, controls, wrapped, this.views);
+      // 0.13: every key runs its action through the host, which checks it first.
+      view.onPress = async actionId => {
+        const message = await wrapped.run(
+          { id: `design-${actionId}`, type: 'button', label: t('Control'), steps: [{ actionId }] },
+          0,
+        );
+        if (message) throw new Error(message);
+      };
       view.remote = designRemote(this.device!, source.configuration, controls);
       host.append(view);
       host.hidden = false;

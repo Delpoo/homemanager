@@ -56,7 +56,9 @@ const draw = async (page, name, [x, y]) => {
   await page.mouse.down();
   await page.mouse.move(to.x, to.y, { steps: 4 });
   await page.mouse.up();
-  await card(page).getByRole('textbox', { name: 'Nombre de la zona', exact: true }).fill(name);
+  const input = card(page).getByRole('textbox', { name: 'Nombre del espacio', exact: true });
+  await input.fill(name);
+  await input.press('Enter');
 };
 
 test.beforeEach(async ({ page }) => {
@@ -76,12 +78,12 @@ test('a plan without zones offers to draw, and ends with three spaces drawn in t
   await expect(offer).toBeVisible();
   await offer.getByRole('button', { name: 'Dibujar el primero', exact: true }).click();
   await draw(page, 'Living', [0.05, 0.05]);
-  await button(page, 'Dibujar espacio').click();
+  await card(page).locator('[data-command=zone-tool-rect]').click();
   await draw(page, 'Cocina', [0.4, 0.05]);
-  await button(page, 'Dibujar espacio').click();
+  await card(page).locator('[data-command=zone-tool-rect]').click();
   await draw(page, 'Baño Norte', [0.05, 0.5]);
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
+  await card(page).locator('[data-command=zone-apply]').click();
+  await expect(card(page).locator('.zvtools')).toHaveCount(0);
   const rooms = (await draft(page)).rooms;
   expect(rooms.map(room => [room.id, room.label, room.shapeSource])).toEqual([
     ['living', 'Living', 'app'],
@@ -163,10 +165,13 @@ test('plan settings list the spaces: reorder with the keyboard or by dragging, o
     .click();
   await settings.getByRole('button', { name: 'Editar zonas', exact: true }).click();
   await expect(settings).toHaveCount(0);
-  await button(page, 'Dibujar espacio').click();
+  await card(page).locator('[data-command=zone-tool-rect]').click();
   await draw(page, 'Garaje', [0.02, 0.02]);
-  await button(page, 'Aplicar').click();
-  await expect(card(page).locator('.zones-bar')).toHaveCount(0);
+  await card(page).locator('[data-command=zone-apply]').click();
+  // Drawing over spaces asks which devices move: none here.
+  const moves = page.getByRole('region', { name: 'Dispositivos que cambian de espacio', exact: true });
+  if (await moves.isVisible()) await moves.getByRole('button', { name: 'Aplicar', exact: true }).click();
+  await expect(card(page).locator('.zvtools')).toHaveCount(0);
   expect(await ids()).toEqual(['office', 'kitchen', 'living', 'garaje']);
 });
 

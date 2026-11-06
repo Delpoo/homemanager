@@ -59,7 +59,7 @@ test('Now editor previews selected readings, orders blocks and saves', async ({ 
   // The wall list was removed with wall mode (#61): only the home list is edited.
   await expect(panel.getByLabel('Configuración del panel', { exact: true })).toHaveCount(0);
   expect(await card.evaluate(c => c.draft.nowPanels.home.length)).toBe(6);
-  await page.keyboard.press('Escape');
+  await editor.locator('homemanager-task-screen.settings-dialog .task-close').click();
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.locator('.shell>.status')).toContainText('Guardado');
   await card.getByRole('button', { name: 'Salir de edición', exact: true }).click();

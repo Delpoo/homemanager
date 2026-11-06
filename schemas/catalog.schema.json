@@ -775,7 +775,11 @@
                       "knob",
                       "preset",
                       "graph",
-                      "canvas"
+                      "canvas",
+                      "dpad",
+                      "numpad",
+                      "transport",
+                      "colors"
                     ]
                   },
                   "x": {
@@ -893,6 +897,219 @@
                         }
                       ]
                     }
+                  },
+                  "fontSize": {
+                    "type": "integer",
+                    "minimum": 8,
+                    "maximum": 40
+                  },
+                  "fontWeight": {
+                    "enum": [
+                      400,
+                      500,
+                      700
+                    ]
+                  },
+                  "iconSize": {
+                    "type": "integer",
+                    "minimum": 12,
+                    "maximum": 64
+                  },
+                  "border": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "active": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "radius": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "const": 999
+                      }
+                    ]
+                  },
+                  "relief": {
+                    "enum": [
+                      "flat",
+                      "outline"
+                    ]
+                  },
+                  "anim": {
+                    "enum": [
+                      "flash",
+                      "none"
+                    ]
+                  },
+                  "brand": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "hold": {
+                    "enum": [
+                      "repeat",
+                      "other"
+                    ]
+                  },
+                  "holdButton": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                    "maxLength": 120
+                  },
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "min",
+                      "max",
+                      "step"
+                    ],
+                    "properties": {
+                      "min": {
+                        "type": "integer",
+                        "minimum": -9999,
+                        "maximum": 9999
+                      },
+                      "max": {
+                        "type": "integer",
+                        "minimum": -9999,
+                        "maximum": 9999
+                      },
+                      "step": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9999
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 6
+                      }
+                    }
+                  },
+                  "names": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 24,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    }
+                  },
+                  "wrap": {
+                    "type": "boolean"
+                  },
+                  "sendBy": {
+                    "enum": [
+                      "updown",
+                      "advance",
+                      "level"
+                    ]
+                  },
+                  "display": {
+                    "enum": [
+                      "value",
+                      "name",
+                      "dots",
+                      "text",
+                      "list"
+                    ]
+                  },
+                  "valueSize": {
+                    "type": "integer",
+                    "minimum": 12,
+                    "maximum": 40
+                  },
+                  "options": {
+                    "type": "array",
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "label": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1,
+                          "maxLength": 20
+                        },
+                        "icon": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        }
+                      }
+                    }
+                  },
+                  "slots": {
+                    "type": "object",
+                    "maxProperties": 12,
+                    "propertyNames": {
+                      "enum": [
+                        "up",
+                        "down",
+                        "left",
+                        "right",
+                        "ok",
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "dash",
+                        "0",
+                        "enter",
+                        "prev",
+                        "rew",
+                        "play",
+                        "ff",
+                        "next",
+                        "red",
+                        "green",
+                        "yellow",
+                        "blue"
+                      ]
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                      "maxLength": 120
+                    }
+                  },
+                  "period": {
+                    "enum": [
+                      "1h",
+                      "24h",
+                      "7d"
+                    ]
+                  },
+                  "theme": {
+                    "enum": [
+                      "grafito",
+                      "claro",
+                      "arena",
+                      "vidrio"
+                    ]
+                  },
+                  "gap": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
                   }
                 },
                 "allOf": [
@@ -941,8 +1158,8 @@
                     "then": {
                       "properties": {
                         "buttons": {
-                          "minItems": 2,
-                          "maxItems": 2
+                          "minItems": 1,
+                          "maxItems": 24
                         }
                       }
                     }
@@ -958,8 +1175,8 @@
                     "then": {
                       "properties": {
                         "buttons": {
-                          "minItems": 2,
-                          "maxItems": 12
+                          "minItems": 1,
+                          "maxItems": 24
                         }
                       }
                     }
@@ -1009,8 +1226,8 @@
                     "then": {
                       "properties": {
                         "buttons": {
-                          "minItems": 2,
-                          "maxItems": 12
+                          "minItems": 1,
+                          "maxItems": 24
                         }
                       }
                     }
@@ -1094,8 +1311,8 @@
                     "then": {
                       "properties": {
                         "buttons": {
-                          "minItems": 2,
-                          "maxItems": 12
+                          "minItems": 1,
+                          "maxItems": 24
                         }
                       }
                     }
@@ -1147,6 +1364,74 @@
                         "buttons": {
                           "minItems": 0,
                           "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "colors"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 4
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "transport"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 5
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "numpad"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "dpad"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 5
                         }
                       }
                     }

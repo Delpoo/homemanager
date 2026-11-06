@@ -185,7 +185,7 @@ test('Light, Dark and Auto persist across reloads and override/follow HA across 
   });
   await expect.poll(bg).toBe('rgb(255, 255, 255)');
   await theme.selectOption('dark');
-  await page.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
+  await page.locator('homemanager-editor homemanager-task-screen.settings-dialog .task-close').click();
   await card(page).getByRole('button', { name: 'Editar plano', exact: true }).click();
   await card(page).getByRole('button', { name: 'Sensor de ambiente', exact: true }).click();
   await openDeviceSections(page, ['device-binding']);

@@ -909,6 +909,161 @@ export function assertConfiguration(configuration, options) {
   return result.configuration;
 }
 
+/** How a designed piece looks and behaves (0.13 designer, second part). Mirrors
+ * custom_components/homemanager/piece_look.py; everything is optional. */
+export const BLOCK_SLOTS = {
+  dpad: ['up', 'down', 'left', 'right', 'ok'],
+  numpad: ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'dash', '0', 'enter'],
+  transport: ['prev', 'rew', 'play', 'ff', 'next'],
+  colors: ['red', 'green', 'yellow', 'blue'],
+};
+const LEVEL_TYPES = ['updown', 'slider', 'steps', 'knob'];
+const MODE_TYPES = ['modes', 'cycle'];
+const MAX_LEVELS = 24;
+export const PIECE_LOOK_KEYS = [
+  'fontSize',
+  'fontWeight',
+  'iconSize',
+  'border',
+  'active',
+  'radius',
+  'relief',
+  'anim',
+  'brand',
+  'hold',
+  'holdButton',
+  'values',
+  'names',
+  'wrap',
+  'sendBy',
+  'display',
+  'valueSize',
+  'options',
+  'slots',
+  'period',
+  'theme',
+  'gap',
+];
+const between = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
+const shortText = (value, limit) => typeof value === 'string' && value.trim().length > 0 && value.length <= limit;
+const HEX = /^#[0-9a-fA-F]{6}$/;
+export function pieceLevelCount(p) {
+  if (Array.isArray(p.names)) return p.names.length;
+  const v = p.values;
+  if (
+    v &&
+    typeof v === 'object' &&
+    between(v.min, -9999, 9999) &&
+    between(v.max, -9999, 9999) &&
+    between(v.step, 1, 9999)
+  )
+    return Math.floor((v.max - v.min) / v.step) + 1;
+  return null;
+}
+export const pieceSendBy = p => p.sendBy ?? (p.type === 'updown' ? 'updown' : 'level');
+/** How many learned buttons a piece uses, given what it says about itself. */
+export function pieceInputs(p, fallback) {
+  if (BLOCK_SLOTS[p.type]) return [0, BLOCK_SLOTS[p.type].length];
+  if (!LEVEL_TYPES.includes(p.type)) return fallback;
+  const mode = pieceSendBy(p);
+  if (mode === 'updown') return [2, 2];
+  if (mode === 'advance') return [1, 1];
+  const count = pieceLevelCount(p);
+  return count === null ? [2, MAX_LEVELS] : [count, count];
+}
+function assertPieceLook(p, path, isRef) {
+  const kind = p.type;
+  const drawn = kind !== 'canvas';
+  const level = LEVEL_TYPES.includes(kind);
+  const check = (ok, key) => {
+    if (!ok) invalid(path, `invalid ${key}`);
+  };
+  for (const key of PIECE_LOOK_KEYS) {
+    if (p[key] === undefined) continue;
+    const value = p[key];
+    if (key === 'fontSize') check(drawn && between(value, 8, 40), key);
+    else if (key === 'fontWeight') check(drawn && [400, 500, 700].includes(value), key);
+    else if (key === 'iconSize') check(drawn && between(value, 12, 64), key);
+    else if (key === 'border' || key === 'active') check(drawn && typeof value === 'string' && HEX.test(value), key);
+    else if (key === 'radius') check(between(value, 0, 60) || (drawn && value === 999), key);
+    else if (key === 'relief') check(drawn && ['flat', 'outline'].includes(value), key);
+    else if (key === 'anim') check(drawn && ['flash', 'none'].includes(value), key);
+    else if (key === 'brand') check(kind === 'button' && shortText(value, 40), key);
+    else if (key === 'hold')
+      check((value === 'repeat' && (kind === 'button' || level)) || (value === 'other' && kind === 'button'), key);
+    else if (key === 'holdButton') check(p.hold === 'other' && typeof value === 'string' && isRef(value), key);
+    else if (key === 'values') {
+      check(level && p.names === undefined && value && typeof value === 'object' && !Array.isArray(value), key);
+      const keys = Object.keys(value);
+      check(
+        ['min', 'max', 'step'].every(k => keys.includes(k)) &&
+          keys.every(k => ['min', 'max', 'step', 'unit'].includes(k)),
+        key,
+      );
+      check(between(value.min, -9999, 9999) && between(value.max, -9999, 9999) && value.min < value.max, key);
+      check(between(value.step, 1, 9999) && Math.floor((value.max - value.min) / value.step) + 1 <= 1000, key);
+      check(value.unit === undefined || (typeof value.unit === 'string' && value.unit.length <= 6), key);
+    } else if (key === 'names')
+      check(
+        level &&
+          Array.isArray(value) &&
+          value.length >= 2 &&
+          value.length <= MAX_LEVELS &&
+          value.every(name => shortText(name, 20)),
+        key,
+      );
+    else if (key === 'wrap') check((level || MODE_TYPES.includes(kind)) && typeof value === 'boolean', key);
+    else if (key === 'sendBy') check(level && ['updown', 'advance', 'level'].includes(value), key);
+    else if (key === 'display')
+      check(
+        (level && ['value', 'name', 'dots', 'text'].includes(value)) || (kind === 'modes' && value === 'list'),
+        key,
+      );
+    else if (key === 'valueSize') check(level && between(value, 12, 40), key);
+    else if (key === 'options') {
+      check(MODE_TYPES.includes(kind) && Array.isArray(value) && value.length === p.buttons.length, key);
+      for (const option of value) {
+        check(
+          option &&
+            typeof option === 'object' &&
+            Object.keys(option).every(k => k === 'label' || k === 'icon') &&
+            (option.label === undefined || option.label === null || shortText(option.label, 20)) &&
+            (option.icon === undefined ||
+              option.icon === null ||
+              (typeof option.icon === 'string' && MDI_ICON.test(option.icon))),
+          key,
+        );
+      }
+    } else if (key === 'slots') {
+      check(
+        BLOCK_SLOTS[kind] &&
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          Object.keys(value).every(k => BLOCK_SLOTS[kind].includes(k)),
+        key,
+      );
+      check(
+        Object.values(value).every(ref => typeof ref === 'string' && isRef(ref)),
+        key,
+      );
+    } else if (key === 'period') check(kind === 'graph' && ['1h', '24h', '7d'].includes(value), key);
+    else if (key === 'theme') check(kind === 'canvas' && ['grafito', 'claro', 'arena', 'vidrio'].includes(value), key);
+    else if (key === 'gap') check(kind === 'canvas' && between(value, 2, 24), key);
+  }
+  check(p.hold !== 'other' || p.holdButton !== undefined, 'holdButton');
+  if (level && pieceSendBy(p) === 'level') check((pieceLevelCount(p) ?? 0) <= MAX_LEVELS, 'levels');
+  if (BLOCK_SLOTS[kind]) {
+    const sent = new Set(Object.values(p.slots ?? {}));
+    check(
+      new Set(p.buttons).size === p.buttons.length &&
+        p.buttons.length === sent.size &&
+        p.buttons.every(ref => sent.has(ref)),
+      'slots',
+    );
+  }
+}
+
 /** Same optional visual layout as the RF designer; this contains references, never service definitions. */
 export function assertControlLayout(layout, path = 'layout') {
   const counts = {
@@ -927,6 +1082,7 @@ export function assertControlLayout(layout, path = 'layout') {
     preset: [1, 12],
     graph: [0, 0],
     canvas: [0, 0],
+    ...Object.fromEntries(Object.entries(BLOCK_SLOTS).map(([kind, keys]) => [kind, [0, keys.length]])),
   };
   if (!Array.isArray(layout) || layout.length > 64) invalid(path, 'array of at most 64 pieces required');
   // 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
@@ -939,7 +1095,18 @@ export function assertControlLayout(layout, path = 'layout') {
     fields(
       p,
       ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'],
-      ['reading', 'attribute', 'bg', 'fg', 'shape', 'hideIcon', 'hideLabel', 'orientation', 'sequence'],
+      [
+        'reading',
+        'attribute',
+        'bg',
+        'fg',
+        'shape',
+        'hideIcon',
+        'hideLabel',
+        'orientation',
+        'sequence',
+        ...PIECE_LOOK_KEYS,
+      ],
       path,
     );
     if (typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(p.id) || UNSAFE.has(p.id) || ids.has(p.id))
@@ -961,10 +1128,14 @@ export function assertControlLayout(layout, path = 'layout') {
           ['h', 1, 12],
         ])
       if (!Number.isInteger(p[k]) || p[k] < low || p[k] > high) invalid(path, 'invalid piece bounds');
-    const [min, max] = counts[p.type];
-    if (!Array.isArray(p.buttons) || p.buttons.length < min || p.buttons.length > max)
-      invalid(path, 'invalid piece inputs');
+    if (!Array.isArray(p.buttons)) invalid(path, 'invalid piece inputs');
+    const [min, max] = pieceInputs(p, counts[p.type]);
+    if (p.buttons.length < min || p.buttons.length > max) invalid(path, 'invalid piece inputs');
     for (const ref of p.buttons) id(ref, path);
+    assertPieceLook(p, path, ref => {
+      id(ref, path);
+      return true;
+    });
     if (p.label !== null) text(p.label, path, 40);
     if (p.icon !== null && (typeof p.icon !== 'string' || !MDI_ICON.test(p.icon))) invalid(path, 'invalid icon');
     if (p.reading !== undefined) entity(p.reading, path);

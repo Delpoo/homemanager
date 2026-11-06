@@ -100,7 +100,22 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
       }
       case 'homemanager/rf/layout/save': {
         const remote = find(message.remote_id);
+        // Like Home Assistant: the shared contract, and only buttons of this remote.
+        if (message.layout) {
+          const { assertControlLayout } = await import('/src/ha/validation.mjs');
+          assertControlLayout(message.layout);
+          const known = new Set(remote.buttons.map(button => button.id));
+          const refs = message.layout.flatMap(piece => [...piece.buttons, ...(piece.holdButton ? [piece.holdButton] : [])]);
+          if (refs.some(ref => !known.has(ref))) throw Object.assign(new Error('unknown button'), { code: 'invalid_layout' });
+        }
         remote.layout = message.layout;
+        return structuredClone(remote);
+      }
+      case 'homemanager/rf/remote/duplicate': {
+        const remote = structuredClone(find(message.remote_id));
+        Object.assign(remote, { id: slug(message.name), name: message.name });
+        if (message.transmitter) remote.transmitter = message.transmitter;
+        library.push(remote);
         return structuredClone(remote);
       }
       case 'homemanager/rf/press':

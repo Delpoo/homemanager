@@ -25,6 +25,7 @@ import re
 from typing import Any
 
 from .model import ModelError
+from .piece_look import BLOCK_SLOTS, LookError, check_piece, inputs
 from .rf_codec import MAX_BITS, MIN_BITS, PROTOCOLS
 
 ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
@@ -56,7 +57,7 @@ MAX_LABEL = 40
 # How many buttons each widget type uses, in order:
 # button [press]; toggle [on or toggle, off?]; updown [down, up];
 # steps [1, 2, ...]; modes [one per mode].
-WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8), "cycle": (2, 4), "slider": (2, 12), "indicator": (0, 0), "title": (0, 0), "separator": (0, 0), "control": (1, 1), "knob": (2, MAX_SPEEDS), "preset": (1, 12), "graph": (0, 0), "canvas": (0, 0)}
+WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8), "cycle": (2, 4), "slider": (2, 12), "indicator": (0, 0), "title": (0, 0), "separator": (0, 0), "control": (1, 1), "knob": (2, MAX_SPEEDS), "preset": (1, 12), "graph": (0, 0), "canvas": (0, 0), **{kind: (0, len(keys)) for kind, keys in BLOCK_SLOTS.items()}}
 # Defaults for a new remote: what most 433 MHz fan remotes use. The capture
 # replaces protocol, length and pulse with measured values.
 DEFAULTS = {"protocol": 1, "nbits": 24, "pulse_us": 350, "repeats": 5, "wait_us": 0}
@@ -155,9 +156,14 @@ class Part:
         return {"id": self.part_id, **self.as_dict()}
 
 
-def _look(raw: dict[str, Any], kind: str, used: list[str]) -> dict[str, Any]:
-    """Optional 0.13 fields: colours, shape, hidden parts, orientation, preset steps."""
+def _look(raw: dict[str, Any], kind: str, used: list[str], buttons: Container[str] = ()) -> dict[str, Any]:
+    """Optional 0.13 fields: colours, shape, hidden parts, orientation, preset steps,
+    and the designer's look and behaviour (piece_look)."""
     look: dict[str, Any] = {}
+    try:
+        look.update(check_piece(raw, kind, used, lambda ref: ref in buttons))
+    except LookError as error:
+        raise ModelError("invalid_layout", f"invalid {error}") from error
     for key in ("bg", "fg"):
         if key in raw:
             if not isinstance(raw[key], str) or not COLOR.fullmatch(raw[key]):
@@ -211,7 +217,7 @@ def _widget(raw: Any, buttons: Container[str], taken: set[str], columns: int = C
         x, y = _int(raw.get("x"), "x", 0, columns - 1, "invalid_layout"), _int(raw.get("y"), "y", 0, MAX_ROWS - 1, "invalid_layout")
         w, h = _int(raw.get("w"), "w", 1, columns - x, "invalid_layout"), _int(raw.get("h"), "h", 1, MAX_HEIGHT, "invalid_layout")
     used = raw.get("buttons")
-    low, high = WIDGETS[kind]
+    low, high = inputs(kind, raw, WIDGETS[kind])
     if not isinstance(used, list) or not low <= len(used) <= high or any(button not in buttons for button in used):
         raise ModelError("invalid_layout", f"a {kind} uses {low}-{high} of this remote's buttons")
     optional = {}
@@ -223,7 +229,7 @@ def _widget(raw: Any, buttons: Container[str], taken: set[str], columns: int = C
         if not isinstance(raw["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", raw["attribute"]):
             raise ModelError("invalid_layout", "invalid attribute")
         optional["attribute"] = raw["attribute"]
-    optional.update(_look(raw, kind, list(used)))
+    optional.update(_look(raw, kind, list(used), buttons))
     return {
         **optional,
         "id": widget_id,
@@ -269,12 +275,33 @@ def append_layout_button(layout: list[dict[str, Any]], button_id: str) -> list[d
 
 
 def remove_layout_button(layout: list[dict[str, Any]], button_id: str) -> list[dict[str, Any]]:
-    """Keep widgets that still have enough buttons after the deletion."""
+    """Keep the widgets that still make sense without the deleted button: a block
+    loses that key, a preset that step, a mode its option; a piece that no longer
+    has what it needs goes."""
     kept = []
+    columns = next((widget["w"] for widget in layout if widget["type"] == "canvas"), COLUMNS)
     for widget in layout:
-        used = [button for button in widget["buttons"] if button != button_id]
-        if len(used) >= WIDGETS[widget["type"]][0]:
-            kept.append({**widget, "buttons": used})
+        if button_id not in widget["buttons"] and widget.get("holdButton") != button_id:
+            kept.append(widget)
+            continue
+        index = widget["buttons"].index(button_id) if button_id in widget["buttons"] else -1
+        changed = {**widget, "buttons": [button for button in widget["buttons"] if button != button_id]}
+        if "slots" in widget:
+            changed["slots"] = {key: ref for key, ref in widget["slots"].items() if ref != button_id}
+        if "options" in widget and index >= 0:
+            changed["options"] = [option for i, option in enumerate(widget["options"]) if i != index]
+        if "sequence" in widget:
+            changed["sequence"] = [step for step in widget["sequence"] if step.get("button") != button_id]
+        if widget.get("holdButton") == button_id:
+            changed.pop("holdButton")
+            changed.pop("hold")
+        if "names" in widget and index >= 0 and widget.get("sendBy", "level") == "level":
+            changed["names"] = [name for i, name in enumerate(widget["names"]) if i != index]
+        try:
+            refs = {*changed["buttons"], *([changed["holdButton"]] if "holdButton" in changed else [])}
+            kept.append(_widget(changed, refs, set(), columns))
+        except ModelError:
+            continue
     return kept
 
 
@@ -472,6 +499,23 @@ class Library:
             raise ModelError("too_many_remotes", f"at most {MAX_REMOTES} remotes")
         remote = Remote.from_input(remote_id, raw, previous)
         self.remotes[remote_id] = remote
+        return remote
+
+    def duplicate(self, remote_id: str, name: str, transmitter: str | None = None) -> Remote:
+        """0.13: the same remote for another appliance: its buttons, parts and design,
+        with its own name and (optionally) another transmitter."""
+        source = self.get(remote_id)
+        if len(self.remotes) >= MAX_REMOTES:
+            raise ModelError("too_many_remotes", f"at most {MAX_REMOTES} remotes")
+        new_id = slug(_text(name, "name"), set(self.remotes))
+        raw = source.as_dict()
+        raw["name"] = name
+        if transmitter is not None:
+            if not isinstance(transmitter, str) or not TRANSMITTER.match(transmitter):
+                raise ModelError("invalid_rf", "transmitter must be an ESPHome device name")
+            raw["transmitter"] = transmitter
+        remote = Remote.from_dict(new_id, raw)
+        self.remotes[new_id] = remote
         return remote
 
     def set_default_receiver(self, node: str | None) -> None:

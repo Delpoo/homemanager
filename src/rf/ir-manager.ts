@@ -395,7 +395,20 @@ export class HomeManagerIr extends HTMLElement {
       this.designer.configure({
         key: `ir:${remote.id}`,
         remote: drawIr(remote),
+        name: remote.name,
         estimated: false,
+        // Test mode sends for real, as the control in use does.
+        press: buttonId => remotes.press(this._hass!, remote.id, buttonId),
+        duplicate: {
+          emitters: this.emitters.map(item => ({ id: item.id, name: item.name })),
+          current: this.settings?.emitter,
+          run: async (name, emitter) => {
+            const copy = await remotes.duplicate(this._hass!, remote.id, name, emitter);
+            this.saved = [...this.saved.filter(item => item.id !== copy.id), copy];
+            this.selected = copy.id;
+            this.render();
+          },
+        },
         readValues: () => this._hass?.states ?? {},
         save: async layout => {
           if (!this._hass) throw new Error(t('Algo falló.'));
