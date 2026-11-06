@@ -43,16 +43,20 @@ ROLES = {
     "fan": frozenset({"on", "off", "toggle", "speed_up", "speed_down", "direction", *SPEED_ROLES}),
     "light": frozenset({"on", "off", "toggle"}),
 }
-# Grid of the remote designer.
+# Grid of the remote designer: four columns unless a "canvas" piece says otherwise
+# (0.13 free designer: up to 30 columns, pieces up to 12 rows tall).
 COLUMNS = 4
+MAX_COLUMNS = 30
 MAX_ROWS = 40
-MAX_HEIGHT = 3
+MAX_HEIGHT = 12
+MAX_SEQUENCE = 24
+COLOR = re.compile(r"#[0-9A-Fa-f]{6}")
 MAX_WIDGETS = 64
 MAX_LABEL = 40
 # How many buttons each widget type uses, in order:
 # button [press]; toggle [on or toggle, off?]; updown [down, up];
 # steps [1, 2, ...]; modes [one per mode].
-WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8), "cycle": (2, 4), "slider": (2, 12), "indicator": (0, 0), "title": (0, 0), "separator": (0, 0), "control": (1, 1)}
+WIDGETS = {"button": (1, 1), "toggle": (1, 2), "updown": (2, 2), "steps": (2, MAX_SPEEDS), "modes": (2, 8), "cycle": (2, 4), "slider": (2, 12), "indicator": (0, 0), "title": (0, 0), "separator": (0, 0), "control": (1, 1), "knob": (2, MAX_SPEEDS), "preset": (1, 12), "graph": (0, 0), "canvas": (0, 0)}
 # Defaults for a new remote: what most 433 MHz fan remotes use. The capture
 # replaces protocol, length and pulse with measured values.
 DEFAULTS = {"protocol": 1, "nbits": 24, "pulse_us": 350, "repeats": 5, "wait_us": 0}
@@ -151,7 +155,47 @@ class Part:
         return {"id": self.part_id, **self.as_dict()}
 
 
-def _widget(raw: Any, buttons: Container[str], taken: set[str]) -> dict[str, Any]:
+def _look(raw: dict[str, Any], kind: str, used: list[str]) -> dict[str, Any]:
+    """Optional 0.13 fields: colours, shape, hidden parts, orientation, preset steps."""
+    look: dict[str, Any] = {}
+    for key in ("bg", "fg"):
+        if key in raw:
+            if not isinstance(raw[key], str) or not COLOR.fullmatch(raw[key]):
+                raise ModelError("invalid_layout", f"invalid {key}")
+            look[key] = raw[key]
+    if "shape" in raw:
+        if raw["shape"] not in ("round", "square"):
+            raise ModelError("invalid_layout", "invalid shape")
+        look["shape"] = raw["shape"]
+    for key in ("hideIcon", "hideLabel"):
+        if key in raw:
+            if not isinstance(raw[key], bool):
+                raise ModelError("invalid_layout", f"invalid {key}")
+            look[key] = raw[key]
+    if "orientation" in raw:
+        if raw["orientation"] != "vertical" or kind not in ("updown", "slider", "steps"):
+            raise ModelError("invalid_layout", "invalid orientation")
+        look["orientation"] = "vertical"
+    if kind == "preset" or "sequence" in raw:
+        sequence = raw.get("sequence")
+        if kind != "preset" or not isinstance(sequence, list) or not 1 <= len(sequence) <= MAX_SEQUENCE:
+            raise ModelError("invalid_layout", "a preset needs 1-24 steps")
+        steps = []
+        for step in sequence:
+            if isinstance(step, dict) and set(step) == {"wait"}:
+                steps.append({"wait": _int(step["wait"], "wait", 50, 5000, "invalid_layout")})
+            elif isinstance(step, dict) and "button" in step and set(step) <= {"button", "times"} and step["button"] in used:
+                item = {"button": step["button"]}
+                if "times" in step:
+                    item["times"] = _int(step["times"], "times", 1, 10, "invalid_layout")
+                steps.append(item)
+            else:
+                raise ModelError("invalid_layout", "invalid preset step")
+        look["sequence"] = steps
+    return look
+
+
+def _widget(raw: Any, buttons: Container[str], taken: set[str], columns: int = COLUMNS) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise ModelError("invalid_layout", "a widget must be an object")
     kind = raw.get("type")
@@ -160,8 +204,12 @@ def _widget(raw: Any, buttons: Container[str], taken: set[str]) -> dict[str, Any
     widget_id = _id(raw.get("id"), "widget id", "invalid_layout")
     if widget_id in taken:
         raise ModelError("invalid_layout", "widget ids must be unique")
-    x, y = _int(raw.get("x"), "x", 0, COLUMNS - 1, "invalid_layout"), _int(raw.get("y"), "y", 0, MAX_ROWS - 1, "invalid_layout")
-    w, h = _int(raw.get("w"), "w", 1, COLUMNS - x, "invalid_layout"), _int(raw.get("h"), "h", 1, MAX_HEIGHT, "invalid_layout")
+    if kind == "canvas":
+        x, y = _int(raw.get("x"), "x", 0, 0, "invalid_layout"), _int(raw.get("y"), "y", 0, 0, "invalid_layout")
+        w, h = _int(raw.get("w"), "w", 2, MAX_COLUMNS, "invalid_layout"), _int(raw.get("h"), "h", 2, MAX_ROWS, "invalid_layout")
+    else:
+        x, y = _int(raw.get("x"), "x", 0, columns - 1, "invalid_layout"), _int(raw.get("y"), "y", 0, MAX_ROWS - 1, "invalid_layout")
+        w, h = _int(raw.get("w"), "w", 1, columns - x, "invalid_layout"), _int(raw.get("h"), "h", 1, MAX_HEIGHT, "invalid_layout")
     used = raw.get("buttons")
     low, high = WIDGETS[kind]
     if not isinstance(used, list) or not low <= len(used) <= high or any(button not in buttons for button in used):
@@ -175,6 +223,7 @@ def _widget(raw: Any, buttons: Container[str], taken: set[str]) -> dict[str, Any
         if not isinstance(raw["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", raw["attribute"]):
             raise ModelError("invalid_layout", "invalid attribute")
         optional["attribute"] = raw["attribute"]
+    optional.update(_look(raw, kind, list(used)))
     return {
         **optional,
         "id": widget_id,
@@ -198,8 +247,12 @@ def validate_layout(raw: Any, buttons: Container[str]) -> list[dict[str, Any]] |
         raise ModelError("invalid_layout", f"a layout holds at most {MAX_WIDGETS} widgets")
     taken: set[str] = set()
     widgets = []
+    canvases = [item for item in raw if isinstance(item, dict) and item.get("type") == "canvas"]
+    if len(canvases) > 1:
+        raise ModelError("invalid_layout", "a layout has at most one canvas")
+    columns = canvases[0].get("w") if canvases and isinstance(canvases[0].get("w"), int) else COLUMNS
     for item in raw:
-        widget = _widget(item, buttons, taken)
+        widget = _widget(item, buttons, taken, columns)
         taken.add(widget["id"])
         widgets.append(widget)
     return widgets

@@ -847,21 +847,43 @@ export function assertControlLayout(layout, path = 'layout') {
     title: [0, 0],
     separator: [0, 0],
     control: [1, 1],
+    knob: [2, 12],
+    preset: [1, 12],
+    graph: [0, 0],
+    canvas: [0, 0],
   };
   if (!Array.isArray(layout) || layout.length > 64) invalid(path, 'array of at most 64 pieces required');
+  // 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
+  const canvases = layout.filter(p => p && typeof p === 'object' && p.type === 'canvas');
+  if (canvases.length > 1) invalid(path, 'at most one canvas');
+  const columns = canvases.length ? canvases[0].w : 4;
+  if (!Number.isInteger(columns) || columns < 2 || columns > 30) invalid(path, 'invalid canvas');
   const ids = new Set();
   for (const p of layout) {
-    fields(p, ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'], ['reading', 'attribute'], path);
+    fields(
+      p,
+      ['id', 'type', 'x', 'y', 'w', 'h', 'buttons', 'label', 'icon'],
+      ['reading', 'attribute', 'bg', 'fg', 'shape', 'hideIcon', 'hideLabel', 'orientation', 'sequence'],
+      path,
+    );
     if (typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(p.id) || UNSAFE.has(p.id) || ids.has(p.id))
       invalid(path, 'unique piece id required');
     ids.add(p.id);
     one(p.type, Object.keys(counts), path);
-    for (const [k, low, high] of [
-      ['x', 0, 3],
-      ['y', 0, 39],
-      ['w', 1, 4 - p.x],
-      ['h', 1, 3],
-    ])
+    const canvas = p.type === 'canvas';
+    for (const [k, low, high] of canvas
+      ? [
+          ['x', 0, 0],
+          ['y', 0, 0],
+          ['w', 2, 30],
+          ['h', 2, 40],
+        ]
+      : [
+          ['x', 0, columns - 1],
+          ['y', 0, 39],
+          ['w', 1, columns - p.x],
+          ['h', 1, 12],
+        ])
       if (!Number.isInteger(p[k]) || p[k] < low || p[k] > high) invalid(path, 'invalid piece bounds');
     const [min, max] = counts[p.type];
     if (!Array.isArray(p.buttons) || p.buttons.length < min || p.buttons.length > max)
@@ -872,5 +894,33 @@ export function assertControlLayout(layout, path = 'layout') {
     if (p.reading !== undefined) entity(p.reading, path);
     if (p.attribute !== undefined && (typeof p.attribute !== 'string' || !/^[a-zA-Z0-9_]{1,80}$/.test(p.attribute)))
       invalid(path, 'invalid attribute');
+    for (const key of ['bg', 'fg'])
+      if (p[key] !== undefined && (typeof p[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(p[key])))
+        invalid(path, `invalid ${key}`);
+    if (p.shape !== undefined && p.shape !== 'round' && p.shape !== 'square') invalid(path, 'invalid shape');
+    for (const key of ['hideIcon', 'hideLabel'])
+      if (p[key] !== undefined && typeof p[key] !== 'boolean') invalid(path, `invalid ${key}`);
+    if (
+      p.orientation !== undefined &&
+      (p.orientation !== 'vertical' || !['updown', 'slider', 'steps'].includes(p.type))
+    )
+      invalid(path, 'invalid orientation');
+    if (p.type === 'preset' || p.sequence !== undefined) {
+      if (p.type !== 'preset' || !Array.isArray(p.sequence) || p.sequence.length < 1 || p.sequence.length > 24)
+        invalid(path, 'a preset needs 1-24 steps');
+      for (const step of p.sequence) {
+        const keys = step && typeof step === 'object' ? Object.keys(step) : [];
+        if (keys.length === 1 && keys[0] === 'wait') {
+          if (!Number.isInteger(step.wait) || step.wait < 50 || step.wait > 5000) invalid(path, 'invalid wait');
+        } else if (
+          keys.includes('button') &&
+          keys.every(key => key === 'button' || key === 'times') &&
+          p.buttons.includes(step.button) &&
+          (step.times === undefined || (Number.isInteger(step.times) && step.times >= 1 && step.times <= 10))
+        ) {
+          /* a learned button of this preset */
+        } else invalid(path, 'invalid preset step');
+      }
+    }
   }
 }

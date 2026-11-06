@@ -54,6 +54,10 @@ export function widgetLabel(type: WidgetType): string {
     title: t('Título'),
     separator: t('Separador'),
     control: t('Control existente'),
+    knob: t('Perilla'),
+    preset: t('Preset'),
+    graph: t('Gráfico'),
+    canvas: t('Lienzo'),
   };
   return labels[type];
 }
@@ -71,6 +75,10 @@ export function widgetHelp(type: WidgetType): string {
     title: t('Texto para organizar el control.'),
     separator: t('Espacio entre piezas.'),
     control: t('Conserva un control existente con todos sus pasos.'),
+    knob: t('Gira entre 2 y 12 pasos, cada uno con su botón.'),
+    preset: t('Una secuencia de botones y pausas con un solo toque.'),
+    graph: t('Muestra cómo cambió una lectura.'),
+    canvas: t('Columnas y filas del control.'),
   };
   return help[type];
 }

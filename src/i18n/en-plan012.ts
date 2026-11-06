@@ -390,4 +390,12 @@ export const enPlan012: Record<string, string> = {
   'Ver el destello del LED': 'See the LED flash',
   'Comprobar (opcional)': 'Check (optional)',
   'Guardar sin diseñar': 'Save without designing',
+  Perilla: 'Knob',
+  Preset: 'Preset',
+  Gráfico: 'Chart',
+  Lienzo: 'Canvas',
+  'Gira entre 2 y 12 pasos, cada uno con su botón.': 'Turns between 2 and 12 steps, each with its button.',
+  'Una secuencia de botones y pausas con un solo toque.': 'A sequence of buttons and pauses with one tap.',
+  'Muestra cómo cambió una lectura.': 'Shows how a reading changed.',
+  'Columnas y filas del control.': 'Columns and rows of the remote.',
 };

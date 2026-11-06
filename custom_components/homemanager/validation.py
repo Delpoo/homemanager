@@ -696,21 +696,30 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
 
 
 def validate_control_layout(layout: Any) -> None:
-    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1)}
+    counts = {'button': (1, 1), 'toggle': (1, 2), 'updown': (2, 2), 'steps': (2, 12), 'modes': (2, 8), 'cycle': (2, 4), 'slider': (2, 12), 'indicator': (0, 0), 'title': (0, 0), 'separator': (0, 0), 'control': (1, 1), 'knob': (2, 12), 'preset': (1, 12), 'graph': (0, 0), 'canvas': (0, 0)}
     if not isinstance(layout, list) or len(layout) > 64:
+        _fail()
+    # 0.13: an optional canvas piece sets the grid (2-30 columns, 2-40 rows).
+    canvases = [p for p in layout if isinstance(p, dict) and p.get("type") == "canvas"]
+    if len(canvases) > 1:
+        _fail()
+    columns = canvases[0].get("w") if canvases else 4
+    if type(columns) is not int or not 2 <= columns <= 30:
         _fail()
     ids = set()
     for p in layout:
-        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute"})
+        _fields(p, {"id", "type", "x", "y", "w", "h", "buttons", "label", "icon"}, {"reading", "attribute", "bg", "fg", "shape", "hideIcon", "hideLabel", "orientation", "sequence"})
         if not isinstance(p["id"], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", p["id"]) or p["id"] in UNSAFE or p["id"] in ids:
             _fail()
         ids.add(p["id"])
         if not isinstance(p["type"], str) or p["type"] not in counts:
             _fail()
-        for k, low, high in [("x", 0, 3), ("y", 0, 39), ("w", 1, 4), ("h", 1, 3)]:
+        canvas = p["type"] == "canvas"
+        bounds = [("x", 0, 0), ("y", 0, 0), ("w", 2, 30), ("h", 2, 40)] if canvas else [("x", 0, columns - 1), ("y", 0, 39), ("w", 1, columns), ("h", 1, 12)]
+        for k, low, high in bounds:
             if type(p[k]) is not int or not low <= p[k] <= high:
                 _fail()
-        if p["x"] + p["w"] > 4:
+        if p["x"] + p["w"] > (30 if canvas else columns):
             _fail()
         low, high = counts[p["type"]]
         if not isinstance(p["buttons"], list) or not low <= len(p["buttons"]) <= high:
@@ -725,3 +734,26 @@ def validate_control_layout(layout: Any) -> None:
             _entity(p["reading"])
         if "attribute" in p and (not isinstance(p["attribute"], str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", p["attribute"])):
             _fail()
+        for key in ("bg", "fg"):
+            if key in p and (not isinstance(p[key], str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", p[key])):
+                _fail()
+        if "shape" in p and p["shape"] not in ("round", "square"):
+            _fail()
+        for key in ("hideIcon", "hideLabel"):
+            if key in p and not isinstance(p[key], bool):
+                _fail()
+        if "orientation" in p and (p["orientation"] != "vertical" or p["type"] not in ("updown", "slider", "steps")):
+            _fail()
+        if p["type"] == "preset" or "sequence" in p:
+            sequence = p.get("sequence")
+            if p["type"] != "preset" or not isinstance(sequence, list) or not 1 <= len(sequence) <= 24:
+                _fail()
+            for step in sequence:
+                if isinstance(step, dict) and set(step) == {"wait"}:
+                    if type(step["wait"]) is not int or not 50 <= step["wait"] <= 5000:
+                        _fail()
+                elif isinstance(step, dict) and "button" in step and set(step) <= {"button", "times"}:
+                    if step["button"] not in p["buttons"] or ("times" in step and (type(step["times"]) is not int or not 1 <= step["times"] <= 10)):
+                        _fail()
+                else:
+                    _fail()

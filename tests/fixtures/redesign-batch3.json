@@ -171,6 +171,112 @@
         "label": null,
         "icon": null
       }
+    ],
+    [
+      {
+        "id": "grid",
+        "type": "canvas",
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 10,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 6,
+        "y": 0,
+        "w": 2,
+        "h": 4,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "bg": "#4F7A5A",
+        "fg": "#ffffff",
+        "shape": "round",
+        "hideLabel": true
+      }
+    ],
+    [
+      {
+        "id": "knob-1",
+        "type": "knob",
+        "x": 0,
+        "y": 0,
+        "w": 2,
+        "h": 2,
+        "buttons": [
+          "a-1",
+          "a-2",
+          "a-3"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "preset-1",
+        "type": "preset",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "a-1",
+          "a-2"
+        ],
+        "label": null,
+        "icon": null,
+        "sequence": [
+          {
+            "button": "a-1"
+          },
+          {
+            "wait": 300
+          },
+          {
+            "button": "a-2",
+            "times": 2
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "id": "graph-1",
+        "type": "graph",
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 2,
+        "buttons": [],
+        "label": null,
+        "icon": null,
+        "reading": "sensor.sample_power"
+      }
+    ],
+    [
+      {
+        "id": "updown-1",
+        "type": "updown",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 3,
+        "buttons": [
+          "a-1",
+          "a-2"
+        ],
+        "label": null,
+        "icon": null,
+        "orientation": "vertical"
+      }
     ]
   ],
   "invalid": [
@@ -1243,6 +1349,190 @@
         ],
         "label": null,
         "icon": null
+      }
+    ],
+    [
+      {
+        "id": "grid",
+        "type": "canvas",
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 10,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      },
+      {
+        "id": "grid",
+        "type": "canvas",
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 10,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "grid",
+        "type": "canvas",
+        "x": 0,
+        "y": 0,
+        "w": 31,
+        "h": 10,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "grid",
+        "type": "canvas",
+        "x": 1,
+        "y": 0,
+        "w": 8,
+        "h": 10,
+        "buttons": [],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 13,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "bg": "red"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "shape": "oval"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "hideIcon": "yes"
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "orientation": "vertical"
+      }
+    ],
+    [
+      {
+        "id": "preset-1",
+        "type": "preset",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "a-1"
+        ],
+        "label": null,
+        "icon": null
+      }
+    ],
+    [
+      {
+        "id": "preset-1",
+        "type": "preset",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "a-1"
+        ],
+        "label": null,
+        "icon": null,
+        "sequence": [
+          {
+            "wait": 10
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "id": "piece-1",
+        "type": "button",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1,
+        "buttons": [
+          "sample-action"
+        ],
+        "label": null,
+        "icon": null,
+        "sequence": [
+          {
+            "wait": 300
+          }
+        ]
       }
     ]
   ]

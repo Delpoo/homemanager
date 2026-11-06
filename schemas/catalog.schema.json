@@ -559,7 +559,15 @@
               ]
             },
             "irRemoteId": {
-              "anyOf": [{ "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$" }, { "type": "null" }]
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "controls": {
               "type": "array",
@@ -643,13 +651,17 @@
                       "indicator",
                       "title",
                       "separator",
-                      "control"
+                      "control",
+                      "knob",
+                      "preset",
+                      "graph",
+                      "canvas"
                     ]
                   },
                   "x": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 3
+                    "maximum": 29
                   },
                   "y": {
                     "type": "integer",
@@ -659,12 +671,12 @@
                   "w": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 4
+                    "maximum": 30
                   },
                   "h": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 3
+                    "maximum": 40
                   },
                   "buttons": {
                     "type": "array",
@@ -696,6 +708,71 @@
                   "attribute": {
                     "type": "string",
                     "pattern": "^[A-Za-z0-9_]{1,80}$"
+                  },
+                  "bg": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "fg": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "shape": {
+                    "enum": [
+                      "round",
+                      "square"
+                    ]
+                  },
+                  "hideIcon": {
+                    "type": "boolean"
+                  },
+                  "hideLabel": {
+                    "type": "boolean"
+                  },
+                  "orientation": {
+                    "const": "vertical"
+                  },
+                  "sequence": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 24,
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "wait"
+                          ],
+                          "properties": {
+                            "wait": {
+                              "type": "integer",
+                              "minimum": 50,
+                              "maximum": 5000
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "button"
+                          ],
+                          "properties": {
+                            "button": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                              "maxLength": 120
+                            },
+                            "times": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 "allOf": [
@@ -889,15 +966,16 @@
                   {
                     "if": {
                       "properties": {
-                        "x": {
-                          "const": 1
+                        "type": {
+                          "const": "knob"
                         }
                       }
                     },
                     "then": {
                       "properties": {
-                        "w": {
-                          "maximum": 3
+                        "buttons": {
+                          "minItems": 2,
+                          "maxItems": 12
                         }
                       }
                     }
@@ -905,15 +983,16 @@
                   {
                     "if": {
                       "properties": {
-                        "x": {
-                          "const": 2
+                        "type": {
+                          "const": "preset"
                         }
                       }
                     },
                     "then": {
                       "properties": {
-                        "w": {
-                          "maximum": 2
+                        "buttons": {
+                          "minItems": 1,
+                          "maxItems": 12
                         }
                       }
                     }
@@ -921,21 +1000,238 @@
                   {
                     "if": {
                       "properties": {
-                        "x": {
-                          "const": 3
+                        "type": {
+                          "const": "graph"
                         }
                       }
                     },
                     "then": {
                       "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "canvas"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "buttons": {
+                          "minItems": 0,
+                          "maxItems": 0
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "preset"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "sequence"
+                      ],
+                      "properties": {
+                        "sequence": {
+                          "minItems": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "canvas"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "x": {
+                          "const": 0
+                        },
+                        "y": {
+                          "const": 0
+                        },
                         "w": {
-                          "maximum": 1
+                          "minimum": 2
+                        },
+                        "h": {
+                          "minimum": 2
+                        }
+                      }
+                    },
+                    "else": {
+                      "properties": {
+                        "h": {
+                          "maximum": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "required": [
+                        "orientation"
+                      ],
+                      "properties": {
+                        "orientation": true
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "updown",
+                            "slider",
+                            "steps"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "required": [
+                        "sequence"
+                      ],
+                      "properties": {
+                        "sequence": true
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "type": {
+                          "const": "preset"
                         }
                       }
                     }
                   }
                 ]
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "not": {
+                      "contains": {
+                        "type": "object",
+                        "required": [
+                          "type"
+                        ],
+                        "properties": {
+                          "type": {
+                            "const": "canvas"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "then": {
+                    "items": {
+                      "properties": {
+                        "x": {
+                          "maximum": 3
+                        },
+                        "w": {
+                          "maximum": 4
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "x": {
+                                "const": 1
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "w": {
+                                "maximum": 3
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "x": {
+                                "const": 2
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "w": {
+                                "maximum": 2
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "x": {
+                                "const": 3
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "w": {
+                                "maximum": 1
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "contains": {
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "canvas"
+                        }
+                      }
+                    }
+                  },
+                  "then": {
+                    "contains": {
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "canvas"
+                        }
+                      }
+                    },
+                    "maxContains": 1
+                  }
+                }
+              ]
             }
           },
           "allOf": [
