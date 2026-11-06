@@ -34,6 +34,8 @@ input[role=switch]:checked{background:var(--hm-brand)}input[role=switch]:checked
 .swatches .ib{width:30px;height:30px;min-height:30px;border-radius:50%}
 .palsel{display:flex;align-items:center;gap:6px}.palsel select{width:auto;min-height:34px;padding:0 8px}
 .module-card .section>summary{min-height:52px}
+.look-row output{min-width:52px;text-align:right;font-variant-numeric:tabular-nums;color:var(--hm-ink);font-size:13px}
+.view-row{display:flex;align-items:center;gap:4px}.view-state{display:grid;place-items:center;width:38px;height:38px;color:var(--hm-brand)}
 .module-foot{display:flex;justify-content:flex-end}
 .module-foot .ib{color:var(--hm-muted)}.module-foot .ib:hover{color:var(--hm-alert)}
 .addmods{display:flex;flex-wrap:wrap;gap:6px}

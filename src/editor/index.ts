@@ -602,14 +602,19 @@ export class HomeManagerEditor extends HTMLElement {
     return look;
   }
   /** Settings › Screens › Size and initial view (#94). */
+  /** Size and initial view (0.13): a switch, sliders with their value, the initial view
+   * as icons; what each does is in its tooltip. */
   private viewBody(): string {
     const sizes = this.configuration.symbolSizes;
     const shown = sizes ?? DEFAULT_SIZES;
-    const slider = (key: keyof typeof shown, label: string) =>
-      `<label class="field">${esc(label)} <output>${shown[key].toFixed(2)}</output><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}"${sizes ? '' : ' disabled'}></label>`;
+    const slider = (key: keyof typeof shown, label: string, icon: string) =>
+      `<div class="look-row" title="${esc(label)}"><ha-icon icon="${icon}" aria-hidden="true"></ha-icon><input type="range" min="0.5" max="2.5" step="0.05" data-size-key="${key}" value="${shown[key]}" aria-label="${esc(label)}"${sizes ? '' : ' disabled'}><output>${Math.round(shown[key] * 100)} %</output></div>`;
     const initial = this.configuration.initialView;
-    return `<label class="check"><input type="checkbox" data-sizes-on${sizes ? ' checked' : ''}><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span></label><p class="note">${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}</p><div class="grid">${slider('house', t('Casa entera'))}${slider('room', t('Vista por espacio'))}${slider('min', t('Mínimo'))}${slider('max', t('Máximo'))}</div><h4>${esc(t('Vista inicial'))}</h4><p class="note">${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}</p><div class="rooms-actions"><button type="button" data-command="view-save" class="primary">${esc(t('Guardar la vista actual como inicial'))}</button><button type="button" data-command="view-save-local">${esc(t('Sólo en este equipo'))}</button>${initial ? `<button type="button" data-command="view-clear">${esc(t('Quitar vista inicial'))}</button>` : ''}<button type="button" data-command="view-clear-local">${esc(t('Olvidar la de este equipo'))}</button></div>`;
+    const growth = `<label class="switch-row" title="${esc(t('Apagado, todos los símbolos tienen siempre el mismo tamaño, como hasta ahora. Cada símbolo puede tener sus propios valores en su ficha.'))}"><ha-icon icon="mdi:magnify-expand" aria-hidden="true"></ha-icon><span>${esc(t('Que los símbolos cambien de tamaño con el zoom'))}</span><input type="checkbox" role="switch" data-sizes-on${sizes ? ' checked' : ''}></label>`;
+    const view = `<div class="lbl">${esc(t('Vista inicial'))}<span class="grow"></span></div><div class="view-row"><span class="view-state" title="${esc(initial ? t('El plano abre en la vista guardada. ⌂ vuelve a ella.') : t('Todavía no hay una vista inicial: el plano abre entero.'))}"><ha-icon icon="${initial ? 'mdi:image-filter-center-focus' : 'mdi:fit-to-screen-outline'}" aria-hidden="true"></ha-icon></span>${this.ib('view-save', t('Guardar la vista actual como inicial'), 'mdi:content-save-outline')}${this.ib('view-save-local', t('Sólo en este equipo'), 'mdi:monitor-cellphone')}${initial ? this.ib('view-clear', t('Quitar vista inicial'), 'mdi:delete-outline') : ''}${this.ib('view-clear-local', t('Olvidar la de este equipo'), 'mdi:monitor-off')}</div>`;
+    return `${growth}<div class="look-fields">${slider('house', t('Casa entera'), 'mdi:home-outline')}${slider('room', t('Vista por espacio'), 'mdi:crop-free')}${slider('min', t('Mínimo'), 'mdi:arrow-collapse')}${slider('max', t('Máximo'), 'mdi:arrow-expand')}</div>${view}`;
   }
+
   /** Next to the symbol › what the device can do, one tap from a shortcut (#96). */
   private shortcutsBody(device?: Device): string {
     const actions = device ? deviceActions(device, this._hass) : [];
