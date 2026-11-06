@@ -47,6 +47,18 @@ async function settings(page) {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 async function noOverflow(page) {
+  // The notebook slides its pages in: measure once they have arrived.
+  await page.evaluate(() => {
+    const all = [];
+    const visit = root => {
+      for (const element of root.querySelectorAll('*')) {
+        if (element.shadowRoot) visit(element.shadowRoot);
+        all.push(...element.getAnimations());
+      }
+    };
+    visit(document);
+    return Promise.all(all.map(animation => animation.finished.catch(() => null)));
+  });
   const result = await page.evaluate(() => {
     const failures = [];
     const visit = root => {
@@ -86,7 +98,7 @@ test('settings is a page; sections and Back keep fields without saving', async (
   await showSection(editor(page), 'rooms-section');
   await showSection(editor(page), 'actions-section');
   await expect(field).toHaveValue('accion-pendiente');
-  await screen(page, 'Configuración').locator('.task-back').click();
+  await screen(page, 'Configuración').locator('.task-close').click();
   await settings(page);
   // On a phone Settings opens on its list again (#70).
   await showSection(editor(page), 'actions-section');
@@ -100,6 +112,7 @@ test('settings is a page; sections and Back keep fields without saving', async (
 test('room form returns to settings, resumes its draft and confirms cancellation', async ({ page }) => {
   await begin(page);
   await settings(page);
+  await showSection(editor(page), 'rooms-section');
   const label = await page.evaluate(
     () => window.testHarness.card.getDraftConfiguration().rooms.find(room => room.id === 'living').label,
   );
@@ -180,7 +193,7 @@ test('plan review preserves choices on Back and import is exactly one undo step'
   await review.locator(`[data-move="${id}"]`).check();
   await noOverflow(page);
   await review.getByRole('button', { name: 'Aplicar', exact: true }).click();
-  await screen(page, 'Configuración').locator('.task-back').click();
+  await screen(page, 'Configuración').locator('.task-close').click();
   await card(page).getByRole('button', { name: 'Deshacer', exact: true }).click();
   expect(await page.evaluate(() => window.testHarness.card.getDraftConfiguration())).toEqual(before);
 });
@@ -298,6 +311,7 @@ test('learning Back keeps the candidate and button name; storage uses one explic
 test('concurrent discard attempts show one confirmation and cancelling keeps the accessible form', async ({ page }) => {
   await begin(page);
   await settings(page);
+  await showSection(editor(page), 'rooms-section');
   const label = await page.evaluate(
     () => window.testHarness.card.getDraftConfiguration().rooms.find(room => room.id === 'living').label,
   );
@@ -361,7 +375,7 @@ for (const dark of [false, true])
     await editor(page).locator('[data-command=room-open][data-room=living]').click();
     await shot('room');
     await editor(page).locator('homemanager-task-screen.room-actions .task-back').click();
-    await screen(page, 'Configuración').locator('.task-back').click();
+    await screen(page, 'Configuración').locator('.task-close').click();
     await card(page).getByRole('button', { name: 'Agregar dispositivo', exact: true }).click();
     await shot('add');
     await editor(page).getByRole('button', { name: 'Desde Home Assistant', exact: true }).click();

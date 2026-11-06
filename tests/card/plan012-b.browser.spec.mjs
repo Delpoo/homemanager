@@ -30,7 +30,8 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
   await expect(card(page).locator('.viewport')).toBeVisible();
   const save = screen.getByRole('button', { name: 'Guardar', exact: true });
   await expect(save).toBeHidden();
-  const nav = screen.locator('.settings-nav');
+  // 0.13 notebook: ⚙ opens a menu of grouped rows; a row slides its section in.
+  const nav = screen.locator('.nb-menu');
   for (const group of ['Mi casa', 'Pantallas', 'Reglas', 'Mantenimiento', 'Ayuda'])
     await expect(nav.getByRole('group', { name: group })).toBeVisible();
   // Duplicates are gone: one Rules, layers only under Appearance.
@@ -40,10 +41,11 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
     const overflow = await screen.evaluate(node => node.scrollWidth - node.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
   }
-  await nav.locator('[data-settings="appearance-section"]').click();
+  await nav.locator('.nb-row[data-settings="appearance-section"]').click();
   await expect(screen.locator('homemanager-layer-choice')).toBeVisible();
-  await expect(screen.locator('#settings-title')).toHaveText('Apariencia');
-  await nav.locator('[data-settings="rooms-section"]').click();
+  await expect(screen.locator('.task-head h2')).toContainText('Apariencia');
+  await screen.locator('.task-back').click();
+  await nav.locator('.nb-row[data-settings="rooms-section"]').click();
   // A change makes Save appear; leaving asks before discarding it.
   await page.evaluate(() => {
     const harness = window.testHarness;
@@ -52,10 +54,10 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
     harness.card.change(next);
   });
   await expect(save).toBeVisible();
-  await screen.locator('.task-back').click();
+  await screen.locator('.task-close').click();
   await card(page).getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(screen).toBeVisible();
-  await screen.locator('.task-back').click();
+  await screen.locator('.task-close').click();
   await card(page).getByRole('dialog').getByRole('button', { name: 'Descartar cambios', exact: true }).click();
   await expect(screen).toBeHidden();
   // Back on the plan, out of edit mode, nothing saved.

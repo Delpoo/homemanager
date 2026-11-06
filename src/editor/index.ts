@@ -71,7 +71,15 @@ import {
 } from '../model/connect-home.js';
 import { connectBody, connectStyles } from './connect-home.js';
 import { bindingIssues, deviceCatalog, pickerReadings, type DeviceSelection } from '../model/device-catalog.js';
-import { uiBinding, uiButton, uiChoices, uiNotice, uiSegmented, useBindingComponents } from '../ui/components.js';
+import {
+  uiBinding,
+  uiButton,
+  uiChoices,
+  uiNotice,
+  uiSegmented,
+  useBindingComponents,
+  uiIcon,
+} from '../ui/components.js';
 import { CATEGORIES, categoryOf, sectionsOf } from '../model/category.js';
 import { MODULES, MODULE_LABELS, modulesOf, moduleChoices, type ModuleId } from '../model/modules.js';
 import type { GestureBinding } from '../model/gestures.js';
@@ -1295,6 +1303,7 @@ export class HomeManagerEditor extends HTMLElement {
       this.controlDesigner.configure({
         key: designDevice.id,
         remote: designRemote(designDevice, this.configuration, controls),
+        name: designDevice.display.label,
         controls,
         estimated: false,
         trayTitle: t('Acciones'),
@@ -1333,7 +1342,11 @@ export class HomeManagerEditor extends HTMLElement {
     }
     const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
-      dialog.resumeKey = 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId;
+      // The menu page has no fields: it must not overwrite the draft of the section it came from.
+      dialog.resumeKey =
+        this.settingsView === 'section'
+          ? 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId
+          : 'settings:menu';
       // ← in a section goes back to the menu; in the menu it leaves Settings.
       dialog.onBack = () => {
         if (this.settingsView === 'section') {
@@ -1344,6 +1357,21 @@ export class HomeManagerEditor extends HTMLElement {
         } else this.closeSurface();
       };
       dialog.show(this.root);
+      // The region keeps its name; the heading says where in the notebook it is.
+      dialog.setAttribute('aria-label', t('Configuración'));
+      // As in the approved notebook: ← only inside a section, ✕ always leaves Settings.
+      const head = dialog.querySelector<HTMLElement>('.task-head');
+      const backButton = head?.querySelector<HTMLElement>('.task-back');
+      if (backButton) {
+        backButton.hidden = this.settingsView !== 'section';
+        backButton.setAttribute('aria-label', t('Atrás'));
+        backButton.title = t('Atrás');
+      }
+      if (head && !head.querySelector('[data-command=settings-close]'))
+        head.insertAdjacentHTML(
+          'beforeend',
+          `<button type="button" class="task-close" data-command="settings-close" aria-label="${esc(t('Cerrar'))}" title="${esc(t('Cerrar'))}">${uiIcon('mdi:close')}</button>`,
+        );
       if (this.settingsView === 'section')
         dialog
           .querySelector('.task-head h2')
@@ -2060,6 +2088,9 @@ export class HomeManagerEditor extends HTMLElement {
               detail: { command: button.dataset.command },
             }),
           );
+          break;
+        case 'settings-close':
+          this.closeSurface();
           break;
         case 'settings-list':
           this.settingsView = 'list';

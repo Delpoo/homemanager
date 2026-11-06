@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from copy import deepcopy
 import logging
 from typing import Any
 
@@ -173,6 +174,29 @@ class RemotesLibrary:
             raw["layout"] = append_layout_button(raw["layout"], button_id)
         await self._replace_ir(remote_id, raw)
         return remote_id
+
+    async def async_duplicate_ir_remote(self, remote_id: str, name: str, emitter: str | None) -> dict[str, Any]:
+        """0.13: the same remote for another appliance, with its signals and design.
+        A new emitter replaces the one of the original and of each button."""
+        self.ir_remote(remote_id)
+        stored = self._ir_data["remotes"]
+        if len(stored) >= MAX_REMOTES:
+            raise ModelError("too_many_remotes", f"at most {MAX_REMOTES} infrared remotes")
+        source = stored[remote_id]
+        timings = sum(len(button.signal.timings_us) for remote in self._ir.values() for button in remote.buttons.values())
+        if timings + sum(len(button.signal.timings_us) for button in self._ir[remote_id].buttons.values()) > MAX_IR_TIMINGS:
+            raise ModelError("ir_library_full", "the infrared library has reached its signal limit")
+        new_id = slug(_text(name, "remote name"), set(stored) | set(_retired(self._ir_data.get("retired"))))
+        raw = deepcopy(source)
+        raw["name"] = name
+        raw.pop("retired_buttons", None)
+        if emitter is not None:
+            raw["emitter"] = emitter
+            for button in raw.get("buttons", {}).values():
+                button.pop("emitter", None)
+        remote = await self._replace_ir(new_id, raw)
+        assert remote is not None
+        return remote.public()
 
     async def async_edit_ir_remote(self, remote_id: str, changes: dict[str, Any] | None) -> dict[str, Any] | None:
         self.ir_remote(remote_id)

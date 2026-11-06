@@ -90,6 +90,9 @@ export const remotes = {
     } | null,
   ) => ws<IrRemote>(hass, 'ir/button/edit', { remote_id: remoteId, button_id: buttonId, changes }),
   settings: (hass: Hass, remoteId: string) => ws<IrSettings>(hass, 'ir/settings', { remote_id: remoteId }),
+  /** 0.13: the same control for another appliance; a new emitter replaces every one. */
+  duplicate: (hass: Hass, remoteId: string, name: string, emitter?: string) =>
+    ws<IrRemote>(hass, 'ir/remote/duplicate', { remote_id: remoteId, name, ...(emitter ? { emitter } : {}) }),
 };
 
 export interface IrSettings {

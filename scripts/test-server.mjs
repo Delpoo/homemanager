@@ -19,6 +19,8 @@ http
       if (
         name !== '/docs/vision-mockup.html' &&
         name !== '/docs/rediseno/maqueta-modulos.html' &&
+        // The shared contract, so the fictional RF service refuses what Home Assistant would.
+        !/^\/src\/ha\/[a-z-]+\.mjs$/.test(name) &&
         !/^\/(?:dist\/|tests\/browser\/fixtures\/|\.work\/(?:card|editor|panels)\/)/.test(name)
       )
         throw new Error('Unknown fixture');

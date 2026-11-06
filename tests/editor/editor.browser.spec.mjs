@@ -436,7 +436,7 @@ test('spaces come from the instance: legacy labels migrate, zones are detected a
   });
   // The device form offers exactly the instance spaces plus the explicit unassigned option.
   // Applying a space returns to its settings page; leave it explicitly.
-  await editor(page).locator('homemanager-task-screen.settings-dialog .task-back').click();
+  await editor(page).locator('homemanager-task-screen.settings-dialog .task-close').click();
   await field(page, 'Dispositivo').selectOption('synthetic-light');
   expect(await field(page, 'Habitación del dispositivo').locator('option').allTextContents()).toEqual([
     'Sin espacio asignado',

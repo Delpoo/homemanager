@@ -148,15 +148,20 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   // Until designed, every button is drawn.
   await expect(remote.getByRole('button')).toHaveCount(6);
   await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
-  // 0.13: a piece is added from the panel and its learned buttons are chosen there.
+  // 0.13: a piece is added from Elements; Function says what each level sends.
   const editor = rf.locator('homemanager-control-designer');
-  await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
+  const inspector = editor.getByRole('complementary', { name: 'Inspector' });
+  await editor.getByRole('button', { name: 'Escalones', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Uno por nivel', exact: true }).click();
+  await inspector.getByLabel('Hasta', { exact: true }).fill('3');
+  await inspector.getByLabel('Hasta', { exact: true }).dispatchEvent('change');
   for (const [step, id] of [
-    ['Paso 1', 'v1'],
-    ['Paso 2', 'v2'],
-    ['Paso 3', 'v3'],
+    ['1', 'v1'],
+    ['2', 'v2'],
+    ['3', 'v3'],
   ])
-    await editor.getByLabel(step, { exact: true }).selectOption(id);
+    await inspector.getByLabel(step, { exact: true }).selectOption(id);
+  await inspector.getByRole('tab', { name: 'Aspecto', exact: true }).click();
   const label = editor.locator('[name=widget-label]');
   await label.fill('Velocidad');
   await label.dispatchEvent('change');
@@ -168,8 +173,10 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   expect(layout.at(-1)).toMatchObject({
     type: 'steps',
     buttons: ['v1', 'v2', 'v3'],
+    sendBy: 'level',
+    values: { min: 1, max: 3, step: 1 },
     label: 'Velocidad',
-    w: 4,
+    w: 3,
     x: 0,
     y: 2,
   });
@@ -199,7 +206,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
 
   // Removing asks first; the button itself stays learned. A tap selects the piece.
   await off.click();
-  await editor.getByRole('button', { name: 'Quitar elemento', exact: true }).click();
+  await inspector.getByRole('button', { name: /^Quitar/ }).click();
   const confirm = rf.getByRole('dialog', { name: '¿Quitar «Apagar» del control?' });
   await confirm.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect
@@ -209,7 +216,8 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
     .toBe(false);
   await rf.locator('.dfoot [data-command=edit]').click();
   await expect(remote.getByRole('button', { name: 'Apagar' })).toHaveCount(0);
-  await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(2);
+  await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(1);
+  await expect(remote.getByRole('button', { name: '2', exact: true })).toHaveCount(1);
 });
 
 test('Devices shows each board once, keeps other ESPHome devices apart and says where each YAML line goes (0.13)', async ({

@@ -321,6 +321,9 @@ class RfManager:
     async def async_put_remote(self, remote_id: str | None, raw: dict[str, Any]) -> Remote:
         return await self._commit(lambda: self.library.put_remote(remote_id, raw))
 
+    async def async_duplicate_remote(self, remote_id: str, name: str, transmitter: str | None) -> Remote:
+        return await self._commit(lambda: self.library.duplicate(remote_id, name, transmitter))
+
     async def async_delete_remote(self, remote_id: str) -> None:
         self.library.get(remote_id)
         await self._commit(lambda: self.library.remotes.pop(remote_id))

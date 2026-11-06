@@ -132,13 +132,16 @@ for (const dark of [false, true])
     await rf(page).getByRole('button', { name: 'Diseñar', exact: true }).click();
     await readable(rf(page));
     await shot('designer');
-    // 0.13: pieces are added from the designer's panel; brands open their own row.
+    // 0.13: brands have their own tab; a chosen piece shows its inspector.
     const designer = rf(page).locator('homemanager-control-designer');
-    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
-    await expect(designer.getByRole('group', { name: 'Marca' })).toBeVisible();
+    await designer.getByRole('tab', { name: 'Marcas', exact: true }).click();
+    await designer
+      .getByRole('complementary', { name: 'Recursos' })
+      .getByRole('button', { name: 'Netflix', exact: true })
+      .click();
+    await expect(designer.getByRole('tab', { name: 'Aspecto', exact: true })).toBeVisible();
     await readable(rf(page));
     await shot('widget');
-    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
     await rf(page).locator('.dfoot [data-command=edit]').click();
     await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
     await rf(page).getByRole('button', { name: 'Agregar ventilador', exact: true }).click();

@@ -216,6 +216,8 @@ test('plan settings and field help open without cluttering the map, and Move use
   await expect(settings).toBeVisible();
   // A page with its sections on the side (mockup §9), not folded sections.
   await expect(settings.getByRole('listitem')).toHaveCount(3);
+  // 0.13 notebook: the sections are rows of the menu, one step back.
+  await settings.locator('.task-back').click();
   const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
   await openAdvanced(settings);
   for (const name of ['Plano y espacios', 'Acciones lógicas', 'Paneles avanzados', 'Referencias pendientes', 'Copias'])

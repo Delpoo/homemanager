@@ -49,7 +49,7 @@ test('a space sets its framing, skipping and which arrows it shows, and the room
   await kitchen.getByRole('button', { name: 'Aplicar', exact: true }).click();
   expect((await room(page, 'kitchen')).nav).toEqual({ skip: true });
   // Back from Settings to the edit bar (#70).
-  await card(page).locator('homemanager-editor homemanager-task-screen.settings-dialog .task-back').click();
+  await card(page).locator('homemanager-editor homemanager-task-screen.settings-dialog .task-close').click();
   await button(page, 'Guardar cambios').click();
   await expect(button(page, 'Guardar cambios')).toHaveAttribute('data-dirty', 'false');
   await button(page, 'Salir de edición').click();

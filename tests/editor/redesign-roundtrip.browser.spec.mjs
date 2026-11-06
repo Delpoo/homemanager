@@ -49,7 +49,7 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await rules.locator('input[data-check-field=sources][value="sensor.synthetic_temperature"]').check();
   await rules.getByLabel('Más de', { exact: true }).fill('27');
   await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
-  await editor.getByRole('button', { name: 'Volver', exact: true }).click();
+  await editor.locator('homemanager-task-screen.settings-dialog .task-close').click();
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.getByRole('button', { name: 'Guardar cambios', exact: true })).toBeDisabled();
   const saved = await page.evaluate(() => window.testHarness.config.configuration);

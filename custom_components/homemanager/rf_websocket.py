@@ -63,6 +63,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_devices,
         ws_default_receiver,
         ws_remote_save,
+        ws_remote_duplicate,
         ws_remote_delete,
         ws_parts_save,
         ws_layout_save,
@@ -157,6 +158,24 @@ async def ws_default_receiver(hass: HomeAssistant, connection: websocket_api.Act
 async def ws_remote_save(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     async def work() -> dict[str, Any]:
         return (await _rf(hass).async_put_remote(msg.get("remote_id"), msg["remote"])).public()
+
+    await _run(connection, msg["id"], work())
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "homemanager/rf/remote/duplicate",
+        vol.Required("remote_id"): ITEM_ID,
+        vol.Required("name"): vol.All(str, vol.Length(min=1, max=MAX_NAME)),
+        # Omitted: the copy keeps the transmitter of the original.
+        vol.Optional("transmitter"): vol.All(str, vol.Length(max=64)),
+    }
+)
+@websocket_api.async_response
+async def ws_remote_duplicate(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    async def work() -> dict[str, Any]:
+        return (await _rf(hass).async_duplicate_remote(msg["remote_id"], msg["name"], msg.get("transmitter"))).public()
 
     await _run(connection, msg["id"], work())
 

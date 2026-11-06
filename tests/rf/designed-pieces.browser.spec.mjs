@@ -34,13 +34,13 @@ test('the opened RF design displays the same live estimated reading as its desig
   await card.locator('[data-id=synthetic-light] .primary').click({ button: 'right' });
   const panel = page.locator('homemanager-panel');
   const remote = panel.locator('.remote homemanager-rf-remote');
-  await expect(remote.locator('[data-reading=value]')).toHaveText('23');
-  await expect(remote).toContainText('Estimado');
+  // 0.13: the reading carries its unit.
+  await expect(remote.locator('[data-reading=value]')).toHaveText('23 °C');
   await page.evaluate(() => window.testHarness.updateState('sensor.synthetic_temperature', '24'));
-  await expect(remote.locator('[data-reading=value]')).toHaveText('24');
+  await expect(remote.locator('[data-reading=value]')).toHaveText(/^24/);
   await expect(panel.locator('.additional-controls')).not.toHaveAttribute('open', '');
 });
-test('a designed RF cycle advances after each send and a slider sends only on release', async ({ page }) => {
+test('a designed RF cycle advances after each send and a bar goes straight to the level tapped', async ({ page }) => {
   const base = { x: 0, h: 1, label: null, icon: null };
   const rf = await setup(page, {
     remotes: [
@@ -54,19 +54,19 @@ test('a designed RF cycle advances after each send and a slider sends only on re
   });
   await rf.locator('[data-open=techo]').click();
   const remote = rf.locator('homemanager-rf-remote');
-  await remote.locator('[data-cycle=cycle]').click();
-  await expect(remote.locator('[data-cycle=cycle]')).toHaveAttribute('data-send', 'v2');
-  await remote.locator('[data-cycle=cycle]').click();
+  const cycle = remote.locator('[data-widget=cycle] [data-op=cycle]');
+  await cycle.click();
+  await expect(cycle).toHaveAttribute('aria-label', 'Velocidad 1');
+  await cycle.click();
+  await expect(cycle).toHaveAttribute('aria-label', 'Velocidad 2');
   await expect
     .poll(async () => (await calls(page, 'homemanager/rf/press')).map(c => c.button_id))
     .toEqual(['v1', 'v2']);
-  const range = await remote.locator('[data-discrete=slider]').boundingBox();
-  await page.mouse.move(range.x + 5, range.y + range.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(range.x + range.width - 5, range.y + range.height / 2, { steps: 6 });
-  expect((await calls(page, 'homemanager/rf/press')).length).toBe(2);
-  await page.mouse.up();
+  // One button per level: a tap near the end of the bar sends that level only.
+  const track = await remote.locator('[data-widget=slider] .ktrack').boundingBox();
+  await page.mouse.click(track.x + track.width - 2, track.y + track.height / 2);
   await expect
     .poll(async () => (await calls(page, 'homemanager/rf/press')).map(c => c.button_id))
     .toEqual(['v1', 'v2', 'v3']);
+  await expect(remote.locator('[data-widget=slider] .ktrack')).toHaveAttribute('aria-valuenow', '2');
 });

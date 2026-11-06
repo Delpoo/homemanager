@@ -104,9 +104,9 @@ test('the initial view is saved, ⌂ returns to it and it opens after a reload (
   const fitted = await page.evaluate(() => window.testHarness.card.baseScale);
   await card(page).locator('.hm-tools [data-command=configuration]').click();
   const settings = card(page).locator('homemanager-editor');
-  await settings.locator('[data-settings="view-section"]').click();
+  await settings.locator('.nb-row[data-settings="view-section"]').click();
   await settings.getByRole('button', { name: 'Sólo en este equipo', exact: true }).click();
-  await settings.locator('homemanager-task-screen.settings-dialog .task-back').click();
+  await settings.locator('homemanager-task-screen.settings-dialog .task-close').click();
   await card(page).getByRole('button', { name: 'Encuadrar todo', exact: true }).click();
   await page.waitForTimeout(500);
   await card(page).getByRole('button', { name: 'Vista inicial', exact: true }).click();

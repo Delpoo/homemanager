@@ -50,7 +50,7 @@ def _manager(hass: HomeAssistant) -> IrManager:
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_devices, ws_capture, ws_test, ws_save, ws_press, ws_remote_edit, ws_button_edit, ws_settings):
+    for command in (ws_devices, ws_capture, ws_test, ws_save, ws_press, ws_remote_edit, ws_remote_duplicate, ws_button_edit, ws_settings):
         websocket_api.async_register_command(hass, command)
 
 
@@ -150,6 +150,24 @@ async def _edit(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
 @websocket_api.async_response
 async def ws_remote_edit(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     await _edit(hass, connection, msg)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemanager/remotes/ir/remote/duplicate",
+    vol.Required("remote_id"): ITEM_ID,
+    vol.Required("name"): NAME,
+    # Omitted: the copy keeps the emitters of the original.
+    vol.Optional("emitter"): TARGET_ID,
+})
+@websocket_api.async_response
+async def ws_remote_duplicate(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        result = await _manager(hass).async_duplicate(msg["remote_id"], msg["name"], msg.get("emitter"))
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+        return
+    connection.send_result(msg["id"], result)
 
 
 @websocket_api.require_admin

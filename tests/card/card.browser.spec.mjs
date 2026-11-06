@@ -545,7 +545,7 @@ test('space navigation comes from the instance configuration', async ({ page }) 
   const nav = page.getByRole('navigation', { name: 'Espacios' });
   expect(
     await nav.getByRole('button').evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label'))),
-  ).toEqual(['Menú', 'Encuadrar todo', 'Encuadrar Comedor', 'Encuadrar Cocina', 'Encuadrar Garage']);
+  ).toEqual(['Encuadrar todo', 'Encuadrar Comedor', 'Encuadrar Cocina', 'Encuadrar Garage']);
   await page.getByRole('button', { name: 'Encuadrar Garage', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Encuadrar Garage', exact: true })).toHaveAttribute(
     'aria-pressed',
