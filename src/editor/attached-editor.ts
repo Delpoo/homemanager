@@ -71,7 +71,7 @@ function attachedProps(item: AttachedPiece): string {
       [
         ['', t('Como en el control')],
         ['raised', t('Con relieve')],
-        ['flat', t('Plano')],
+        ['flat', t('Liso')],
         ['outline', t('Contorno')],
       ] as const
     )
@@ -109,9 +109,32 @@ export function newAttached(list: AttachedPiece[], piece: RfWidget): AttachedPie
   const taken = new Set(list.map(item => item.id));
   let index = list.length + 1;
   while (taken.has(`w${index}`)) index++;
+  // It starts with the proportions it has in the control: upright pieces stay upright.
+  const cell = 52;
+  const upright = piece.orientation === 'vertical' || piece.h > piece.w;
   const wide = ['updown', 'slider', 'steps', 'knob', 'modes', 'transport', 'colors'].includes(piece.type);
-  const w = Math.max(24, Math.min(480, wide ? 128 : 52 * Math.max(1, Math.min(3, piece.w))));
-  const h = Math.max(20, Math.min(320, piece.type === 'dpad' || piece.type === 'numpad' ? 120 : 46));
+  const w = Math.max(
+    24,
+    Math.min(
+      480,
+      upright
+        ? cell * Math.min(2, piece.w) + 4
+        : wide
+          ? Math.max(128, cell * piece.w)
+          : cell * Math.max(1, Math.min(3, piece.w)),
+    ),
+  );
+  const h = Math.max(
+    20,
+    Math.min(
+      320,
+      upright
+        ? Math.max(110, cell * Math.min(4, piece.h))
+        : piece.type === 'dpad' || piece.type === 'numpad'
+          ? 120
+          : 46,
+    ),
+  );
   return { id: `w${index}`, piece: piece.id, dx: 30, dy: Math.min(600, -h / 2 + list.length * 52), w, h };
 }
 

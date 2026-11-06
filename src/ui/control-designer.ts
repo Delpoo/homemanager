@@ -709,7 +709,7 @@ export class ControlDesigner extends HTMLElement {
         'relief',
         [
           ['raised', t('Con relieve')],
-          ['flat', t('Plano')],
+          ['flat', t('Liso')],
           ['outline', t('Contorno')],
         ],
         piece.relief ?? 'raised',

@@ -705,4 +705,5 @@ export const enPlan012: Record<string, string> = {
   'Crece con el símbolo': 'Grows with the symbol',
   'En el plano': 'On the plan',
   'Quitar del plano': 'Remove from the plan',
+  Liso: 'Flat',
 };
