@@ -409,7 +409,9 @@ export class DeviceScreenView extends HTMLElement {
       if (!target.reportValidity()) return;
       value = Object.fromEntries(
         control.fields.flatMap(field => {
-          const input = target.elements.namedItem(field.name) as HTMLInputElement | HTMLSelectElement;
+          const input = target.querySelector<HTMLInputElement | HTMLSelectElement>(
+            `[name="${CSS.escape(field.name)}"]`,
+          )!;
           if (!input || (!input.value && !field.required)) return [];
           return [
             [

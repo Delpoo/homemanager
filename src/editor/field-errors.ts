@@ -18,8 +18,23 @@ export function showFieldErrors(form: HTMLFormElement): boolean {
   for (const old of root.querySelectorAll(`.field-error[data-form="${CSS.escape(form.id)}"]`)) old.remove();
   let first: Field | undefined;
   let index = 0;
-  for (const element of [...form.elements] as Field[]) {
-    if (!('validity' in element) || !element.willValidate) continue;
+  // Not form.elements: Home Assistant's frontend makes walking that collection throw.
+  const own = `input[form="${CSS.escape(form.id)}"],select[form="${CSS.escape(form.id)}"],textarea[form="${CSS.escape(form.id)}"]`;
+  const fields = [
+    ...form.querySelectorAll<Field>('input,select,textarea'),
+    ...(form.id ? root.querySelectorAll<Field>(own) : []),
+  ];
+  for (const element of fields) {
+    // Only native fields: Home Assistant's own form elements may not answer validity (0.13).
+    if (
+      !(
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLSelectElement ||
+        element instanceof HTMLTextAreaElement
+      ) ||
+      !element.willValidate
+    )
+      continue;
     if (element.validity.valid) {
       element.removeAttribute('aria-invalid');
       continue;

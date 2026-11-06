@@ -40,7 +40,11 @@ export async function openConfiguration(card: HomeManagerCard, section?: Setting
 
 /** Back from Settings: return to the plan, asking first about unsaved changes. */
 export async function closeConfiguration(card: HomeManagerCard): Promise<void> {
-  if (!card.configuring) return;
+  if (!card.configuring) {
+    // Opened while already editing: Settings closes and editing goes on.
+    if (card.editor?.surfaceMode === 'settings') card.editor.closeSurface();
+    return;
+  }
   card.configuring = false;
   await card.toggleEdit();
   if (card.editing) {
