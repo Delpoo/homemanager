@@ -178,12 +178,11 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
 
   await ir.getByRole('button', { name: 'Editar diseño', exact: true }).click();
   const designer = ir.locator('homemanager-control-designer');
-  await designer.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const piece = designer.locator('homemanager-task-screen.editor');
-  await piece.locator('[data-type=title]').click();
-  await piece.locator('[name=widget-label]').fill('IR del plano');
-  await piece.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(piece).toHaveCount(0);
+  await designer.getByRole('button', { name: 'Título', exact: true }).click();
+  const title = designer.locator('[name=widget-label]');
+  await title.fill('IR del plano');
+  await title.dispatchEvent('change');
+  await expect(designer.locator('homemanager-rf-remote')).toContainText('IR del plano');
   await ir.getByRole('button', { name: 'Editar control', exact: true }).click();
   await ir.getByRole('button', { name: 'Ficha técnica', exact: true }).click();
   await sheet.getByRole('button', { name: 'Emisión', exact: true }).click();

@@ -350,7 +350,17 @@ export class HomeManagerRfRemote extends HTMLElement {
 
   // Edit mode -------------------------------------------------------------
 
-  private cell(event: PointerEvent): [number, number] {
+  /** The cell under a point, for dropping a learned button on the grid (0.13). */
+  cellAt(clientX: number, clientY: number): { x: number; y: number } | null {
+    const grid = this.root.querySelector<HTMLElement>('.grid');
+    if (!grid) return null;
+    const rect = grid.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top) return null;
+    const [x, y] = this.cell({ clientX, clientY } as PointerEvent);
+    return { x, y };
+  }
+
+  private cell(event: Pick<PointerEvent, 'clientX' | 'clientY'>): [number, number] {
     const grid = this.root.querySelector<HTMLElement>('.grid')!;
     const rect = grid.getBoundingClientRect();
     const computed = getComputedStyle(grid);

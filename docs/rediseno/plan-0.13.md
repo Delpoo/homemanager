@@ -132,12 +132,29 @@ Cada indicador (anillo, borde, color del icono, LED, número, etiqueta) tiene un
   - **Estado que muestra:** «estimado» (el último botón enviado) o «desde un sensor», por ejemplo consumo > 50 W = prendido.
   - *Abierto:* esto se conecta con la comprobación por consumo que se arma aparte.
 
+### Avance de Controles (2026-11-06, PR #109)
+
+- Hecho:
+  - #107 revisado e integrado.
+  - Panel Controles al costado del plano.
+  - Aprender RF e IR con anillo y tarjetas.
+  - Paso Probar con 👍/👎 y ajustes; comprobaciones que abren la ficha técnica de #107.
+  - Diseñador libre: lienzo de hasta 30 columnas, perilla, preset, gráfico, botón de marca, colores, forma, vertical, bandeja de botones aprendidos y modo prueba.
+- Distinto de la maqueta, por ahora:
+  - La cuenta de 15 s no existe: el receptor escucha mientras la página está abierta (ventanas de 60 s, hasta 10 min).
+  - Auto-eco y receptor B usan la pestaña Emisión de la ficha técnica, no una pantalla propia.
+  - El gráfico dibuja las lecturas recibidas desde que se abrió el control; falta pedir el historial a Home Assistant.
+  - El estado «desde un sensor» de cada elemento no está.
+  - IR aprende en su propia página dentro del panel, todavía sin el paso Probar común.
+
 ## Cosas que quedan abiertas a propósito
 
 Se conectan cuando lleguen los módulos que las completan:
 
 - Comprobación por consumo para el estado de los controles y para «Comprobar» en Automatizaciones.
 - Fuente y licencia de la base de controles IR.
+- Historial de Home Assistant para el elemento gráfico.
+- Estado de un elemento del control «desde un sensor» (va con la comprobación por consumo).
 - Prueba física con los Athom: IR Send frente al proxy directo, y reacción del televisor Philips (ver #107).
 
 ## Decisiones pendientes del propietario

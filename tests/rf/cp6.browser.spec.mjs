@@ -132,18 +132,13 @@ for (const dark of [false, true])
     await rf(page).getByRole('button', { name: 'Diseñar', exact: true }).click();
     await readable(rf(page));
     await shot('designer');
-    await rf(page).getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-    const widget = rf(page).getByRole('region', { name: 'Agregar elemento', exact: true });
-    await expect(widget).toBeVisible();
-    const dialogBox = await widget.boundingBox();
-    const choicesBox = await widget.locator('.types').boundingBox();
-    expect(choicesBox.width).toBeGreaterThan(dialogBox.width * 0.65);
-    const save = widget.getByRole('button', { name: 'Guardar', exact: true });
-    await expect(save.locator('ha-icon')).toHaveAttribute('icon', 'mdi:check');
-    expect(await save.textContent()).toBe('');
+    // 0.13: pieces are added from the designer's panel; brands open their own row.
+    const designer = rf(page).locator('homemanager-control-designer');
+    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
+    await expect(designer.getByRole('group', { name: 'Marca' })).toBeVisible();
     await readable(rf(page));
     await shot('widget');
-    await widget.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await designer.getByRole('button', { name: 'Marca', exact: true }).click();
     await rf(page).locator('.dfoot [data-command=edit]').click();
     await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
     await rf(page).getByRole('button', { name: 'Agregar ventilador', exact: true }).click();

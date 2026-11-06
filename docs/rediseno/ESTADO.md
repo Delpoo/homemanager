@@ -4,7 +4,7 @@
 
 Fuente única de qué está hecho y qué falta. Cada agente actualiza **sólo su fila** y agrega su línea a la bitácora. Qué significa cada estado: [LEEME.md](LEEME.md#estados).
 
-**Siguiente paso:** plan 0.13 ([plan-0.13.md](plan-0.13.md)): el propietario revisa la [maqueta](maqueta-0.13/index.html) y contesta las decisiones. No se programa 0.13 hasta que la apruebe.
+**Siguiente paso:** plan 0.13 ([plan-0.13.md](plan-0.13.md)), maqueta aprobada. Hecho: lote 1a (#108, menús y Configuración al costado) y Controles (#109, sobre #107). Falta: limpieza 1b y el resto de pantallas. Nada fusionado ni publicado.
 
 **Versión de prueba:** E00–E13 en `v0.11.0-beta.2` (#58) y el plan 0.12 en `v0.12.0-beta.1` (#104), publicada a pedido del propietario el 2026-11-05 para probarla. Publicación no equivale a validación funcional del propietario; se conservan los pendientes de auditoría y pruebas físicas.
 
@@ -64,6 +64,8 @@ Nada de esto frena E00. Quien llegue a una etapa con una decisión abierta, preg
 | 5 | ¿Cómo se ordenan estas etapas con las que faltan de la 0.10? | Terminar lo que esté en curso y no correr dos trabajos sobre los mismos archivos | Todas | Resuelta en el modo continuo y en #99 |
 
 ## Bitácora
+
+- 2026-11-06 - Claude - **0.13 / Controles (#109).** #107 integrado sin conflictos (11 archivos sin formato, corregidos). Panel Controles al costado del plano, aprender RF/IR con anillo, paso Probar, diseñador libre con modelo ampliado y compatible en los tres validadores y el esquema. Capturas en Chrome; sin fusión ni versión.
 
 - 2026-11-03 - Codex - **Lote 4 / E11-E13.** Alternativas con imágenes privadas y copia completa, Ahora editable por hogar/pared, mouse PC y modo pared real. Un commit por etapa; E11 aislada aprueba tipos y 280 pruebas, conjunto 284. Recorridos focales y 34 capturas ficticias con referencias y antes/después. Validación HA y E2E sólo en runner desechable de CI. Resultado final y limitaciones en reporte del PR. Sin fusiones, versiones ni acceso a la casa.
 

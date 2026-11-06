@@ -215,22 +215,20 @@ test('native controls replace the plan and Back restores the trigger', async ({ 
   await expect(trigger).toBeFocused();
 });
 
-test('RF element Back resumes its fields and only cancellation opens a dialog', async ({ page }) => {
+test('the RF designer applies each change at once and stays inside the screen (0.13)', async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open]').first().click();
   await rf.locator('[data-command=edit]').click();
-  await rf.locator('[data-command=add-widget]').click();
-  let widget = screen(page, 'Agregar elemento');
-  await widget.locator('[name=widget-label]').fill('Etiqueta pendiente');
-  await widget.locator('.task-back').click();
-  await rf.locator('[data-command=add-widget]').click();
-  widget = screen(page, 'Agregar elemento');
-  await expect(widget.locator('[name=widget-label]')).toHaveValue('Etiqueta pendiente');
+  const designer = rf.locator('homemanager-control-designer');
+  await designer.getByRole('button', { name: 'Título', exact: true }).click();
+  const label = designer.locator('[name=widget-label]');
+  await label.fill('Etiqueta pendiente');
+  await label.dispatchEvent('change');
+  await expect
+    .poll(() => page.evaluate(() => window.rfServer.library[0].layout?.at(-1)?.label))
+    .toBe('Etiqueta pendiente');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await noOverflow(page);
-  await widget.getByRole('button', { name: 'Cancelar', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(1);
-  await page.keyboard.press('Escape');
-  await expect(widget).toBeVisible();
 });
 
 test('leaving an edited plan asks before discarding and cancellation keeps the draft', async ({ page }) => {
@@ -414,9 +412,8 @@ for (const dark of [false, true])
     }, dark);
     await rf.locator('[data-open]').first().click();
     await rf.locator('[data-command=edit]').click();
-    await rf.locator('[data-command=add-widget]').click();
+    await rf.locator('homemanager-control-designer').getByRole('button', { name: 'Perilla', exact: true }).click();
     await shot('rf-widget');
-    await screen(page, 'Agregar elemento').locator('.task-back').click();
     await rf.locator('[data-command=edit]').click();
     await rf.locator('[data-command=learn]').click();
     await shot('rf-learn');

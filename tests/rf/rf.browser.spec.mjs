@@ -148,18 +148,22 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   // Until designed, every button is drawn.
   await expect(remote.getByRole('button')).toHaveCount(6);
   await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
-  await rf.getByRole('button', { name: 'Agregar elemento', exact: true }).click();
-  const editor = rf.getByRole('region', { name: 'Agregar elemento' });
+  // 0.13: a piece is added from the panel and its learned buttons are chosen there.
+  const editor = rf.locator('homemanager-control-designer');
   await editor.getByRole('button', { name: 'Deslizador por pasos', exact: true }).click();
-  await editor.getByLabel('Paso 1', { exact: true }).selectOption('v1');
-  await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(editor.getByText('Elegí al menos 2 botones.')).toBeVisible();
-  await editor.getByLabel('Paso 2', { exact: true }).selectOption('v2');
-  await editor.getByRole('button', { name: 'Agregar paso', exact: true }).click();
-  await editor.getByLabel('Paso 3', { exact: true }).selectOption('v3');
-  await editor.getByLabel('Etiqueta (opcional)').fill('Velocidad');
-  await editor.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(editor).toHaveCount(0);
+  for (const [step, id] of [
+    ['Paso 1', 'v1'],
+    ['Paso 2', 'v2'],
+    ['Paso 3', 'v3'],
+  ])
+    await editor.getByLabel(step, { exact: true }).selectOption(id);
+  const label = editor.locator('[name=widget-label]');
+  await label.fill('Velocidad');
+  await label.dispatchEvent('change');
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.at(-1).label)
+    .toBe('Velocidad');
+  const saved = (await calls(page, 'homemanager/rf/layout/save')).length;
   let layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
   expect(layout.at(-1)).toMatchObject({
     type: 'steps',
@@ -174,7 +178,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   const off = remote.getByRole('group', { name: 'Apagar', exact: true });
   await off.focus();
   await page.keyboard.press('Shift+ArrowRight');
-  await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(2);
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(saved + 1);
   layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
   expect(layout.find(widget => widget.id === 'b-off')).toMatchObject({ x: 0, y: 0, w: 2 });
   expect(layout.find(widget => widget.id === 'b-v1')).toMatchObject({ x: 1, y: 1 });
@@ -193,8 +197,9 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
     )
     .toMatchObject({ x: 3, y: 5 });
 
-  // Removing asks first; the button itself stays learned.
-  await off.getByRole('button', { name: 'Eliminar Apagar' }).click();
+  // Removing asks first; the button itself stays learned. A tap selects the piece.
+  await off.click();
+  await editor.getByRole('button', { name: 'Quitar elemento', exact: true }).click();
   const confirm = rf.getByRole('dialog', { name: '¿Quitar «Apagar» del control?' });
   await confirm.getByRole('button', { name: 'Quitar', exact: true }).click();
   await expect

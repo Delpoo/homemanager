@@ -1160,6 +1160,7 @@ export class HomeManagerEditor extends HTMLElement {
         remote: designRemote(designDevice, this.configuration, controls),
         controls,
         estimated: false,
+        trayTitle: t('Acciones'),
         readValues: () => this._hass?.states ?? {},
         renderContent: p => renderDesignPiece(p, controls, host),
         save: layout => {

@@ -350,7 +350,7 @@ export class HomeManagerRf extends HTMLElement {
     if (this.editing)
       return this.panel(
         panelHead(`${e(t('Diseño'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
-        `<div data-slot="remote"></div>${status}`,
+        `<div class="stage-host"><div data-slot="remote"></div></div>${status}`,
         `<span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="edit"', 'primary')}`,
       );
     const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Probar botones'), 'mdi:play-circle-outline', 'data-command="test"')}${iconButton(t('Diseñar'), 'mdi:pencil-ruler', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
@@ -556,6 +556,12 @@ export class HomeManagerRf extends HTMLElement {
         save: async layout => {
           const saved = await rf.saveLayout(this._hass!, remote.id, layout);
           this.remotes = this.remotes.map(r => (r.id === saved.id ? saved : r));
+          this.render();
+        },
+        press: buttonId => rf.press(this._hass!, remote.id, buttonId),
+        learn: () => {
+          this.editing = false;
+          this.startLearn();
           this.render();
         },
       });
