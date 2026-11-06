@@ -11,6 +11,8 @@ import {
   type IrSettings,
 } from '../integration/remotes.js';
 import { installPanelComponents, keepPanelFocus } from '../ui/panel-components.js';
+import { iconButton, miniWave, sidePanelStyles } from '../ui/side-panel.js';
+import { rfLearnRingStyles, irManagerStyles } from '../ui/rf-components.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { SignalPreview, openSignal } from '../ui/signal-workbench.js';
@@ -19,6 +21,7 @@ import { HomeManagerRfRemote } from './remote-view.js';
 type Candidate = Extract<IrCaptureEvent, { candidate_id: string }>;
 type Capture = { batch: boolean; unsubscribe?: () => void; timeout?: ReturnType<typeof setTimeout> };
 const SENT = 'Solicitud IR enviada. Confirmá la reacción en el equipo.';
+const glyph = (name: string) => `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>`;
 
 /** Manual capture and replay. The browser only sees opaque candidate and button IDs. */
 export class HomeManagerIr extends HTMLElement {
@@ -52,14 +55,7 @@ export class HomeManagerIr extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(
-      this.root,
-      'ir-manager',
-      `:host{display:block}section{display:grid;gap:10px;margin:12px 0}h2,h3,h4,p{margin:0}
-      .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
-      label{display:grid;gap:4px;min-width:0}input,select{box-sizing:border-box;width:100%;min-width:0}
-      .actions{justify-content:flex-start}.shelf{display:grid;gap:8px}.item{border:1px solid var(--hm-line);border-radius:12px;padding:10px}.title{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.title h4{flex:1}.controls{max-width:560px;margin-inline:auto;width:100%}.editor{display:grid;gap:8px}.editor form{display:grid;gap:7px}.danger{color:var(--hm-alert)}`,
-    );
+    installPanelComponents(this.root, 'ir-manager', sidePanelStyles + rfLearnRingStyles + irManagerStyles);
     this.player.estimated = false;
     this.player.readValues = () => this._hass?.states ?? {};
     this.player.onPress = async buttonId => {
@@ -111,9 +107,16 @@ export class HomeManagerIr extends HTMLElement {
     this.render();
   }
 
+  /** A new IR remote from Controls › New: its name is already chosen. */
+  startNew(name: string): void {
+    this.remoteId = '';
+    this.remoteName = name;
+    this.render();
+  }
+
   openRemote(remoteId: string): void {
     this.selected = remoteId;
-    this.editing = 'layout';
+    this.editing = '';
     this.render();
     if (this.requested && !this.saved.some(item => item.id === remoteId)) void this.refresh();
   }
@@ -278,41 +281,44 @@ export class HomeManagerIr extends HTMLElement {
       const placeholder = items.length > 1 ? option('', t('Elegí un equipo'), selected) : '';
       return placeholder + items.map(device => option(device.id, device.name, selected)).join('');
     };
-    const capture = this.capture
-      ? `<span>${e(t(this.capture.batch ? 'Pulsá y soltá cada botón del mando, uno por vez.' : 'Pulsá un botón del control físico.'))}</span><button type="button" data-stop>${e(t('Cancelar'))}</button>`
-      : `<button type="button" data-learn${this.busy || this.offline || !this.receiver ? ' disabled' : ''}>${e(t('Capturar botón IR'))}</button><button type="button" data-batch${this.busy || this.offline || !this.receiver ? ' disabled' : ''}>${e(t('Capturar varios botones'))}</button>`;
+    // 0.13: the receiver is a ring to tap; one button or several in a row.
+    const blocked = this.busy || this.offline || !this.receiver;
+    const listening = !!this.capture;
+    const ring = `<div class="listen${listening ? ' on' : this.candidate ? ' ok' : ''}"><button type="button" class="ring${listening ? ' on' : ''}" ${listening ? 'data-stop' : 'data-learn'} aria-label="${e(listening ? t('Cancelar') : t('Capturar botón IR'))}" title="${e(listening ? t('Cancelar') : t('Capturar botón IR'))}"${!listening && blocked ? ' disabled' : ''}><span class="waves" aria-hidden="true"><i></i><i></i><i></i></span><span class="core">${glyph(this.candidate && !listening ? 'mdi:check' : 'mdi:remote-tv')}</span></button><div class="text"><strong>${e(listening ? t(this.capture!.batch ? 'Pulsá y soltá cada botón del mando, uno por vez.' : 'Pulsá un botón del control físico.') : t('Tocá para escuchar'))}</strong></div></div>`;
+    const tools = `<div class="tools">${iconButton(t('Capturar varios botones'), 'mdi:layers-triple-outline', `data-batch${listening || blocked ? ' disabled' : ''}`)}${iconButton(t('Actualizar'), 'mdi:refresh', `data-refresh${listening ? ' disabled' : disabled}`)}</div>`;
+    const receivers = this.receivers
+      .map(
+        device =>
+          `<button type="button" class="chip" data-receiver="${e(device.id)}" aria-pressed="${device.id === this.receiver}"${listening ? ' disabled' : ''}>${glyph('mdi:chip')}${e(device.name)}</button>`,
+      )
+      .join('');
     const candidate = this.candidate;
     const learn = candidate
-      ? `
-      <p>${e(t('Señal capturada: {count} duraciones, {ms} ms.', { count: candidate.count, ms: Math.round(candidate.duration_us / 1000) }))}</p><div data-preview></div>
-      ${this.batch.length ? `<label>${e(t('Capturas pendientes'))}<select name="batch">${this.batch.map((item, index) => option(item.candidate_id, t('Captura {count} · {ms} ms', { count: index + 1, ms: Math.round(item.duration_us / 1000) }), candidate.candidate_id)).join('')}</select></label><button type="button" data-discard>${e(t('Descartar captura'))}</button>` : ''}
-      ${this.replaceButton ? `<p>${e(t('Se reemplazará la señal del botón guardado.'))}</p>` : ''}
+      ? `<div class="code"><div class="cap-head"><span class="dot ok"></span>${miniWave(candidate.candidate_id, 72)}<span class="muted">${e(t('Señal capturada: {count} duraciones, {ms} ms.', { count: candidate.count, ms: Math.round(candidate.duration_us / 1000) }))}</span></div><div data-preview></div>
+      ${this.batch.length ? `<div class="fields"><label>${e(t('Capturas pendientes'))}<select name="batch">${this.batch.map((item, index) => option(item.candidate_id, t('Captura {count} · {ms} ms', { count: index + 1, ms: Math.round(item.duration_us / 1000) }), candidate.candidate_id)).join('')}</select></label>${iconButton(t('Descartar captura'), 'mdi:close', 'data-discard')}</div>` : ''}
+      ${this.replaceButton ? `<p class="muted">${e(t('Se reemplazará la señal del botón guardado.'))}</p>` : ''}
       <div class="fields">
+        <label>${e(t('Nombre del botón'))}<input name="button-name" maxlength="80" value="${e(this.buttonName)}"${disabled}></label>
+        <label>${e(t('Guardar en'))}<select name="remote"${disabled}>${option('', t('Nuevo control'), this.remoteId)}${this.saved.map(remote => option(remote.id, remote.name, this.remoteId)).join('')}</select></label>
+        ${this.remoteId ? '' : `<label>${e(t('Nombre del control'))}<input name="remote-name" maxlength="80" value="${e(this.remoteName)}"${disabled}></label>`}
         <label>${e(t('Emisor IR'))}<select name="emitter"${disabled}>${devices(this.emitters, this.emitter)}</select></label>
         <label>${e(t('Portadora (Hz)'))}<input name="carrier" type="number" min="0" max="1000000" step="1" value="${e(this.carrierHz)}"${disabled}></label>
         <label>${e(t('Origen de la portadora'))}<select name="carrier-source"${disabled}>${option('estimated', t('Estimada'), this.carrierSource)}${option('known', t('Conocida'), this.carrierSource)}</select></label>
-        <label>${e(t('Guardar en'))}<select name="remote"${disabled}>${option('', t('Nuevo control'), this.remoteId)}${this.saved.map(remote => option(remote.id, remote.name, this.remoteId)).join('')}</select></label>
-        ${this.remoteId ? '' : `<label>${e(t('Nombre del control'))}<input name="remote-name" maxlength="80" value="${e(this.remoteName)}"${disabled}></label>`}
-        <label>${e(t('Nombre del botón'))}<input name="button-name" maxlength="80" value="${e(this.buttonName)}"${disabled}></label>
       </div>
-      <p>${e(t('La portadora inicial de 38000 Hz es una estimación. Ajustala si conocés la frecuencia del mando.'))}</p>
-      ${this.emitters.length ? '' : `<p>${e(t('No hay un emisor IR disponible para probar o guardar.'))}</p>`}
-      <div class="actions"><button type="button" data-test disabled>${e(t('Probar'))}</button><button type="button" data-save disabled>${e(t('Guardar'))}</button></div>`
+      ${this.emitters.length ? '' : `<p class="muted">${e(t('No hay un emisor IR disponible para probar o guardar.'))}</p>`}
+      <div class="row"><button type="button" class="next" data-test disabled>${glyph('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t('Guardar'), 'mdi:content-save-outline', 'data-save disabled')}</div></div>`
       : '';
     const remote = this.saved.find(item => item.id === this.selected);
     const library = remote
       ? `<div class="shelf">${this.saved.length > 1 ? `<label>${e(t('Control remoto'))}<select name="selected-remote">${this.saved.map(item => option(item.id, item.name, this.selected)).join('')}</select></label>` : ''}
-      <div class="title"><h4>${e(remote.name)}</h4><button type="button" data-edit>${e(t(this.editing === 'buttons' ? 'Listo' : 'Editar control'))}</button><button type="button" data-design>${e(t(this.editing === 'layout' ? 'Listo' : 'Editar diseño'))}</button></div>
+      <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil-ruler', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
       ${this.editing === 'buttons' ? this.renderEdit(remote) : `<div class="controls" data-player></div>`}
       </div>`
       : '';
-    this.root.innerHTML = `<h2>${e(t('Infrarrojos'))}</h2><section aria-labelledby="ir-learn-heading">
-      <h3 id="ir-learn-heading">${e(t('Aprender un botón IR'))}</h3>
-      <div class="fields"><label>${e(t('Receptor IR'))}<select name="receiver"${this.capture ? ' disabled' : disabled}>${devices(this.receivers, this.receiver)}</select></label></div>
-      ${this.requested && !this.busy && !this.failed && !this.receivers.length ? `<p>${e(t('No hay un receptor IR disponible.'))}</p>` : ''}
-      <div class="actions">${capture}<button type="button" data-refresh${this.capture ? ' disabled' : disabled}>${e(t('Actualizar'))}</button></div>
-      ${learn}</section><section aria-labelledby="ir-saved-heading"><h3 id="ir-saved-heading">${e(t('Controles IR guardados'))}</h3>
-      ${library || `<p>${e(t('Todavía no hay controles IR guardados.'))}</p>`}</section>
+    this.root.innerHTML = `<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
+      ${receivers ? `<div class="row-icon" role="group" aria-label="${e(t('Receptor IR'))}">${glyph('mdi:ear-hearing')}<div class="chips">${receivers}</div></div>` : ''}
+      ${this.requested && !this.busy && !this.failed && !this.receivers.length ? `<p class="muted">${e(t('No hay un receptor IR disponible.'))}</p>` : ''}
+      ${learn}</section>${library ? `<section aria-label="${e(t('Controles IR guardados'))}">${library}</section>` : ''}
       <p role="status" data-ir-status class="status${this.failed ? ' error' : ''}">${e(this.message || (this.busy ? t('Cargando…') : ''))}</p>`;
     this.bind();
     if (candidate && this._hass) {
@@ -377,10 +383,12 @@ export class HomeManagerIr extends HTMLElement {
     };
     const click = (selector: string, work: () => void) =>
       this.root.querySelector(selector)?.addEventListener('click', work);
-    value('receiver', 'change', receiver => {
-      this.receiver = receiver;
-      this.render();
-    });
+    this.root.querySelectorAll<HTMLButtonElement>('[data-receiver]').forEach(chip =>
+      chip.addEventListener('click', () => {
+        this.receiver = chip.dataset.receiver!;
+        this.render();
+      }),
+    );
     value('emitter', 'change', emitter => {
       this.emitter = emitter;
     });

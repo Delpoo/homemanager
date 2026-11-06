@@ -63,6 +63,7 @@ export class HomeManagerRf extends HTMLElement {
   private newRemote: RfAbout = { name: '', icon: 'mdi:air-conditioner', description: null };
   private newSource: Source = 'rf';
   private newReceiver = '';
+  private irTitle = '';
   private editing = false;
   private learning = false;
   private readonly designer = new ControlDesigner();
@@ -122,6 +123,7 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   openIrRemote(remoteId: string): void {
+    this.irTitle = this.irRemotes.find(remote => remote.id === remoteId)?.name ?? '';
     this.show('ir');
     this.infrared.openRemote(remoteId);
   }
@@ -193,7 +195,7 @@ export class HomeManagerRf extends HTMLElement {
       page = this.panel(panelHead(e(t('Controles')), { close: t('Cerrar') }), `<p>${e(t('Cargando…'))}</p>${status}`);
     else if (this.view === 'ir')
       page = this.panel(
-        panelHead(e(t('Infrarrojos')), { back: t('Volver'), close: t('Cerrar') }),
+        panelHead(e(this.irTitle || t('Infrarrojos')), { back: t('Volver'), close: t('Cerrar') }),
         '<div data-slot="infrared"></div>',
       );
     else if (this.view === 'devices')
@@ -671,8 +673,9 @@ export class HomeManagerRf extends HTMLElement {
           break;
         case 'create':
           if (this.newSource === 'ir') {
-            // IR keeps its own capture page until the shared learning wizard covers it.
+            this.irTitle = `${t('Aprender')} · ${this.newRemote.name.trim()}`;
             this.show('ir');
+            this.infrared.startNew(this.newRemote.name.trim());
             break;
           }
           this.draft = {

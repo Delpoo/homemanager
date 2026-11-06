@@ -71,7 +71,7 @@ form.settings{display:grid;gap:12px}
 /** 0.13 learning: a big ring to tap, waves while it listens, captures as cards. */
 export const rfLearnRingStyles = `
 .learn{gap:16px}
-.learn .listen{flex-direction:column;justify-content:center;gap:10px;padding:8px 0 4px;min-height:0;background:transparent;text-align:center}
+.learn .listen{display:flex;align-items:center;flex-direction:column;justify-content:center;gap:10px;padding:8px 0 4px;min-height:0;background:transparent;text-align:center}
 .learn .listen .text{justify-items:center;gap:2px}.learn .listen strong{font-size:15px}
 .ring{position:relative;display:grid;place-items:center;width:150px;height:150px;min-height:150px;padding:0;border:0;border-radius:50%;background:transparent}
 .ring:hover:not(:disabled){background:transparent}
@@ -96,4 +96,22 @@ export const rfLearnRingStyles = `
 .question .row{display:flex;gap:6px}
 .name-row{display:flex;align-items:flex-end;gap:10px}.name-row label{flex:1;display:grid;gap:6px;min-width:0}
 .signal-details summary{min-height:36px;padding:6px 10px;font-size:13px;font-weight:400;color:var(--hm-muted)}
+`;
+/** 0.13 IR learning and saved IR remotes, in the Controls panel. */
+export const irManagerStyles = `
+:host{display:block}
+section{display:grid;gap:14px;margin:0 0 16px}
+h4,p{margin:0}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;align-items:end}
+label{display:grid;gap:4px;min-width:0;font-size:13px;color:var(--hm-muted)}
+input,select{box-sizing:border-box;width:100%;min-width:0;color:var(--hm-ink)}
+.tools{display:flex;justify-content:center;gap:4px}
+.row{display:flex;align-items:center;gap:8px}
+.shelf{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--hm-line)}
+.title{display:flex;align-items:center;gap:8px;color:var(--hm-brand)}
+.title h4{color:var(--hm-ink);font-size:15px;font-weight:500}
+.item{border:1px solid var(--hm-line);border-radius:12px;padding:10px}
+.controls{max-width:560px;margin-inline:auto;width:100%}
+.editor{display:grid;gap:8px}.editor form{display:grid;gap:7px}
+.danger{color:var(--hm-alert)}
 `;
