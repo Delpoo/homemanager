@@ -5,6 +5,9 @@ import type { DrawableRemote } from '../rf/layout.js';
 export interface IrDevice {
   id: string;
   name: string;
+  /** Home Assistant device id and name of the board (0.13.0-beta.2+). */
+  device?: string | null;
+  device_name?: string;
 }
 
 export interface IrRemote {

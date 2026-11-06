@@ -18,6 +18,15 @@ La CI ejecuta las tres primeras capas y la integración en HA 2026.2.3 (mínima 
 3. Arrancar `hass -c <carpeta>` y preparar la instancia: `python tests/e2e/prepare_local_ha.py <URL local> <carpeta>/TEST_CREDENTIALS.local.json`. Crea una cuenta de prueba con contraseña aleatoria, completa el onboarding, añade la integración por su flujo y pone la luz en el área *Salón*.
 4. `HM_E2E_CREDENTIALS=<carpeta>/TEST_CREDENTIALS.local.json node tests/e2e/local-ha.e2e.mjs`. Las capturas quedan en `.work/e2e`.
 
+### Recorrido de una persona (0.13)
+
+Recorre la app como la usa el propietario, clic por clic, en el panel HomeManager del mismo Home Assistant desechable. Usa equipos ESPHome **ficticios** (dos Athom con IR, uno con el paquete RF, un medidor de energía y una placa sin conexión; `tests/e2e/walk/hardware.js`) y pone Home Assistant en modo oscuro con HomeManager en claro.
+
+1. `HM_E2E_CREDENTIALS=<carpeta>/TEST_CREDENTIALS.local.json node tests/e2e/walk/browser.mjs` (queda abierto; `HEADED=1` para verlo).
+2. `node tests/e2e/walk/walk.mjs`: casa de prueba, Equipos, control IR nuevo sin escribir nombre (aprender, probar, 👍), control RF (dos botones, Probar, Diseñar), ficha del símbolo y módulo Control. Falla ante el primer callejón sin salida; las capturas quedan en `.work/walk/shots`.
+
+Es el criterio de cierre de cada lote del rediseño, además de las pruebas de navegador.
+
 Detalles útiles: el script renueva el token en cada ejecución. Detener HA de forma ordenada evita perder el almacén de autenticación. En HA 2026.10, con un puerto no predeterminado, aparece un diálogo de confirmación HTTP que el script acepta.
 
 **Windows nativo** (sólo para desarrollo; HA no lo soporta oficialmente). Hace falta, en el entorno virtual y nunca en el repositorio:

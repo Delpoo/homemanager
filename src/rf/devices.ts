@@ -3,35 +3,52 @@ import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents } from '../ui/panel-components.js';
 import { uiIcon } from '../ui/components.js';
 import { rfDeviceStyles, rfText } from '../ui/rf-components.js';
+import { iconButton, sidePanelStyles } from '../ui/side-panel.js';
 import { rf, type RfDevice, type RfDevices } from '../integration/rf.js';
+import { remotes, type IrDevice } from '../integration/remotes.js';
+import { equipmentOf, builderPath, type Equipment } from './equipment.js';
 
-/** RF devices: every ESPHome device, whether it has the HomeManager RF
- * package, and how to add it. HomeManager does not edit ESPHome YAML (ESPHome
- * Builder owns it); it shows the exact lines with a Copy button and opens
- * ESPHome Builder when Supervisor runs it. A device with the package can be
- * the default receiver and can be checked by listening for a few seconds. */
+/** Devices (0.13): every ESPHome board once, with what it does for remotes (RF
+ * and IR), as icons. Boards that do neither (an energy meter) and boards that are
+ * not connected go in their own closed groups. HomeManager does not edit ESPHome
+ * YAML (ESPHome Builder owns it): it shows where each line goes, with Copy, and
+ * opens ESPHome Builder. Adding or removing a board happens in Home Assistant,
+ * one tap away. */
 
 const PROBE_SECONDS = 15;
+/** Home Assistant's own pages. */
+const ADD_ESPHOME = '/config/integrations/dashboard/add?domain=esphome';
+const devicePage = (id: string) => `/config/devices/device/${encodeURIComponent(id)}`;
 
-/** The lines to add to a device's YAML. Athom's RF IR Remote names its 433 MHz
+/** The lines to add, per section. Athom's RF IR Remote names its 433 MHz
  * components rf_transmitter and rf_receiver; other boards use their own ids. */
-export function packageYaml(device: Pick<RfDevice, 'manufacturer' | 'model'>, reference: string): string {
+export function packageSections(
+  device: Pick<RfDevice, 'manufacturer' | 'model'>,
+  reference: string,
+): { section: string; lines: string[] }[] {
   const athom = /athom/i.test(`${device.manufacturer ?? ''} ${device.model ?? ''}`);
   const note = athom ? '' : `   # ${t('cambiá por el id de tu componente')}`;
   return [
-    'substitutions:',
-    `  hm_rf_transmitter: rf_transmitter${note}`,
-    `  hm_rf_receiver: rf_receiver${note}`,
-    '',
-    'packages:',
-    `  homemanager_rf: ${reference}`,
-  ].join('\n');
+    {
+      section: 'substitutions:',
+      lines: [`  hm_rf_transmitter: rf_transmitter${note}`, `  hm_rf_receiver: rf_receiver${note}`],
+    },
+    { section: 'packages:', lines: [`  homemanager_rf: ${reference}`] },
+  ];
+}
+
+/** Everything at once, for a file that has neither section. */
+export function packageYaml(device: Pick<RfDevice, 'manufacturer' | 'model'>, reference: string): string {
+  return packageSections(device, reference)
+    .map(part => [part.section, ...part.lines].join('\n'))
+    .join('\n\n');
 }
 
 export class HomeManagerRfDevices extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
   private data: RfDevices | null = null;
+  private ir: { receivers: IrDevice[]; emitters: IrDevice[] } = { receivers: [], emitters: [] };
   private open = new Set<string>();
   private probe: { id: string; text: string; stop: (() => void) | null } | null = null;
   private message = '';
@@ -41,7 +58,7 @@ export class HomeManagerRfDevices extends HTMLElement {
 
   constructor() {
     super();
-    installPanelComponents(this.root, 'rf-devices', rfDeviceStyles, false);
+    installPanelComponents(this.root, 'rf-devices', sidePanelStyles + rfDeviceStyles, false);
   }
 
   set hass(hass: Hass) {
@@ -59,7 +76,12 @@ export class HomeManagerRfDevices extends HTMLElement {
   async load(): Promise<void> {
     if (!this._hass) return;
     try {
-      this.data = await rf.devices(this._hass);
+      const [devices, ir] = await Promise.all([
+        rf.devices(this._hass),
+        remotes.devices(this._hass).catch(() => ({ receivers: [], emitters: [] })),
+      ]);
+      this.data = devices;
+      this.ir = ir;
       this.failed = false;
     } catch (error) {
       this.failed = true;
@@ -70,6 +92,11 @@ export class HomeManagerRfDevices extends HTMLElement {
     this.render();
   }
 
+  private builder(): string | null {
+    const panels = (this._hass as unknown as { panels?: Parameters<typeof builderPath>[0] })?.panels;
+    return builderPath(panels, this.data?.builder_url ?? null);
+  }
+
   private render(): void {
     const data = this.data;
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
@@ -77,40 +104,100 @@ export class HomeManagerRfDevices extends HTMLElement {
       this.root.innerHTML = `<div class="wrap"><p>${e(t('Cargando…'))}</p>${status}</div>`;
       return;
     }
-    const intro = `<p class="muted">${e(t('Un equipo RF es un dispositivo ESPHome con transmisor y receptor de 433 MHz, como el Athom RF IR Remote. HomeManager lo usa cuando tiene el paquete HomeManager RF.'))}</p>`;
-    const list = data.devices.length
-      ? data.devices.map(device => this.renderDevice(device, data)).join('')
-      : `<p>${e(t('No hay dispositivos ESPHome en Home Assistant. Agregá tu equipo RF desde Ajustes → Dispositivos y servicios → ESPHome.'))}</p>`;
-    this.root.innerHTML = `<div class="wrap">${intro}${list}<div class="row"><button type="button" data-command="refresh">${e(t('Actualizar'))}</button></div>${status}</div>`;
+    const builder = this.builder();
+    const tools = `<div class="dtools">${iconButton(t('Agregar equipo ESPHome'), 'mdi:plus', `data-go="${e(ADD_ESPHOME)}"`)}${builder ? iconButton(t('Abrir ESPHome Builder'), 'mdi:code-braces-box', `data-go="${e(builder)}"`) : ''}<span class="grow"></span>${iconButton(t('Actualizar'), 'mdi:refresh', 'data-command="refresh"')}</div>`;
+    const all = equipmentOf(data.devices, [], this.ir.receivers, this.ir.emitters);
+    const group = (name: Equipment['group']) => all.filter(item => item.group === name);
+    const cards = (items: Equipment[]) => items.map(item => this.renderDevice(item, data)).join('');
+    const closed = (name: Equipment['group'], title: string, glyph: string) => {
+      const items = group(name);
+      return items.length
+        ? `<details class="dgroup" data-group="${name}"><summary>${uiIcon(glyph)}<span>${e(title)}</span><b>${items.length}</b></summary><div class="dlist">${cards(items)}</div></details>`
+        : '';
+    };
+    const main = group('remote');
+    const list = all.length
+      ? `${main.length ? `<div class="dlist">${cards(main)}</div>` : `<p class="muted">${e(t('Ningún equipo envía ni escucha controles todavía.'))}</p>`}${closed('other', t('Otros equipos ESPHome'), 'mdi:chip')}${closed('offline', t('Sin conexión'), 'mdi:lan-disconnect')}`
+      : `<div class="empty-state">${uiIcon('mdi:chip')}<span>${e(t('No hay equipos ESPHome en Home Assistant.'))}</span><button type="button" class="next" data-go="${e(ADD_ESPHOME)}">${uiIcon('mdi:plus')}${e(t('Agregar equipo ESPHome'))}</button></div>`;
+    this.root.innerHTML = `<div class="wrap">${tools}${list}${status}</div>`;
+    // A group with an open card stays open.
+    for (const details of this.root.querySelectorAll<HTMLDetailsElement>('details.dgroup'))
+      if (details.querySelector('.steps')) details.open = true;
     this.bind();
   }
 
-  private renderDevice(device: RfDevice, data: RfDevices): string {
-    const id = e(device.id);
-    const badge = !device.online
-      ? `<span class="badge off">${e(t('Desconectado'))}</span>`
-      : device.has_package
-        ? `<span class="badge ok">✓ ${e(t('Listo'))}</span>`
-        : `<span class="badge">${e(t('Falta el paquete'))}</span>`;
-    const model = [device.manufacturer, device.model].filter(Boolean).join(' · ');
-    const isDefault = data.default_receiver === device.id;
-    const actions = device.has_package
-      ? `<div class="row">${device.can_capture ? `<button type="button" data-probe="${id}">${e(t('Probar recepción'))}</button><details class="device-options"><summary aria-label="${e(t('Más opciones'))}">⋮</summary><div class="device-options-body"><button type="button" data-default="${id}" aria-pressed="${isDefault}">${e(isDefault ? t('Receptor por defecto') : t('Usar para aprender'))}</button><button type="button" data-toggle="${id}" aria-expanded="${this.open.has(device.id)}">${e(t('Ver YAML'))}</button></div></details>` : `<button type="button" data-toggle="${id}" aria-expanded="${this.open.has(device.id)}">${e(t('Ver YAML'))}</button>`}</div>`
-      : `<div class="row"><button type="button" data-toggle="${id}" aria-expanded="${this.open.has(device.id)}">${e(t('Cómo agregarlo'))}</button></div>`;
-    const probe = this.probe?.id === device.id ? `<p class="probe" role="status">${e(this.probe.text)}</p>` : '';
-    const yaml = packageYaml(device, data.package);
-    const builder = data.builder_url
-      ? `<a class="link" href="${e(data.builder_url)}" target="_top">${e(t('Abrir ESPHome Builder'))}</a>`
-      : e(t('Abrí ESPHome Builder (la app ESPHome de Home Assistant).'));
-    const steps = this.open.has(device.id)
-      ? `<ol><li>${builder}</li><li>${e(t('En {name}, tocá Edit y agregá estas líneas. Si esas secciones ya existen, agregá sólo las líneas de adentro.', { name: rfText(device.name) }))}<pre data-yaml="${id}">${e(yaml)}</pre><div class="row"><button type="button" data-copy="${id}">${e(t('Copiar'))}</button></div></li><li>${e(t('Save → Install → Wirelessly. Cuando termine, tocá Actualizar.'))}</li></ol>`
-      : '';
-    return `<div class="device" data-device="${id}"><div class="top">${uiIcon('mdi:chip')}<div class="info"><div class="name">${e(rfText(device.name))}</div>${model ? `<div class="muted">${e(rfText(model))}</div>` : ''}</div>${badge}</div>${actions}${probe}${steps}</div>`;
+  private renderDevice(item: Equipment, data: RfDevices): string {
+    const id = e(item.key);
+    const device = item.rf;
+    const model = device ? [device.manufacturer, device.model].filter(Boolean).join(' · ') : '';
+    const cap = (on: boolean, glyph: string, label: string, title: string) =>
+      `<span class="cap${on ? ' on' : ''}" title="${e(title)}">${uiIcon(glyph)}<span>${e(label)}</span></span>`;
+    const caps = [
+      item.rfReady ? cap(true, 'mdi:access-point', 'RF', item.rfListens ? t('Envía y escucha RF') : t('Envía RF')) : '',
+      item.irEmitter || item.irReceiver
+        ? cap(
+            true,
+            'mdi:remote-tv',
+            'IR',
+            item.irEmitter && item.irReceiver
+              ? t('Envía y escucha IR')
+              : item.irEmitter
+                ? t('Envía IR')
+                : t('Escucha IR'),
+          )
+        : '',
+    ].join('');
+    const isDefault = data.default_receiver === item.key;
+    const acts = [
+      item.rfListens ? iconButton(t('Probar recepción RF'), 'mdi:ear-hearing', `data-probe="${id}"`) : '',
+      item.rfListens
+        ? iconButton(
+            isDefault ? t('Receptor RF por defecto') : t('Usar para aprender RF'),
+            isDefault ? 'mdi:star' : 'mdi:star-outline',
+            `data-default="${id}" aria-pressed="${isDefault}"`,
+          )
+        : '',
+      device && item.online
+        ? iconButton(
+            item.rfReady ? t('Líneas de RF en ESPHome') : t('Agregar RF a este equipo'),
+            item.rfReady ? 'mdi:code-tags' : 'mdi:access-point-plus',
+            `data-toggle="${id}" aria-expanded="${this.open.has(item.key)}"`,
+          )
+        : '',
+      item.deviceId
+        ? iconButton(
+            item.online ? t('Abrir en Home Assistant') : t('Abrir en Home Assistant para quitarlo'),
+            item.online ? 'mdi:open-in-new' : 'mdi:delete-outline',
+            `data-go="${e(devicePage(item.deviceId))}"`,
+          )
+        : '',
+    ].join('');
+    const dot = `<span class="dot ${item.online ? 'ok' : 'alert'}" title="${e(item.online ? t('En línea') : t('Sin conexión'))}"></span>`;
+    const probe = this.probe?.id === item.key ? `<p class="probe" role="status">${e(this.probe.text)}</p>` : '';
+    const steps = device && this.open.has(item.key) ? this.steps(item, device, data) : '';
+    return `<div class="device" data-device="${id}"><div class="top">${uiIcon('mdi:chip')}<div class="info"><div class="name">${e(rfText(item.name))}</div>${model ? `<div class="muted">${e(rfText(model))}</div>` : ''}</div>${dot}</div>${caps || acts ? `<div class="drow"><div class="caps">${caps}</div><div class="acts">${acts}</div></div>` : ''}${probe}${steps}</div>`;
+  }
+
+  /** Where each line goes: the section title (grey, already in the file) and the
+   * lines to add under it (green). One Copy per section, plus the whole block for a
+   * file that has neither section. */
+  private steps(item: Equipment, device: RfDevice, data: RfDevices): string {
+    const id = e(item.key);
+    const builder = this.builder();
+    const sections = packageSections(device, data.package)
+      .map(
+        (part, index) =>
+          `<figure class="yaml"><pre data-yaml="${id}:${index}"><span class="ctx">${e(part.section)}</span>\n<span class="ctx">  …</span>\n${part.lines.map(line => `<span class="add">${e(line)}</span>`).join('\n')}</pre><button type="button" class="copy" data-copy="${id}" data-part="${index}">${uiIcon('mdi:content-copy')}${e(part.lines.length === 1 ? t('Copiar la línea') : t('Copiar {n} líneas', { n: part.lines.length }))}</button></figure>`,
+      )
+      .join('');
+    return `<ol class="steps"><li><span class="n">1</span><div>${builder ? `<button type="button" class="link" data-go="${e(builder)}">${uiIcon('mdi:code-braces-box')}${e(t('Abrir ESPHome Builder'))}</button>` : e(t('Abrí ESPHome Builder (la app ESPHome de Home Assistant).'))} → <b>${e(rfText(item.name))}</b> → EDIT</div></li><li><span class="n">2</span><div><p>${e(t('Buscá cada sección y pegá las líneas verdes debajo de lo que ya tiene. No borres nada ni repitas la sección.'))}</p>${sections}<details class="nosec"><summary>${e(t('¿El archivo no tiene esas secciones?'))}</summary><p>${e(t('Pegá todo esto al final del archivo:'))}</p><pre data-yaml="${id}">${e(packageYaml(device, data.package))}</pre><button type="button" class="copy" data-copy="${id}" data-part="all">${uiIcon('mdi:content-copy')}${e(t('Copiar todo'))}</button></details></div></li><li><span class="n">3</span><div>SAVE → INSTALL → Wirelessly → ${iconButton(t('Actualizar'), 'mdi:refresh', 'data-command="refresh"')}</div></li></ol>`;
   }
 
   private bind(): void {
     const root = this.root;
-    root.querySelector('[data-command=refresh]')?.addEventListener('click', () => void this.load());
+    root
+      .querySelectorAll('[data-command=refresh]')
+      .forEach(button => button.addEventListener('click', () => void this.load()));
     root.querySelectorAll<HTMLButtonElement>('[data-toggle]').forEach(button =>
       button.addEventListener('click', () => {
         const id = button.dataset.toggle!;
@@ -120,28 +207,47 @@ export class HomeManagerRfDevices extends HTMLElement {
     );
     root
       .querySelectorAll<HTMLButtonElement>('[data-copy]')
-      .forEach(button => button.addEventListener('click', () => void this.copy(button.dataset.copy!)));
+      .forEach(button =>
+        button.addEventListener('click', () => void this.copy(button.dataset.copy!, button.dataset.part!, button)),
+      );
     root
       .querySelectorAll<HTMLButtonElement>('[data-default]')
       .forEach(button => button.addEventListener('click', () => void this.setDefault(button.dataset.default!)));
     root
       .querySelectorAll<HTMLButtonElement>('[data-probe]')
       .forEach(button => button.addEventListener('click', () => void this.startProbe(button.dataset.probe!)));
+    root
+      .querySelectorAll<HTMLElement>('[data-go]')
+      .forEach(button => button.addEventListener('click', () => this.go(button.dataset.go!)));
   }
 
-  private async copy(id: string): Promise<void> {
-    const block = this.root.querySelector<HTMLElement>(`[data-yaml="${CSS.escape(id)}"]`);
-    if (!block) return;
+  /** A Home Assistant page: navigate inside the app, without reloading it. */
+  private go(path: string): void {
+    this.endProbe();
+    history.pushState(null, '', path);
+    window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
+  }
+
+  private async copy(id: string, part: string, button: HTMLElement): Promise<void> {
+    const device = this.data?.devices.find(item => item.id === id);
+    if (!device || !this.data) return;
+    const text =
+      part === 'all'
+        ? packageYaml(device, this.data.package)
+        : (packageSections(device, this.data.package)[Number(part)]?.lines.join('\n') ?? '');
     try {
-      await navigator.clipboard.writeText(block.textContent ?? '');
+      await navigator.clipboard.writeText(text);
       this.message = t('Copiado.');
     } catch {
       // Without clipboard access (plain http), select it for Ctrl+C.
-      const range = document.createRange();
-      range.selectNodeContents(block);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
+      const block = button.closest('figure, details')?.querySelector('pre');
+      if (block) {
+        const range = document.createRange();
+        range.selectNodeContents(block);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
       this.message = t('Seleccionado: copialo con Ctrl+C.');
     }
     this.failed = false;
