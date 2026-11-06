@@ -332,63 +332,8 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
       entityId && this._hass?.states[entityId]?.attributes?.homemanager_remote
         ? isOn => (this._hass ? rf.assume(this._hass, entityId, isOn) : Promise.resolve(null))
         : undefined,
-    rfRemote:
-      remoteId && this._hass
-        ? {
-            load: async () => (await rf.library(this._hass!)).remotes.find(remote => remote.id === remoteId),
-            press: async buttonId => {
-              if (this.editing) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
-              const token = this.feed.prepareCommand(
-                id,
-                `remote-${buttonId}`,
-                this._hass,
-                Date.now(),
-                buttonId,
-                entityId ?? undefined,
-              );
-              try {
-                const result = await rf.press(this._hass!, remoteId, buttonId);
-                this.feed.noteCommandResult(token, { ok: true }, Date.now());
-                this.updateShell();
-                return result;
-              } catch (error) {
-                this.feed.noteCommandResult(token, { ok: false }, Date.now());
-                this.updateShell();
-                throw error;
-              }
-            },
-          }
-        : undefined,
-    irRemote:
-      irRemoteId && this._hass
-        ? {
-            load: async () => {
-              const remote = (await remotes.library(this._hass!)).find(item => item.id === irRemoteId);
-              return remote ? drawIr(remote) : undefined;
-            },
-            press: async buttonId => {
-              if (this.editing || !this._hass) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
-              const token = this.feed.prepareCommand(
-                id,
-                `ir-remote-${buttonId}`,
-                this._hass,
-                Date.now(),
-                buttonId,
-                entityId ?? undefined,
-              );
-              try {
-                const result = await remotes.press(this._hass, irRemoteId, buttonId);
-                this.feed.noteCommandResult(token, { ok: true }, Date.now());
-                return result;
-              } catch (error) {
-                this.feed.noteCommandResult(token, { ok: false }, Date.now());
-                throw error;
-              } finally {
-                this.updateShell();
-              }
-            },
-          }
-        : undefined,
+    rfRemote: rfRemoteSource.call(this, d),
+    irRemote: irRemoteSource.call(this, d),
     controls: controlsOf(d),
     controlHost: this.controlHost(d),
     heldOpen: held,
@@ -398,4 +343,75 @@ export function showDetails(this: HomeManagerCard, id: string, returnFocus: HTML
       ? { dock: this.root.querySelector<HTMLElement>('.workspace') ?? undefined }
       : {}),
   });
+}
+
+/** What sends the buttons of a device's RF remote, shared by its panel and by the
+ * pieces attached to its symbol (0.13). */
+export function rfRemoteSource(this: HomeManagerCard, d: Device) {
+  const id = d.id;
+  const entityId = d.bindings.entityId;
+  const remoteId = this.remoteOf(d);
+  return remoteId && this._hass
+    ? {
+        load: async () => (await rf.library(this._hass!)).remotes.find(remote => remote.id === remoteId),
+        press: async (buttonId: string) => {
+          if (this.editing) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
+          const token = this.feed.prepareCommand(
+            id,
+            `remote-${buttonId}`,
+            this._hass,
+            Date.now(),
+            buttonId,
+            entityId ?? undefined,
+          );
+          try {
+            const result = await rf.press(this._hass!, remoteId, buttonId);
+            this.feed.noteCommandResult(token, { ok: true }, Date.now());
+            this.updateShell();
+            return result;
+          } catch (error) {
+            this.feed.noteCommandResult(token, { ok: false }, Date.now());
+            this.updateShell();
+            throw error;
+          }
+        },
+      }
+    : undefined;
+}
+
+/** The same for its infrared remote. */
+export function irRemoteSource(this: HomeManagerCard, d: Device) {
+  const id = d.id;
+  const entityId = d.bindings.entityId;
+  const fromIrEntity = entityId ? this._hass?.states[entityId]?.attributes?.homemanager_ir_remote : undefined;
+  const irRemoteId = d.bindings.irRemoteId ?? (typeof fromIrEntity === 'string' ? fromIrEntity : null);
+  return irRemoteId && this._hass
+    ? {
+        load: async () => {
+          const remote = (await remotes.library(this._hass!)).find(item => item.id === irRemoteId);
+          return remote ? drawIr(remote) : undefined;
+        },
+        press: async (buttonId: string) => {
+          if (this.editing || !this._hass) throw new Error(t('Salí del modo edición para controlar dispositivos.'));
+          const token = this.feed.prepareCommand(
+            id,
+            `ir-remote-${buttonId}`,
+            this._hass,
+            Date.now(),
+            buttonId,
+            entityId ?? undefined,
+          );
+          try {
+            const result = await remotes.press(this._hass, irRemoteId, buttonId);
+            this.feed.noteCommandResult(token, { ok: true }, Date.now());
+            return result;
+          } catch (error) {
+            this.feed.noteCommandResult(token, { ok: false }, Date.now());
+            throw error;
+          } finally {
+            this.updateShell();
+          }
+        },
+      }
+    : undefined;
 }

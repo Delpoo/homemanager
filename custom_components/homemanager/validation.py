@@ -403,9 +403,55 @@ def _controls(bindings: dict[str, Any], display: dict[str, Any]) -> None:
                 _fail()
         else:
             _gesture_action(binding, True)
+    if "attached" in display:
+        _attached(display["attached"])
     if "pinned" in display:
         pinned = display["pinned"]
         if not isinstance(pinned, list) or len(pinned) > MAX_PINNED or len(set(map(str, pinned))) != len(pinned) or any(not isinstance(item, str) or item not in types for item in pinned):
+            _fail()
+
+
+MAX_ATTACHED = 6
+
+
+def _attached(items: Any) -> None:
+    """0.13: pieces of the device's control drawn next to its symbol (see validation.mjs)."""
+    if not isinstance(items, list) or len(items) > MAX_ATTACHED:
+        _fail()
+    ids = set()
+
+    def between(value: Any, low: int, high: int) -> bool:
+        return type(value) is int and low <= value <= high
+
+    for item in items:
+        _fields(item, {"id", "piece", "dx", "dy", "w", "h"}, {"locked", "fixedSize", "look"})
+        for key in ("id", "piece"):
+            if not isinstance(item[key], str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", item[key]) or item[key] in UNSAFE:
+                _fail()
+        if item["id"] in ids:
+            _fail()
+        ids.add(item["id"])
+        if not between(item["dx"], -600, 600) or not between(item["dy"], -600, 600) or not between(item["w"], 24, 480) or not between(item["h"], 20, 320):
+            _fail()
+        for key in ("locked", "fixedSize"):
+            if key in item and item[key] is not True:
+                _fail()
+        if "look" not in item:
+            continue
+        look = item["look"]
+        _fields(look, set(), {"fontSize", "valueSize", "bg", "fg", "radius", "relief", "opacity"})
+        if "fontSize" in look and not between(look["fontSize"], 8, 40):
+            _fail()
+        if "valueSize" in look and not between(look["valueSize"], 12, 40):
+            _fail()
+        for key in ("bg", "fg"):
+            if key in look and (not isinstance(look[key], str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", look[key])):
+                _fail()
+        if "radius" in look and not between(look["radius"], 0, 60) and not (type(look["radius"]) is int and look["radius"] == 999):
+            _fail()
+        if "relief" in look and look["relief"] not in ("raised", "flat", "outline"):
+            _fail()
+        if "opacity" in look and not between(look["opacity"], 30, 100):
             _fail()
 
 
@@ -488,7 +534,7 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
         for value in device["position"].values():
             _number(value, 0, 1)
         display = device["display"]
-        _fields(display, {"label", "icon"}, {"size", "pinned", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone", "indicators"})
+        _fields(display, {"label", "icon"}, {"size", "pinned", "attached", "archetype", "show", "category", "alerts", "highlight", "modules", "layer", "disabledBaseRules", "color", "values", "valuePlace", "scale", "roomScale", "opacity", "shape", "standalone", "indicators"})
         _symbol_look(display)
         _text(display["label"])
         _text(display["icon"])

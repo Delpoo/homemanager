@@ -219,6 +219,15 @@ export function mountEditor(this: HomeManagerCard) {
     this.fixedPermit = (event as CustomEvent<{ deviceId: string }>).detail.deviceId;
     this.renderMarkers();
   });
+  this.editor.addEventListener('homemanager-attached-preview', (event: Event) => {
+    const { device, item } = (event as CustomEvent).detail;
+    this.previewAttached(device, item);
+  });
+  this.editor.addEventListener('homemanager-attached-choose', (event: Event) => {
+    const att = (event as CustomEvent<string | undefined>).detail;
+    this.attachedChosen = att && this.selected ? { device: this.selected, att } : undefined;
+    this.renderMarkers();
+  });
   this.editor.addEventListener('homemanager-editor-close', () => {
     commitPreview(this);
     if (this.configuring) {

@@ -34,7 +34,11 @@ import {
   type NativePanel,
 } from '../card/types.js';
 import { rf, type RfRemote } from '../integration/rf.js';
-import { remotes as remoteLibrary, type IrRemote } from '../integration/remotes.js';
+import { remotes as remoteLibrary, drawIr, type IrRemote } from '../integration/remotes.js';
+import { layoutOf } from '../rf/layout.js';
+import { attachedBody, attachedEditorStyles, changeAttached, newAttached } from './attached-editor.js';
+import type { AttachedPiece } from '../model/control-layout.js';
+import type { RfWidget } from '../integration/rf.js';
 import { serviceLabel, suggestControls } from '../card/device-controls.js';
 import {
   moveRoom,
@@ -163,7 +167,7 @@ import {
 } from './controls-editor.js';
 export * from './model.js';
 
-const cssBase = `${tokens}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
+const cssBase = `${tokens}${attachedEditorStyles}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
@@ -334,6 +338,15 @@ export class HomeManagerEditor extends HTMLElement {
     this.root.addEventListener('pointerdown', event => this.dragRoom(event as PointerEvent));
     this.root.addEventListener('homemanager-storage-share', event => {
       this.storageShare = (event as CustomEvent<number>).detail;
+    });
+    this.root.addEventListener('input', event => {
+      const target = event.target as HTMLInputElement;
+      if (target.dataset.attNum) this.attachedInput(target, false);
+    });
+    this.root.addEventListener('change', event => {
+      const target = event.target as HTMLInputElement;
+      if (target.dataset.attNum || target.dataset.attColor || target.hasAttribute('data-att-grow'))
+        this.attachedInput(target, true);
     });
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
@@ -641,6 +654,86 @@ export class HomeManagerEditor extends HTMLElement {
 
   /** Next to the symbol › what the device can do, one tap from a shortcut (#96). */
   private shortcutsBody(device?: Device): string {
+    return this.shortcutsList(device) + (device ? this.attachedBlock(device) : '');
+  }
+  // 0.13: pieces of the control pinned next to the symbol ------------------
+  private attachedChosen?: string;
+  private attachedAdding = false;
+  /** The card chose a piece on the plan: its numbers show here. */
+  chooseAttached(id: string): void {
+    const open = this.root.querySelector<HTMLDetailsElement>('details#module-pinned')?.open;
+    if (this.attachedChosen === id && open) return;
+    this.attachedChosen = id;
+    this.attachedAdding = false;
+    // Its numbers are in "Next to the symbol": that page opens.
+    this.openSections.add('module-pinned');
+    this.render();
+    requestAnimationFrame(() => this.openSection('module-pinned'));
+  }
+  /** While a piece is dragged on the plan, the same numbers move here. */
+  showAttachedNumbers(item: AttachedPiece): void {
+    for (const key of ['w', 'h'] as const) {
+      const input = this.root.querySelector<HTMLInputElement>(`[data-att-num="${key}"]`);
+      const output = this.root.querySelector<HTMLElement>(`[data-att-out="${key}"]`);
+      if (input) input.value = String(item[key]);
+      if (output) output.textContent = String(item[key]);
+    }
+  }
+  /** The control whose pieces can be pinned: its RF remote, its IR remote or its own design. */
+  private attachable(device: Device): { pieces: RfWidget[]; buttons: { id: string; name: string }[] } {
+    const entity = device.bindings.entityId ? this._hass?.states[device.bindings.entityId] : undefined;
+    const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
+    const rfId = device.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
+    const fromIr = entity?.attributes?.homemanager_ir_remote;
+    const irId = device.bindings.irRemoteId ?? (typeof fromIr === 'string' ? fromIr : null);
+    const rfRemote = rfId ? this.remotes.find(item => item.id === rfId) : undefined;
+    const irRemote = !rfRemote && irId ? this.irRemotes?.find(item => item.id === irId) : undefined;
+    const remote = rfRemote ?? (irRemote ? drawIr(irRemote) : designRemote(device, this.configuration));
+    return {
+      pieces: layoutOf(remote).filter(piece => !['canvas', 'separator'].includes(piece.type)),
+      buttons: remote.buttons,
+    };
+  }
+  private attachedBlock(device: Device): string {
+    const { pieces, buttons } = this.attachable(device);
+    const attached = device.display.attached ?? [];
+    if (!attached.some(item => item.id === this.attachedChosen)) this.attachedChosen = attached[0]?.id;
+    return attachedBody({ attached, pieces, buttons, chosen: this.attachedChosen, adding: this.attachedAdding });
+  }
+  /** One change of a pinned piece, saved in the draft (one undo step). */
+  private editAttached(change: (list: AttachedPiece[]) => AttachedPiece[]): void {
+    const device = this.device();
+    if (!device || !this.flushDevice()) return;
+    const next = clone(this.configuration);
+    const d = next.catalog.devices.find(item => item.id === device.id)!;
+    const list = change(structuredClone(d.display.attached ?? []));
+    if (list.length) d.display.attached = list;
+    else delete d.display.attached;
+    this.emit(next);
+    this.render();
+  }
+  private attachedInput(target: HTMLInputElement, commit: boolean): void {
+    const device = this.device();
+    const item = device?.display.attached?.find(entry => entry.id === this.attachedChosen);
+    if (!device || !item) return;
+    const key =
+      target.dataset.attNum ?? target.dataset.attColor ?? (target.hasAttribute('data-att-grow') ? 'grow' : '');
+    if (!key) return;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const next = changeAttached(item, key, value);
+    const output = this.root.querySelector<HTMLElement>(`[data-att-out="${key}"]`);
+    if (output) output.textContent = `${target.value}${key === 'opacity' ? '%' : ''}`;
+    if (commit) this.editAttached(list => list.map(entry => (entry.id === item.id ? next : entry)));
+    else
+      this.dispatchEvent(
+        new CustomEvent('homemanager-attached-preview', {
+          bubbles: true,
+          composed: true,
+          detail: { device: device.id, item: next },
+        }),
+      );
+  }
+  private shortcutsList(device?: Device): string {
     const actions = device ? deviceActions(device, this._hass) : [];
     const pinned = new Set(device?.display.pinned ?? []);
     const intro = `<p class="note">${esc(t('Hasta {count} atajos junto al símbolo. También se pueden armar en Control.', { count: MAX_SHORTCUTS }))}</p>`;
@@ -2375,6 +2468,63 @@ export class HomeManagerEditor extends HTMLElement {
           }
           break;
         }
+        case 'attached-add-open':
+          this.attachedAdding = !this.attachedAdding;
+          this.render();
+          break;
+        case 'attached-add': {
+          const device = this.device();
+          const piece = device && this.attachable(device).pieces.find(item => item.id === button.dataset.piece);
+          if (!piece) break;
+          this.attachedAdding = false;
+          this.editAttached(list => {
+            const item = newAttached(list, piece);
+            this.attachedChosen = item.id;
+            return [...list, item];
+          });
+          this.dispatchEvent(
+            new CustomEvent('homemanager-attached-choose', {
+              bubbles: true,
+              composed: true,
+              detail: this.attachedChosen,
+            }),
+          );
+          break;
+        }
+        case 'attached-pick':
+          this.attachedChosen = button.dataset.att;
+          this.render();
+          this.dispatchEvent(
+            new CustomEvent('homemanager-attached-choose', {
+              bubbles: true,
+              composed: true,
+              detail: this.attachedChosen,
+            }),
+          );
+          break;
+        case 'attached-lock':
+          this.editAttached(list =>
+            list.map(item => {
+              if (item.id !== button.dataset.att) return item;
+              const next = { ...item };
+              if (next.locked) delete next.locked;
+              else next.locked = true;
+              return next;
+            }),
+          );
+          break;
+        case 'attached-remove':
+          this.editAttached(list => list.filter(item => item.id !== button.dataset.att));
+          break;
+        case 'attached-set': {
+          const key = button.dataset.key!;
+          this.editAttached(list =>
+            list.map(item =>
+              item.id === this.attachedChosen ? changeAttached(item, key, button.dataset.value ?? '') : item,
+            ),
+          );
+          break;
+        }
         case 'module-add': {
           const id = button.dataset.moduleId as ModuleId;
           this.moduleUndo = modulesOf(this.moduleDevice(), this._hass);
@@ -2657,6 +2807,8 @@ export class HomeManagerEditor extends HTMLElement {
         icon: value(data, 'icon'),
         ...(held.size !== 'm' ? { size: held.size } : {}),
         ...(held.pinned.length ? { pinned: held.pinned } : {}),
+        // 0.13: pieces pinned on the plan are edited in their own block, never by this form.
+        ...(previous?.display.attached?.length ? { attached: structuredClone(previous.display.attached) } : {}),
         ...(previous?.display.archetype ? { archetype: previous.display.archetype } : {}),
         ...(value(data, 'show')
           ? { show: value(data, 'show') as NonNullable<Device['display']['show']> }

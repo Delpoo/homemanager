@@ -206,6 +206,7 @@ export function renderMarkers(this: HomeManagerCard) {
     )
     .join('');
   this.mountPins();
+  this.mountAttached();
   this.groupsKey = '';
   // New buttons must receive their current position before becoming interactive.
   this.refreshState();
@@ -291,6 +292,7 @@ export function positionMarkers(this: HomeManagerCard) {
     marker.style.left = `${point.x}px`;
     marker.style.top = `${point.y}px`;
   }
+  this.positionAttached();
   for (const cluster of overlay.querySelectorAll<HTMLElement>('.cluster')) {
     const ids = cluster.dataset.ids!.split(' ');
     const points = ids.map(id => this.screen(byId.get(id)!.position));

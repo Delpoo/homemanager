@@ -111,6 +111,7 @@ export function upsertDevice(
       icon: input.display.icon,
       ...(input.display.size && input.display.size !== 'm' ? { size: input.display.size } : {}),
       ...(input.display.pinned?.length ? { pinned: [...input.display.pinned] } : {}),
+      ...(input.display.attached?.length ? { attached: structuredClone(input.display.attached) } : {}),
       ...(input.display.archetype ? { archetype: input.display.archetype } : {}),
       ...(input.display.show ? { show: input.display.show } : {}),
       ...(input.display.category ? { category: input.display.category } : {}),
