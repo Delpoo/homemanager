@@ -258,3 +258,46 @@ export function readingValue(
   const value = piece.attribute ? entity?.attributes?.[piece.attribute] : entity?.state;
   return (typeof value === 'number' && Number.isFinite(value)) || typeof value === 'string' ? String(value) : '—';
 }
+
+/** 0.13: a piece of a device's control drawn next to its symbol on the plan, where it
+ * was dragged. Offsets and sizes are pixels at the symbol's own size; it grows with the
+ * symbol unless fixedSize. Its look can differ from the control's. */
+export interface AttachedPiece {
+  id: string;
+  /** The piece's id in the device's control layout (its remote or its own design). */
+  piece: string;
+  dx: number;
+  dy: number;
+  w: number;
+  h: number;
+  locked?: true;
+  fixedSize?: true;
+  look?: {
+    fontSize?: number;
+    valueSize?: number;
+    bg?: string;
+    fg?: string;
+    radius?: number;
+    relief?: 'raised' | 'flat' | 'outline';
+    /** Percent, 30 to 100. */
+    opacity?: number;
+  };
+}
+export const MAX_ATTACHED = 6;
+/** The piece as drawn on the plan: the control's piece with the attached look on top. */
+export function attachedLook(piece: ControlPiece, attached: AttachedPiece): ControlPiece {
+  const look = attached.look ?? {};
+  const merged: ControlPiece = { ...piece, x: 0, y: 0, w: 1, h: 1 };
+  if (look.fontSize) merged.fontSize = look.fontSize;
+  if (look.valueSize) merged.valueSize = look.valueSize;
+  if (look.bg) merged.bg = look.bg;
+  if (look.fg) merged.fg = look.fg;
+  if (look.radius !== undefined) {
+    merged.radius = look.radius;
+    delete merged.shape;
+  }
+  if (look.relief === 'raised') delete merged.relief;
+  else if (look.relief) merged.relief = look.relief;
+  // Pieces that stand upright keep standing upright; one cell holds the whole piece.
+  return merged;
+}

@@ -351,6 +351,11 @@ export function keyWidget(
 }
 
 export const remoteViewStyles = (row: number, gap: number) => `
+:host([bare]){height:100%}
+:host([bare]) .body{--rkey:var(--hm-surface);--rbody:transparent;max-width:none;height:100%;padding:0;border:0;box-shadow:none;background:transparent;border-radius:0}
+:host([bare]) .grid{height:100%;grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(0,1fr)}
+:host([bare]) .live{display:none}
+:host([bare]) .k.raised{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 6px rgba(0,0,0,.2),0 1px 1px rgba(0,0,0,.12)}
 :host{display:block}
 .body{container-type:inline-size;max-width:max(240px,calc(var(--cols,4) * (64px + var(--gap,10px)) - var(--gap,10px) + 36px));width:100%;margin:0 auto;padding:22px 18px 18px;box-sizing:border-box}
 .grid{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));grid-auto-rows:min(${row}px,calc((100cqi - (var(--cols,4) - 1) * var(--gap,${gap}px)) / var(--cols,4)));gap:var(--gap,${gap}px);position:relative}

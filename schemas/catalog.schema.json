@@ -608,6 +608,107 @@
                 }
               },
               "uniqueItems": true
+            },
+            "attached": {
+              "type": "array",
+              "maxItems": 6,
+              "$comment": "0.13: pieces of the device's control drawn next to its symbol; offsets and sizes in pixels at the symbol's size.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "piece",
+                  "dx",
+                  "dy",
+                  "w",
+                  "h"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+                  },
+                  "piece": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+                  },
+                  "dx": {
+                    "type": "integer",
+                    "minimum": -600,
+                    "maximum": 600
+                  },
+                  "dy": {
+                    "type": "integer",
+                    "minimum": -600,
+                    "maximum": 600
+                  },
+                  "w": {
+                    "type": "integer",
+                    "minimum": 24,
+                    "maximum": 480
+                  },
+                  "h": {
+                    "type": "integer",
+                    "minimum": 20,
+                    "maximum": 320
+                  },
+                  "locked": {
+                    "const": true
+                  },
+                  "fixedSize": {
+                    "const": true
+                  },
+                  "look": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "fontSize": {
+                        "type": "integer",
+                        "minimum": 8,
+                        "maximum": 40
+                      },
+                      "valueSize": {
+                        "type": "integer",
+                        "minimum": 12,
+                        "maximum": 40
+                      },
+                      "bg": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "fg": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "radius": {
+                        "oneOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          {
+                            "const": 999
+                          }
+                        ]
+                      },
+                      "relief": {
+                        "enum": [
+                          "raised",
+                          "flat",
+                          "outline"
+                        ]
+                      },
+                      "opacity": {
+                        "type": "integer",
+                        "minimum": 30,
+                        "maximum": 100
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },

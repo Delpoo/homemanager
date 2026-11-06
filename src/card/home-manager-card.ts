@@ -34,6 +34,7 @@ import { ActivityLog } from '../model/activity.js';
 import { updateShell } from '../shell/card-shell.js';
 import { RuntimeFeed } from '../shell/runtime-feed.js';
 import * as roomView from './room-view.js';
+import * as attached from './attached.js';
 import * as linkedPlan from './linked-plan.js';
 import * as zoneEditor from './zone-editor.js';
 import { showActivity, showAlerts } from '../shell/activity-view.js';
@@ -352,7 +353,7 @@ export class HomeManagerCard extends HTMLElement {
     const layers = layerView
       .layerItems()
       .filter(({ id }) => this.draft!.catalog.devices.some(d => layer(d, this._hass) === id));
-    this.root.innerHTML = `<style>${styles}${navMenuStyles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${fullscreenStyles}${configurationStyles}${moveGridStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
+    this.root.innerHTML = `<style>${styles}${navMenuStyles}${roomView.navStyles}${zoneEditor.zoneEditStyles}${linkedPlan.linkedPlanStyles}${fullscreenStyles}${configurationStyles}${moveGridStyles}${attached.attachedStyles}</style><section class="shell">${renderTopBar({ title: this.config.title ?? t('HomeManager'), admin: this._hass?.user?.is_admin === true, app: this.shellContext })}
       <div class="editor-wrap" hidden><div class="editbar"><span class="edit-title sr" role="status"><b>${e(t('Editando el plano'))}</b><span class="edit-count"></span></span>${iconButton('undo', t('Deshacer'), 'undo')}${iconButton('redo', t('Rehacer'), 'redo')}<span class="space"></span>${iconButton('discard', t('Descartar cambios'), 'discard')}${iconButton('save', t('Guardar cambios'), 'save', 'data-dirty="false"')}${iconButton('exit', t('Salir de edición'), 'close')}</div></div>
       ${renderRoomRail([])}
       <div class="workspace"><div class="viewport" tabindex="0" role="group" aria-label="${e(t('Plano interactivo'))}"><div class="architecture"></div><div class="overlay"></div><div class="empty" hidden>${e(t('Agregá una arquitectura SVG desde el editor.'))}</div><div class="placing-hint" hidden></div>${layerView.renderLayers(layers, this.enabledLayers)}<div class="nav-layer"></div><div class="zones-layer"></div><div class="linked-note" hidden></div>${roomView.navModesMarkup(this.navModes)}<div class="zoom">${layerView.iconButtonMarkup('in', t('Acercar'), 'mdi:plus')}${layerView.iconButtonMarkup('out', t('Alejar'), 'mdi:minus')}${layerView.iconButtonMarkup('room-view', t('Vista por espacio'), 'mdi:crop-free')}${layerView.iconButtonMarkup('home-view', t('Vista inicial'), 'mdi:home-outline')}</div><div class="edit-add" hidden>${fab('add-device', t('Agregar dispositivo'))}</div></div><homemanager-insights></homemanager-insights><div class="editor" hidden></div></div><div class="selection" hidden></div><div class="status" role="status" aria-live="polite"></div></section>`;
@@ -464,6 +465,12 @@ export class HomeManagerCard extends HTMLElement {
   /** Compact views of the controls pinned next to each symbol. */
   pins = new Map<string, ControlView[]>();
   mountPins: OmitThisParameter<typeof commands.mountPins> = commands.mountPins.bind(this);
+  /** 0.13: pieces of a device's control drawn next to its symbol. */
+  attachedChosen?: { device: string; att: string };
+  attachedPreview?: { device: string; att: string; item: import('../model/control-layout.js').AttachedPiece };
+  mountAttached: OmitThisParameter<typeof attached.mountAttached> = attached.mountAttached.bind(this);
+  positionAttached: OmitThisParameter<typeof attached.positionAttached> = attached.positionAttached.bind(this);
+  previewAttached: OmitThisParameter<typeof attached.previewAttached> = attached.previewAttached.bind(this);
   controlHost: OmitThisParameter<typeof commands.controlHost> = commands.controlHost.bind(this);
   /** The RF remote to draw in a device's panel: chosen in the editor, or the
    * remote behind an RF entity of HomeManager. */

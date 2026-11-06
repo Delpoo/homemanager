@@ -119,6 +119,8 @@ export interface Device {
     disabledBaseRules?: ('safety' | 'battery' | 'unavailable')[];
     /** Up to 3 controls drawn next to the symbol (V2, optional). */
     pinned?: string[];
+    /** 0.13: pieces of its control drawn next to the symbol. */
+    attached?: import('../model/control-layout.js').AttachedPiece[];
   };
   bindings: {
     entityId: string | null;

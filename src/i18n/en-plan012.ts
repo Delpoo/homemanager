@@ -693,4 +693,16 @@ export const enPlan012: Record<string, string> = {
   Asistente: 'Assistant',
   Radio: 'Radio',
   Podcasts: 'Podcasts',
+  // 0.13 pieces pinned next to the symbol.
+  Soltar: 'Unlock',
+  'Fijar en su lugar': 'Lock in place',
+  Elemento: 'Element',
+  'Ya no está en el control': 'No longer in the control',
+  'Elementos del control': 'Elements of the control',
+  'Pegar un elemento del control': 'Pin an element of the control',
+  'Como en el control': 'As in the control',
+  Opacidad: 'Opacity',
+  'Crece con el símbolo': 'Grows with the symbol',
+  'En el plano': 'On the plan',
+  'Quitar del plano': 'Remove from the plan',
 };

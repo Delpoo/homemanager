@@ -398,12 +398,48 @@ function controls(device, path) {
       gestureAction(binding, at, true);
     }
   }
+  if (Object.hasOwn(device.display, 'attached')) assertAttached(device.display.attached, `${path}.display.attached`);
   if (Object.hasOwn(device.display, 'pinned')) {
     const pinned = device.display.pinned;
     if (!Array.isArray(pinned) || pinned.length > MAX_PINNED || new Set(pinned).size !== pinned.length)
       invalid(`${path}.display.pinned`, `at most ${MAX_PINNED} distinct controls`);
     for (const item of pinned)
       if (!types.has(item)) invalid(`${path}.display.pinned`, 'must name controls of this device');
+  }
+}
+
+/** 0.13: pieces of the device's control drawn next to its symbol, where they were
+ * dragged, with their own size and look. Offsets and sizes are pixels at the
+ * symbol's own size; the piece is named by its id in the control's layout. */
+export const MAX_ATTACHED = 6;
+export function assertAttached(list, path) {
+  if (!Array.isArray(list) || list.length > MAX_ATTACHED) invalid(path, `at most ${MAX_ATTACHED} pieces`);
+  const ids = new Set();
+  const between = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
+  for (const item of list) {
+    fields(item, ['id', 'piece', 'dx', 'dy', 'w', 'h'], ['locked', 'fixedSize', 'look'], path);
+    for (const key of ['id', 'piece'])
+      if (typeof item[key] !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(item[key]) || UNSAFE.has(item[key]))
+        invalid(path, `invalid ${key}`);
+    if (ids.has(item.id)) invalid(path, 'ids must be unique');
+    ids.add(item.id);
+    if (!between(item.dx, -600, 600) || !between(item.dy, -600, 600)) invalid(path, 'invalid offset');
+    if (!between(item.w, 24, 480) || !between(item.h, 20, 320)) invalid(path, 'invalid size');
+    if (item.locked !== undefined && item.locked !== true) invalid(path, 'invalid locked');
+    if (item.fixedSize !== undefined && item.fixedSize !== true) invalid(path, 'invalid fixedSize');
+    if (item.look === undefined) continue;
+    const look = item.look;
+    fields(look, [], ['fontSize', 'valueSize', 'bg', 'fg', 'radius', 'relief', 'opacity'], path);
+    if (look.fontSize !== undefined && !between(look.fontSize, 8, 40)) invalid(path, 'invalid fontSize');
+    if (look.valueSize !== undefined && !between(look.valueSize, 12, 40)) invalid(path, 'invalid valueSize');
+    for (const key of ['bg', 'fg'])
+      if (look[key] !== undefined && (typeof look[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(look[key])))
+        invalid(path, `invalid ${key}`);
+    if (look.radius !== undefined && !between(look.radius, 0, 60) && look.radius !== 999)
+      invalid(path, 'invalid radius');
+    if (look.relief !== undefined && !['raised', 'flat', 'outline'].includes(look.relief))
+      invalid(path, 'invalid relief');
+    if (look.opacity !== undefined && !between(look.opacity, 30, 100)) invalid(path, 'invalid opacity');
   }
 }
 
@@ -503,6 +539,7 @@ function shape(configuration) {
       [
         'size',
         'pinned',
+        'attached',
         'archetype',
         'show',
         'category',
