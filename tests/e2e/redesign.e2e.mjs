@@ -166,7 +166,11 @@ try {
   await panel.locator('[data-add-type=reading]').click();
   await panel.locator('[data-field=readings]').selectOption('sensor.e2e_temperature');
   await expect(panel.locator('.w.sel .preview')).toContainText('22');
+  // The 0.13 notebook goes back to its index before closing Settings.
   await page.keyboard.press('Escape');
+  await expect(editor.locator('.settings-page[data-view=list]')).toBeVisible();
+  await editor.locator('homemanager-task-screen.settings-dialog .task-close').click();
+  await expect(editor.locator('homemanager-task-screen.settings-dialog')).toHaveCount(0);
   await card.getByRole('button', { name: /^(Guardar cambios|Save changes)$/ }).click();
   await expect(card.locator('.shell>.status')).toContainText(/Guardado en Home Assistant|Saved in Home Assistant/, {
     timeout: 30000,
