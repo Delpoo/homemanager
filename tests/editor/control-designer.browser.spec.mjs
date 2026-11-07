@@ -11,6 +11,37 @@ async function openDesigner(page, remote = ceiling()) {
   return { rf, designer: rf.locator('homemanager-control-designer') };
 }
 
+test('a pending designer save blocks fields until the next edit can be preserved', async ({ page }) => {
+  const { designer } = await openDesigner(page);
+  await designer.getByRole('button', { name: 'Escalones', exact: true }).click();
+  await expect(designer).toHaveAttribute('aria-busy', 'false');
+  await page.evaluate(() => {
+    const hass = window.testHarness.hass;
+    const original = hass.callWS.bind(hass);
+    let delayed = false;
+    hass.callWS = async message => {
+      if (message.type === 'homemanager/rf/layout/save' && !delayed) {
+        delayed = true;
+        await new Promise(resolve => {
+          window.releaseDesignerSave = resolve;
+        });
+      }
+      return original(message);
+    };
+  });
+  await designer.getByRole('button', { name: 'Uno por nivel', exact: true }).click();
+  await expect(designer).toHaveAttribute('aria-busy', 'true');
+  const maximum = designer.getByLabel('Hasta', { exact: true });
+  await expect(maximum).toBeDisabled();
+  const filling = maximum.fill('3');
+  await page.evaluate(() => window.releaseDesignerSave());
+  await filling;
+  await maximum.dispatchEvent('change');
+  await expect.poll(async () => (await last(page))?.values?.max).toBe(3);
+  await expect(designer).toHaveAttribute('aria-busy', 'false');
+  await expect(maximum).toBeEnabled();
+});
+
 test('the designer adds a level, chooses what it sends, styles it, undoes and tests it (0.13)', async ({ page }) => {
   const { rf, designer } = await openDesigner(page);
   const before = await page.evaluate(() => structuredClone(window.rfServer.library[0].buttons));
