@@ -468,7 +468,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         return;
       }
     } else target = Math.max(0, Math.min(Math.max(0, count - 1), value));
-    const refs = levelSends(piece, Math.max(0, current), target);
+    const refs = levelSends(piece, Math.max(0, current), target, op === 'inc' ? 1 : op === 'dec' ? -1 : undefined);
     if (current >= 0 && !refs.length) return;
     const name = count ? `${piece.label ?? ''} ${levelText(piece, target)}`.trim() : this.names(refs);
     if (await this.send(refs.length ? refs : piece.buttons.slice(0, 1), element, name)) {
