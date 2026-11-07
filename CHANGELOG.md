@@ -5,7 +5,7 @@
 Segunda parte del plan 0.13, con los arreglos de la prueba del propietario en Home Assistant.
 
 - **Configuración:** menú cuaderno con acceso a cada sección; abrir Controles mientras se edita cierra Configuración.
-- **Plano y espacios:** formas con puntos, unir, restar, intersecar y cortar; mover, escalar, girar y voltear, con deshacer y cancelar. Se siguen leyendo las formas y rectángulos anteriores.
+- **Plano y espacios:** formas con puntos, unir, restar, intersecar y cortar; mover, escalar, girar y voltear, con deshacer y cancelar. Se siguen leyendo las formas y rectángulos anteriores. Seleccionar un nombre o una fila conserva el foco para mover con las flechas y soltar con Escape.
 - **Diseñador de controles:** apariencia, niveles, modos, teclas de marca y bloques de dirección, números, reproducción y colores. Duplicar controles RF e IR conserva señales y diseño, con destino configurable.
 - **Piezas junto al símbolo:** colocar hasta seis piezas del control en el plano, moverlas, cambiar tamaño y apariencia, fijarlas y accionarlas fuera del modo edición.
 - **Equipos:** RF e IR de una misma placa se muestran juntos. Se mantienen el aprendizaje, la prueba y los destinos explícitos.

@@ -552,7 +552,11 @@ export function bindZoneEdit(this: HomeManagerCard): void {
           : [id];
       if (!double && edit.tool !== 'points') edit.tool = 'select';
       event.stopPropagation();
+      // The button is replaced below; its default pointer focus would land on a
+      // detached node and leave the editor's keyboard shortcuts without a target.
+      event.preventDefault();
       this.renderZoneEdit();
+      keepKeys(this);
       return;
     }
     const draw = target.closest('.zones-draw');

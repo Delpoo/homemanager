@@ -139,11 +139,16 @@ test('arrows move the chosen space; Escape lets go; the top menu waits until it 
   page,
 }) => {
   await openEditor(page);
-  await tapOnPlan(page, 0.72, 0.22);
-  const before = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
-  await page.keyboard.press('ArrowLeft');
-  const after = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
-  expect(after[0]).toBeLessThan(before[0]);
+  // Name and list buttons rebuild the editor as well: neither may drop its keyboard focus.
+  for (const selector of ['[data-zone-label=kitchen]', '[data-zone-item=kitchen]']) {
+    const target = card(page).locator(selector);
+    if (!(await target.isVisible())) continue;
+    await target.click();
+    const before = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
+    await page.keyboard.press('ArrowLeft');
+    const after = (await editing(page)).draft.zones.find(zone => zone.id === 'kitchen').geom[0][0];
+    expect(after[0]).toBeLessThan(before[0]);
+  }
   await page.keyboard.press('Escape');
   expect((await editing(page)).chosen).toEqual([]);
   await page.evaluate(() => {
