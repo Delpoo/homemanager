@@ -242,6 +242,7 @@ export class ControlDesigner extends HTMLElement {
     }
     const previous = structuredClone(this.remote.layout);
     this.busy = true;
+    this.reflectBusy();
     try {
       await this.options.save(layout);
       if (undo === 'undo') this.future.push(previous);
@@ -531,6 +532,16 @@ export class ControlDesigner extends HTMLElement {
 
   // Rendering ------------------------------------------------------------
 
+  /** Prevent another edit from being silently discarded while its predecessor saves. */
+  private reflectBusy(): void {
+    this.setAttribute('aria-busy', String(this.busy));
+    this.canvas.inert = this.busy;
+    if (this.busy)
+      this.root.querySelectorAll<HTMLInputElement>('input, select, textarea, button').forEach(control => {
+        control.disabled = true;
+      });
+  }
+
   private render(): void {
     if (!this.remote || !this.options) return;
     const scroll = this.root.querySelector('.insp-body')?.scrollTop ?? 0;
@@ -548,6 +559,7 @@ export class ControlDesigner extends HTMLElement {
     const body = this.root.querySelector('.insp-body');
     if (body) body.scrollTop = scroll;
     this.bind();
+    this.reflectBusy();
   }
 
   private resources(): string {
