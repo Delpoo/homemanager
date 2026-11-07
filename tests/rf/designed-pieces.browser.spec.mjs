@@ -40,6 +40,44 @@ test('the opened RF design displays the same live estimated reading as its desig
   await expect(remote.locator('[data-reading=value]')).toHaveText(/^24/);
   await expect(panel.locator('.additional-controls')).not.toHaveAttribute('open', '');
 });
+test('a level follows attribute changes even while the entity state stays the same', async ({ page }) => {
+  const rf = await setup(page, {
+    remotes: [
+      ceiling({
+        layout: [
+          {
+            id: 'level',
+            type: 'slider',
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 1,
+            buttons: ['v1', 'v2', 'v3'],
+            label: 'Nivel',
+            icon: null,
+            reading: 'sensor.synthetic_temperature',
+            attribute: 'level',
+            values: { min: 1, max: 3, step: 1 },
+          },
+        ],
+      }),
+    ],
+  });
+  await rf.locator('[data-open=techo]').click();
+  const track = rf.locator('homemanager-rf-remote [data-widget=level] .ktrack');
+  for (const level of [1, 3, 2]) {
+    await page.evaluate(level => {
+      const h = window.testHarness;
+      const entity = h.hass.states['sensor.synthetic_temperature'];
+      entity.attributes = { ...entity.attributes, level };
+      h.card.hass = { ...h.hass };
+      document.querySelector('homemanager-rf').hass = { ...h.hass };
+    }, level);
+    await expect(track).toHaveAttribute('aria-valuenow', String(level - 1));
+  }
+  expect(await calls(page, 'homemanager/rf/press')).toEqual([]);
+});
+
 test('a designed RF cycle advances after each send and a bar goes straight to the level tapped', async ({ page }) => {
   const base = { x: 0, h: 1, label: null, icon: null };
   const rf = await setup(page, {

@@ -9,7 +9,7 @@ Segunda parte del plan 0.13, con los arreglos de la prueba del propietario en Ho
 - **Diseñador de controles:** apariencia, niveles, modos, teclas de marca y bloques de dirección, números, reproducción y colores. Duplicar controles RF e IR conserva señales y diseño, con destino configurable.
 - **Piezas junto al símbolo:** colocar hasta seis piezas del control en el plano, moverlas, cambiar tamaño y apariencia, fijarlas y accionarlas fuera del modo edición.
 - **Equipos:** RF e IR de una misma placa se muestran juntos. Se mantienen el aprendizaje, la prueba y los destinos explícitos.
-- **Arreglos:** guardar la ficha y colocar piezas funciona con los formularios de Home Assistant; las piezas nuevas conservan sus proporciones; los niveles cíclicos envían en la dirección de la tecla pulsada.
+- **Arreglos:** guardar la ficha y colocar piezas funciona con los formularios de Home Assistant; las piezas nuevas conservan sus proporciones; los niveles cíclicos envían en la dirección de la tecla pulsada y las piezas siguen las lecturas que cambian sólo de atributo.
 
 Los campos nuevos son opcionales. Se conservan las funciones, acciones y datos anteriores; enviar RF/IR no confirma el estado físico. El paquete incluye el nuevo validador del diseñador. Antes de actualizar, conservar una copia completa de Home Assistant y una exportación del hogar. Las pruebas físicas RF/IR y en teléfono/tablet reales siguen pendientes.
 
