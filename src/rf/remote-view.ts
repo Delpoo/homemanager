@@ -534,7 +534,12 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     // Pieces that follow a reading (a switch, a level, a mode) are redrawn when it changes.
     const followed = this.layout().filter(piece => piece.reading && !['indicator', 'graph'].includes(piece.type));
-    const stamp = followed.map(piece => this.entity(piece)?.state ?? '').join('|');
+    const stamp = JSON.stringify(
+      followed.map(piece => {
+        const entity = this.entity(piece);
+        return piece.attribute ? entity?.attributes?.[piece.attribute] : entity?.state;
+      }),
+    );
     if (followed.length && stamp !== this.followStamp) {
       this.followStamp = stamp;
       this.render();
