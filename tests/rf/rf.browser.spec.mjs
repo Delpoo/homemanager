@@ -1,4 +1,6 @@
 import { test, expect } from '../browser/local-test.mjs';
+import { readFileSync } from 'node:fs';
+const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 
 // Synthetic stand-in for the RF websocket API of custom_components/homemanager
 // (rf_websocket.py, exercised against real HA in tests/integration/test_rf.py).
@@ -244,7 +246,7 @@ test('Devices shows each board once, keeps other ESPHome devices apart and says 
     '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
   ]);
   await expect(packages.locator('.add')).toHaveText([
-    '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.13.0-beta.1',
+    `  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v${version}`,
   ]);
   await expect(sensor.locator('pre[data-yaml=sensor_b]')).toHaveText(
     [
@@ -253,7 +255,7 @@ test('Devices shows each board once, keeps other ESPHome devices apart and says 
       '  hm_rf_receiver: rf_receiver   # cambiá por el id de tu componente',
       '',
       'packages:',
-      '  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v0.13.0-beta.1',
+      `  homemanager_rf: github://Delpoo/homemanager/esphome/homemanager-rf.yaml@v${version}`,
     ].join('\n'),
   );
   await substitutions.getByRole('button', { name: 'Copiar 2 líneas' }).click();

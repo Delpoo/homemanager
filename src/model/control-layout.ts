@@ -141,7 +141,7 @@ export function stepLevel(piece: ControlPiece, index: number, delta: number): nu
   return next;
 }
 /** What a move from one level to another sends, in order. */
-export function levelSends(piece: ControlPiece, from: number, to: number): string[] {
+export function levelSends(piece: ControlPiece, from: number, to: number, direction?: number): string[] {
   if (from === to) return [];
   const mode = sendByOf(piece);
   if (mode === 'level') return piece.buttons[to] ? [piece.buttons[to]] : [];
@@ -152,13 +152,13 @@ export function levelSends(piece: ControlPiece, from: number, to: number): strin
     return Array.from({ length: Math.max(1, ahead) }, () => piece.buttons[0]).filter(Boolean);
   }
   const [down, up] = piece.buttons;
+  // A step crossing an end keeps the direction of the key that was pressed.
+  // Choosing a level directly still sends the full distance to that level.
+  if (piece.wrap && count > 1 && direction && stepLevel(piece, from, direction) === to)
+    return [direction > 0 ? up : down].filter(Boolean);
   const button = to > from ? up : down;
   const times = Math.abs(to - from);
-  // Wrapping past an end is one press in the direction of travel.
-  return Array.from(
-    { length: piece.wrap && times > 1 && count && times === count - 1 ? 1 : times },
-    () => button,
-  ).filter(Boolean);
+  return Array.from({ length: times }, () => button).filter(Boolean);
 }
 /** Which level a reading means: a number on the scale, or one of the names. */
 export function levelFromReading(piece: ControlPiece, value: string): number | null {

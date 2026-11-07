@@ -19,14 +19,14 @@ ROOT = Path(".work/disposable-ha").resolve()
 OLD = Path(".work/beta1-source").resolve()
 BACKUP = Path(".work/beta1-full-backup").resolve()
 assert not any(p.exists() for p in (ROOT, OLD, BACKUP)), "Fresh runner directories required"
-subprocess.run(["git", "fetch", "origin", "tag", "v0.11.0-beta.1"], check=True)
-archive = subprocess.check_output(["git", "archive", "v0.11.0-beta.1", "src", "custom_components", "schemas"])
+subprocess.run(["git", "fetch", "origin", "tag", "v0.13.0-beta.1"], check=True)
+archive = subprocess.check_output(["git", "archive", "v0.13.0-beta.1", "src", "custom_components", "schemas"])
 OLD.mkdir()
 with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
     bundle.extractall(OLD, filter="data")
 component = OLD / "custom_components/homemanager"
-assert json.loads((component / "manifest.json").read_text())["version"] == "0.11.0-beta.1"
-subprocess.run([str(Path("node_modules/.bin/esbuild").resolve()), str(OLD / "src/card/index.ts"), "--bundle", "--format=esm", "--target=es2022", '--define:__HOMEMANAGER_VERSION__="0.11.0-beta.1"', "--outfile=" + str(component / "frontend/homemanager.js")], check=True)
+assert json.loads((component / "manifest.json").read_text())["version"] == "0.13.0-beta.1"
+subprocess.run([str(Path("node_modules/.bin/esbuild").resolve()), str(OLD / "src/card/index.ts"), "--bundle", "--format=esm", "--target=es2022", '--define:__HOMEMANAGER_VERSION__="0.13.0-beta.1"', "--outfile=" + str(component / "frontend/homemanager.js")], check=True)
 sys.argv = ["start_disposable.py", str(ROOT), str(component)]
 process = runpy.run_path("tests/e2e/start_disposable.py")["process"]
 
@@ -123,7 +123,7 @@ try:
     ready()
     assert request({"type": "homemanager/home/get", "home_id": "upgrade"}) == home
     assert request({"type": "homemanager/rf/library"}) == rf
-    assert json.loads((ROOT / "custom_components/homemanager/manifest.json").read_text())["version"] == "0.11.0-beta.1"
+    assert json.loads((ROOT / "custom_components/homemanager/manifest.json").read_text())["version"] == "0.13.0-beta.1"
     print("ok: full cold backup restored beta.1 code, home, RF library and authenticated access", flush=True)
 finally:
     if process.poll() is None:
