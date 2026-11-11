@@ -13,6 +13,7 @@ import {
   levelSends,
   levelText,
   readingValue,
+  formatReading,
   sendByOf,
   stepLevel,
   type ControlPiece,
@@ -180,7 +181,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         return this.state.options[piece.id] ?? -1;
       },
       reading: piece => {
-        const value = readingValue(piece, this.readValues?.());
+        const value = formatReading(readingValue(piece, this.readValues?.()));
         const unit = piece.attribute ? '' : String(this.entity(piece)?.attributes?.unit_of_measurement ?? '');
         return { value, unit: value === '—' ? '' : unit };
       },
@@ -550,9 +551,10 @@ export class HomeManagerRfRemote extends HTMLElement {
     if (!remote || this._editing) return;
     const ctx = this.context(remote);
     for (const piece of this.layout()) {
-      const value = readingValue(piece, this.readValues?.());
+      const raw = readingValue(piece, this.readValues?.());
+      const value = formatReading(raw);
       if (piece.type === 'graph') {
-        const number = Number(value);
+        const number = Number(raw);
         if (Number.isFinite(number)) {
           const list = this.samples.get(piece.id) ?? [];
           if (list.at(-1) !== number) list.push(number);
