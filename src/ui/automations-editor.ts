@@ -3,7 +3,7 @@ import { iconPicker } from './icon-picker.js';
 import { confirmDialog } from './confirm-dialog.js';
 import { t, getLanguage } from '../i18n/index.js';
 import { escapeHTML as e, type Configuration, type Hass } from '../card/types.js';
-import { readingName } from '../model/names.js';
+import { personName, readingName } from '../model/names.js';
 import { serviceLabel } from '../card/device-controls.js';
 import {
   DEFAULT_CHECK,
@@ -59,6 +59,10 @@ export class AutomationsEditor extends HTMLElement {
   private error = '';
   private menu = '';
 
+  /** HA's state moves on; the list and the pickers read the latest one. */
+  setHass(hass: Hass | undefined): void {
+    this.hass = hass;
+  }
   configure(configuration: Configuration, hass: Hass | undefined, changed: (next: Configuration) => void): void {
     const first = !this.configuration;
     this.configuration = structuredClone(configuration);
@@ -116,6 +120,23 @@ export class AutomationsEditor extends HTMLElement {
       const action = configuration.actions[actionId];
       return action ? serviceLabel(action.service, action.domain) : actionId;
     };
+    const targetName = (actionId: string) => {
+      const target = configuration.actions[actionId]?.target.entity_id;
+      return [target ?? []]
+        .flat()
+        .map(id =>
+          personName(this.hass?.states[id]?.attributes?.friendly_name, id.replace(/^[^.]+\./, '').replace(/_/g, ' ')),
+        )
+        .join(', ');
+    };
+    const sameAsAction = (entity: string, service: string) =>
+      Object.values(configuration.actions).some(
+        action =>
+          action.service === service &&
+          ['homeassistant', entity.split('.')[0]].includes(action.domain) &&
+          [action.target.entity_id].flat().length === 1 &&
+          [action.target.entity_id].flat()[0] === entity,
+      );
     const used = new Set<string>();
     for (const device of configuration.catalog.devices) {
       const text = JSON.stringify(device.bindings);
@@ -131,17 +152,24 @@ export class AutomationsEditor extends HTMLElement {
         }
       const entity = device.bindings.entityId;
       if (entity && ENTITY_DOMAINS.test(entity))
-        for (const service of ['turn_on', 'turn_off'] as const)
+        for (const service of ['turn_on', 'turn_off'] as const) {
+          if (sameAsAction(entity, service)) continue;
           out.push({
             id: `${service}:${device.id}`,
             name: `${device.display.label} · ${t(service === 'turn_on' ? 'Encender' : 'Apagar')}`,
             icon: device.display.icon,
             step: { deviceId: device.id, entity, service },
           });
+        }
     }
     for (const actionId of Object.keys(configuration.actions))
       if (!used.has(actionId))
-        out.push({ id: `a:${actionId}`, name: labelOf(actionId), icon: 'mdi:flash-outline', step: { actionId } });
+        out.push({
+          id: `a:${actionId}`,
+          name: [targetName(actionId), labelOf(actionId)].filter(Boolean).join(' · '),
+          icon: 'mdi:flash-outline',
+          step: { actionId },
+        });
     return out;
   }
   private choiceId(step: AutomationStep): string {
