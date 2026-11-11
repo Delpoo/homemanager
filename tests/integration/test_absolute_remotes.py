@@ -80,6 +80,7 @@ async def test_import_and_create_absolute_schedule_persist_with_explicit_power(
     assert (await _call(admin, "catalog/import", **info, remote_id=imported["id"]))["duplicates"] == 1
     saved = (await _call(admin, "resources"))["learned"][0]
     assert saved["buttons"][0]["provenance"]["revision"] == "fixture"
+    assert saved["buttons"][0]["provenance"]["protocol"] == MITSUBISHI
     created = await _call(admin, "absolute", command="create", fields={
         "profile": MITSUBISHI, "name": "Synthetic AC", "brand": "Mitsubishi Electric", "model": "144",
         "remote_id": saved["id"], "button_id": saved["buttons"][0]["id"], "emitter": TX,
@@ -100,3 +101,9 @@ async def test_import_and_create_absolute_schedule_persist_with_explicit_power(
     assert result["requested"]["status"] == "sent"
     assert result["schedules"][0]["result"] == "sent"
     assert hass_storage["homemanager.absolute_remotes"]["data"]["controls"][created["id"]]["requested"]["state"]["power"] is False
+    assert await hass.config_entries.async_reload(setup_integration.entry_id)
+    await hass.async_block_till_done()
+    restored = hass.data[DATA_ABSOLUTE]
+    assert restored.resources()["controls"][0]["schedules"][0]["result"] == "sent"
+    await restored.async_tick(now)
+    assert send.call_count == 1

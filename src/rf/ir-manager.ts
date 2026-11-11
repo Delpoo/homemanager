@@ -332,9 +332,21 @@ export class HomeManagerIr extends HTMLElement {
           `<button type="button" class="chip" data-suggest="${e(label)}" aria-pressed="${label === this.buttonName}">${e(label)}</button>`,
       )
       .join('');
-    const observation = this.tried ? `<div class="question"><strong>${e(t('Verificación opcional'))}</strong>
-      <div class="chips">${([['confirmed', 'Reaccionó'], ['no_response', 'No reaccionó'], ['inconclusive', 'No concluyente']] as const).map(([value, title]) =>
-        `<button type="button" class="chip" data-observation="${value}" aria-pressed="${this.response === value}"${disabled}>${e(t(title))}</button>`).join('')}</div></div>` : '';
+    const observation = this.tried
+      ? `<div class="question"><strong>${e(t('Verificación opcional'))}</strong>
+      <div class="chips">${(
+        [
+          ['confirmed', 'Reaccionó'],
+          ['no_response', 'No reaccionó'],
+          ['inconclusive', 'No concluyente'],
+        ] as const
+      )
+        .map(
+          ([value, title]) =>
+            `<button type="button" class="chip" data-observation="${value}" aria-pressed="${this.response === value}"${disabled}>${e(t(title))}</button>`,
+        )
+        .join('')}</div></div>`
+      : '';
     const action = `<div class="row"><button type="button" class="next" data-test disabled>${glyph('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.tried ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', 'data-save disabled')}</div>${observation}`;
     const learn = candidate
       ? `<div class="code"><div class="cap-head"><span class="dot ok"></span>${miniWave(candidate.candidate_id, 72)}<span class="muted">${e(t('Señal capturada · {ms} ms', { ms: Math.round(candidate.duration_us / 1000) }))}</span></div><div data-preview></div>
@@ -357,9 +369,30 @@ export class HomeManagerIr extends HTMLElement {
       ? `<div class="shelf">${this.saved.length > 1 ? `<label>${e(t('Control remoto'))}<select name="selected-remote">${this.saved.map(item => option(item.id, item.name, this.selected)).join('')}</select></label>` : ''}
       <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil-ruler', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
       ${this.editing === 'buttons' ? this.renderEdit(remote) : `<div class="controls" data-player></div>`}
-      ${!this.editing && remote.buttons.length ? `<details><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons.map(button =>
-        `<div class="li"><span class="t"><b>${e(button.name)}</b>${button.provenance ? `<span>${e([button.provenance.source, button.provenance.entry, button.provenance.revision].join(' · '))}</span>` : ''}</span>
-        ${iconButton(t('Ficha técnica de {name}', {name: button.name}), 'mdi:waveform', `data-signal="${e(button.id)}"`)}</div>`).join('')}</div></details>` : ''}
+      ${
+        !this.editing && remote.buttons.length
+          ? `<details><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons
+              .map(
+                button =>
+                  `<div class="li"><span class="t"><b>${e(button.name)}</b>${
+                    button.provenance
+                      ? `<span>${e(
+                          [
+                            button.provenance.source,
+                            button.provenance.entry,
+                            button.provenance.revision,
+                            button.provenance.protocol,
+                          ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        )}</span>`
+                      : ''
+                  }</span>
+        ${iconButton(t('Ficha técnica de {name}', { name: button.name }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}</div>`,
+              )
+              .join('')}</div></details>`
+          : ''
+      }
       </div>`
       : '';
     this.root.innerHTML = `<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
@@ -595,7 +628,11 @@ export class HomeManagerIr extends HTMLElement {
     this.root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (this._hass)
-          openSignal(this._hass, { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! }, this.editing ? undefined : 'tests');
+          openSignal(
+            this._hass,
+            { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! },
+            this.editing ? undefined : 'tests',
+          );
       }),
     );
     this.root.querySelectorAll<HTMLButtonElement>('[data-relearn]').forEach(button =>

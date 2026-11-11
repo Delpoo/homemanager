@@ -76,7 +76,7 @@ class IrButton:
             raise ModelError("invalid_ir", "invalid infrared button")
         emitter = raw.get("emitter")
         origin = raw.get("provenance")
-        keys = ("source", "brand", "model", "entry", "revision", "function")
+        keys = ("source", "brand", "model", "entry", "revision", "function", "protocol")
         provenance = {key: origin[key] for key in keys if isinstance(origin.get(key), str) and 0 < len(origin[key]) <= 120} if isinstance(origin, dict) else {}
         if provenance:
             provenance.update(partial=origin.get("partial") is True, index=origin.get("index") if type(origin.get("index")) is int else None)

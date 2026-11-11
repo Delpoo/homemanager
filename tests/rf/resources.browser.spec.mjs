@@ -24,9 +24,17 @@ test('absolute setpoints, the remote clock, and independent persistent schedule 
   await shot(page, info, 'controles');
   await rf.getByRole('button', { name: 'Controles de estado absoluto', exact: true }).click();
   const resources = rf.locator('homemanager-remote-resources');
+  await shot(page, info, 'controles-absolutos');
   await resources.getByRole('button', { name: /Aire de prueba/ }).click();
   await resources.getByLabel(/Temperatura solicitada/).fill('25.5');
   await resources.getByLabel(/Temperatura solicitada/).press('Tab');
+  expect(
+    await resources.getByLabel(/Temperatura solicitada/).evaluate(input => {
+      const inputBox = input.getBoundingClientRect();
+      const tile = input.closest('.widget').getBoundingClientRect();
+      return inputBox.bottom <= tile.bottom && inputBox.right <= tile.right;
+    }),
+  ).toBe(true);
   await resources.getByRole('button', { name: 'Enviar estado', exact: true }).last().click();
   await expect(
     resources.getByText('Emisión solicitada. Estado físico sin confirmación.', { exact: true }),
@@ -42,6 +50,7 @@ test('absolute setpoints, the remote clock, and independent persistent schedule 
   await resources.getByLabel('Reloj del mando', { exact: true }).press('Tab');
   await expect(schedule.getByLabel('Hora', { exact: true })).toHaveValue('23:15');
   await expect(schedule.getByRole('combobox', { name: 'Acción', exact: true })).toHaveValue('off');
+  await shot(page, info, 'horario-pendiente');
   await schedule.getByRole('button', { name: 'Guardar horario', exact: true }).click();
   await expect(resources.locator('.schedule')).toContainText('Apagar · 23:15');
   await resources.getByRole('button', { name: 'Editar', exact: true }).click();
@@ -73,6 +82,10 @@ test('a template previews on the named control, and a partial catalog import rea
   await expect(player.locator('[data-op=track]')).toHaveAttribute('aria-orientation', 'vertical');
   await expect(player.locator('[data-reading=graph]')).toContainText('W');
   await shot(page, info, 'grafica-severity');
+  const slider = player.getByRole('slider', { name: 'Severity' });
+  expect((await slider.boundingBox()).width).toBeGreaterThanOrEqual(24);
+  await slider.press('ArrowUp');
+  await expect(slider).toBeFocused();
   await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
   const designer = rf.locator('homemanager-control-designer');
   await designer.getByLabel('Vista previa de plantilla').selectOption('arena');
@@ -115,6 +128,11 @@ test('a template previews on the named control, and a partial catalog import rea
   const ir = rf.locator('homemanager-ir-manager');
   await ir.getByText('Pruebas e historial', { exact: true }).click();
   await expect(ir.getByText('Flipper-IRDB · demo.ir · fixture')).toBeVisible();
+  await shot(page, info, 'biblioteca-importada');
+  await ir.getByRole('button', { name: 'Ficha técnica de Apagar' }).click();
+  const workbench = page.locator('homemanager-signal-workbench');
+  await expect(workbench.getByRole('button', { name: 'Pruebas', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await shot(page, info, 'historial-senal');
 });
 
 test('a late recorder response cannot draw on a different sensor or time range', async ({ page }) => {

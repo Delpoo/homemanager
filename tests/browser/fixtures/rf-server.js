@@ -17,8 +17,14 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
   const lovelace = hass.callWS.bind(hass);
   hass.callWS = async message => {
     if (message.type === 'homemanager/remotes/diagnostics/candidate_note') return null;
-    if (message.type === 'homemanager/remotes/diagnostics/rf_test') return {id:'demo-test',status:'sent',saved:true};
-    if (message.type === 'homemanager/remotes/diagnostics/note') return {id:'demo-note'};
+    if (message.type === 'homemanager/remotes/diagnostics/rf_test') {
+      calls.push(structuredClone(message));
+      return { id: 'demo-test', status: 'sent', saved: true };
+    }
+    if (message.type === 'homemanager/remotes/diagnostics/note') {
+      calls.push(structuredClone(message));
+      return { id: 'demo-note' };
+    }
     if (!message.type.startsWith('homemanager/rf/')) return lovelace(message);
     calls.push(structuredClone(message));
     switch (message.type) {
@@ -108,8 +114,12 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
           const { assertControlLayout } = await import('/src/ha/validation.mjs');
           assertControlLayout(message.layout);
           const known = new Set(remote.buttons.map(button => button.id));
-          const refs = message.layout.flatMap(piece => [...piece.buttons, ...(piece.holdButton ? [piece.holdButton] : [])]);
-          if (refs.some(ref => !known.has(ref))) throw Object.assign(new Error('unknown button'), { code: 'invalid_layout' });
+          const refs = message.layout.flatMap(piece => [
+            ...piece.buttons,
+            ...(piece.holdButton ? [piece.holdButton] : []),
+          ]);
+          if (refs.some(ref => !known.has(ref)))
+            throw Object.assign(new Error('unknown button'), { code: 'invalid_layout' });
         }
         remote.layout = message.layout;
         return structuredClone(remote);

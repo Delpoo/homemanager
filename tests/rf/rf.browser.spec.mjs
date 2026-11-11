@@ -358,10 +358,13 @@ test('Test sends each button, asks whether it reacted and tunes one setting at a
   await rf.getByRole('button', { name: 'Probar botones', exact: true }).click();
   await rf.getByRole('button', { name: 'Enviar Apagar', exact: true }).click();
   await expect
-    .poll(async () => (await calls(page, 'homemanager/rf/press')).at(-1))
+    .poll(async () => (await calls(page, 'homemanager/remotes/diagnostics/rf_test')).at(-1))
     .toMatchObject({ remote_id: 'techo', button_id: 'off' });
   await rf.getByRole('button', { name: 'Sí, reaccionó', exact: true }).click();
   await expect(rf.getByText('Funcionó', { exact: true })).toBeVisible();
+  await expect
+    .poll(async () => (await calls(page, 'homemanager/remotes/diagnostics/note')).at(-1))
+    .toMatchObject({ button_id: 'off', response: 'confirmed', trial_id: 'demo-test' });
   await rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true }).click();
   await rf.getByRole('button', { name: 'No reaccionó', exact: true }).click();
   // A failed button offers the transmission settings, one step each.
