@@ -57,6 +57,7 @@ test('absolute setpoints, the remote clock, and independent persistent schedule 
   await schedule.getByRole('combobox', { name: 'Acción', exact: true }).selectOption('on');
   await schedule.getByRole('button', { name: 'Guardar horario', exact: true }).click();
   await expect(resources.locator('.schedule')).toContainText('Encender · 23:15');
+  await expect(resources.locator('.schedule')).toContainText('Próximo');
   await shot(page, info, 'horarios');
   await resources.getByRole('button', { name: 'Diseñar', exact: true }).click();
   const designer = resources.locator('homemanager-control-designer');
