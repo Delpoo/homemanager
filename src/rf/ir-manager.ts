@@ -52,6 +52,7 @@ export class HomeManagerIr extends HTMLElement {
   private carrierSource: IrReplay['carrier_source'] = 'estimated';
   /** Sent once with Test: now the person says whether it worked. */
   private tried = false;
+  private testing = false;
   private response: DeviceResponse | '' = '';
   private advanced = false;
   private capture?: Capture;
@@ -267,8 +268,30 @@ export class HomeManagerIr extends HTMLElement {
     const test = this.root.querySelector<HTMLButtonElement>('[data-test]');
     const save = this.root.querySelector<HTMLButtonElement>('[data-save]');
     const canReplay = Boolean(this.replay()) && !this.busy;
-    if (test) test.disabled = !canReplay;
+    if (test) test.disabled = !canReplay || this.testing;
     if (save) save.disabled = !canReplay;
+  }
+
+  private async testCandidate(replay: IrReplay): Promise<void> {
+    const hass = this._hass;
+    if (!hass || this.testing || this.busy || this.offline) return;
+    this.testing = true;
+    this.failed = false;
+    this.updateActions();
+    const sameCandidate = () => this.isCurrent(hass) && this.candidate?.candidate_id === replay.candidate_id;
+    try {
+      await remotes.test(hass, replay);
+      if (sameCandidate()) {
+        this.message = t(SENT);
+        this.tried = true;
+        this.response = '';
+      }
+    } catch (error) {
+      if (sameCandidate()) this.report(error);
+    } finally {
+      this.testing = false;
+      if (!this.busy) this.render();
+    }
   }
 
   private async save(hass: Hass, replay: IrReplay): Promise<void> {
@@ -539,19 +562,14 @@ export class HomeManagerIr extends HTMLElement {
       this.batch = this.batch.filter(item => item.candidate_id !== this.candidate?.candidate_id);
       this.candidate = this.batch[0];
       this.buttonName = '';
+      this.tried = false;
+      this.response = '';
       this.render();
     });
     click('[data-stop]', () => this.stopCapture());
     click('[data-test]', () => {
       const replay = this.replay();
-      if (replay)
-        void this.run(async hass => {
-          await remotes.test(hass, replay);
-          if (!this.isCurrent(hass)) return;
-          this.message = t(SENT);
-          this.tried = true;
-          this.response = '';
-        });
+      if (replay) void this.testCandidate(replay);
     });
     this.root.querySelectorAll<HTMLButtonElement>('[data-observation]').forEach(button => {
       button.addEventListener('click', () => {

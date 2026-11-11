@@ -89,6 +89,7 @@ class Candidate:
     last_seen: float = 0.0
     observation: dict[str, Any] | None = None
     trials: list[dict[str, Any]] = field(default_factory=list)
+    pending_trials: set[asyncio.Event] = field(default_factory=set)
 
     @property
     def pulse_us(self) -> int:
@@ -487,11 +488,15 @@ class RfManager:
             trial.pulse_us = candidate.pulse_us
         row = {"at": datetime.now(UTC).isoformat(), "kind": "send", "status": "error",
                "emitter": trial.transmitter, "settings": trial.settings()}
+        complete = asyncio.Event()
+        candidate.pending_trials.add(complete)
+        candidate.trials = [*candidate.trials[-5:], row]
         try:
             await self._send(trial.transmitter, trial.protocol, candidate.bits, trial.pulse_us, trial.repeats, trial.wait_us)
             row["status"] = "sent"
         finally:
-            candidate.trials = [*candidate.trials[-5:], row]
+            candidate.pending_trials.discard(complete)
+            complete.set()
         return {"result": "sent", **trial.settings()}
 
     def note_candidate(self, candidate_id: str, response: str) -> None:

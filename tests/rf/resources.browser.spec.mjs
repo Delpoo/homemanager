@@ -215,4 +215,13 @@ test('the demo captures the current RF and IR learning flows', async ({ page }, 
   await ir.getByRole('button', { name: 'Probar', exact: true }).click();
   await expect(ir.getByRole('button', { name: 'Guardar señal', exact: true })).toBeVisible();
   await shot(page, info, 'aprendizaje-ir');
+  await page.evaluate(() => {
+    window.demoWaitForIrTest = true;
+  });
+  await ir.getByRole('button', { name: 'Probar', exact: true }).click();
+  await expect(ir.getByRole('button', { name: 'Probar', exact: true })).toBeDisabled();
+  await ir.getByRole('button', { name: 'Guardar señal', exact: true }).click();
+  await expect(ir.getByRole('button', { name: 'Capturar botón IR', exact: true })).toBeVisible();
+  await page.evaluate(() => window.demoFinishIrTest());
+  await expect(ir.getByRole('button', { name: 'Capturar botón IR', exact: true })).toBeEnabled();
 });

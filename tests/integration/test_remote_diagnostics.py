@@ -126,12 +126,16 @@ async def test_rf_diagnostics_keeps_legacy_rf_and_rejects_unattributed_echo(hass
     code = "011001000110100100101100"
     raw = encode_timings(1, code, 350, repeats=4)
     sends = []
+    started = asyncio.Event()
+    release = asyncio.Event()
 
     async def capture(_call):
         pass
 
     async def send(service):
         sends.append(dict(service.data))
+        started.set()
+        await release.wait()
         hass.bus.async_fire(RAW_EVENT, {"device_id": "reg-tx_b", "timings": ",".join(map(str, raw))})
         hass.bus.async_fire(RAW_EVENT, {"timings": "99,-100,99"})
         hass.bus.async_fire(RAW_EVENT, {"device_id": "unrelated", "timings": "100,-150,100"})
@@ -149,16 +153,27 @@ async def test_rf_diagnostics_keeps_legacy_rf_and_rejects_unattributed_echo(hass
     candidate = (await admin.receive_json())["event"]["candidate"]
     await call(admin, "unsubscribe_events", subscription=subscription["id"])
     remote = (await call(admin, f"{RF}/remote/save", remote={"name": "Demo RF", "transmitter": "tx_a"}))["result"]
-    button = (await call(admin, f"{RF}/button/save", remote_id=remote["id"], candidate_id=candidate["candidate_id"], button={"name": "Power"}))["result"]
+    tester = await hass_ws_client(hass)
+    test = asyncio.create_task(call(tester, f"{RF}/test", candidate_id=candidate["candidate_id"]))
+    await asyncio.wait_for(started.wait(), 2)
+    try:
+        button = (await call(admin, f"{RF}/button/save", remote_id=remote["id"], candidate_id=candidate["candidate_id"], button={"name": "Power"}))["result"]
+        assert not test.done()
+    finally:
+        release.set()
+    assert (await test)["success"]
     await hass.async_block_till_done()
     target = {"source": "rf", "remote_id": remote["id"], "button_id": button["id"]}
+    evidence = (await call(admin, f"{DIAG}/sheet", **target))["result"]
+    assert evidence["history"][0]["status"] == "sent"
+    assert evidence["history"][0]["emitter"] == "tx_a"
     trial = (await call(admin, f"{DIAG}/run", **target, emitter="tx_a", external="tx_b", self="tx_a"))["result"]
     sheet = (await call(admin, f"{DIAG}/sheet", **target, trial_id=trial["id"]))["result"]
     assert sheet["original"]["node"] == "tx_a" and sheet["original"]["timings_us"] == raw
     assert sheet["prepared"]["settings"]["pulse_us"] == 350
     assert sheet["observed"]["self"]["status"] == "not_observed"
     assert [item["timings_us"] for item in sheet["observed"]["external"]["blocks"]] == [raw]
-    assert sends == [{"code": code, "protocol": 1, "pulse_length": 350, "repeats": 5, "wait_us": 0}]
+    assert sends == [{"code": code, "protocol": 1, "pulse_length": 350, "repeats": 5, "wait_us": 0}] * 2
     assert code not in str((await call(admin, f"{RF}/library"))["result"])
     assert "original" not in str(hass_storage["homemanager.rf"])
 

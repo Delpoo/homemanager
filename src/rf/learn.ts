@@ -74,6 +74,8 @@ export class HomeManagerRfLearn extends HTMLElement {
   private glyph = '';
   private assign = '';
   private trial: Attempt | null = null;
+  private testing = false;
+  private saving = false;
   private attempts: Attempt[] = [];
   private message = '';
   private failed = false;
@@ -373,13 +375,15 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
     const icons = iconPicker(this.glyph, t('Icono'), 'clearable data-learning-icon');
     const form = `<div class="name-row">${icons}<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label></div>
 <div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>${this.roleOptions()}`;
-    const action = `<div class="row"><button type="button" class="next" data-command="try">${icon('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.trial ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', `data-command="save"${this.name.trim() ? '' : ' disabled'}`)}</div>${this.trial
-      ? `<div class="question"><p><strong>${e(t('Verificación opcional'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="chips">
+    const action = `<div class="row"><button type="button" class="next" data-command="try"${this.testing || this.saving ? ' disabled' : ''}>${icon('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.trial ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', `data-command="save"${this.name.trim() && !this.saving ? '' : ' disabled'}`)}</div>${
+      this.trial
+        ? `<div class="question"><p><strong>${e(t('Verificación opcional'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="chips">
         <button type="button" class="chip" data-command="worked" aria-pressed="${this.trial.worked === true}">${e(t('Reaccionó'))}</button>
         <button type="button" class="chip" data-command="failed" aria-pressed="${this.trial.worked === false}">${e(t('No reaccionó'))}</button>
         <button type="button" class="chip" data-command="inconclusive">${e(t('No concluyente'))}</button>
         <button type="button" class="chip" data-command="variant">${e(t('Probar otra combinación'))}</button></div></div>`
-      : ''}`;
+        : ''
+    }`;
     const attempts = this.attempts.length
       ? `<ul class="attempts" aria-label="${e(t('Pruebas'))}">${this.attempts.map(item => `<li>${item.worked === null ? '—' : item.worked ? '✓' : '✗'} ${e(item.reason)} · ${e(t('{transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(item.transmitter), pulse: item.pulse_us, repeats: item.repeats }))}</li>`).join('')}</ul>`
       : '';
@@ -489,16 +493,26 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
         case 'worked':
         case 'inconclusive':
           if (!this.trial || !this.candidate || !this.hass) break;
-          await diagnostics.candidateNote(this.hass, { source: 'rf', candidate_id: this.candidate.candidate_id },
-            name === 'worked' ? 'confirmed' : name === 'failed' ? 'no_response' : 'inconclusive');
+          await diagnostics.candidateNote(
+            this.hass,
+            { source: 'rf', candidate_id: this.candidate.candidate_id },
+            name === 'worked' ? 'confirmed' : name === 'failed' ? 'no_response' : 'inconclusive',
+          );
           this.trial.worked = name === 'inconclusive' ? null : name === 'worked';
           this.say(t('Observación registrada.'));
           break;
         case 'variant':
-          await this.nextVariant();
+          if (!this.testing && !this.saving) await this.nextVariant();
           break;
         case 'save':
-          await this.save(this.trial?.worked ? this.trial : null);
+          if (this.saving || !this.name.trim()) return;
+          this.saving = true;
+          this.render();
+          try {
+            await this.save(this.trial?.worked ? this.trial : null);
+          } finally {
+            this.saving = false;
+          }
           break;
       }
     } catch (error) {
@@ -523,14 +537,26 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
   }
 
   private async tryAttempt(attempt: Attempt): Promise<void> {
-    await rf.test(this.hass!, this.candidate!.candidate_id, {
-      transmitter: attempt.transmitter,
-      pulse_us: attempt.pulse_us,
-      repeats: attempt.repeats,
-      wait_us: this.remote?.wait_us ?? 0,
-    });
-    this.trial = attempt;
-    this.say(t('Señal enviada. Mirá el equipo.'));
+    if (this.testing || this.saving || !this.candidate) return;
+    const candidateId = this.candidate.candidate_id;
+    this.testing = true;
+    this.render();
+    try {
+      await rf.test(this.hass!, candidateId, {
+        transmitter: attempt.transmitter,
+        pulse_us: attempt.pulse_us,
+        repeats: attempt.repeats,
+        wait_us: this.remote?.wait_us ?? 0,
+      });
+      if (this.candidate?.candidate_id === candidateId && !this.saving) {
+        this.trial = attempt;
+        this.say(t('Señal enviada. Mirá el equipo.'));
+      }
+    } catch (error) {
+      if (this.candidate?.candidate_id === candidateId && !this.saving) this.report(error);
+    } finally {
+      this.testing = false;
+    }
   }
 
   /** One change at a time: other transmitters, then the neighbouring pulse
