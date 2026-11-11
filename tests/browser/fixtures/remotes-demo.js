@@ -57,6 +57,25 @@ const sampleControl = () => ({
   },
 });
 const controls = [sampleControl()];
+const weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+function nextSchedule({ days, time, zone, enabled }) {
+  if (!enabled) return null;
+  const clock = new Intl.DateTimeFormat('en-GB', {
+    timeZone: zone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const minute = 60_000;
+  const start = Math.floor(Date.now() / minute) * minute + minute;
+  for (let at = start; at <= start + 8 * 1440 * minute; at += minute) {
+    const [day, value] = clock.format(at).split(/[,\s]+/);
+    if (value === time && days.includes(weekday.indexOf(day))) return new Date(at).toISOString();
+  }
+  return null;
+}
+
 const widget = (id, type, x, y, w, h, attributes) => ({
   id,
   type,
@@ -146,17 +165,25 @@ hass.callWS = async message => {
       } else if (message.command === 'send') {
         item.state = fields.state;
         item.requested = { state: fields.state, status: 'sent', at: new Date().toISOString() };
+        delete item.powerful;
       } else if (message.command === 'preset') item.preset = fields.state;
       else if (message.command === 'configure') Object.assign(item, fields);
       else if (message.command === 'design') item.layout = fields.layout;
       else if (message.command === 'link-powerful') item.powerful_configured = !fields.remove;
-      else if (message.command === 'powerful') item.powerful = new Date(Date.now() + 900_000).toISOString();
-      else if (message.command === 'remove') controls.splice(controls.indexOf(item), 1);
+      else if (message.command === 'powerful') {
+        item.requested = { state: { ...state }, status: 'sent', at: new Date().toISOString() };
+        item.powerful = new Date(Date.now() + 900_000).toISOString();
+      } else if (message.command === 'remove') controls.splice(controls.indexOf(item), 1);
       else if (message.command === 'schedule') {
         const index = item.schedules.findIndex(row => row.id === fields.schedule_id);
         if (fields.remove) item.schedules.splice(index, 1);
         else {
-          const schedule = { ...fields, id: fields.schedule_id ?? 'schedule-' + ++sequence, next: null };
+          const schedule = {
+            ...fields,
+            state: { ...fields.state, power: fields.power },
+            id: fields.schedule_id ?? 'schedule-' + ++sequence,
+            next: nextSchedule(fields),
+          };
           if (index < 0) item.schedules.push(schedule);
           else item.schedules[index] = schedule;
         }
