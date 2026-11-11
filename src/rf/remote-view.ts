@@ -257,8 +257,15 @@ export class HomeManagerRfRemote extends HTMLElement {
     const entry = this.charts.get(piece.id);
     const to = Date.now();
     const from = to - PERIOD_HOURS[piece.period ?? '24h'] * 3600000;
-    const samples = [...(entry?.series?.samples ?? []), ...(entry?.live ?? [])]
-      .filter(point => point.at >= from);
+    const points = [...(entry?.series?.samples ?? []), ...(entry?.live ?? [])];
+    const first = points.findIndex(point => point.at >= from);
+    const samples = first < 0 ? [] : points.slice(first);
+    const preceding = first < 0 ? points.at(-1) : points[first - 1];
+    if (preceding && samples[0]?.at !== from) samples.unshift({ at: from, value: preceding.value });
+    const last = samples.at(-1);
+    // Recorder entries represent the state until it changes. Keep the first
+    // and last known states at the edges of the rolling window.
+    if (last && last.value !== null && last.at < to) samples.push({ at: to, value: last.value });
     return {
       from, to, samples,
       status: entry?.loading ? 'loading' as const :

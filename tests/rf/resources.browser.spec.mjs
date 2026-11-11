@@ -190,9 +190,15 @@ test('a late recorder response cannot draw on a different sensor or time range',
       ],
     });
     await new Promise(resolve => setTimeout(resolve, 0));
-    return { before, after: line() };
+    const after = line();
+    set('sensor.synthetic_flat', '1h');
+    const boundary = Date.now() - 3_600_010;
+    requests.get('sensor.synthetic_flat1h')({ from: boundary, to, samples: [{ at: boundary, value: 42 }] });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return { before, after, flat: line() };
   });
   expect(result.after).toBe(result.before);
+  expect(result.flat).toBe('M0.00 15.00L100.00 15.00');
 });
 
 test('the demo captures the current RF and IR learning flows', async ({ page }, info) => {
