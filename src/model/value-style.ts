@@ -83,7 +83,8 @@ export function formatReading(
   try {
     text = new Intl.NumberFormat(language, {
       ...(digits === undefined
-        ? { maximumFractionDigits: 3 }
+        ? // Without a precision from Home Assistant: as people read it (386 W, 23.5 °C, 0.42).
+          { maximumFractionDigits: Math.abs(shown.value) >= 100 ? 0 : Math.abs(shown.value) >= 10 ? 1 : 2 }
         : { minimumFractionDigits: digits, maximumFractionDigits: digits }),
     }).format(shown.value);
   } catch {
