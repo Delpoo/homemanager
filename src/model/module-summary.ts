@@ -23,7 +23,7 @@ export const MODULE_PURPOSE: Record<ModuleId, string> = {
   control: 'Arma los botones y deslizadores de su control completo.',
   pinned: 'Pone atajos de su control junto al símbolo.',
   native: 'Abre un panel propio de Home Assistant.',
-  rules: 'Lista las reglas que avisan o lo resaltan.',
+  rules: 'Las alertas que avisan o lo resaltan.',
 };
 export const MODULE_ICONS: Record<ModuleId, string> = {
   device: 'mdi:link-variant',
@@ -32,7 +32,7 @@ export const MODULE_ICONS: Record<ModuleId, string> = {
   control: 'mdi:tune-variant',
   pinned: 'mdi:pin-outline',
   native: 'mdi:view-list-outline',
-  rules: 'mdi:format-list-checks',
+  rules: 'mdi:bell-outline',
 };
 
 function gestureName(binding: GestureBinding | undefined, context: SummaryContext, fallback: string): Summary {
@@ -99,9 +99,9 @@ export function moduleSummary(id: ModuleId, device: ModelDevice, context: Summar
       return { key: b.advancedPopupId ? 'Panel elegido' : 'Sin panel' };
     case 'rules':
       return context.rules === 1
-        ? { key: '1 regla lo afecta' }
+        ? { key: '1 alerta lo usa' }
         : context.rules
-          ? { key: '{count} reglas lo afectan', vars: { count: context.rules } }
-          : { key: 'Ninguna regla lo afecta' };
+          ? { key: '{count} alertas lo usan', vars: { count: context.rules } }
+          : { key: 'Ninguna alerta lo usa' };
   }
 }

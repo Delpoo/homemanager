@@ -11,7 +11,7 @@ export const MODULE_LABELS: Record<ModuleId, string> = {
   control: 'Control',
   pinned: 'Junto al símbolo',
   native: 'Panel avanzado',
-  rules: 'Reglas',
+  rules: 'Alertas',
 };
 
 /** Legacy categories suggest initial blocks only. Reading never mutates the plan. */

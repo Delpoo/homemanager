@@ -56,7 +56,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'appearance-section', title: () => t('Apariencia'), icon: 'mdi:palette-outline' },
   { id: 'view-section', title: () => t('Tamaño y vista inicial'), icon: 'mdi:magnify-plus-outline' },
   { id: 'controls-section', title: () => t('Controles'), icon: 'mdi:remote' },
-  { id: 'rules-section', title: () => t('Reglas'), icon: 'mdi:format-list-checks' },
+  { id: 'rules-section', title: () => t('Alertas'), icon: 'mdi:bell-outline' },
   { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
   { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
   { id: 'import-section', title: () => t('Copias'), icon: 'mdi:swap-vertical' },
@@ -71,7 +71,7 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
-  { title: () => t('Reglas'), sections: ['rules-section'] },
+  { title: () => t('Alertas'), sections: ['rules-section'] },
   { title: () => t('Mantenimiento'), sections: ['health-section', 'storage-section', 'import-section'] },
   { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section', 'pending-section'], advanced: true },
   { title: () => t('Ayuda'), sections: ['help-section'] },
@@ -266,7 +266,7 @@ function statusText(issue: StatusIssue): { title: string; detail: string; fix: s
         fix: t('Abrir alternativas'),
       };
     case 'rule-target':
-      return { title: issue.name, detail: t('La regla apunta a algo que ya no existe'), fix: t('Abrir Reglas') };
+      return { title: issue.name, detail: t('La alerta apunta a algo que ya no existe'), fix: t('Abrir Alertas') };
     case 'storage':
       return {
         title: t('Almacenamiento'),

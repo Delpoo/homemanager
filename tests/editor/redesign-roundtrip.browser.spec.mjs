@@ -1,4 +1,4 @@
-import { showSection, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
+import { showSection, openFirstSection, openSettings, pickReading } from '../browser/shell-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 
@@ -44,11 +44,12 @@ test('a legacy plan keeps its data after module, gesture, rule and icon edits, s
   await openFirstSection(page);
   await showSection(editor, 'rules-section');
   const rules = card.locator('homemanager-rules-editor');
-  await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
-  await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Temperatura de prueba alta');
-  await rules.locator('input[data-check-field=sources][value="sensor.synthetic_temperature"]').check();
+  await rules.getByRole('button', { name: 'Nueva alerta', exact: true }).click();
+  await rules.getByLabel('Nombre de la alerta', { exact: true }).fill('Temperatura de prueba alta');
+  await pickReading(rules, 'sensor.synthetic_temperature');
+  await rules.getByRole('radio', { name: 'Mayor que', exact: true }).click();
   await rules.getByLabel('Más de', { exact: true }).fill('27');
-  await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
+  await rules.getByRole('button', { name: 'Listo', exact: true }).click();
   await editor.locator('homemanager-task-screen.settings-dialog .task-close').click();
   await card.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(card.getByRole('button', { name: 'Guardar cambios', exact: true })).toBeDisabled();

@@ -50,3 +50,13 @@ export async function openFirstSection(page) {
   if (await editor.locator('.settings-page[data-view=list]').count())
     await editor.locator('.nb-row[data-settings="rooms-section"]').click();
 }
+
+/** 0.13 Alerts: the reading is picked from the sentence's first pill. */
+export async function pickReading(screen, id) {
+  await screen.locator('#g-read').click();
+  await screen.locator(`input[data-check-field=sources][value="${id}"]`).check();
+}
+export async function pickSymbol(screen, id) {
+  await screen.locator('[data-pick=symbol]').click();
+  await screen.locator(`input[data-check-field=symbols][value="${id}"]`).check();
+}

@@ -13,13 +13,15 @@ export function helpBody(): string {
       '⌂ vuelve a la vista inicial y ⛶ pone el plano a pantalla completa.',
     ]) +
     part('Símbolos y módulos', [
-      'Cada símbolo tiene una base (nombre, icono, color, espacio y tamaño) y módulos que le suman cosas: dispositivo, indicadores, gestos, control, atajos y reglas.',
+      'Cada símbolo tiene una base (nombre, icono, color, espacio y tamaño) y módulos que le suman cosas: dispositivo, indicadores, gestos, control, atajos y alertas.',
       'Por ejemplo, a un robot aspirador le podés poner su estado como valor y dos programas de limpieza como atajos.',
       'Para editar, tocá ✎. Los cambios se ven en ámbar hasta que los guardás.',
     ]) +
-    part('Reglas y alertas', [
-      'Una regla avisa o resalta un símbolo cuando una lectura pasa un límite, por ejemplo «humedad del suelo menos de 20 %».',
-      'Las reglas base (batería baja, sin conexión, seguridad) ya vienen, con límites que podés cambiar. Ninguna regla envía comandos.',
+    part('Alertas', [
+      'Una alerta avisa o resalta un símbolo cuando una lectura pasa un límite, por ejemplo «humedad del suelo menos de 20 % durante 10 minutos».',
+      'Se arma como una frase: qué lectura mirar, la condición, el límite y cuánto tiempo. La vista previa dice si ahora se activaría.',
+      'Las incluidas (batería baja, sin conexión, seguridad) ya vienen, con límites que podés cambiar. Ninguna alerta envía comandos.',
+      'En Configuración › Alertas, el birrete abre una guía de cinco pasos.',
     ]) +
     part('Controles RF', [
       'Un control RF es un control remoto infrarrojo o de radio que HomeManager aprende botón por botón.',

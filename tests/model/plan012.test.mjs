@@ -42,7 +42,7 @@ test('each module card has a one-line summary (#71)', () => {
   ]);
   assert.deepEqual(moduleSummary('control', device, context), { key: '1 control' });
   assert.deepEqual(moduleSummary('pinned', device, context), { key: '{count} atajos', vars: { count: 2 } });
-  assert.deepEqual(moduleSummary('rules', device, context), { key: '{count} reglas lo afectan', vars: { count: 2 } });
+  assert.deepEqual(moduleSummary('rules', device, context), { key: '{count} alertas lo usan', vars: { count: 2 } });
   assert.deepEqual(moduleSummary('device', { ...device, bindings: { entityId: null } }, context), {
     key: 'Sin vincular',
   });
