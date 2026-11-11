@@ -38,7 +38,7 @@ async function section(page, title) {
     Espacios: 'rooms-section',
     'Acciones lógicas': 'actions-section',
     'Paneles avanzados': 'panels-section',
-    'Referencias pendientes': 'pending-section',
+    'Referencias pendientes': 'health-section',
     Copias: 'import-section',
   };
   if (ids[title]) await showSection(editor(page), ids[title]);

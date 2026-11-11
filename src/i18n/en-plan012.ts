@@ -785,4 +785,25 @@ export const enPlan012: Record<string, string> = {
     'In Settings › Alerts, the graduation cap opens a five-step guide.',
   'Cada símbolo tiene una base (nombre, icono, color, espacio y tamaño) y módulos que le suman cosas: dispositivo, indicadores, gestos, control, atajos y alertas.':
     'Each symbol has a base (name, icon, color, space and size) and modules that add to it: device, indicators, gestures, control, shortcuts and alerts.',
+  // 0.13 Maintenance and help.
+  'Ver planos anteriores': 'See previous plans',
+  'Revisión {n}': 'Revision {n}',
+  'Volver a este plano': 'Go back to this plan',
+  'Exportar copia (JSON)': 'Export copy (JSON)',
+  'Datos y copias': 'Data and copies',
+  'Apunta a algo que todavía no existe en Home Assistant':
+    "Points at something that doesn't exist in Home Assistant yet",
+  'Sin estado': 'No state',
+  Referencias: 'References',
+  Filtrar: 'Filter',
+  'Arreglar lo seguro ({count}): cada dispositivo a su espacio y fuera los espacios vacíos. Se deshace con Deshacer.':
+    'Fix the safe ones ({count}): each device to its space and empty spaces out. Undo brings it back.',
+  'de {limit} MiB': 'of {limit} MiB',
+  'Buscar en la ayuda': 'Search help',
+  'Guía de alertas': 'Alerts guide',
+  'Medido y comprobado': 'Measured and checked',
+  'Lectura sin confirmar': 'Reading not confirmed',
+  'Home Assistant recibió la orden; el efecto no está confirmado':
+    'Home Assistant got the order; the effect is not confirmed',
+  'Sin datos o la orden falló': 'No data or the order failed',
 };

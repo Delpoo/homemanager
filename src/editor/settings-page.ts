@@ -1,4 +1,3 @@
-import { tipsOn } from '../ui/tips.js';
 import { t } from '../i18n/index.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
@@ -59,7 +58,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'rules-section', title: () => t('Alertas'), icon: 'mdi:bell-outline' },
   { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
   { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
-  { id: 'import-section', title: () => t('Copias'), icon: 'mdi:swap-vertical' },
+  { id: 'import-section', title: () => t('Datos y copias'), icon: 'mdi:database-outline' },
   { id: 'actions-section', title: () => t('Acciones lógicas'), icon: 'mdi:link-variant' },
   { id: 'panels-section', title: () => t('Paneles avanzados'), icon: 'mdi:view-list-outline' },
   { id: 'pending-section', title: () => t('Referencias pendientes'), icon: 'mdi:alert-outline' },
@@ -72,8 +71,8 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
   { title: () => t('Alertas'), sections: ['rules-section'] },
-  { title: () => t('Mantenimiento'), sections: ['health-section', 'storage-section', 'import-section'] },
-  { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section', 'pending-section'], advanced: true },
+  { title: () => t('Mantenimiento'), sections: ['health-section', 'import-section'] },
+  { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section'], advanced: true },
   { title: () => t('Ayuda'), sections: ['help-section'] },
 ];
 /** One line under each section's title saying what it is for (#77). */
@@ -173,9 +172,8 @@ export function appearanceBody(grid?: number): string {
   )
     .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
     .join('')}</select></label>`;
-  // 0.13: hover help can be turned off; the choice stays in this browser.
-  const tips = `<label class="check"><input type="checkbox" data-tips${tipsOn() ? ' checked' : ''}><span>${esc(t('Ayudas al pasar el mouse'))}</span></label>`;
-  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${tips}${gridField}`;
+  // 0.13: the hover-help switch lives in Help.
+  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */
@@ -275,36 +273,145 @@ function statusText(issue: StatusIssue): { title: string; detail: string; fix: s
       };
   }
 }
+/** 0.13 Home status: one list with filters on top (each with its count); the pending
+ * references of Advanced are part of it. Each row: the symbol, what is wrong, and one
+ * button that fixes it or opens where it is fixed. */
+export type HealthFilter = 'all' | 'link' | 'out' | 'state' | 'ref';
+type HealthRow = {
+  cat: Exclude<HealthFilter, 'all'>;
+  icon: string;
+  title: string;
+  detail: string;
+  fix: string;
+  fixIcon: string;
+  attrs: string;
+};
+const STATUS_CAT: Record<StatusIssue['kind'], Exclude<HealthFilter, 'all'>> = {
+  unlinked: 'link',
+  offline: 'state',
+  'unknown-state': 'state',
+  'remote-missing': 'ref',
+  'view-image': 'ref',
+  'rule-target': 'ref',
+  storage: 'state',
+};
+const STATUS_ICON: Partial<Record<StatusIssue['kind'], string>> = {
+  unlinked: 'mdi:link-variant-plus',
+  offline: 'mdi:eye-outline',
+  'unknown-state': 'mdi:eye-outline',
+  'remote-missing': 'mdi:remote',
+  'view-image': 'mdi:image-outline',
+  'rule-target': 'mdi:bell-outline',
+  storage: 'mdi:database-outline',
+};
+const ISSUE_CAT: Record<HealthIssue['kind'], Exclude<HealthFilter, 'all'>> = {
+  'no-geometry': 'out',
+  'unused-zone': 'out',
+  misplaced: 'out',
+  outside: 'out',
+  'missing-entity': 'state',
+  'same-name': 'out',
+};
 export function healthBody(
   health: PlanHealth,
   roomName: (id: string | null) => string,
   status: readonly StatusIssue[] = [],
+  options: {
+    filter?: HealthFilter;
+    pending?: readonly string[];
+    iconOf?: (deviceId: string) => string | undefined;
+  } = {},
 ): string {
   const { plan, issues } = health;
+  const filter = options.filter ?? 'all';
   const safe = issues.filter(isSafeFix).length;
+  const rows: HealthRow[] = [
+    ...status.map((issue, index) => {
+      const text = statusText(issue);
+      const device = 'deviceId' in issue ? options.iconOf?.(issue.deviceId) : undefined;
+      return {
+        cat: STATUS_CAT[issue.kind],
+        icon: device ?? STATUS_ICON[issue.kind] ?? 'mdi:alert-circle-outline',
+        ...text,
+        fixIcon: STATUS_ICON[issue.kind] ?? 'mdi:wrench-outline',
+        attrs: `data-command="status-action" data-status="${index}"`,
+      };
+    }),
+    ...issues.map((issue, index) => {
+      const text = issueText(issue, roomName);
+      const device = 'deviceId' in issue ? options.iconOf?.(issue.deviceId) : undefined;
+      const cat = ISSUE_CAT[issue.kind];
+      return {
+        cat,
+        icon:
+          device ??
+          (issue.kind === 'unused-zone' || issue.kind === 'no-geometry' ? 'mdi:floor-plan' : 'mdi:map-marker-outline'),
+        ...text,
+        fixIcon:
+          issue.kind === 'misplaced'
+            ? 'mdi:map-marker-radius-outline'
+            : issue.kind === 'unused-zone'
+              ? 'mdi:plus'
+              : issue.kind === 'no-geometry' && !issue.devices
+                ? 'mdi:trash-can-outline'
+                : 'mdi:wrench-outline',
+        attrs: `data-command="health-action" data-issue="${index}"`,
+      };
+    }),
+    ...(options.pending ?? []).map(text => ({
+      cat: 'ref' as const,
+      icon: 'mdi:link-variant-off',
+      title: text,
+      detail: t('Apunta a algo que todavía no existe en Home Assistant'),
+      fix: '',
+      fixIcon: '',
+      attrs: '',
+    })),
+  ];
   // The drawing's identity is technical: it stays folded at the end (#74).
   const summary = `<details class="health-tech"><summary>${esc(t('Datos técnicos del plano'))}</summary><p class="k-sub">${esc(plan.title ?? t('Plano sin título'))} · ${esc(t('{zones} zonas · {spaces} espacios · {devices} dispositivos · huella {print}', { zones: plan.zones, spaces: plan.spaces, devices: plan.devices, print: plan.fingerprint }))}</p></details>`;
-  const statusRows = status
-    .map((issue, index) => {
-      const text = statusText(issue);
-      return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="status-action" data-status="${index}">${esc(text.fix)}</button></div>`;
-    })
-    .join('');
-  if (!issues.length && !status.length)
+  if (!rows.length)
     return `<div class="k-notice">${uiIcon('mdi:check-circle-outline')}<span>${esc(t('Todo en orden: cada símbolo funciona, cada espacio tiene su zona y cada dispositivo está donde está dibujado.'))}</span></div>${summary}`;
-  if (!issues.length) return `<div class="k-list health-list">${statusRows}</div>${summary}`;
-  const rows = issues
-    .map((issue, index) => {
-      const text = issueText(issue, roomName);
-      return `<div class="k-row health-row"><span class="txt"><b>${esc(text.title)}</b><span>${esc(text.detail)}</span></span><button type="button" class="k-btn" data-command="health-action" data-issue="${index}">${esc(text.fix)}</button></div>`;
-    })
+  const filters: [HealthFilter, string][] = [
+    ['all', t('Todo')],
+    ['link', t('Sin vincular')],
+    ['out', t('Plano y espacios')],
+    ['state', t('Sin estado')],
+    ['ref', t('Referencias')],
+  ];
+  const count = (cat: HealthFilter) => (cat === 'all' ? rows.length : rows.filter(row => row.cat === cat).length);
+  const chips = `<div class="fchips" role="group" aria-label="${esc(t('Filtrar'))}">${filters
+    .filter(([cat]) => cat === 'all' || count(cat))
+    .map(
+      ([cat, label]) =>
+        `<button type="button" data-command="health-filter" data-filter="${cat}" aria-pressed="${filter === cat}">${esc(label)} <b>${count(cat)}</b></button>`,
+    )
+    .join(
+      '',
+    )}${safe ? `<span class="grow"></span><button type="button" class="hm-icon-button small" data-command="health-fix-safe" aria-label="${esc(t('Arreglar lo seguro ({count})', { count: safe }))}" title="${esc(t('Arreglar lo seguro ({count}): cada dispositivo a su espacio y fuera los espacios vacíos. Se deshace con Deshacer.', { count: safe }))}">${uiIcon('mdi:auto-fix')}</button>` : ''}</div>`;
+  const list = rows
+    .filter(row => filter === 'all' || row.cat === filter)
+    .map(
+      row =>
+        `<div class="k-row health-row" data-cat="${row.cat}"><span class="ico-tile">${uiIcon(row.icon)}</span><span class="txt"><b>${esc(row.title)}</b><span>${esc(row.detail)}</span></span>${row.fix ? `<button type="button" class="hm-icon-button small" ${row.attrs} aria-label="${esc(row.fix)}" title="${esc(row.fix)}">${uiIcon(row.fixIcon)}</button>` : ''}</div>`,
+    )
     .join('');
-  return `${statusRows ? `<div class="k-list health-list">${statusRows}</div>` : ''}${safe ? `<div class="rooms-actions"><button type="button" class="primary" data-command="health-fix-safe">${esc(t('Arreglar lo seguro ({count})', { count: safe }))}</button></div><p class="note">${esc(t('Mueve cada dispositivo al espacio donde está dibujado y quita los espacios vacíos sin zona. Se deshace con Deshacer.'))}</p>` : ''}<div class="k-list health-list">${rows}</div>${summary}`;
+  return `${chips}<div class="k-list health-list">${list}</div>${summary}`;
 }
 
 export const settingsPageStyles = `
 .health-plan{display:grid;gap:4px;padding:14px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface)}
 .health-row{gap:12px}.health-row .k-btn{flex:none;min-height:36px;padding:6px 12px;font-size:13px}.health-row .txt span{white-space:normal}
+.copies{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.copy-tile{display:grid;place-items:center;width:64px;min-height:64px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);color:var(--hm-brand);cursor:pointer}.copy-tile ha-icon{--mdc-icon-size:26px}
+.drop{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px dashed var(--hm-line);border-radius:14px;background:var(--hm-surface);cursor:pointer}
+.drop:hover{border-color:var(--hm-brand)}.drop ha-icon{--mdc-icon-size:26px;color:var(--hm-brand)}.drop span{display:grid;font-size:12.5px;color:var(--hm-muted)}.drop b{font-size:14px;font-weight:500;color:var(--hm-ink)}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.fchips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.fchips .grow{flex:1}
+.fchips button[data-filter]{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid var(--hm-line);border-radius:999px;background:var(--hm-surface);color:var(--hm-ink);font-size:13px;cursor:pointer}
+.fchips button[data-filter] b{font-weight:600;color:var(--hm-muted)}
+.fchips button[aria-pressed=true]{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}.fchips button[aria-pressed=true] b{color:var(--hm-brand)}
+.ico-tile{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--hm-brand) 10%,transparent);color:var(--hm-brand)}.ico-tile ha-icon{--mdc-icon-size:20px}
 .settings-dialog{width:min(1040px,calc(100vw - 24px));height:min(780px,calc(100dvh - 32px));padding:0;display:flex;flex-direction:column;overflow:hidden}
 .settings-dialog[open]{display:flex}
 .settings-dialog>.sheet-header{position:static;margin:0;padding:14px 18px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface)}

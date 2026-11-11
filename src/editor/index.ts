@@ -130,8 +130,10 @@ import {
   settingsPageStyles,
   spacesList,
   type SettingsSection,
+  type HealthFilter,
 } from './settings-page.js';
-import { helpBody } from '../shell/help.js';
+import { bindHelp, helpBody, helpStyles } from '../shell/help.js';
+import { tipsOn } from '../ui/tips.js';
 import { gestureExtra, gestureFieldChange, gestureFieldStyles, newGestureAction } from './gesture-fields.js';
 import { valuesChange, valuesEditor, valuesEditorStyles, type ValuesDraft } from './values-editor.js';
 import { MODULE_ICONS, MODULE_PURPOSE, moduleSummary, type Summary } from '../model/module-summary.js';
@@ -168,7 +170,7 @@ import {
 } from './controls-editor.js';
 export * from './model.js';
 
-const cssBase = `${tokens}${attachedEditorStyles}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
+const cssBase = `${tokens}${helpStyles}${attachedEditorStyles}${pickerStyles}${iconButtonStyles}${controlsEditorStyles}${settingsPageStyles}${connectStyles}
 :host([embedded]){width:372px;max-width:100%;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:18px;box-shadow:var(--hm-shadow)}.sheet-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sheet-header h2{flex:1;margin:0;overflow-wrap:anywhere}.basic{display:grid;gap:12px}.field-title{display:flex;align-items:center;justify-content:flex-start;gap:2px;min-height:32px}.icon-field{display:flex;gap:8px;align-items:center}.icon-field ha-icon{flex:0 0 28px}.sheet-tools{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;margin:12px 0 0;padding:10px 0;background:var(--hm-bg);border-top:1px solid var(--hm-line);z-index:2}.sheet-tools .spacer{flex:1}.sheet-tools .primary{padding:8px 12px}.sheet-header{position:sticky;top:-14px;background:var(--hm-bg);z-index:3}.add-menu{display:grid;gap:10px}.settings-dialog{width:min(820px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--hm-line);border-radius:20px;background:var(--hm-bg);color:var(--hm-text)}.settings-dialog::backdrop{background:#10251d77}.advanced{margin-top:14px}.advanced>summary{min-height:44px;cursor:pointer;line-height:44px}.editor{overflow-wrap:anywhere}.icon-field input{min-width:0}.sheet-header .hm-icon-button{flex-shrink:0}
 
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
@@ -800,7 +802,7 @@ export class HomeManagerEditor extends HTMLElement {
         this.openRules();
         return;
       case 'storage':
-        this.openSettings('storage-section');
+        this.openSettings('import-section');
         return;
     }
   }
@@ -1303,13 +1305,18 @@ export class HomeManagerEditor extends HTMLElement {
         'appearance-section': appearanceBody(gridStep()),
         'view-section': this.viewBody(),
         'controls-section': this.controlsBody(),
-        'storage-section': '<div class="storage-host"></div>',
-        'help-section': helpBody(),
+        'storage-section': '',
+        'help-section': helpBody({ tips: tipsOn(), guide: this.settingsAvailable().has('rules-section') }),
         'health-section': health
           ? healthBody(
               health,
               id => this.configuration.rooms.find(room => room.id === id)?.label ?? t('ningún espacio'),
               this.homeStatus(),
+              {
+                filter: this.healthFilter,
+                pending,
+                iconOf: id => this.configuration.catalog.devices.find(device => device.id === id)?.display.icon,
+              },
             )
           : `<p class="note">${esc(t('No se pudo leer el plano.'))}</p>`,
         'actions-section': this.actionForm(),
@@ -1317,7 +1324,7 @@ export class HomeManagerEditor extends HTMLElement {
         'pending-section': pending.length
           ? `<ul class="note pending">${pending.map(text => `<li>${esc(text)}</li>`).join('')}</ul>`
           : `<p class="note">${esc(t('No hay referencias pendientes.'))}</p>`,
-        'import-section': this.importForm(),
+        'import-section': `${this.settingsAvailable().has('storage-section') ? '<div class="storage-host"></div>' : ''}<div class="lbl">${esc(t('Copias'))}<span class="grow"></span></div>${this.importForm()}`,
       },
     });
   }
@@ -1413,6 +1420,9 @@ export class HomeManagerEditor extends HTMLElement {
         },
       });
     }
+    // Help: its search and topic cards.
+    const helpSection = this.root.querySelector<HTMLElement>('#help-section');
+    if (helpSection) bindHelp(helpSection);
     const storageHost = this.root.querySelector<HTMLElement>('.storage-host');
     if (storageHost && this._hass) void storageBody(storageHost, this._hass, this.root, this.homeId);
     const planViewsHost = this.root.querySelector('.plan-views-host');
@@ -1665,6 +1675,7 @@ export class HomeManagerEditor extends HTMLElement {
   }
 
   private rulesView?: RulesEditor;
+  private healthFilter: HealthFilter = 'all';
   private readonly controlDesigner = new ControlDesigner();
   private symbolRules(device?: Device): string {
     // 0.13 Alerts: the ones that use this symbol, each opens to be edited; ＋ makes a new one for it.
@@ -2109,9 +2120,9 @@ export class HomeManagerEditor extends HTMLElement {
     const imported = this.imported;
     const history =
       this.homeId && integrationAvailable(this._hass)
-        ? `<div class="plans-box">${this.plans ? (this.plans.length ? `<div class="plans">${this.plans.map(plan => `<div class="plan"><span>${esc(new Date(plan.created_at).toLocaleString(getLanguage()))} · ${esc(t('revisión {n}', { n: plan.revision }))} · ${Math.ceil(plan.bytes / 1024)} KiB</span><button type="button" data-command="restore-plan" data-plan="${esc(plan.plan_id)}">${esc(t('Restaurar'))}</button></div>`).join('')}</div>` : `<p class="note">${esc(t('Todavía no hay planos anteriores.'))}</p>`) : `<button type="button" data-command="plans">${esc(t('Planos anteriores'))}</button>`}</div>`
+        ? `<div class="lbl">${esc(t('Planos anteriores'))}<span class="grow"></span>${this.plans ? '' : `<button type="button" class="hm-icon-button small" data-command="plans" aria-label="${esc(t('Planos anteriores'))}" title="${esc(t('Ver planos anteriores'))}"><ha-icon icon="mdi:file-clock-outline" aria-hidden="true"></ha-icon></button>`}</div><div class="plans-box">${this.plans ? (this.plans.length ? `<div class="k-list plans">${this.plans.map(plan => `<div class="k-row plan"><span class="ico-tile"><ha-icon icon="mdi:file-clock-outline" aria-hidden="true"></ha-icon></span><span class="txt"><b>${esc(t('Revisión {n}', { n: plan.revision }))}</b><span>${esc(new Date(plan.created_at).toLocaleString(getLanguage()))} · ${Math.ceil(plan.bytes / 1024)} KiB</span></span><button type="button" class="hm-icon-button small" data-command="restore-plan" data-plan="${esc(plan.plan_id)}" aria-label="${esc(t('Restaurar'))}" title="${esc(t('Volver a este plano'))}"><ha-icon icon="mdi:restore" aria-hidden="true"></ha-icon></button></div>`).join('')}</div>` : `<p class="note">${esc(t('Todavía no hay planos anteriores.'))}</p>`) : ''}</div>`
         : '';
-    return `${this.linkedBox()}${history}<div class="toolbar"><button type="button" data-command="export">${esc(t('Exportar JSON'))}</button><label class="file">${esc(t('Importar JSON o SVG'))}<input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${importLossNote(imported.losses)}${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${(imported.viewBoxChanged || losesData(imported.losses)) && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
+    return `<div class="copies"><button type="button" class="copy-tile" data-command="export" aria-label="${esc(t('Exportar JSON'))}" title="${esc(t('Exportar copia (JSON)'))}"><ha-icon icon="mdi:download" aria-hidden="true"></ha-icon></button><label class="drop"><ha-icon icon="mdi:upload" aria-hidden="true"></ha-icon><span><b>${esc(t('Importar'))}</b>JSON / SVG</span><input type="file" aria-label="${esc(t('Importar JSON o SVG'))}" accept=".json,.svg,application/json,image/svg+xml" id="import-file"></label></div>${history}${this.linkedBox()}${imported ? `<div class="preview"><h3>${esc(t('Resumen de importación'))}</h3><ul><li>Iconos nuevos: ${imported.summary.added.length}</li><li>Iconos eliminados: ${imported.summary.removed.length}</li><li>Iconos modificados: ${imported.summary.changed.length}</li><li>Acciones: ${imported.summary.actions}; paneles: ${imported.summary.panels}</li><li>Arquitectura: ${imported.summary.architectureChanged ? 'se reemplaza' : 'se conserva'}</li><li>Espacios nuevos: ${imported.summary.roomsAdded.length}; quitados: ${imported.summary.roomsRemoved.length}</li></ul>${importLossNote(imported.losses)}${imported.missingZones.length ? `<p class="note pending">Espacios sin zona en el nuevo plano: ${imported.missingZones.map(esc).join(', ')}. Sus dispositivos se conservan; el encuadre de esos espacios queda deshabilitado hasta agregar la zona.</p>` : ''}${imported.newZones.length ? `<p class="note">Zonas nuevas detectadas: ${imported.newZones.map(esc).join(', ')}. Podés agregarlas desde Espacios.</p>` : ''}${imported.viewBoxChanged ? `<fieldset class="mode"><legend>${esc(t('El viewBox cambió. ¿Cómo conservar las posiciones?'))}</legend><label class="check"><input type="radio" name="position-mode" value="drawing"${imported.positionMode === 'drawing' ? ' checked' : ''}><span>${esc(t('Mismo punto del dibujo (el plano se recortó o amplió)'))}</span></label><label class="check"><input type="radio" name="position-mode" value="relative"${imported.positionMode === 'relative' ? ' checked' : ''}><span>${esc(t('Misma proporción (el plano completo se reescaló)'))}</span></label></fieldset><p class="note pending">${esc(t('Exportá una copia actual antes de aplicar.'))}</p>` : ''}<div class="actions"><button type="button" data-command="cancel-import">${esc(t('Cancelar importación'))}</button><button type="button" data-command="backup">${esc(t('Exportar copia actual'))}</button><button type="button" class="primary" data-command="apply-import"${(imported.viewBoxChanged || losesData(imported.losses)) && !imported.backedUp ? ' disabled' : ''}>${esc(t('Aplicar importación al borrador'))}</button></div></div>` : ''}`;
   }
   private captureRows(): NativePanel['controls'] {
     const form = this.root.querySelector<HTMLFormElement>('#panel-form');
@@ -2207,6 +2218,14 @@ export class HomeManagerEditor extends HTMLElement {
           if (issue) this.healthAction(issue);
           break;
         }
+        case 'health-filter':
+          this.healthFilter = (button.dataset.filter as HealthFilter) ?? 'all';
+          this.render();
+          break;
+        case 'alerts-guide':
+          this.openRules();
+          this.rulesView?.startGuide();
+          break;
         case 'health-fix-safe': {
           const safe = this.planHealth()?.issues.filter(isSafeFix) ?? [];
           if (safe.length) this.emit(applyFixes(this.configuration, safe));

@@ -67,6 +67,13 @@ export class RulesEditor extends HTMLElement {
     this.creatingFor = id;
     this.newRule();
   }
+  /** The five-step guide, on a new alert (from Help). */
+  startGuide(): void {
+    this.creatingFor = undefined;
+    this.newRule();
+    this.guide = 1;
+    this.paintGuide();
+  }
   /** Opens one alert (from a symbol's sheet). */
   openRule(id: string): void {
     const row = this.rows().find(item => item.rule.id === id || item.key === id);
