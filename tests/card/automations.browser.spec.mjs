@@ -123,6 +123,10 @@ test('nothing to do or no way to start is said before saving', async ({ page }) 
   await section.getByRole('button', { name: 'Listo' }).click();
   await expect(section.getByRole('alert')).toHaveText('Elegí qué hacer.');
   await section.getByRole('button', { name: 'Agregar qué hacer' }).click();
+  // Each choice says what it acts on, once.
+  const names = await section.locator('.check-row span').allTextContents();
+  expect(names.length).toBeGreaterThan(0);
+  expect(new Set(names).size).toBe(names.length);
   await section.getByRole('checkbox').first().check();
   await section.getByRole('button', { name: 'Listo' }).click();
   await expect(section.getByRole('alert')).toContainText('Elegí cuándo');

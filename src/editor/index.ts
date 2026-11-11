@@ -464,6 +464,7 @@ export class HomeManagerEditor extends HTMLElement {
     setLanguage(languageFromHass(hass));
     const first = !this._hass;
     this._hass = hass;
+    this.automationsView?.setHass(hass);
     const picker = this.root.querySelector<DevicePicker>('homemanager-device-picker');
     if (picker) picker.hass = hass;
     const form = this.root.querySelector<HTMLFormElement>('#device-form');

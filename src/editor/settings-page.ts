@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { t, getLanguage } from '../i18n/index.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
 import { showLink } from '../shell/show-link.js';
@@ -72,7 +72,11 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
-  { title: () => t('Avisos'), sections: ['rules-section', 'automations-section'] },
+  // In English "Alerts" is already the row below: the group says both.
+  {
+    title: () => (getLanguage() === 'es' ? 'Avisos' : 'Alerts & automations'),
+    sections: ['rules-section', 'automations-section'],
+  },
   { title: () => t('Mantenimiento'), sections: ['health-section', 'import-section'] },
   { title: () => t('Ayuda'), sections: ['help-section'] },
 ];
