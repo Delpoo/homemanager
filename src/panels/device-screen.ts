@@ -8,6 +8,7 @@ import { personName } from '../model/names.js';
 import { controlsOf } from '../card/device-controls.js';
 import type { HomeManagerCard } from '../card/home-manager-card.js';
 import { reasonText } from './native-panel.js';
+import { automationEntity, runAutomation } from '../integration/automations.js';
 import { useComponents, uiGroup, uiRow, uiFold, uiNotice, uiEmpty, uiEscape as e, uiIcon } from '../ui/components.js';
 import {
   uiDeviceHeader,
@@ -333,14 +334,33 @@ export class DeviceScreenView extends HTMLElement {
         })),
       );
     }
+    // 0.13: automations with ★ are buttons on top of Now.
+    const shortcuts = (card.draft!.pinnedAutomations ?? []).flatMap(pin => {
+      const entityId = automationEntity(card._hass, pin.id);
+      if (!entityId) return [];
+      const name = personName(card._hass?.states[entityId]?.attributes?.friendly_name, pin.id);
+      return [
+        `<button type="button" class="scut" data-run-automation="${e(entityId)}" aria-label="${e(name)}" title="${e(name)}"><span class="c">${uiIcon(pin.icon)}</span><span class="n">${e(name)}</span></button>`,
+      ];
+    });
+    const top = shortcuts.length ? `<div class="now-shortcuts">${shortcuts.join('')}</div>` : '';
     const custom = configuredNow(card.draft!, card._hass, sections);
     if (custom)
-      return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${custom.length ? custom.map(section => uiGroup(t(section.title), (section.missing ? uiNotice(t('Referencia no disponible'), 'warning') : '') + (section.block.type === 'control' ? `<div class="now-control" data-device="${e(section.block.deviceId ?? '')}" data-control-id="${e(section.block.controlId ?? '')}"></div>` : section.block.type === 'shortcut' && !section.block.deviceId && section.block.roomId ? `<button type="button" class="k-btn" data-now-room="${e(section.block.roomId)}">${e(section.rows[0]?.name ?? t('Referencia no disponible'))}</button>` : section.rows.map(uiNowRow).join('')))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
-    return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
+      return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${top}${custom.length ? custom.map(section => uiGroup(t(section.title), (section.missing ? uiNotice(t('Referencia no disponible'), 'warning') : '') + (section.block.type === 'control' ? `<div class="now-control" data-device="${e(section.block.deviceId ?? '')}" data-control-id="${e(section.block.controlId ?? '')}"></div>` : section.block.type === 'shortcut' && !section.block.deviceId && section.block.roomId ? `<button type="button" class="k-btn" data-now-room="${e(section.block.roomId)}">${e(section.rows[0]?.name ?? t('Referencia no disponible'))}</button>` : section.rows.map(uiNowRow).join('')))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
+    return `<h2 class="now-head">${e(t('Ahora'))}</h2><div class="now-content">${top}${sections.length ? sections.map(section => uiGroup(t(section.title), section.rows.map(uiNowRow).join(''))).join('') : uiEmpty(t('Nada por mostrar en este espacio'))}</div>`;
   }
   private async onClick(event: Event): Promise<void> {
     const target = (event.target as Element).closest<HTMLElement>('button');
     if (!target) return;
+    if (target.dataset.runAutomation && this.card?._hass) {
+      try {
+        await runAutomation(this.card._hass, target.dataset.runAutomation);
+        this.feedback(t('Enviado'));
+      } catch (error) {
+        this.feedback(error instanceof Error ? error.message : t('No se pudo enviar'));
+      }
+      return;
+    }
     if (target.dataset.nowRoom) {
       this.card?.fit(target.dataset.nowRoom);
       return;

@@ -36,3 +36,29 @@ test('optional Now panels agree in JS and schema; removed references remain disp
       else assert.throws(() => assertConfiguration(c));
     }
 });
+
+test('automations with a button in Now agree in JS and schema', () => {
+  for (const [expected, list] of [
+    [true, cases.pinsValid],
+    [false, cases.pinsInvalid],
+  ])
+    for (const pinnedAutomations of list) {
+      const c = { ...structuredClone(cases.base), pinnedAutomations };
+      assert.equal(validate(c), expected, JSON.stringify(pinnedAutomations));
+      if (expected) assert.deepEqual(assertConfiguration(c), c);
+      else assert.throws(() => assertConfiguration(c));
+    }
+});
+
+test('the plan width in metres agrees in JS and schema', () => {
+  for (const [expected, list] of [
+    [true, cases.widthValid],
+    [false, cases.widthInvalid],
+  ])
+    for (const planWidthMetres of list) {
+      const c = { ...structuredClone(cases.base), planWidthMetres };
+      assert.equal(validate(c), expected, JSON.stringify(planWidthMetres));
+      if (expected) assert.deepEqual(assertConfiguration(c), c);
+      else assert.throws(() => assertConfiguration(c));
+    }
+});

@@ -21,6 +21,7 @@ export type SettingsSection =
   | 'view-section'
   | 'controls-section'
   | 'rules-section'
+  | 'automations-section'
   | 'health-section'
   | 'storage-section'
   | 'import-section'
@@ -56,6 +57,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'view-section', title: () => t('Tamaño y vista inicial'), icon: 'mdi:magnify-plus-outline' },
   { id: 'controls-section', title: () => t('Controles'), icon: 'mdi:remote' },
   { id: 'rules-section', title: () => t('Alertas'), icon: 'mdi:bell-outline' },
+  { id: 'automations-section', title: () => t('Automatizaciones'), icon: 'mdi:robot-outline' },
   { id: 'health-section', title: () => t('Estado de la casa'), icon: 'mdi:stethoscope' },
   { id: 'storage-section', title: () => t('Almacenamiento'), icon: 'mdi:database-outline' },
   { id: 'import-section', title: () => t('Datos y copias'), icon: 'mdi:database-outline' },
@@ -70,7 +72,7 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },
   { title: () => t('Pantallas'), sections: ['now-section', 'appearance-section', 'view-section'] },
   { title: () => t('Controles'), sections: ['controls-section'] },
-  { title: () => t('Alertas'), sections: ['rules-section'] },
+  { title: () => t('Avisos'), sections: ['rules-section', 'automations-section'] },
   { title: () => t('Mantenimiento'), sections: ['health-section', 'import-section'] },
   { title: () => t('Ayuda'), sections: ['help-section'] },
 ];
@@ -85,6 +87,7 @@ const PURPOSE: Record<SettingsSection, string> = {
   'view-section': 'Cuánto crecen los símbolos con el zoom y en qué vista abre el plano.',
   'controls-section': 'Controles infrarrojos y de radio que aprendiste.',
   'rules-section': 'Avisos y resaltados cuando una lectura pasa un límite. Nunca envían comandos.',
+  'automations-section': 'Cuando → Hacer → Comprobar → Si falla. Se guardan en Home Assistant.',
   'health-section': 'Lo que no está funcionando y cómo arreglarlo.',
   'storage-section': 'Cuánto ocupa HomeManager en Home Assistant y cómo liberar espacio.',
   'import-section': 'Copias del plano para guardar, mover o volver atrás.',

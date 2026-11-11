@@ -96,6 +96,8 @@ import { ControlDesigner } from '../ui/control-designer.js';
 import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
 import type { ControlHost } from '../ui/control-view.js';
 import { RulesEditor } from '../ui/rules-editor.js';
+import { AutomationsEditor } from '../ui/automations-editor.js';
+import { automationActionIds } from '../model/automations.js';
 import { rulesForSymbol } from '../model/visual-rules.js';
 import type { Category } from '../model/types.js';
 import { domainOf, suggestPresentation } from '../panels/controls.js';
@@ -775,6 +777,7 @@ export class HomeManagerEditor extends HTMLElement {
     return homeStatus(this.configuration, this._hass, {
       storageShare: this.storageShare,
       ...(this.irRemotes ? { irRemotes: new Set(this.irRemotes.map(item => item.id)) } : {}),
+      ...(this.automationActions ? { automationActions: this.automationActions } : {}),
     }).map(issue =>
       issue.kind === 'unused-action' ? { ...issue, name: names.get(issue.actionId) ?? issue.name } : issue,
     );
@@ -1133,6 +1136,8 @@ export class HomeManagerEditor extends HTMLElement {
       'pending-section',
       'help-section',
     ]);
+    // Automations are saved in HA's automation editor: administrators only.
+    if (this._hass?.user?.is_admin !== false && this._hass?.callApi) available.add('automations-section');
     if (this.appContext) {
       available.add('homes-section');
       available.add('controls-section');
@@ -1308,6 +1313,7 @@ export class HomeManagerEditor extends HTMLElement {
           ? `<div class="designer-title"><ha-icon icon="${esc(this.device()!.display.icon)}" aria-hidden="true"></ha-icon><b>${esc(t('Diseñando el control de «{name}»', { name: this.device()!.display.label }))}</b></div><div class="designer-host"></div>`
           : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Diseñar control.'))}</p>`,
         'rules-section': '<div class="rules-host"></div>',
+        'automations-section': '<div class="automations-host"></div>',
         'now-section': '<div class=now-editor-host></div>',
         'rooms-section': `${this.roomsForm()}<div class="lbl">${esc(t('Imágenes'))}<span class="grow"></span></div><div class=plan-views-host></div><div class="lbl">${esc(t('Home Assistant'))}<span class="grow"></span></div>${this.connectForm()}`,
         'views-section': '',
@@ -1455,6 +1461,15 @@ export class HomeManagerEditor extends HTMLElement {
       this.rulesView ??= new RulesEditor();
       rulesHost.append(this.rulesView);
       this.rulesView.configure(this.configuration, this._hass, next => this.emit(next));
+    }
+    const automationsHost = this.root.querySelector('.automations-host');
+    if (automationsHost) {
+      if (!this.automationsView) {
+        this.automationsView = new AutomationsEditor();
+        this.automationsView.onList = list => (this.automationActions = automationActionIds(list));
+      }
+      automationsHost.append(this.automationsView);
+      this.automationsView.configure(this.configuration, this._hass, next => this.emit(next));
     }
     const dialog = this.root.querySelector<TaskScreen>('.settings-dialog');
     if (dialog) {
@@ -1688,6 +1703,9 @@ export class HomeManagerEditor extends HTMLElement {
   }
 
   private rulesView?: RulesEditor;
+  private automationsView?: AutomationsEditor;
+  /** Actions HomeManager automations send, once their list was read (Home status). */
+  private automationActions?: Set<string>;
   private healthFilter: HealthFilter = 'all';
   private readonly controlDesigner = new ControlDesigner();
   private symbolRules(device?: Device): string {

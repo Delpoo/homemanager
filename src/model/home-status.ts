@@ -41,7 +41,13 @@ export const STATUS_ORDER: StatusIssue['kind'][] = [
 export function homeStatus(
   configuration: StatusConfiguration,
   hass: ModelHass | undefined,
-  extra: { remotes?: ReadonlySet<string>; irRemotes?: ReadonlySet<string>; storageShare?: number } = {},
+  extra: {
+    remotes?: ReadonlySet<string>;
+    irRemotes?: ReadonlySet<string>;
+    storageShare?: number;
+    /** 0.13: actions HomeManager automations send (they live in HA, not in the plan). */
+    automationActions?: ReadonlySet<string>;
+  } = {},
 ): StatusIssue[] {
   const issues: StatusIssue[] = [];
   const devices = configuration.catalog.devices;
@@ -70,7 +76,8 @@ export function homeStatus(
     const { actions, ...rest } = configuration;
     const text = JSON.stringify(rest);
     for (const id of Object.keys(actions))
-      if (!text.includes(JSON.stringify(id))) issues.push({ kind: 'unused-action', actionId: id, name: id });
+      if (!text.includes(JSON.stringify(id)) && !extra.automationActions?.has(id))
+        issues.push({ kind: 'unused-action', actionId: id, name: id });
   }
   if ((extra.storageShare ?? 0) >= 0.8)
     issues.push({ kind: 'storage', percent: Math.round(extra.storageShare! * 100) });

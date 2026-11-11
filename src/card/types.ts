@@ -104,6 +104,10 @@ export interface Configuration {
   initialView?: import('../model/symbol-scale.js').InitialView;
   /** Plan 0.12 (#60): the automatic rules' switches and limits. */
   baseRules?: import('../model/base-rules.js').BaseRules;
+  /** 0.13: HomeManager automations (they live in HA) with a button in Now. */
+  pinnedAutomations?: { id: string; icon: string }[];
+  /** 0.13: the real width of the plan in metres (measures and m²). */
+  planWidthMetres?: number;
   schemaVersion: 2;
   rooms: Room[];
   catalog: { schemaVersion: 2; devices: Device[] };
@@ -157,6 +161,8 @@ export interface Hass {
   themes?: { darkMode?: boolean };
   formatEntityState?(entity: { state: string; attributes?: Record<string, unknown> }): string;
   callWS?<T = unknown>(message: Record<string, unknown>): Promise<T>;
+  /** HA's REST helper (automation editor API). */
+  callApi?<T = unknown>(method: 'GET' | 'POST' | 'DELETE', path: string, data?: unknown): Promise<T>;
   callService?(
     domain: string,
     service: string,

@@ -167,6 +167,10 @@ export interface StateSource {
 export interface Configuration {
   nowPanels?: import('../model/now-panel.js').NowPanels;
   planViews?: import('../model/plan-views.js').PlanView[];
+  /** 0.13: HomeManager automations (in HA) with a button in Now. */
+  pinnedAutomations?: { id: string; icon: string }[];
+  /** 0.13: the real width of the plan in metres (measures and m²). */
+  planWidthMetres?: number;
   schemaVersion: 2;
   rooms: Room[];
   catalog: Catalog;
