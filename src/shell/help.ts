@@ -86,11 +86,13 @@ export const helpStyles = `
 .help-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:84px;padding:12px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);color:var(--hm-ink);text-align:left;cursor:pointer}
 .help-card:hover{border-color:var(--hm-brand)}.help-card ha-icon{--mdc-icon-size:24px;color:var(--hm-brand)}.help-card b{font-weight:500;font-size:13.5px}
 .help-part[hidden]{display:none}
+/* The cards are the index: a topic shows once opened or found. */
+.help-grid~.help-part:not([open]){display:none}
 .help-lbl{margin-top:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--hm-muted)}
 .help-states{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-size:13px}
 .help-state{justify-self:start;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);font-weight:500;font-size:12.5px}
 .help-state::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--c)}
-.help-state[data-tone=ok]{--c:var(--hm-ok,#3f8f5f)}.help-state[data-tone=warn]{--c:var(--hm-warn)}.help-state[data-tone=info]{--c:var(--hm-accent,var(--hm-brand))}.help-state[data-tone=muted]{--c:var(--hm-muted)}
+.help-state[data-tone=ok]{--c:var(--hm-ok,#3f8f5f)}.help-state[data-tone=warn]{--c:var(--hm-warn)}.help-state[data-tone=info]{--c:#3f7fbf}.help-state[data-tone=muted]{--c:var(--hm-muted)}
 `;
 
 /** Search and topic cards, wherever Help is shown. */
