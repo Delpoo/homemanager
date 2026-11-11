@@ -107,3 +107,36 @@ async def test_import_and_create_absolute_schedule_persist_with_explicit_power(
     assert restored.resources()["controls"][0]["schedules"][0]["result"] == "sent"
     await restored.async_tick(now)
     assert send.call_count == 1
+
+
+async def test_an_emitter_that_fails_unexpectedly_does_not_stop_other_schedules(
+    hass, setup_integration, hass_ws_client, monkeypatch,
+):
+    monkeypatch.setattr(IrProxy, "devices", lambda self: {"receivers": [], "emitters": [{"id": TX, "name": "Synthetic"}]})
+    calls = []
+
+    def send(self, emitter, signal, **kwargs):
+        calls.append(emitter)
+        if len(calls) == 1:
+            raise RuntimeError("emitter not ready")
+
+    monkeypatch.setattr(IrProxy, "send", send)
+    admin = await hass_ws_client(hass)
+    document = "uint8_t state[18] = {" + ",".join(str(byte) for byte in FRAME) + "};"
+    imported = await _call(admin, "catalog/import", source="IRremoteESP8266", document=document, indexes=[0],
+                           name="Example AC", brand="Example", model="144", entry="synthetic", revision="fixture", emitter=TX)
+    saved = (await _call(admin, "resources"))["learned"][0]
+    assert imported["added"] == 1
+    for name in ("First AC", "Second AC"):
+        created = await _call(admin, "absolute", command="create", fields={
+            "profile": MITSUBISHI, "name": name, "brand": "Example", "model": "144",
+            "remote_id": saved["id"], "button_id": saved["buttons"][0]["id"], "emitter": TX,
+        })
+        await _call(admin, "absolute", command="schedule", control_id=created["id"], fields={
+            "days": [2], "zone": "UTC", "time": "12:34", "power": True, "state": created["state"],
+        })
+    absolute: AbsoluteRemotes = hass.data[DATA_ABSOLUTE]
+    await absolute.async_tick(datetime(2026, 11, 11, 12, 34, tzinfo=UTC))
+    assert len(calls) == 2
+    results = sorted(row["schedules"][0]["result"] for row in absolute.resources()["controls"])
+    assert results == ["send_failed", "sent"]

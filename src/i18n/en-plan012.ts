@@ -886,4 +886,11 @@ export const enPlan012: Record<string, string> = {
   'Medir': 'Measure',
   'Metros de esa línea': 'Metres of that line',
   'Usar esta medida': 'Use this length',
+  // 0.13 Controls: absolute state, schedules and library in the app design.
+  'Ajuste actual del control': "The control's current setting",
+  'Horarios de HomeManager': 'HomeManager schedules',
+  'Pendiente': 'Pending',
+  'hasta {time}': 'until {time}',
+  'Seleccionar disponibles · hasta 64 señales por control': 'Select available · up to 64 signals per control',
+  Guardado: 'Saved',
 };

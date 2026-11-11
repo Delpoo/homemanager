@@ -36,25 +36,25 @@ test('absolute setpoints, the remote clock, and independent persistent schedule 
     }),
   ).toBe(true);
   await resources.getByRole('button', { name: 'Enviar estado', exact: true }).last().click();
-  await expect(
-    resources.getByText('Emisión solicitada. Estado físico sin confirmación.', { exact: true }),
-  ).toBeVisible();
+  // Sent, not confirmed: a short status, and the unconfirmed state on hover.
+  await expect(resources.locator('p.status')).toHaveText('Comando aceptado');
+  await expect(resources.locator('.requested .state')).toHaveAttribute('title', 'Estado físico sin confirmación');
   await expect(resources.locator('.requested')).toContainText('25.5');
   await shot(page, info, 'clima');
   await resources.getByRole('button', { name: 'Temporizadores', exact: true }).click();
   await resources.getByRole('button', { name: 'Agregar horario', exact: true }).click();
   const schedule = resources.locator('form[data-form=schedule]');
-  await schedule.getByRole('combobox', { name: 'Acción', exact: true }).selectOption('off');
+  await schedule.getByRole('radio', { name: 'Apagar', exact: true }).check();
   await schedule.getByLabel('Hora', { exact: true }).fill('23:15');
   await resources.getByLabel('Reloj del mando', { exact: true }).fill('20:30');
   await resources.getByLabel('Reloj del mando', { exact: true }).press('Tab');
   await expect(schedule.getByLabel('Hora', { exact: true })).toHaveValue('23:15');
-  await expect(schedule.getByRole('combobox', { name: 'Acción', exact: true })).toHaveValue('off');
+  await expect(schedule.getByRole('radio', { name: 'Apagar', exact: true })).toBeChecked();
   await shot(page, info, 'horario-pendiente');
   await schedule.getByRole('button', { name: 'Guardar horario', exact: true }).click();
   await expect(resources.locator('.schedule')).toContainText('Apagar · 23:15');
   await resources.getByRole('button', { name: 'Editar', exact: true }).click();
-  await schedule.getByRole('combobox', { name: 'Acción', exact: true }).selectOption('on');
+  await schedule.getByRole('radio', { name: 'Encender', exact: true }).check();
   await schedule.getByRole('button', { name: 'Guardar horario', exact: true }).click();
   await expect(resources.locator('.schedule')).toContainText('Encender · 23:15');
   await expect(resources.locator('.schedule')).toContainText('Próximo');
