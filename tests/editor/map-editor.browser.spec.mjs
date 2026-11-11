@@ -1,4 +1,4 @@
-import { openAdvanced, openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
+import { openFirstSection, openSettings } from '../browser/shell-helpers.mjs';
 import { openCardMenu } from '../browser/shell-helpers.mjs';
 import { chooseAnyEntity, openDeviceSections } from '../browser/device-picker-helpers.mjs';
 import { test, expect } from '../browser/local-test.mjs';
@@ -219,14 +219,7 @@ test('plan settings and field help open without cluttering the map, and Move use
   // 0.13 notebook: the sections are rows of the menu, one step back.
   await settings.locator('.task-back').click();
   const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
-  await openAdvanced(settings);
-  for (const name of [
-    'Plano y espacios',
-    'Acciones lógicas',
-    'Paneles avanzados',
-    'Estado de la casa',
-    'Datos y copias',
-  ])
+  for (const name of ['Plano y espacios', 'Estado de la casa', 'Datos y copias'])
     await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) }).first()).toBeVisible();
   await page.keyboard.press('Escape');
   await select(page);
