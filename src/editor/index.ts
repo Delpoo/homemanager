@@ -1998,7 +1998,11 @@ export class HomeManagerEditor extends HTMLElement {
             : pending
               ? t('Hay una versión del archivo sin aplicar.')
               : t('La última versión del archivo ya se aplicó o se ignoró.');
-    return `<div class="linked-box"><h3>${esc(t('Plano vinculado'))}</h3><p>${esc(t('Guardá el dibujo en este archivo de Home Assistant. Si no afecta espacios ni dispositivos se aplica solo, y si los afecta te pregunta.'))}</p><code>${esc(linked.path)}</code><p class="note">${esc(text)}</p>${pending ? `<button type="button" data-command="linked-review">${esc(t('Revisar'))}</button>` : ''}</div>`;
+    // 0.13: one row, as in the mockup; what it does is in its ⓘ.
+    const about = t(
+      'Guardá el dibujo en este archivo de Home Assistant. Si no afecta espacios ni dispositivos se aplica solo, y si los afecta te pregunta.',
+    );
+    return `<div class="lbl">${esc(t('Plano vinculado'))}<span class="grow"></span></div><div class="k-row linked-box"><span class="ico-tile"><ha-icon icon="mdi:file-link-outline" aria-hidden="true"></ha-icon></span><span class="txt"><code>${esc(linked.path)}</code><span>${esc(text)}</span></span>${pending ? `<button type="button" class="hm-icon-button small" data-command="linked-review" aria-label="${esc(t('Revisar'))}" title="${esc(t('Revisar'))}"><ha-icon icon="mdi:file-compare" aria-hidden="true"></ha-icon></button>` : ''}<span class="hm-icon-button small info" role="img" aria-label="${esc(about)}" title="${esc(about)}"><ha-icon icon="mdi:information-outline" aria-hidden="true"></ha-icon></span></div>`;
   }
   private async loadLinked(): Promise<void> {
     if (!this._hass || !this.homeId) return;
