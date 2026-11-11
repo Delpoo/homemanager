@@ -13,7 +13,9 @@ export const test = base.extend({
         const file = path.resolve(root, relative);
         if (
           !file.startsWith(root + path.sep) ||
-          !/^(tests\/browser\/fixtures\/|dist\/|\.work\/|docs\/vision-mockup\.html$|docs\/rediseno\/|src\/ha\/[a-z-]+\.mjs$)/.test(relative)
+          !/^(tests\/browser\/fixtures\/|dist\/|\.work\/|docs\/vision-mockup\.html$|docs\/rediseno\/|src\/ha\/[a-z-]+\.mjs$)/.test(
+            relative,
+          )
         )
           return route.abort();
         try {

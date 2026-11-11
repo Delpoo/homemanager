@@ -1,3 +1,4 @@
+import { historyPoints } from '../integration/history.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { learningWorkspaceStyles } from '../ui/learning-components.js';
@@ -555,11 +556,20 @@ export class HomeManagerRf extends HTMLElement {
     if (this.view === 'test' && remote) this.bindTest(remote);
     if (remote && (this.view === 'remote' || this.view === 'entities' || this.view === 'settings')) {
       this.remoteView.readValues = () => this._hass?.states ?? {};
+      this.remoteView.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
       this.designer.configure({
         key: remote.id,
         remote,
         name: remote.name,
         estimated: true,
+        pinTo: pieceId =>
+          this.dispatchEvent(
+            new CustomEvent('homemanager-shell-command', {
+              detail: { command: 'pin', remoteId: remote.id, pieceId },
+              bubbles: true,
+              composed: true,
+            }),
+          ),
         // 0.13: the same remote for another fan or light, on this or another transmitter.
         duplicate: {
           emitters: this.transmitters.map(item => ({ id: item.id, name: item.name })),
@@ -571,6 +581,7 @@ export class HomeManagerRf extends HTMLElement {
           },
         },
         readValues: () => this._hass?.states ?? {},
+        history: (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute),
         save: async layout => {
           const saved = await rf.saveLayout(this._hass!, remote.id, layout);
           this.remotes = this.remotes.map(r => (r.id === saved.id ? saved : r));

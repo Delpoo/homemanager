@@ -190,3 +190,20 @@ test('HA uses the same designer, persists layout and opens the designed control 
   await expect(panel.locator('.auto')).toBeVisible();
   expect(await page.evaluate(() => window.testHarness.calls)).toEqual([]);
 });
+
+test('Shows › On the plan asks the app to pin the piece next to its symbol (0.13)', async ({ page }) => {
+  const { rf, designer } = await openDesigner(page);
+  const asked = page.evaluate(
+    () =>
+      new Promise(resolve =>
+        document.addEventListener('homemanager-shell-command', event => resolve(event.detail), { once: true }),
+      ),
+  );
+  await designer.getByRole('button', { name: 'Subir / bajar', exact: true }).click();
+  await designer.getByRole('tab', { name: 'Muestra', exact: true }).click();
+  await designer.getByRole('button', { name: 'Pegar junto a su símbolo', exact: true }).click();
+  const detail = await asked;
+  expect(detail).toMatchObject({ command: 'pin', remoteId: 'techo' });
+  expect(detail.pieceId).toBe((await last(page)).id);
+  await rf.locator('.dfoot [data-command=edit]').click();
+});

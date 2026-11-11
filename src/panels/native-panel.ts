@@ -1,3 +1,4 @@
+import { historyPoints } from '../integration/history.js';
 import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
 import { t } from '../i18n/index.js';
 import { TaskScreen } from '../ui/task-screen.js';
@@ -292,6 +293,8 @@ export class HomeManagerPanel extends HTMLElement {
         view.onPress = source.press;
         if (infrared) view.estimated = false;
         view.readValues = () => this.options?.controlHost?.hass()?.states ?? {};
+        view.history = (entity, period, attribute) =>
+          historyPoints(this.options?.controlHost?.hass(), entity, period, attribute);
         view.remote = remote;
         if (infrared) this.irDesignView = view;
         else this.rfDesignView = view;
@@ -343,6 +346,7 @@ export class HomeManagerPanel extends HTMLElement {
       const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
       view.estimated = false;
       view.readValues = () => source.hass()?.states ?? {};
+      view.history = (entity, period, attribute) => historyPoints(source.hass(), entity, period, attribute);
       view.renderContent = p => renderDesignPiece(p, controls, wrapped, this.views);
       // 0.13: every key runs its action through the host, which checks it first.
       view.onPress = async actionId => {

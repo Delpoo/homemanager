@@ -75,6 +75,10 @@ export class HomeManagerCard extends HTMLElement {
   openSettingsMenu(): Promise<void> {
     return openConfiguration(this);
   }
+  /** 0.13: pins a piece of a remote next to the symbol that uses it, in edit mode. */
+  pinPiece(source: { remoteId?: string; irRemoteId?: string }, pieceId: string): Promise<void> {
+    return attached.pinPiece(this, source, pieceId);
+  }
   /** Leaving the ⚙ menu for a page of its own (Controls), as ← would. */
   leaveSettings(): Promise<void> {
     return closeConfiguration(this);

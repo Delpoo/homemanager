@@ -47,6 +47,7 @@ export interface DesignerOptions {
   controls?: { id: string; label: string }[];
   renderContent?: (piece: RfWidget) => HTMLElement | null;
   readValues?: HomeManagerRfRemote['readValues'];
+  history?: HomeManagerRfRemote['history'];
   estimated: boolean;
   save(layout: RfWidget[] | null): Promise<void> | void;
   /** Test mode: a tap sends for real. Without it the designer never sends. */
@@ -55,6 +56,8 @@ export interface DesignerOptions {
   learn?: () => void;
   /** What the tray lists: learned buttons (remotes) or actions (a plan symbol). */
   trayTitle?: string;
+  /** 0.13: pins a piece next to the symbol that uses this control. */
+  pinTo?: (pieceId: string) => void;
   /** 0.13: the same control for another appliance (a copy with its own emitter). */
   duplicate?: {
     emitters: { id: string; name: string }[];
@@ -551,6 +554,7 @@ export class ControlDesigner extends HTMLElement {
     this.canvas.preview = !this.testing;
     this.canvas.onPress = this.testing ? this.options.press : undefined;
     this.canvas.readValues = this.options.readValues;
+    this.canvas.history = this.options.history;
     this.canvas.renderContent = this.options.renderContent;
     this.canvas.remote = this.remote;
     this.canvas.editing = !this.testing;
@@ -1011,6 +1015,12 @@ export class ControlDesigner extends HTMLElement {
       );
       if (piece.reading !== undefined) html += this.readingRows(piece, t('Sensor'));
     }
+    if (this.options?.pinTo && piece.type !== 'separator')
+      html += row(
+        'mdi:floor-plan',
+        t('En el plano'),
+        `<button type="button" class="chip" data-command="pin-to-plan">${glyph('mdi:pin-outline')}${e(t('Pegar junto a su símbolo'))}</button>`,
+      );
     html += row(
       'mdi:gesture-tap',
       t('Al tocar'),
@@ -1270,6 +1280,7 @@ export class ControlDesigner extends HTMLElement {
         .forEach(element => element.addEventListener(type, () => work(element)));
     const value = (element: HTMLElement) => (element as HTMLInputElement).value;
     on('[data-command=duplicate]', () => this.duplicatePieces(this.selected));
+    on('[data-command=pin-to-plan]', () => this.options?.pinTo?.(piece.id));
     on('[data-command=remove]', () => void this.removePieces(this.selected));
     this.bindColors(false);
     on('[name=widget-label]', element => this.change(p => (p.label = value(element).trim() || null)), 'change');

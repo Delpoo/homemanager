@@ -43,6 +43,7 @@ const ROW = 64;
 const GAP = 10;
 type Box = Pick<RfWidget, 'x' | 'y' | 'w' | 'h'>;
 type State = { levels: Record<string, number>; options: Record<string, number>; toggles: Record<string, boolean> };
+const LEVEL_PIECES = ['updown', 'slider', 'steps', 'knob'];
 const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
 
 export class HomeManagerRfRemote extends HTMLElement {
@@ -76,6 +77,9 @@ export class HomeManagerRfRemote extends HTMLElement {
   private state: State = { levels: {}, options: {}, toggles: {} };
   /** Recent numeric readings of each chart, newest last (only while open). */
   private samples = new Map<string, number[]>();
+  /** 0.13: a chart's past, from Home Assistant's recorder; the host knows how to ask. */
+  history?: (entityId: string, period: '1h' | '24h' | '7d', attribute?: string) => Promise<number[]>;
+  private asked = new Set<string>();
   private holdTimer = 0;
   private held = false;
 
@@ -215,6 +219,38 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     this.bind();
     this.markSelection();
+    this.loadHistory(layout);
+    this.onState?.();
+  }
+
+  /** Told after every redraw, so whoever shows the state elsewhere (a ring on the plan) follows. */
+  onState?: () => void;
+  /** How far up its levels a piece is, from 0 to 1; null when it has no levels or nothing is known. */
+  levelShare(pieceId: string): number | null {
+    const remote = this._remote;
+    const piece = this.piece(pieceId);
+    if (!remote || !piece || !LEVEL_PIECES.includes(piece.type)) return null;
+    const count = levelCount(piece);
+    const level = this.context(remote).level(piece);
+    if (count < 2 || level < 0) return null;
+    return level / (count - 1);
+  }
+
+  /** Each chart asks once for its period's history; live readings are added after it. */
+  private loadHistory(layout: RfWidget[]): void {
+    if (!this.history) return;
+    for (const piece of layout) {
+      if (piece.type !== 'graph' || !piece.reading) continue;
+      const key = `${piece.id}|${piece.reading}|${piece.period ?? '24h'}|${piece.attribute ?? ''}`;
+      if (this.asked.has(key)) continue;
+      this.asked.add(key);
+      void this.history(piece.reading, piece.period ?? '24h', piece.attribute).then(points => {
+        if (!points.length) return;
+        this.samples.set(piece.id, [...points, ...(this.samples.get(piece.id) ?? [])].slice(-120));
+        const spark = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
+        if (spark) spark.innerHTML = sparkline(this.samples.get(piece.id)!);
+      });
+    }
   }
 
   private renderWidget(widget: RfWidget, ctx: KeyContext): string {
@@ -520,7 +556,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         if (Number.isFinite(number)) {
           const list = this.samples.get(piece.id) ?? [];
           if (list.at(-1) !== number) list.push(number);
-          this.samples.set(piece.id, list.slice(-48));
+          this.samples.set(piece.id, list.slice(-120));
           const spark = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
           if (spark) spark.innerHTML = sparkline(list);
         }

@@ -14,12 +14,25 @@ const speed = {
   icon: null,
   values: { min: 1, max: 3, step: 1 },
 };
+const gear = {
+  id: 'gear',
+  type: 'steps',
+  x: 0,
+  y: 1,
+  w: 3,
+  h: 1,
+  buttons: ['v1', 'v2', 'v3'],
+  label: 'Marcha',
+  icon: null,
+  names: ['Baja', 'Media', 'Alta'],
+  sendBy: 'level',
+};
 const draft = page => page.evaluate(() => window.testHarness.card.getDraftConfiguration());
 const attached = async page =>
   (await draft(page)).catalog.devices.find(d => d.id === 'synthetic-light').display.attached;
 
 test.beforeEach(async ({ page }) => {
-  await setup(page, { remotes: [ceiling({ layout: [speed] })] });
+  await setup(page, { remotes: [ceiling({ layout: [speed, gear] })] });
   await page.evaluate(() => {
     const h = window.testHarness;
     const config = structuredClone(h.original);
@@ -117,4 +130,35 @@ test('the panel pins another piece of the control and removes it', async ({ page
   await expect(card.locator('.attached[data-att=w2] homemanager-rf-remote')).toContainText('Vel');
   await editor.getByRole('button', { name: 'Quitar del plano', exact: true }).first().click();
   await expect.poll(async () => (await attached(page)).map(item => item.id)).toEqual(['w2']);
+});
+
+test('a ring around the symbol shows how far up its pinned level is', async ({ page }) => {
+  await page.evaluate(() => {
+    const h = window.testHarness;
+    const config = structuredClone(h.card.getDraftConfiguration());
+    config.catalog.devices.find(d => d.id === 'synthetic-light').display.attached = [
+      { id: 'w1', piece: 'gear', dx: 30, dy: -24, w: 150, h: 44 },
+    ];
+    h.card.setConfig({ ...h.original, configuration: config });
+  });
+  const card = page.locator('homemanager-card');
+  const marker = card.locator('.marker[data-id=synthetic-light]');
+  const box = card.locator('.attached[data-att=w1]');
+  await expect(box.getByRole('button', { name: 'Media', exact: true })).toBeVisible();
+  await expect(marker).not.toHaveClass(/has-level/);
+  await box.getByRole('button', { name: 'Media', exact: true }).click();
+  await expect(marker).toHaveClass(/has-level/);
+  expect(await marker.evaluate(node => node.style.getPropertyValue('--hm-level'))).toBe('50');
+  await expect.poll(async () => (await calls(page, 'homemanager/rf/press')).map(c => c.button_id)).toEqual(['v2']);
+});
+
+test('a piece is pinned from its remote: the symbol that uses it gets it, ready to be placed', async ({ page }) => {
+  const card = page.locator('homemanager-card');
+  await page.evaluate(() => window.testHarness.card.pinPiece({ remoteId: 'techo' }, 'gear'));
+  await expect.poll(async () => (await attached(page)).map(item => item.piece)).toEqual(['speed', 'gear']);
+  await expect(card.locator('.attached.chosen homemanager-rf-remote')).toContainText('Media');
+  // A remote no symbol uses says so and changes nothing.
+  await page.evaluate(() => window.testHarness.card.pinPiece({ remoteId: 'otro' }, 'gear'));
+  await expect(card.locator('.shell > .status')).toContainText('Ningún símbolo del plano usa este control.');
+  expect((await attached(page)).length).toBe(2);
 });

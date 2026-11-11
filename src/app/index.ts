@@ -189,9 +189,24 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId, irRemoteId, from } = (
-      event as CustomEvent<{ command: string; homeId?: string; remoteId?: string; irRemoteId?: string; from?: string }>
+    const { command, homeId, remoteId, irRemoteId, from, pieceId } = (
+      event as CustomEvent<{
+        command: string;
+        homeId?: string;
+        remoteId?: string;
+        irRemoteId?: string;
+        from?: string;
+        pieceId?: string;
+      }>
     ).detail;
+    // 0.13: a piece of a remote goes next to the symbol that uses it.
+    if (command === 'pin' && pieceId) {
+      this.tab = 'plan';
+      this.renderHeader();
+      this.applyTab();
+      void this.card?.pinPiece({ remoteId, irRemoteId }, pieceId);
+      return;
+    }
     // 0.13 notebook: Controls opened from the ⚙ menu has ← back to that menu.
     if (command === 'settings') {
       this.tab = 'plan';
