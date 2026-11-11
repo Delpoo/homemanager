@@ -411,6 +411,13 @@ export class HomeManagerIr extends HTMLElement {
         duplicate: {
           emitters: this.emitters.map(item => ({ id: item.id, name: item.name })),
           current: this.settings?.emitter,
+          targets: this.saved.filter(item => item.id !== remote.id),
+          applyDesign: async (targetId, layout) => {
+            const updated = await remotes.editRemote(this._hass!, targetId, { layout });
+            if (updated) this.updateRemote(updated);
+            this.selected = targetId;
+            this.render();
+          },
           run: async (name, emitter) => {
             const copy = await remotes.duplicate(this._hass!, remote.id, name, emitter);
             this.saved = [...this.saved.filter(item => item.id !== copy.id), copy];

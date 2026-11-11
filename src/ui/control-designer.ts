@@ -29,6 +29,7 @@ import {
   gridOf,
   isBlock,
   levelCount,
+  mapLayout,
   levelText,
   pieceInputs,
   sendByOf,
@@ -63,6 +64,9 @@ export interface DesignerOptions {
     emitters: { id: string; name: string }[];
     current?: string;
     run(name: string, emitter?: string): Promise<void>;
+    /** "Design only": other remotes of the same kind, and how to give one this design. */
+    targets?: { id: string; name: string; buttons: { id: string; name: string }[] }[];
+    applyDesign?(targetId: string, layout: RfWidget[]): Promise<void>;
   };
 }
 
@@ -159,6 +163,7 @@ export class ControlDesigner extends HTMLElement {
   private brandQuery = '';
   private brandsFor = false;
   private dupOpen = false;
+  private dupDesignOnly = false;
   private busy = false;
   private error = '';
   private dragged: { kind: 'learned' | 'variant' | 'brand'; value: string } | null = null;
@@ -1041,7 +1046,21 @@ export class ControlDesigner extends HTMLElement {
     const dup = this.options?.duplicate;
     if (!dup) return '';
     const base = personName(this.options?.name, t('Control'));
-    return `<div class="veil" data-veil><div class="sheet" role="dialog" aria-modal="true" aria-label="${e(t('Duplicar control'))}"><h3>${glyph('mdi:content-duplicate')}${e(t('Duplicar «{name}»', { name: base }))}</h3><input class="tin" type="text" name="dup-name" maxlength="80" value="${e(t('{name} (copia)', { name: base }))}" aria-label="${e(t('Nombre'))}">${
+    const targets = dup.targets ?? [];
+    const what =
+      targets.length && dup.applyDesign
+        ? `<div class="irow" title="${e(t('Qué se copia'))}">${glyph('mdi:content-copy')}${seg(
+            'dup-what',
+            [
+              ['all', t('Diseño y botones')],
+              ['design', t('Solo el diseño')],
+            ],
+            this.dupDesignOnly ? 'design' : 'all',
+          )}</div>`
+        : '';
+    if (this.dupDesignOnly)
+      return `<div class="veil" data-veil><div class="sheet" role="dialog" aria-modal="true" aria-label="${e(t('Duplicar control'))}"><h3>${glyph('mdi:content-duplicate')}${e(t('Duplicar «{name}»', { name: base }))}</h3>${what}<div class="irow" title="${e(t('Control que recibe el diseño'))}">${glyph('mdi:remote')}<select class="isel" name="dup-target" aria-label="${e(t('Control que recibe el diseño'))}">${targets.map(item => `<option value="${e(item.id)}">${e(personName(item.name))}</option>`).join('')}</select></div><div class="acts"><button type="button" data-dup="cancel">${e(t('Cancelar'))}</button><button type="button" class="primary" data-dup="ok">${e(t('Copiar diseño'))}</button></div></div></div>`;
+    return `<div class="veil" data-veil><div class="sheet" role="dialog" aria-modal="true" aria-label="${e(t('Duplicar control'))}"><h3>${glyph('mdi:content-duplicate')}${e(t('Duplicar «{name}»', { name: base }))}</h3>${what}<input class="tin" type="text" name="dup-name" maxlength="80" value="${e(t('{name} (copia)', { name: base }))}" aria-label="${e(t('Nombre'))}">${
       dup.emitters.length
         ? `<div class="irow" title="${e(t('Emisor'))}">${glyph('mdi:access-point')}<select class="isel" name="dup-emitter" aria-label="${e(t('Emisor'))}">${dup.emitters.map(emitter => `<option value="${e(emitter.id)}"${emitter.id === dup.current ? ' selected' : ''}>${e(emitter.name)}</option>`).join('')}</select></div>`
         : ''
@@ -1113,7 +1132,32 @@ export class ControlDesigner extends HTMLElement {
       this.render();
       root.querySelector<HTMLInputElement>('[name=dup-name]')?.select();
     });
+    on('[data-set="dup-what"]', element => {
+      this.dupDesignOnly = element.dataset.value === 'design';
+      this.render();
+    });
     on('[data-dup]', async element => {
+      if (element.dataset.dup === 'ok' && this.dupDesignOnly) {
+        const dup = this.options?.duplicate;
+        const target = dup?.targets?.find(
+          item => item.id === root.querySelector<HTMLSelectElement>('[name=dup-target]')?.value,
+        );
+        if (dup?.applyDesign && target) {
+          const mapped = mapLayout(this.layout(), this.learned(), target.buttons);
+          try {
+            await dup.applyDesign(target.id, mapped.layout);
+            this.error = mapped.left
+              ? t('{count} elementos quedaron afuera: ese control no tiene sus botones.', { count: mapped.left })
+              : '';
+          } catch (error) {
+            this.error = (error as Error).message;
+          }
+        }
+        this.dupOpen = false;
+        this.dupDesignOnly = false;
+        this.render();
+        return;
+      }
       if (element.dataset.dup === 'ok') {
         const name = root.querySelector<HTMLInputElement>('[name=dup-name]')!.value.trim();
         const emitter = root.querySelector<HTMLSelectElement>('[name=dup-emitter]')?.value;

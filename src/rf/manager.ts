@@ -574,6 +574,12 @@ export class HomeManagerRf extends HTMLElement {
         duplicate: {
           emitters: this.transmitters.map(item => ({ id: item.id, name: item.name })),
           current: remote.transmitter,
+          targets: this.remotes.filter(item => item.id !== remote.id),
+          applyDesign: async (targetId, layout) => {
+            const saved = await rf.saveLayout(this._hass!, targetId, layout);
+            this.remotes = this.remotes.map(item => (item.id === saved.id ? saved : item));
+            this.open(saved.id);
+          },
           run: async (name, transmitter) => {
             const copy = await rf.duplicateRemote(this._hass!, remote.id, name, transmitter);
             this.remotes = [...this.remotes, copy];

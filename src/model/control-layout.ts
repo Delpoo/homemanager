@@ -301,3 +301,54 @@ export function attachedLook(piece: ControlPiece, attached: AttachedPiece): Cont
   // Pieces that stand upright keep standing upright; one cell holds the whole piece.
   return merged;
 }
+
+/** 0.13 "Design only": a design carried to another remote. Each learned button is
+ * looked up there by its name; a piece that would lose what it needs is left out. */
+export function mapLayout(
+  layout: readonly ControlPiece[],
+  from: readonly { id: string; name: string }[],
+  to: readonly { id: string; name: string }[],
+): { layout: ControlPiece[]; left: number } {
+  const key = (name: string) => name.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const target = new Map(to.map(button => [key(button.name), button.id]));
+  const names = new Map(from.map(button => [button.id, button.name]));
+  const map = (ref: string) => {
+    const name = names.get(ref);
+    return name === undefined ? undefined : target.get(key(name));
+  };
+  let left = 0;
+  const out: ControlPiece[] = [];
+  for (const original of layout) {
+    const piece: ControlPiece = structuredClone(original) as ControlPiece;
+    if (isBlock(piece.type)) {
+      const slots = Object.fromEntries(
+        Object.entries(piece.slots ?? {}).flatMap(([slot, ref]) => {
+          const mapped = map(ref);
+          return mapped ? [[slot, mapped]] : [];
+        }),
+      );
+      piece.slots = slots;
+      piece.buttons = [...new Set(Object.values(slots))];
+      out.push(piece);
+      continue;
+    }
+    const buttons = piece.buttons.map(map);
+    if (buttons.some(ref => !ref)) {
+      left++;
+      continue;
+    }
+    piece.buttons = buttons as string[];
+    if (piece.sequence)
+      piece.sequence = piece.sequence.map(step => ('button' in step ? { ...step, button: map(step.button)! } : step));
+    if (piece.holdButton) {
+      const hold = map(piece.holdButton);
+      if (hold) piece.holdButton = hold;
+      else {
+        delete piece.holdButton;
+        delete piece.hold;
+      }
+    }
+    out.push(piece);
+  }
+  return { layout: out, left };
+}

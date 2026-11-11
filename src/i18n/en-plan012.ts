@@ -710,4 +710,11 @@ export const enPlan012: Record<string, string> = {
   'Ya hay {count} elementos junto a este símbolo.': 'There are already {count} elements next to this symbol.',
   'Pegado junto a {name}: arrastralo a su lugar.': 'Pinned next to {name}: drag it into place.',
   'Pegar junto a su símbolo': 'Pin next to its symbol',
+  'Qué se copia': 'What is copied',
+  'Diseño y botones': 'Design and buttons',
+  'Solo el diseño': 'Design only',
+  'Control que recibe el diseño': 'Control that gets the design',
+  'Copiar diseño': 'Copy design',
+  '{count} elementos quedaron afuera: ese control no tiene sus botones.':
+    "{count} elements were left out: that control doesn't have their buttons.",
 };
