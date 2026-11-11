@@ -161,6 +161,10 @@ export function deviceScreen(
       // An assumed on/off, mode or speed is only the last command: nothing is marked as current.
       ...(estimated && ['toggle', 'select', 'steps'].includes(control.kind) ? { value: null } : {}),
       label: personName(control.label),
+      // A button entity says which one it is ("Deep", "Standard"), not "Press".
+      ...(control.kind === 'buttons' && control.id === 'press' && primary?.startsWith('button.')
+        ? { buttons: control.buttons.map(button => ({ ...button, label: readingName(primary, hass) || button.label })) }
+        : {}),
       ...(control.kind === 'select'
         ? {
             options: control.options.map(option => ({

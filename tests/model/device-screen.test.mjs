@@ -282,3 +282,21 @@ test('duplicate channel measurements remain readable and bars compare watts acro
   assert.equal(screen.channels[1].now, 'No disponible');
   assert.ok(screen.readings.some(reading => reading.entityId === 'sensor.another_reading'));
 });
+
+test('a button entity is named by what it does, not "Press"', () => {
+  const hass = {
+    states: { 'button.robot_deep': { state: 'unknown', attributes: { friendly_name: 'Robot Deep' } } },
+    entities: { 'button.robot_deep': { entity_id: 'button.robot_deep', device_id: 'r1' } },
+    devices: { r1: { id: 'r1', name: 'Robot' } },
+  };
+  const device = {
+    id: 'robot',
+    kind: 'vacuum',
+    roomId: null,
+    position: { x: 0.5, y: 0.5 },
+    display: { label: 'Robot', icon: 'mdi:robot-vacuum' },
+    bindings: { entityId: 'button.robot_deep', deviceId: 'r1' },
+  };
+  const press = deviceScreen(device, hass, [], Date.now()).controls.find(control => control.id === 'press');
+  assert.equal(press.buttons[0].label, 'Deep');
+});

@@ -1929,7 +1929,15 @@ export class HomeManagerEditor extends HTMLElement {
       const group = friendlyName(this._hass, id);
       for (const service of ALLOWED[domain] ?? [])
         if (names[service] && this.canSuggest(id, domain, service))
-          found.push({ value: `new:${domain}.${service}:${id}`, label: serviceLabel(service, domain), group });
+          found.push({
+            value: `new:${domain}.${service}:${id}`,
+            // A button is named by what it is ("Deep clean"), not by "Press".
+            label:
+              domain === 'button'
+                ? readingName(id, this._hass) || serviceLabel(service, domain)
+                : serviceLabel(service, domain),
+            group,
+          });
     };
     if (entityId) add(entityId);
     const infrared = this.irRemoteOf(entityId);
