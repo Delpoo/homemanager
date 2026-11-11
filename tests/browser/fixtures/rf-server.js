@@ -16,6 +16,9 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
   const find = id => library.find(remote => remote.id === id);
   const lovelace = hass.callWS.bind(hass);
   hass.callWS = async message => {
+    if (message.type === 'homemanager/remotes/diagnostics/candidate_note') return null;
+    if (message.type === 'homemanager/remotes/diagnostics/rf_test') return {id:'demo-test',status:'sent',saved:true};
+    if (message.type === 'homemanager/remotes/diagnostics/note') return {id:'demo-note'};
     if (!message.type.startsWith('homemanager/rf/')) return lovelace(message);
     calls.push(structuredClone(message));
     switch (message.type) {

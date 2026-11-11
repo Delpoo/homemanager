@@ -1,4 +1,4 @@
-import { historyPoints } from '../integration/history.js';
+import { historySeries } from '../integration/history.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { t } from '../i18n/index.js';
 import {
@@ -20,6 +20,7 @@ import { SignalPreview, openSignal } from '../ui/signal-workbench.js';
 import { HomeManagerRfRemote } from './remote-view.js';
 import { buttonSuggestions } from './catalog.js';
 import { emitterFor } from './equipment.js';
+import { diagnostics, type DeviceResponse } from '../integration/diagnostics.js';
 
 type Candidate = Extract<IrCaptureEvent, { candidate_id: string }>;
 type Capture = { batch: boolean; unsubscribe?: () => void; timeout?: ReturnType<typeof setTimeout> };
@@ -51,6 +52,7 @@ export class HomeManagerIr extends HTMLElement {
   private carrierSource: IrReplay['carrier_source'] = 'estimated';
   /** Sent once with Test: now the person says whether it worked. */
   private tried = false;
+  private response: DeviceResponse | '' = '';
   private advanced = false;
   private capture?: Capture;
   private candidate?: Candidate;
@@ -330,9 +332,10 @@ export class HomeManagerIr extends HTMLElement {
           `<button type="button" class="chip" data-suggest="${e(label)}" aria-pressed="${label === this.buttonName}">${e(label)}</button>`,
       )
       .join('');
-    const action = this.tried
-      ? `<div class="question"><strong>${e(t('¿El equipo reaccionó?'))}</strong><div class="row">${iconButton(t('Sí, guardar'), 'mdi:thumb-up-outline', `data-save${disabled}`, 'send')}${iconButton(t('No reaccionó'), 'mdi:thumb-down-outline', `data-failed${disabled}`)}</div></div>`
-      : `<div class="row"><button type="button" class="next" data-test disabled>${glyph('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t('Guardar sin probar'), 'mdi:content-save-outline', 'data-save disabled')}</div>`;
+    const observation = this.tried ? `<div class="question"><strong>${e(t('Verificación opcional'))}</strong>
+      <div class="chips">${([['confirmed', 'Reaccionó'], ['no_response', 'No reaccionó'], ['inconclusive', 'No concluyente']] as const).map(([value, title]) =>
+        `<button type="button" class="chip" data-observation="${value}" aria-pressed="${this.response === value}"${disabled}>${e(t(title))}</button>`).join('')}</div></div>` : '';
+    const action = `<div class="row"><button type="button" class="next" data-test disabled>${glyph('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.tried ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', 'data-save disabled')}</div>${observation}`;
     const learn = candidate
       ? `<div class="code"><div class="cap-head"><span class="dot ok"></span>${miniWave(candidate.candidate_id, 72)}<span class="muted">${e(t('Señal capturada · {ms} ms', { ms: Math.round(candidate.duration_us / 1000) }))}</span></div><div data-preview></div>
       ${this.batch.length ? `<div class="fields"><label>${e(t('Capturas pendientes'))}<select name="batch">${this.batch.map((item, index) => option(item.candidate_id, t('Captura {count} · {ms} ms', { count: index + 1, ms: Math.round(item.duration_us / 1000) }), candidate.candidate_id)).join('')}</select></label>${iconButton(t('Descartar captura'), 'mdi:close', 'data-discard')}</div>` : ''}
@@ -354,6 +357,9 @@ export class HomeManagerIr extends HTMLElement {
       ? `<div class="shelf">${this.saved.length > 1 ? `<label>${e(t('Control remoto'))}<select name="selected-remote">${this.saved.map(item => option(item.id, item.name, this.selected)).join('')}</select></label>` : ''}
       <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil-ruler', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
       ${this.editing === 'buttons' ? this.renderEdit(remote) : `<div class="controls" data-player></div>`}
+      ${!this.editing && remote.buttons.length ? `<details><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons.map(button =>
+        `<div class="li"><span class="t"><b>${e(button.name)}</b>${button.provenance ? `<span>${e([button.provenance.source, button.provenance.entry, button.provenance.revision].join(' · '))}</span>` : ''}</span>
+        ${iconButton(t('Ficha técnica de {name}', {name: button.name}), 'mdi:waveform', `data-signal="${e(button.id)}"`)}</div>`).join('')}</div></details>` : ''}
       </div>`
       : '';
     this.root.innerHTML = `<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
@@ -426,7 +432,7 @@ export class HomeManagerIr extends HTMLElement {
           },
         },
         readValues: () => this._hass?.states ?? {},
-        history: (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute),
+        history: (entity, period, attribute) => historySeries(this._hass, entity, period, attribute),
         save: async layout => {
           if (!this._hass) throw new Error(t('Algo falló.'));
           const updated = await remotes.editRemote(this._hass, remote.id, { layout });
@@ -436,7 +442,7 @@ export class HomeManagerIr extends HTMLElement {
     } else {
       host?.append(this.player);
       this.player.readValues = () => this._hass?.states ?? {};
-      this.player.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
+      this.player.history = (entity, period, attribute) => historySeries(this._hass, entity, period, attribute);
       this.player.remote = drawIr(remote);
     }
   }
@@ -511,13 +517,22 @@ export class HomeManagerIr extends HTMLElement {
           if (!this.isCurrent(hass)) return;
           this.message = t(SENT);
           this.tried = true;
+          this.response = '';
         });
     });
-    click('[data-failed]', () => {
-      this.tried = false;
-      this.advanced = true;
-      this.message = t('Probá con otro emisor o acercalo al equipo, y volvé a probar.');
-      this.render();
+    this.root.querySelectorAll<HTMLButtonElement>('[data-observation]').forEach(button => {
+      button.addEventListener('click', () => {
+        const candidate = this.candidate;
+        if (!candidate) return;
+        void this.run(async hass => {
+          const response = button.dataset.observation as DeviceResponse;
+          await diagnostics.candidateNote(hass, { source: 'ir', candidate_id: candidate.candidate_id }, response);
+          if (!this.isCurrent(hass)) return;
+          this.response = response;
+          this.advanced ||= response === 'no_response';
+          this.message = t('Observación registrada.');
+        });
+      });
     });
     click('[data-save]', () => {
       const replay = this.replay();
@@ -580,7 +595,7 @@ export class HomeManagerIr extends HTMLElement {
     this.root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (this._hass)
-          openSignal(this._hass, { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! });
+          openSignal(this._hass, { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! }, this.editing ? undefined : 'tests');
       }),
     );
     this.root.querySelectorAll<HTMLButtonElement>('[data-relearn]').forEach(button =>

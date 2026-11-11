@@ -9,6 +9,7 @@ import { buttonSuggestions, icon, roleLabel } from './catalog.js';
 import { learningProgress } from '../model/learning-progress.js';
 import { learningPanelStyles } from '../ui/learning-components.js';
 import { SignalPreview } from '../ui/signal-workbench.js';
+import { diagnostics } from '../integration/diagnostics.js';
 
 /** Learning buttons, in any order. The receiver listens while this panel is
  * open; each code heard is shown as it arrives, with why it is or is not
@@ -372,14 +373,15 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
     const icons = iconPicker(this.glyph, t('Icono'), 'clearable data-learning-icon');
     const form = `<div class="name-row">${icons}<label>${e(t('Nombre del botón'))}<input name="name" maxlength="80" value="${e(this.name)}" placeholder="${e(t('p. ej. Luz, Velocidad 3, Tono'))}"></label></div>
 <div class="chips" role="group" aria-label="${e(t('Sugerencias de nombre'))}">${suggestions}</div>${this.roleOptions()}`;
-    let action: string;
-    if (this.trial) {
-      action = `<div class="question"><p><strong>${e(t('¿El equipo reaccionó?'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="row">${iconButton(t('Sí, guardar'), 'mdi:thumb-up-outline', `data-command="worked"${this.name.trim() ? '' : ' disabled'}`, 'send')}${iconButton(t('No reaccionó'), 'mdi:thumb-down-outline', 'data-command="failed"')}</div></div>`;
-    } else {
-      action = `<div class="row"><button type="button" class="next" data-command="try">${icon('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t('Guardar sin probar'), 'mdi:content-save-outline', `data-command="save"${this.name.trim() ? '' : ' disabled'}`)}</div>`;
-    }
+    const action = `<div class="row"><button type="button" class="next" data-command="try">${icon('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.trial ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', `data-command="save"${this.name.trim() ? '' : ' disabled'}`)}</div>${this.trial
+      ? `<div class="question"><p><strong>${e(t('Verificación opcional'))}</strong></p><p class="muted">${e(t('Enviado por {transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(this.trial.transmitter), pulse: this.trial.pulse_us, repeats: this.trial.repeats }))}</p><div class="chips">
+        <button type="button" class="chip" data-command="worked" aria-pressed="${this.trial.worked === true}">${e(t('Reaccionó'))}</button>
+        <button type="button" class="chip" data-command="failed" aria-pressed="${this.trial.worked === false}">${e(t('No reaccionó'))}</button>
+        <button type="button" class="chip" data-command="inconclusive">${e(t('No concluyente'))}</button>
+        <button type="button" class="chip" data-command="variant">${e(t('Probar otra combinación'))}</button></div></div>`
+      : ''}`;
     const attempts = this.attempts.length
-      ? `<ul class="attempts" aria-label="${e(t('Pruebas'))}">${this.attempts.map(item => `<li>${item.worked ? '✓' : '✗'} ${e(item.reason)} · ${e(t('{transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(item.transmitter), pulse: item.pulse_us, repeats: item.repeats }))}</li>`).join('')}</ul>`
+      ? `<ul class="attempts" aria-label="${e(t('Pruebas'))}">${this.attempts.map(item => `<li>${item.worked === null ? '—' : item.worked ? '✓' : '✗'} ${e(item.reason)} · ${e(t('{transmitter} · {pulse} µs · {repeats} repeticiones', { transmitter: this.transmitterName(item.transmitter), pulse: item.pulse_us, repeats: item.repeats }))}</li>`).join('')}</ul>`
       : '';
     return `<div class="code">${badge}${details}${known}${form}${action}${attempts}</div>`;
   }
@@ -481,16 +483,22 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
           await this.capture();
           break;
         case 'try':
-          await this.tryAttempt(this.firstAttempt());
+          await this.tryAttempt({ ...(this.trial ?? this.firstAttempt()), worked: null });
           break;
         case 'failed':
+        case 'worked':
+        case 'inconclusive':
+          if (!this.trial || !this.candidate || !this.hass) break;
+          await diagnostics.candidateNote(this.hass, { source: 'rf', candidate_id: this.candidate.candidate_id },
+            name === 'worked' ? 'confirmed' : name === 'failed' ? 'no_response' : 'inconclusive');
+          this.trial.worked = name === 'inconclusive' ? null : name === 'worked';
+          this.say(t('Observación registrada.'));
+          break;
+        case 'variant':
           await this.nextVariant();
           break;
-        case 'worked':
-          await this.save(this.trial);
-          break;
         case 'save':
-          await this.save(null);
+          await this.save(this.trial?.worked ? this.trial : null);
           break;
       }
     } catch (error) {
@@ -528,7 +536,7 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
   /** One change at a time: other transmitters, then the neighbouring pulse
    * lengths, then more repeats. Combinations already tried are skipped. */
   private async nextVariant(): Promise<void> {
-    if (this.trial) this.attempts.push({ ...this.trial, worked: false });
+    if (this.trial) this.attempts.push({ ...this.trial });
     const base = this.firstAttempt();
     const tried = (item: Attempt) =>
       this.attempts.some(

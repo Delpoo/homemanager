@@ -1,4 +1,4 @@
-import { historyPoints } from '../integration/history.js';
+import { historySeries } from '../integration/history.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { learningWorkspaceStyles } from '../ui/learning-components.js';
@@ -21,7 +21,9 @@ import {
 import { remotes as irApi, type IrDevice, type IrRemote } from '../integration/remotes.js';
 import { icon, kindLabel, roleLabel } from './catalog.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
+import { diagnostics } from '../integration/diagnostics.js';
 import { openSignal, type SignalTab } from '../ui/signal-workbench.js';
+import { HomeManagerRemoteResources } from './resources.js';
 import './remote-view.js';
 import './learn.js';
 import './devices.js';
@@ -38,7 +40,7 @@ import type { HomeManagerIr } from './ir-manager.js';
  * Assistant gets (fans and lights) and the transmission settings each have their own
  * page in the same panel. Codes never reach this page. */
 
-type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn' | 'test';
+type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn' | 'test' | 'absolute' | 'catalog';
 type Trial = 'sent' | 'ok' | 'no';
 type Source = 'rf' | 'ir';
 /** What kind of appliance a new remote is for: only its icon follows from it. */
@@ -84,6 +86,8 @@ export class HomeManagerRf extends HTMLElement {
   private readonly learn = document.createElement('homemanager-rf-learn') as HomeManagerRfLearn;
   private readonly devices = document.createElement('homemanager-rf-devices') as HomeManagerRfDevices;
   private readonly infrared = document.createElement('homemanager-ir-manager') as HomeManagerIr;
+  private readonly resources = new HomeManagerRemoteResources();
+  private resourceDesign = false;
 
   constructor() {
     super();
@@ -102,12 +106,20 @@ export class HomeManagerRf extends HTMLElement {
       this.show('devices');
     });
     this.devices.onChange = () => void this.reload();
+    this.resources.onImported = id => {
+      void this.run(async () => { await this.reload(); this.openIrRemote(id); });
+    };
+    this.resources.onDesign = open => {
+      this.resourceDesign = open;
+      this.toggleAttribute('data-stage', open);
+    };
   }
 
   set hass(hass: Hass) {
     if (typeof hass.themes?.darkMode === 'boolean') this.dataset.theme = hass.themes.darkMode ? 'dark' : 'light';
     const first = !this._hass;
     this._hass = hass;
+    this.resources.setSession(hass);
     this.learn.hass = hass;
     this.remoteView.updateIndicators();
     this.designer.refreshIndicators();
@@ -207,7 +219,7 @@ export class HomeManagerRf extends HTMLElement {
     const status = `<p class="status${this.failed ? ' error' : ''}" role="status">${e(this.message)}</p>`;
     const designing = this.view === 'remote' && this.editing && !!this.remote();
     // The design takes the stage; everything else is a panel beside the plan.
-    this.toggleAttribute('data-stage', designing);
+    this.toggleAttribute('data-stage', designing || (this.view === 'absolute' && this.resourceDesign));
     let page: string;
     if (!this.loaded && this.view !== 'ir')
       page = this.panel(panelHead(e(t('Controles')), { close: t('Cerrar') }), `<p>${e(t('Cargando…'))}</p>${status}`);
@@ -215,6 +227,11 @@ export class HomeManagerRf extends HTMLElement {
       page = this.panel(
         panelHead(e(this.irTitle || t('Infrarrojos')), { back: t('Volver'), close: t('Cerrar') }),
         '<div data-slot="infrared"></div>',
+      );
+    else if (this.view === 'absolute' || this.view === 'catalog')
+      page = this.panel(
+        panelHead(e(t(this.view === 'absolute' ? 'Controles de estado absoluto' : 'Biblioteca IR/RF')), { back: t('Volver'), close: t('Cerrar') }),
+        '<div data-slot="resources"></div>',
       );
     else if (this.view === 'devices')
       page = this.panel(
@@ -241,6 +258,7 @@ export class HomeManagerRf extends HTMLElement {
       ['learn', this.learn],
       ['devices', this.devices],
       ['infrared', this.infrared],
+      ['resources', this.resources],
     ] as const)
       this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
     this.bind();
@@ -291,7 +309,9 @@ export class HomeManagerRf extends HTMLElement {
     const empty = canCreate
       ? `<div class="empty-state">${icon('mdi:remote')}</div>`
       : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Ningún equipo envía ni escucha controles todavía.'))}</span><button type="button" class="next" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div>`;
-    return this.panel(head, `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}${status}`);
+    return this.panel(head, `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}
+      ${panelLabel(t('Recursos'))}<div class="chips"><button type="button" class="chip" data-view="absolute">${e(t('Controles de estado absoluto'))}</button>
+      <button type="button" class="chip" data-view="catalog">${e(t('Biblioteca IR/RF'))}</button></div>${status}`);
   }
 
   private iconPicker(name: string, selected: string | null): string {
@@ -556,7 +576,7 @@ export class HomeManagerRf extends HTMLElement {
     if (this.view === 'test' && remote) this.bindTest(remote);
     if (remote && (this.view === 'remote' || this.view === 'entities' || this.view === 'settings')) {
       this.remoteView.readValues = () => this._hass?.states ?? {};
-      this.remoteView.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
+      this.remoteView.history = (entity, period, attribute) => historySeries(this._hass, entity, period, attribute);
       this.designer.configure({
         key: remote.id,
         remote,
@@ -587,7 +607,7 @@ export class HomeManagerRf extends HTMLElement {
           },
         },
         readValues: () => this._hass?.states ?? {},
-        history: (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute),
+        history: (entity, period, attribute) => historySeries(this._hass, entity, period, attribute),
         save: async layout => {
           const saved = await rf.saveLayout(this._hass!, remote.id, layout);
           this.remotes = this.remotes.map(r => (r.id === saved.id ? saved : r));
@@ -608,6 +628,8 @@ export class HomeManagerRf extends HTMLElement {
     if (this.view === 'ir') this.infrared.hass = this._hass;
   }
 
+  private readonly trialIds = new Map<string, string>();
+
   private bindTest(remote: RfRemote): void {
     const root = this.root;
     const last = () => [...this.trials.keys()].at(-1) ?? remote.buttons[0]?.id;
@@ -617,7 +639,10 @@ export class HomeManagerRf extends HTMLElement {
         () =>
           void this.run(async () => {
             const id = button.dataset.trialSend!;
-            await rf.press(this._hass!, remote.id, id);
+            const result = await diagnostics.rfTest(this._hass!, remote.id, id);
+            const key = remote.id + ':' + id;
+            if (result.id) this.trialIds.set(key, result.id);
+            else this.trialIds.delete(key);
             this.trials.delete(id);
             this.trials.set(id, 'sent');
           }),
@@ -626,8 +651,13 @@ export class HomeManagerRf extends HTMLElement {
     root.querySelectorAll<HTMLButtonElement>('[data-trial-ok],[data-trial-no]').forEach(button =>
       button.addEventListener('click', () => {
         const id = button.dataset.trialOk ?? button.dataset.trialNo!;
-        this.trials.set(id, button.dataset.trialOk ? 'ok' : 'no');
-        this.render();
+        void this.run(async () => {
+          const trial_id = this.trialIds.get(remote.id + ':' + id);
+          const worked = Boolean(button.dataset.trialOk);
+          await diagnostics.note(this._hass!, { source: 'rf', remote_id: remote.id, button_id: id },
+            { response: worked ? 'confirmed' : 'no_response', ...(trial_id ? { trial_id } : {}) });
+          this.trials.set(id, worked ? 'ok' : 'no');
+        });
       }),
     );
     root.querySelectorAll<HTMLButtonElement>('[data-tune]').forEach(button =>
@@ -779,10 +809,12 @@ export class HomeManagerRf extends HTMLElement {
     if (view !== 'learn' && view !== 'remote') this.closeLearn(false);
     if (view !== 'devices') this.devices.stop();
     if (view !== 'ir') this.infrared.stopCapture();
+    this.resourceDesign = false;
     this.view = view;
     this.editing = false;
     this.say('');
     this.render();
+    if ((view === 'absolute' || view === 'catalog') && this._hass) this.resources.open(view, this._hass);
   }
 
   /** Opens one remote's page, for example from a symbol that uses it (#73). */

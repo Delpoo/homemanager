@@ -19,7 +19,7 @@ concurrency:
 jobs:
   foundation:
     name: foundation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out repository
@@ -86,7 +86,7 @@ jobs:
 
   end-to-end:
     name: Disposable Home Assistant end-to-end
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out repository

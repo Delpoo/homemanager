@@ -30,7 +30,7 @@ export default async (page, { shot, app, card, check }) => {
     .click();
   await page.waitForTimeout(800);
   await shot('11d-rf-asked');
-  await learn.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
+  await learn.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await page.waitForTimeout(1500);
   check(await learn.getByText(/guardado/).isVisible(), 'the first RF button is saved');
   await shot('11e-rf-saved');

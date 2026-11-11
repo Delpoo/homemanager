@@ -8,6 +8,7 @@ saved before has none of it and stays valid. Pure checks, no Home Assistant.
 from __future__ import annotations
 
 from collections.abc import Callable
+import math
 import re
 from typing import Any
 
@@ -29,7 +30,7 @@ LOOK_KEYS = frozenset(
     {
         "fontSize", "fontWeight", "iconSize", "border", "active", "radius", "relief", "anim", "brand",
         "hold", "holdButton", "values", "names", "wrap", "sendBy", "display", "valueSize",
-        "options", "slots", "period", "theme", "gap",
+        "options", "slots", "period", "theme", "gap", "chart",
     }
 )
 
@@ -134,7 +135,23 @@ def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callabl
             _check(kind in BLOCK_SLOTS and isinstance(value, dict) and value.keys() <= set(BLOCK_SLOTS[kind]), key)
             _check(all(isinstance(ref, str) and is_ref(ref) for ref in value.values()), key)
         elif key == "period":
-            _check(kind == "graph" and value in ("1h", "24h", "7d"), key)
+            _check((kind == "graph" or "chart" in raw) and value in ("1h", "24h", "7d", "30d"), key)
+        elif key == "chart":
+            _check(kind not in ("canvas", "title", "separator") and isinstance(value, dict) and value.keys() <= {
+                "scale", "min", "max", "style", "precision", "digits", "unit", "reading", "attribute",
+            }, key)
+            _check("reading" not in value or isinstance(value["reading"], str)
+                   and re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", value["reading"]), key)
+            _check("attribute" not in value or isinstance(value["attribute"], str)
+                   and re.fullmatch(r"[a-zA-Z0-9_]{1,80}", value["attribute"]), key)
+            _check(value.get("scale", "auto") in ("auto", "fixed", "log"), key)
+            _check(value.get("style", "area") in ("area", "line"), key)
+            _check(value.get("precision", "decimals") in ("decimals", "significant"), key)
+            _check("digits" not in value or _int(value["digits"], 1 if value.get("precision") == "significant" else 0, 6), key)
+            _check("unit" not in value or isinstance(value["unit"], str) and len(value["unit"]) <= 16, key)
+            _check(all(name not in value or type(value[name]) in (int, float) and abs(value[name]) < math.inf
+                       for name in ("min", "max")), key)
+            _check(value.get("scale") != "fixed" or "min" in value and "max" in value and value["min"] < value["max"], key)
         elif key == "theme":
             _check(kind == "canvas" and value in THEMES, key)
         elif key == "gap":

@@ -275,6 +275,24 @@ class Diagnostics:
                 data[button.key] = {"fingerprint": button.fingerprint, "hide_learning_trials": True, "history": []}
             await self._save(data)
 
+    async def async_rf_test(self, remote_id: str, button_id: str) -> dict[str, Any]:
+        button = self._button("rf", remote_id, button_id)
+        trial = {"kind": "send", "emitter": button.emitter,
+                 "prepared": button.prepared, "original": button.original}
+        try:
+            await self.rf.async_press(remote_id, button_id)
+        except (ModelError, HomeAssistantError):
+            try:
+                await self._record(button, {**trial, "status": "error"})
+            except ModelError:
+                pass
+            raise
+        try:
+            row_id = await self._record(button, {**trial, "status": "sent"})
+        except ModelError:
+            return {"status": "sent", "saved": False}
+        return {"id": row_id, "status": "sent", "saved": True}
+
     async def async_run(self, source: str, remote_id: str, button_id: str, emitter: str,
                         receivers: dict[str, str]) -> dict[str, Any]:
         if self._session.locked():

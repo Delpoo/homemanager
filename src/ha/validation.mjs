@@ -978,6 +978,7 @@ export const PIECE_LOOK_KEYS = [
   'options',
   'slots',
   'period',
+  'chart',
   'theme',
   'gap',
 ];
@@ -1084,7 +1085,21 @@ function assertPieceLook(p, path, isRef) {
         Object.values(value).every(ref => typeof ref === 'string' && isRef(ref)),
         key,
       );
-    } else if (key === 'period') check(kind === 'graph' && ['1h', '24h', '7d'].includes(value), key);
+    } else if (key === 'period') check((kind === 'graph' || p.chart) && ['1h', '24h', '7d', '30d'].includes(value), key);
+    else if (key === 'chart') {
+      const keys = ['scale', 'min', 'max', 'style', 'precision', 'digits', 'unit', 'reading', 'attribute'];
+      check(!['canvas', 'title', 'separator'].includes(kind) && value && typeof value === 'object' && !Array.isArray(value) &&
+        Object.keys(value).every(name => keys.includes(name)), key);
+      if (value.reading !== undefined) entity(value.reading, key);
+      check(value.attribute === undefined || (typeof value.attribute === 'string' && /^[a-zA-Z0-9_]{1,80}$/.test(value.attribute)), key);
+      check(value.scale === undefined || ['auto', 'fixed', 'log'].includes(value.scale), key);
+      check(value.style === undefined || ['area', 'line'].includes(value.style), key);
+      check(value.precision === undefined || ['decimals', 'significant'].includes(value.precision), key);
+      check(value.digits === undefined || between(value.digits, value.precision === 'significant' ? 1 : 0, 6), key);
+      check(value.unit === undefined || (typeof value.unit === 'string' && value.unit.length <= 16), key);
+      check(['min', 'max'].every(name => value[name] === undefined || Number.isFinite(value[name])), key);
+      check(value.scale !== 'fixed' || Number.isFinite(value.min) && Number.isFinite(value.max) && value.min < value.max, key);
+    }
     else if (key === 'theme') check(kind === 'canvas' && ['grafito', 'claro', 'arena', 'vidrio'].includes(value), key);
     else if (key === 'gap') check(kind === 'canvas' && between(value, 2, 24), key);
   }

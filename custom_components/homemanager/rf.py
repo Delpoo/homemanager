@@ -485,10 +485,20 @@ class RfManager:
         )
         if "pulse_us" not in settings:
             trial.pulse_us = candidate.pulse_us
-        await self._send(trial.transmitter, trial.protocol, candidate.bits, trial.pulse_us, trial.repeats, trial.wait_us)
-        candidate.trials = [*candidate.trials[-5:], {"at": datetime.now(UTC).isoformat(), "kind": "send", "status": "sent",
-                                                   "emitter": trial.transmitter, "settings": trial.settings()}]
+        row = {"at": datetime.now(UTC).isoformat(), "kind": "send", "status": "error",
+               "emitter": trial.transmitter, "settings": trial.settings()}
+        try:
+            await self._send(trial.transmitter, trial.protocol, candidate.bits, trial.pulse_us, trial.repeats, trial.wait_us)
+            row["status"] = "sent"
+        finally:
+            candidate.trials = [*candidate.trials[-5:], row]
         return {"result": "sent", **trial.settings()}
+
+    def note_candidate(self, candidate_id: str, response: str) -> None:
+        trials = self._candidate(candidate_id).trials
+        if not trials or trials[-1]["status"] != "sent":
+            raise ModelError("diagnostic_not_found", "the capture has no successful send to verify")
+        trials[-1]["response"] = response
 
     # Capturing ----------------------------------------------------------
 

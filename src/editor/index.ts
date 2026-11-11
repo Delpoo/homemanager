@@ -1,4 +1,4 @@
-import { historyPoints } from '../integration/history.js';
+import { historySeries } from '../integration/history.js';
 import {
   indicatorsEditor,
   indicatorsChange,
@@ -1420,7 +1420,7 @@ export class HomeManagerEditor extends HTMLElement {
         estimated: false,
         trayTitle: t('Acciones'),
         readValues: () => this._hass?.states ?? {},
-        history: (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute),
+        history: (entity, period, attribute) => historySeries(this._hass, entity, period, attribute),
         renderContent: p => renderDesignPiece(p, controls, host),
         save: layout => {
           const next = clone(this.configuration);

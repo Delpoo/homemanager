@@ -20,12 +20,14 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .absolute_remotes import DATA_ABSOLUTE, AbsoluteRemotes
 from .diagnostic_websocket import async_register as async_register_diagnostics
 from .diagnostics import DATA_DIAGNOSTICS, Diagnostics
 from .ir import DATA_IR, IrManager
 from .ir_websocket import async_register as async_register_ir
 from .plan_link import ensure_folder
 from .remotes import DATA_REMOTES, RemotesLibrary
+from .remote_resources_websocket import async_register as async_register_resources
 from .rf import RfManager
 from .rf_websocket import DATA_RF, async_register as async_register_rf
 from .store import HomeManagerStore
@@ -52,6 +54,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DATA_REMOTES] = remotes
     ir = IrManager(hass, remotes)
     hass.data[DATA_IR] = ir
+    absolute = AbsoluteRemotes(hass, remotes, ir)
+    await absolute.async_load()
+    hass.data[DATA_ABSOLUTE] = absolute
     diagnostics = Diagnostics(hass, rf, ir, remotes)
     await diagnostics.async_load()
     hass.data[DATA_DIAGNOSTICS] = diagnostics
@@ -60,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_register_rf(hass)
     async_register_ir(hass)
     async_register_diagnostics(hass)
+    async_register_resources(hass)
     await _async_register_frontend(hass)
     await _async_update_options(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
@@ -77,6 +83,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         store.async_close()
     if rf := hass.data.pop(DATA_RF, None):
         rf.on_learned = None
+    if absolute := hass.data.pop(DATA_ABSOLUTE, None):
+        await absolute.async_close()
     hass.data.pop(DATA_REMOTES, None)
     if diagnostics := hass.data.pop(DATA_DIAGNOSTICS, None):
         await diagnostics.async_close()

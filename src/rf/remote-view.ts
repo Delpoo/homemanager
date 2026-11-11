@@ -23,13 +23,16 @@ import {
   keyClasses,
   keyContent,
   keyStyles,
-  sparkline,
+  historyChart,
+  chartSource,
+  chartFace,
   type KeyContext,
   keyWidget,
   remoteShell,
   remoteViewStyles,
 } from '../ui/remote-keys.js';
 import { controlViewStyles } from '../ui/control-view.js';
+import { PERIOD_HOURS, type ChartPeriod, type HistorySample, type HistorySeries } from '../integration/history.js';
 
 /** A designed control drawn as a remote: its pieces on their grid (0.13).
  *
@@ -77,10 +80,11 @@ export class HomeManagerRfRemote extends HTMLElement {
   private _selected: string[] = [];
   private state: State = { levels: {}, options: {}, toggles: {} };
   /** Recent numeric readings of each chart, newest last (only while open). */
-  private samples = new Map<string, number[]>();
+  private charts = new Map<string, {
+    key: string; series?: HistorySeries; live: HistorySample[]; loading: boolean; retryAt: number;
+  }>();
   /** 0.13: a chart's past, from Home Assistant's recorder; the host knows how to ask. */
-  history?: (entityId: string, period: '1h' | '24h' | '7d', attribute?: string) => Promise<number[]>;
-  private asked = new Set<string>();
+  history?: (entityId: string, period: ChartPeriod, attribute?: string) => Promise<HistorySeries>;
   private holdTimer = 0;
   private held = false;
 
@@ -95,7 +99,10 @@ export class HomeManagerRfRemote extends HTMLElement {
   }
 
   set remote(remote: DrawableRemote | null) {
-    if (remote?.id !== this._remote?.id) this.state = this.loadState(remote?.id);
+    if (remote?.id !== this._remote?.id) {
+      this.state = this.loadState(remote?.id);
+      this.charts.clear();
+    }
     this._remote = remote;
     this.render();
   }
@@ -181,11 +188,20 @@ export class HomeManagerRfRemote extends HTMLElement {
         return this.state.options[piece.id] ?? -1;
       },
       reading: piece => {
-        const value = formatReading(readingValue(piece, this.readValues?.()));
-        const unit = piece.attribute ? '' : String(this.entity(piece)?.attributes?.unit_of_measurement ?? '');
+        const raw = readingValue(piece, this.readValues?.());
+        const chart = piece.chart;
+        const digits = chart?.digits;
+        const number = raw.trim() ? Number(raw) : NaN;
+        const value = digits !== undefined && Number.isFinite(number)
+          ? new Intl.NumberFormat(undefined, chart?.precision === 'significant'
+              ? { maximumSignificantDigits: Math.max(1, digits) }
+              : { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(number)
+          : formatReading(raw);
+        const unit = chart?.unit ?? (piece.attribute ? '' : String(this.entity(piece)?.attributes?.unit_of_measurement ?? ''));
         return { value, unit: value === '—' ? '' : unit };
       },
-      samples: piece => this.samples.get(piece.id) ?? [],
+      samples: () => [],
+      chart: piece => this.chart(piece),
     };
   }
 
@@ -199,6 +215,7 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     const all = this.layout();
     const layout = drawnPieces(all);
+    this.loadHistory(layout);
     const columns = this.columns();
     const grid = gridOf(all);
     const height = Math.max(1, grid.rows ?? rows(all) + (this._editing ? 1 : 0));
@@ -220,7 +237,6 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     this.bind();
     this.markSelection();
-    this.loadHistory(layout);
     this.onState?.();
   }
 
@@ -237,21 +253,46 @@ export class HomeManagerRfRemote extends HTMLElement {
     return level / (count - 1);
   }
 
-  /** Each chart asks once for its period's history; live readings are added after it. */
+  private chart(piece: RfWidget) {
+    const entry = this.charts.get(piece.id);
+    const to = Date.now();
+    const from = to - PERIOD_HOURS[piece.period ?? '24h'] * 3600000;
+    const samples = [...(entry?.series?.samples ?? []), ...(entry?.live ?? [])]
+      .filter(point => point.at >= from);
+    return {
+      from, to, samples,
+      status: entry?.loading ? 'loading' as const :
+        entry?.retryAt || this.entity(chartSource(piece))?.state === 'unavailable' ? 'offline' as const : 'ready' as const,
+    };
+  }
+
   private loadHistory(layout: RfWidget[]): void {
-    if (!this.history) return;
+    const active = new Set(layout.filter(piece => chartSource(piece).reading).map(piece => piece.id));
+    for (const id of this.charts.keys()) if (!active.has(id)) this.charts.delete(id);
     for (const piece of layout) {
-      if (piece.type !== 'graph' || !piece.reading) continue;
-      const key = `${piece.id}|${piece.reading}|${piece.period ?? '24h'}|${piece.attribute ?? ''}`;
-      if (this.asked.has(key)) continue;
-      this.asked.add(key);
-      void this.history(piece.reading, piece.period ?? '24h', piece.attribute).then(points => {
-        if (!points.length) return;
-        this.samples.set(piece.id, [...points, ...(this.samples.get(piece.id) ?? [])].slice(-120));
-        const spark = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
-        if (spark) spark.innerHTML = sparkline(this.samples.get(piece.id)!);
-      });
+      const { reading, attribute } = chartSource(piece);
+      if (!reading) continue;
+      const key = JSON.stringify([reading, piece.period ?? '24h', attribute]);
+      const previous = this.charts.get(piece.id);
+      const entry = previous?.key === key ? previous : { key, live: [], loading: false, retryAt: 0 };
+      this.charts.set(piece.id, entry);
+      if (!this.history || entry.loading || entry.series || entry.retryAt > Date.now()) continue;
+      entry.loading = true;
+      void this.history(reading, piece.period ?? '24h', attribute)
+        .then(series => { entry.series = series; entry.retryAt = 0; })
+        .catch(() => { entry.retryAt = Date.now() + 15000; })
+        .finally(() => {
+          entry.loading = false;
+          if (this.charts.get(piece.id) !== entry) return;
+          const current = this.piece(piece.id);
+          if (current) this.updateChart(current);
+        });
     }
+  }
+
+  private updateChart(piece: RfWidget): void {
+    const target = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
+    if (target) target.innerHTML = historyChart(piece, this.chart(piece));
   }
 
   private renderWidget(widget: RfWidget, ctx: KeyContext): string {
@@ -271,7 +312,9 @@ export class HomeManagerRfRemote extends HTMLElement {
     const editable = this._editing
       ? ` tabindex="0" role="group" aria-roledescription="${e(t('elemento movible'))}" aria-label="${e(rfText(label))}"`
       : '';
-    return keyWidget(widget, keyClasses(widget, on), editable, content, tools, this._editing);
+    const withChart = widget.type !== 'graph' && !!widget.chart?.reading;
+    return keyWidget(widget, keyClasses(widget, on) + (withChart ? ' key-with-chart' : ''), editable,
+      content + (withChart ? chartFace(widget, ctx, true) : ''), tools, this._editing);
   }
 
   /** The chosen pieces are outlined; one alone gets its handles and mini bar. */
@@ -305,6 +348,21 @@ export class HomeManagerRfRemote extends HTMLElement {
       root.querySelectorAll<HTMLElement>('.widget').forEach(element => {
         element.addEventListener('click', event => this.tap(event, element));
         element.addEventListener('pointerdown', event => this.hold(event, element));
+        element.addEventListener('keydown', event => {
+          const target = (event.target as HTMLElement).closest<HTMLElement>('[data-op=track]');
+          const piece = this.piece(element.dataset.widget!);
+          if (!target || !piece) return;
+          const max = levelCount(piece) - 1;
+          if (max < 0) return;
+          const current = Number(target.getAttribute('aria-valuenow'));
+          const change = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[event.key];
+          const value = event.key === 'Home' ? 0 : event.key === 'End' ? max :
+            change === undefined ? null : Math.max(0, Math.min(max, current + change));
+          if (value === null) return;
+          event.preventDefault();
+          target.dataset.v = String(value);
+          void this.operate(piece, target, element);
+        });
         element.addEventListener('change', event => {
           const select = (event.target as HTMLElement).closest<HTMLSelectElement>('select[data-op=pick]');
           const piece = this.piece(element.dataset.widget!);
@@ -513,7 +571,11 @@ export class HomeManagerRfRemote extends HTMLElement {
         this.state.levels[piece.id] = target;
         this.saveState();
       }
+      const restoreTrack = op === 'track' && element.contains(this.root.activeElement);
       this.render();
+      if (restoreTrack) {
+        this.root.querySelector<HTMLElement>(`[data-widget="${CSS.escape(piece.id)}"] [data-op="track"]`)?.focus();
+      }
     }
   }
 
@@ -548,30 +610,32 @@ export class HomeManagerRfRemote extends HTMLElement {
 
   updateIndicators(): void {
     const remote = this._remote;
-    if (!remote || this._editing) return;
+    if (!remote) return;
+    const layout = this.layout();
+    this.loadHistory(layout);
     const ctx = this.context(remote);
-    for (const piece of this.layout()) {
-      const raw = readingValue(piece, this.readValues?.());
-      const value = formatReading(raw);
-      if (piece.type === 'graph') {
-        const number = Number(raw);
-        if (Number.isFinite(number)) {
-          const list = this.samples.get(piece.id) ?? [];
-          if (list.at(-1) !== number) list.push(number);
-          this.samples.set(piece.id, list.slice(-120));
-          const spark = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
-          if (spark) spark.innerHTML = sparkline(list);
+    for (const piece of layout) {
+      const source = chartSource(piece);
+      const raw = readingValue(source, this.readValues?.());
+      if (source.reading) {
+        const entry = this.charts.get(piece.id);
+        const number = raw.trim() ? Number(raw) : NaN;
+        const value = Number.isFinite(number) ? number : null;
+        if (entry && entry.live.at(-1)?.value !== value) {
+          entry.live.push({ at: Date.now(), value });
+          entry.live = entry.live.slice(-120);
         }
+        this.updateChart(piece);
       }
       const output = this.root.querySelector<HTMLElement>(`[data-reading="${CSS.escape(piece.id)}"]`);
-      if (output && piece.type === 'graph') output.textContent = value;
-      else if (output) {
-        const { unit } = ctx.reading(piece);
+      if (output) {
+        const { value, unit } = ctx.reading(piece.chart?.reading ? source : piece);
         output.innerHTML = `${e(value)}${unit ? ` <em>${e(unit)}</em>` : ''}`;
       }
     }
     // Pieces that follow a reading (a switch, a level, a mode) are redrawn when it changes.
-    const followed = this.layout().filter(piece => piece.reading && !['indicator', 'graph'].includes(piece.type));
+    if (this._editing) return;
+    const followed = layout.filter(piece => piece.reading && !['indicator', 'graph'].includes(piece.type));
     const stamp = JSON.stringify(
       followed.map(piece => {
         const entity = this.entity(piece);

@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 
 from .diagnostics import DATA_DIAGNOSTICS, Diagnostics
 from .errors import ModelError
@@ -25,7 +26,7 @@ def _manager(hass: HomeAssistant) -> Diagnostics:
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_candidate, ws_sheet, ws_devices, ws_run, ws_note, ws_clear):
+    for command in (ws_candidate, ws_candidate_note, ws_sheet, ws_devices, ws_run, ws_rf_test, ws_note, ws_clear):
         websocket_api.async_register_command(hass, command)
 
 
@@ -40,6 +41,24 @@ def ws_candidate(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         connection.send_error(msg["id"], error.code, str(error))
     else:
         connection.send_result(msg["id"], data)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/diagnostics/candidate_note", **SOURCE,
+                                  vol.Required("candidate_id"): ID,
+                                  vol.Required("response"): vol.In(("confirmed", "no_response", "inconclusive"))})
+@callback
+def ws_candidate_note(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        manager = _manager(hass)
+        if msg["source"] == "ir":
+            manager.ir.note_candidate(connection, msg["candidate_id"], msg["response"])
+        else:
+            manager.rf.note_candidate(msg["candidate_id"], msg["response"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    else:
+        connection.send_result(msg["id"])
 
 
 @websocket_api.require_admin
@@ -80,6 +99,21 @@ async def ws_run(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         connection.send_error(msg["id"], error.code, str(error))
     else:
         connection.send_result(msg["id"], data)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/diagnostics/rf_test",
+                                  vol.Required("remote_id"): ID, vol.Required("button_id"): ID})
+@websocket_api.async_response
+async def ws_rf_test(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        result = await _manager(hass).async_rf_test(msg["remote_id"], msg["button_id"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    except HomeAssistantError:
+        connection.send_error(msg["id"], "diagnostic_send_failed", "the transmitter did not accept the request")
+    else:
+        connection.send_result(msg["id"], result)
 
 
 @websocket_api.require_admin
