@@ -34,12 +34,14 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   await rf.getByRole('button', { name: 'Velocidad 1', exact: true }).click();
   await expect(rf.getByLabel('Nombre del botón')).toHaveValue('Velocidad 1');
   await rf.getByRole('button', { name: 'Probar', exact: true }).click();
-  await expect(rf.getByText('¿El equipo reaccionó?')).toBeVisible();
+  await expect(rf.getByText('Verificación opcional')).toBeVisible();
   await rf.getByRole('button', { name: 'No reaccionó', exact: true }).click();
+  await rf.getByRole('button', { name: 'Probar otra combinación', exact: true }).click();
   // One change at a time, and the change is named.
   await expect(rf.getByText('Enviado por Emisor B · 400 µs · 5 repeticiones')).toBeVisible();
   await expect(rf.getByText('✗ Pulso medido · Emisor A · 400 µs · 5 repeticiones')).toBeVisible();
-  await rf.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
+  await rf.getByRole('button', { name: 'Reaccionó', exact: true }).click();
+  await rf.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await expect(rf.getByText('«Velocidad 1» guardado. Pulsá el siguiente botón.')).toBeVisible();
 
   expect(

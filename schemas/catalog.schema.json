@@ -1196,8 +1196,24 @@
                     "enum": [
                       "1h",
                       "24h",
-                      "7d"
+                      "7d",
+                      "30d"
                     ]
+                  },
+                  "chart": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "reading": { "type": "string", "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$" },
+                      "attribute": { "type": "string", "pattern": "^[a-zA-Z0-9_]{1,80}$" },
+                      "scale": { "enum": ["auto", "fixed", "log"] },
+                      "min": { "type": "number" },
+                      "max": { "type": "number" },
+                      "style": { "enum": ["area", "line"] },
+                      "precision": { "enum": ["decimals", "significant"] },
+                      "digits": { "type": "integer", "minimum": 0, "maximum": 6 },
+                      "unit": { "type": "string", "maxLength": 16 }
+                    }
                   },
                   "theme": {
                     "enum": [

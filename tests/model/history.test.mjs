@@ -13,7 +13,7 @@ test('a chart reads the numbers of its reading, its attribute, and at most sixty
   const hass = {
     callWS: async message => {
       asked.push(message);
-      return { 'sensor.synthetic_power': [{ s: '1' }, { s: '2' }] };
+      return { 'sensor.synthetic_power': [{ s: '1', lc: Date.now() / 1000 - 86400 }, { s: '2', lu: Date.now() / 1000 - 60 }] };
     },
   };
   assert.deepEqual(await historyPoints(hass, 'sensor.synthetic_power', '7d'), [1, 2]);

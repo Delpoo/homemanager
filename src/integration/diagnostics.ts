@@ -61,7 +61,7 @@ export interface SignalTrial {
   id: string;
   at: string;
   kind: 'send' | 'observation';
-  status?: 'sent';
+  status?: 'sent' | 'error';
   emitter: string;
   camera?: CameraResult;
   response?: DeviceResponse;
@@ -98,10 +98,14 @@ export const diagnostics = {
   summary: (hass: Hass, target: SignalCandidate) => ws<SignalSummary | null>(hass, 'candidate', target),
   candidate: (hass: Hass, target: SignalCandidate) =>
     ws<SignalEvidence>(hass, 'candidate', { ...target, advanced: true }),
+  candidateNote: (hass: Hass, target: SignalCandidate, response: DeviceResponse) =>
+    ws<void>(hass, 'candidate_note', { ...target, response }),
   sheet: (hass: Hass, target: SignalButton, trialId?: string) =>
     ws<SignalSheet>(hass, 'sheet', { ...target, ...(trialId ? { trial_id: trialId } : {}) }),
   devices: (hass: Hass, source: SignalSource) =>
     ws<{ receivers: IrDevice[]; emitters: IrDevice[] }>(hass, 'devices', { source }),
+  rfTest: (hass: Hass, remote_id: string, button_id: string) =>
+    ws<{ id?: string; status: 'sent'; saved: boolean }>(hass, 'rf_test', { remote_id, button_id }),
   run: (hass: Hass, target: SignalButton, fields: { emitter: string; external?: string; self?: string }) =>
     ws<{ id?: string; status: 'sent'; saved: boolean }>(hass, 'run', { ...target, ...fields }),
   note: (

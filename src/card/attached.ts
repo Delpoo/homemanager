@@ -1,4 +1,4 @@
-import { historyPoints } from '../integration/history.js';
+import { historySeries } from '../integration/history.js';
 import { t } from '../i18n/index.js';
 import type { HomeManagerCard } from './home-manager-card.js';
 import type { Device } from './types.js';
@@ -134,7 +134,7 @@ export function mountAttached(this: HomeManagerCard): void {
       const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
       view.setAttribute('bare', '');
       view.readValues = () => this._hass?.states ?? {};
-      view.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
+      view.history = (entity, period, attribute) => historySeries(this._hass, entity, period, attribute);
       view.onPress = ref => source.press(ref);
       box.append(view);
       if (this.editing && chosen)

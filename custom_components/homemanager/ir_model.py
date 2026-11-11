@@ -68,24 +68,33 @@ class IrButton:
     icon: str | None
     signal: IrSignal
     emitter: str | None
+    provenance: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, button_id: str, raw: Any) -> IrButton:
         if not isinstance(button_id, str) or not ID.fullmatch(button_id) or not isinstance(raw, dict):
             raise ModelError("invalid_ir", "invalid infrared button")
         emitter = raw.get("emitter")
+        origin = raw.get("provenance")
+        keys = ("source", "brand", "model", "entry", "revision", "function")
+        provenance = {key: origin[key] for key in keys if isinstance(origin.get(key), str) and 0 < len(origin[key]) <= 120} if isinstance(origin, dict) else {}
+        if provenance:
+            provenance.update(partial=origin.get("partial") is True, index=origin.get("index") if type(origin.get("index")) is int else None)
         return cls(
             button_id,
             _text(raw.get("name"), "name"),
             _icon(raw.get("icon")),
             IrSignal.from_dict(raw.get("signal")),
             _emitter(emitter) if emitter is not None else None,
+            provenance or None,
         )
 
     def as_dict(self) -> dict[str, Any]:
         data = {"name": self.name, "icon": self.icon, "signal": self.signal.as_dict()}
         if self.emitter is not None:
             data["emitter"] = self.emitter
+        if self.provenance:
+            data["provenance"] = dict(self.provenance)
         return data
 
     def public(self) -> dict[str, Any]:
@@ -95,6 +104,7 @@ class IrButton:
             "icon": self.icon,
             "command_type": "ir_raw",
             "fingerprint": self.signal.fingerprint,
+            **({"provenance": dict(self.provenance)} if self.provenance else {}),
         }
 
 

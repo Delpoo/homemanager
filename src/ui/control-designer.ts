@@ -46,7 +46,8 @@ export interface DesignerOptions {
   /** The control's name, shown above the canvas. */
   name?: string;
   controls?: { id: string; label: string }[];
-  renderContent?: (piece: RfWidget) => HTMLElement | null;
+  renderContent?: (piece: RfWidget, testing: boolean) => HTMLElement | null;
+  absolute?: boolean;
   readValues?: HomeManagerRfRemote['readValues'];
   history?: HomeManagerRfRemote['history'];
   estimated: boolean;
@@ -122,6 +123,9 @@ const THEMES: [RemoteTheme | 'hm', string][] = [
   ['arena', 'Arena'],
   ['vidrio', 'Vidrio'],
 ];
+const TEMPLATES: [RemoteTheme, string][] = [
+  ['claro', 'Clásico'], ['grafito', 'Digital'], ['arena', 'Retro'], ['vidrio', 'Futurista'],
+];
 /** Words that tell which learned button belongs to each key of a block. */
 const SLOT_WORDS: Record<string, RegExp> = {
   up: /^(arriba|up|subir|▲)$/i,
@@ -164,6 +168,7 @@ export class ControlDesigner extends HTMLElement {
   private brandsFor = false;
   private dupOpen = false;
   private dupDesignOnly = false;
+  private templatePreview?: RemoteTheme;
   private busy = false;
   private error = '';
   private dragged: { kind: 'learned' | 'variant' | 'brand'; value: string } | null = null;
@@ -196,6 +201,7 @@ export class ControlDesigner extends HTMLElement {
       this.selected = [];
       this.testing = false;
       this.dupOpen = false;
+      this.templatePreview = undefined;
     }
     this.options = options;
     this.remote = structuredClone(options.remote);
@@ -517,6 +523,10 @@ export class ControlDesigner extends HTMLElement {
       if (variant.id === 'list') piece.display = 'list';
       else if (piece.display === 'list') delete piece.display;
     }
+    if (['canvas', 'title', 'separator'].includes(variant.type)) {
+      delete piece.chart;
+      delete piece.period;
+    }
     if (piece.type === 'preset' && variant.type !== 'preset') delete piece.sequence;
     if (variant.type === 'preset') {
       piece.sequence = piece.buttons.slice(0, MAX_SEQUENCE).map(button => ({ button }));
@@ -560,9 +570,15 @@ export class ControlDesigner extends HTMLElement {
     this.canvas.onPress = this.testing ? this.options.press : undefined;
     this.canvas.readValues = this.options.readValues;
     this.canvas.history = this.options.history;
-    this.canvas.renderContent = this.options.renderContent;
+    this.canvas.renderContent = this.options.renderContent
+      ? piece => this.options?.renderContent?.(piece, this.testing) ?? null
+      : undefined;
     this.canvas.remote = this.remote;
     this.canvas.editing = !this.testing;
+    if (this.templatePreview && !this.selected.length) {
+      const theme = this.templatePreview;
+      this.preview(canvas => { canvas.theme = theme; }, true);
+    }
     this.canvas.selected = this.testing ? [] : this.selected;
     this.root.querySelector('.canvas')!.append(this.canvas);
     const body = this.root.querySelector('.insp-body');
@@ -601,6 +617,8 @@ export class ControlDesigner extends HTMLElement {
               .join('')}</div></div>`,
         )
         .join('');
+      if (this.options?.absolute) body += `<div class="egrp"><span>${e(t('Estado absoluto'))}</span><div class="etiles">${this.options.controls?.map(control =>
+        `<button type="button" class="etile" data-absolute-piece="${e(control.id)}">${glyph('mdi:tune')}<span>${e(control.label)}</span></button>`).join('') ?? ''}</div></div>`;
     } else if (this.left === 'blocks') {
       body = `<div class="btiles">${VARIANTS.filter(v => v.cat === 'block')
         .map(
@@ -677,7 +695,7 @@ export class ControlDesigner extends HTMLElement {
     const canvas = layout.find(piece => piece.type === 'canvas');
     const theme = canvas?.theme ?? 'hm';
     const height = grid.rows ?? Math.max(2, rows(layout));
-    return `<div class="ihead"><span class="tile">${glyph('mdi:remote')}</span><b>${e(personName(this.options?.name, t('Control')))}<small>${e(t('{count} elementos', { count: layout.filter(p => p.type !== 'canvas').length }))}</small></b></div><div class="insp-body"><div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div>${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}</div>`;
+    return `<div class="ihead"><span class="tile">${glyph('mdi:remote')}</span><b>${e(personName(this.options?.name, t('Control')))}<small>${e(t('{count} elementos', { count: layout.filter(p => p.type !== 'canvas').length }))}</small></b></div><div class="insp-body"><div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div><div class="isec">${e(t('Plantillas'))}</div>${row('mdi:palette', t('Vista previa de plantilla'), `<select class="isel" data-template-preview aria-label="${e(t('Vista previa de plantilla'))}"><option value="">—</option>${TEMPLATES.map(([key, label]) => `<option value="${key}"${this.templatePreview === key ? ' selected' : ''}>${e(t(label))}</option>`).join('')}</select>`)}${this.templatePreview ? `<div class="chips"><button type="button" class="chip" data-template-apply>${e(t('Aplicar a {name}', {name: personName(this.options?.name, t('Control'))}))}</button><button type="button" class="chip" data-template-cancel>${e(t('Cancelar'))}</button></div>` : ''}${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}</div>`;
   }
 
   private lookRows(piece: RfWidget, many = false): string {
@@ -779,7 +797,7 @@ export class ControlDesigner extends HTMLElement {
           'mdi:remote',
           t('Control existente'),
           this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Control existente')),
-        )
+        ) + this.chartRows(piece)
       );
     if (variant.cat === 'button') {
       if (piece.brand)
@@ -944,20 +962,6 @@ export class ControlDesigner extends HTMLElement {
     } else if (variant.cat === 'info') {
       if (piece.type === 'indicator' || piece.type === 'graph')
         html += this.readingRows(piece, t('Sensor de Home Assistant'));
-      if (piece.type === 'graph')
-        html += row(
-          'mdi:clock-outline',
-          t('Período'),
-          seg(
-            'period',
-            [
-              ['1h', t('1 h')],
-              ['24h', t('24 h')],
-              ['7d', t('7 días')],
-            ],
-            piece.period ?? '24h',
-          ),
-        );
     } else if (isBlock(piece.type)) {
       html += `<div class="isec">${e(t('Botones aprendidos'))}</div>${BLOCK_SLOTS[piece.type]
         .map(
@@ -966,20 +970,58 @@ export class ControlDesigner extends HTMLElement {
         )
         .join('')}`;
     }
+    return html + this.chartRows(piece);
+  }
+
+  private chartRows(piece: RfWidget): string {
+    if (['canvas', 'title', 'separator'].includes(piece.type)) return '';
+    const standalone = piece.type === 'graph';
+    let html = standalone ? '' : this.readingRows(
+      { ...piece, reading: piece.chart?.reading, attribute: piece.chart?.attribute },
+      t('Lectura para la gráfica'), true,
+    );
+    if (!standalone && !piece.chart?.reading) return html;
+    html += row(
+          'mdi:clock-outline',
+          t('Período'),
+          seg(
+            'period',
+            [
+              ['1h', t('1 h')],
+              ['24h', t('24 h')],
+              ['7d', t('7 días')],
+              ['30d', t('30 días')],
+            ],
+            piece.period ?? '24h',
+          ),
+        );
+    const chart = piece.chart ?? {};
+        const field = (name: string, label: string, values: [string, string][], selected: string) =>
+          row('mdi:tune', label, `<select class="isel" data-chart="${name}" aria-label="${e(label)}">${values.map(([value, title]) =>
+            `<option value="${value}"${value === selected ? ' selected' : ''}>${e(title)}</option>`).join('')}</select>`);
+        const number = (name: string, label: string, value: number | undefined, attrs = '') =>
+          row('mdi:numeric', label, `<input class="tin" type="number" data-chart="${name}" aria-label="${e(label)}" value="${value ?? ''}" ${attrs}>`);
+        html += field('scale', t('Escala'), [['auto', t('Automática')], ['fixed', t('Fija')], ['log', t('Logarítmica')]], chart.scale ?? 'auto');
+        if (chart.scale === 'fixed') html += number('min', t('Mínimo'), chart.min, 'step="any"') +
+          number('max', t('Máximo'), chart.max, 'step="any"');
+        html += field('style', t('Trazo'), [['area', t('Línea y área')], ['line', t('Solo línea')]], chart.style ?? 'area') +
+          field('precision', t('Precisión'), [['decimals', t('Decimales')], ['significant', t('Cifras significativas')]], chart.precision ?? 'decimals') +
+          number('digits', t('Cantidad'), chart.digits, `min="${chart.precision === 'significant' ? 1 : 0}" max="6" step="1"`) +
+          row('mdi:ruler', t('Unidad'), `<input class="tin" data-chart="unit" maxlength="16" aria-label="${e(t('Unidad'))}" value="${e(chart.unit ?? '')}">`);
     return html;
   }
 
-  private readingRows(piece: RfWidget, label: string): string {
+  private readingRows(piece: RfWidget, label: string, chart = false): string {
     const readings = this.options?.readValues?.() ?? {};
     const ids = Object.keys(readings)
       .filter(
         id =>
-          /^(sensor|binary_sensor|input_number|input_select|number|select|climate|fan|light|switch|media_player)\./.test(
+          chart || piece.type === 'graph' || /^(sensor|binary_sensor|input_number|input_select|number|select|climate|fan|light|switch|media_player)\./.test(
             id,
           ) || id === piece.reading,
       )
       .sort();
-    return `${row('mdi:home-assistant', label, `<select class="isel" name="reading" aria-label="${e(label)}"><option value="">${e(t('Sin lectura'))}</option>${ids.map(id => `<option value="${e(id)}"${id === piece.reading ? ' selected' : ''}>${e(String(readings[id]?.attributes?.friendly_name ?? id))}</option>`).join('')}</select>`)}${piece.reading ? row('mdi:code-braces', t('Atributo (avanzado)'), `<input class="tin" name="attribute" maxlength="80" value="${e(piece.attribute ?? '')}" aria-label="${e(t('Atributo (avanzado)'))}">`) : ''}`;
+    return `${row('mdi:home-assistant', label, `<select class="isel" ${chart ? 'data-chart="reading"' : 'name="reading"'} aria-label="${e(label)}"><option value="">${e(t('Sin lectura'))}</option>${ids.map(id => `<option value="${e(id)}"${id === piece.reading ? ' selected' : ''}>${e(String(readings[id]?.attributes?.friendly_name ?? id))}</option>`).join('')}</select>`)}${piece.reading ? row('mdi:code-braces', t('Atributo (avanzado)'), `<input class="tin" ${chart ? 'data-chart="attribute"' : 'name="attribute"'} maxlength="80" value="${e(piece.attribute ?? '')}" aria-label="${e(t('Atributo (avanzado)'))}">`) : ''}`;
   }
 
   private showsRows(piece: RfWidget): string {
@@ -1182,6 +1224,26 @@ export class ControlDesigner extends HTMLElement {
       }
     });
     on('[data-command=learn]', () => this.options?.learn?.());
+    on('[data-absolute-piece]', element => {
+      const id = element.dataset.absolutePiece!;
+      if (!this.options?.controls?.some(control => control.id === id)) return;
+      const layout = this.layout();
+      const used = new Set(layout.map(piece => piece.id));
+      let number = layout.length + 1;
+      while (used.has('absolute-' + number)) number++;
+      const piece: RfWidget = {
+        id: 'absolute-' + number, type: 'control', x: 0, y: 0, w: Math.min(3, columnsOf(layout)), h: 1,
+        buttons: [id], label: null, icon: null,
+      };
+      const next = add(layout, piece);
+      const placed = next.find(item => item.id === piece.id);
+      if (!placed) return;
+      const canvas = next.find(item => item.type === 'canvas');
+      if (canvas && placed.y + placed.h > canvas.h) canvas.h = Math.min(MAX_GRID_ROWS, placed.y + placed.h);
+      this.selected = [piece.id];
+      this.tab = 'function';
+      void this.commit(next);
+    });
     on('[data-left]', element => {
       this.left = element.dataset.left as typeof this.left;
       this.render();
@@ -1244,6 +1306,23 @@ export class ControlDesigner extends HTMLElement {
 
   private bindCanvasInspector(): void {
     const root = this.root;
+    root.querySelector<HTMLSelectElement>('[data-template-preview]')?.addEventListener('change', event => {
+      const value = (event.target as HTMLSelectElement).value as RemoteTheme;
+      this.templatePreview = REMOTE_THEMES.includes(value) ? value : undefined;
+      this.render();
+      this.root.querySelector<HTMLElement>('[data-template-preview]')?.focus();
+    });
+    root.querySelector('[data-template-apply]')?.addEventListener('click', () => {
+      const theme = this.templatePreview;
+      if (!theme) return;
+      this.templatePreview = undefined;
+      this.changeCanvas(canvas => { canvas.theme = theme; });
+    });
+    root.querySelector('[data-template-cancel]')?.addEventListener('click', () => {
+      this.templatePreview = undefined;
+      this.render();
+      this.root.querySelector<HTMLElement>('[data-template-preview]')?.focus();
+    });
     root.querySelectorAll<HTMLElement>('[data-theme]').forEach(button =>
       button.addEventListener('click', () =>
         this.changeCanvas(canvas => {
@@ -1325,6 +1404,31 @@ export class ControlDesigner extends HTMLElement {
     const value = (element: HTMLElement) => (element as HTMLInputElement).value;
     on('[data-command=duplicate]', () => this.duplicatePieces(this.selected));
     on('[data-command=pin-to-plan]', () => this.options?.pinTo?.(piece.id));
+    on('[data-chart]', element => {
+      const field = element as HTMLInputElement | HTMLSelectElement;
+      if (!field.reportValidity()) return;
+      const key = field.dataset.chart!;
+      const chart = { ...piece.chart } as Record<string, string | number>;
+      if (!field.value.trim() && key !== 'min' && key !== 'max') delete chart[key];
+      else chart[key] = ['digits', 'min', 'max'].includes(key) ? Number(field.value) : field.value;
+      if (key === 'reading') {
+        delete chart.attribute;
+        if (!chart.reading) {
+          this.change(p => { delete p.chart; delete p.period; });
+          return;
+        }
+      }
+      if (chart.scale === 'fixed') {
+        chart.min ??= 0;
+        chart.max ??= 100;
+        if (Number(chart.min) >= Number(chart.max)) {
+          field.value = String(piece.chart?.[key as 'min' | 'max'] ?? '');
+          return;
+        }
+      }
+      if (chart.precision === 'significant' && chart.digits === 0) chart.digits = 1;
+      this.change(p => { p.chart = chart; });
+    }, 'change');
     on('[data-command=remove]', () => void this.removePieces(this.selected));
     this.bindColors(false);
     on('[name=widget-label]', element => this.change(p => (p.label = value(element).trim() || null)), 'change');

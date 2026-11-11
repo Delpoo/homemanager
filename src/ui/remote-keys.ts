@@ -11,6 +11,7 @@ import {
   type RemoteTheme,
 } from '../model/control-layout.js';
 import { brandInitials, brandOf } from './brands.js';
+import type { HistorySeries } from '../integration/history.js';
 
 /** One element of a designed control, drawn the same way everywhere (0.13): in the
  * designer, in the control in use and pinned to a symbol of the plan. It is only
@@ -27,6 +28,7 @@ export interface KeyContext {
   option(piece: ControlPiece): number;
   reading(piece: ControlPiece): { value: string; unit: string };
   samples(piece: ControlPiece): number[];
+  chart?(piece: ControlPiece): HistorySeries & { status: 'loading' | 'offline' | 'ready' };
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -147,7 +149,8 @@ export function keyContent(piece: ControlPiece, ctx: KeyContext): string {
         return `<div class="ksteps${vertical ? ' v' : ''}" role="group" aria-label="${e(name)}">${Array.from({ length: count }, (_, j) => `<button type="button" data-op="set" data-v="${j}" aria-pressed="${j === index}">${e(levelText(piece, j))}</button>`).join('')}</div>`;
       if (piece.type === 'slider') {
         const p = count > 1 && index >= 0 ? (index / (count - 1)) * 100 : 0;
-        return `<div class="kbar${vertical ? ' v' : ''}">${down}<div class="ktrack" data-op="track" role="slider" tabindex="-1" aria-label="${e(name)}" aria-valuemin="0" aria-valuemax="${Math.max(0, count - 1)}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${e(index >= 0 ? levelText(piece, index) : '–')}"><i style="${vertical ? 'height' : 'width'}:${p}%"></i></div>${up}${piece.display !== 'text' && (piece.names || piece.values) ? `<span class="kbarv">${e(index >= 0 ? levelText(piece, index) : '–')}</span>` : ''}</div>`;
+        const value = index >= 0 ? levelText(piece, index) : '–';
+        return `<div class="kbar${vertical ? ' v' : ''}">${down}<div class="ktrack" data-op="track" role="slider" tabindex="0" aria-orientation="${vertical ? 'vertical' : 'horizontal'}" aria-label="${e(name)}" aria-valuemin="0" aria-valuemax="${Math.max(0, count - 1)}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${e(value)}"><i style="${vertical ? 'height' : 'width'}:${p}%"></i></div>${up}${piece.display !== 'text' && (piece.names || piece.values) ? `<span class="kbarv" aria-hidden="true">${e(value)}</span>` : ''}</div>`;
       }
       if (piece.type === 'knob') {
         const p = count > 1 && index >= 0 ? (index / (count - 1)) * 100 : 0;
@@ -183,10 +186,8 @@ export function keyContent(piece: ControlPiece, ctx: KeyContext): string {
       const { value, unit } = ctx.reading(piece);
       return `<div class="kread">${piece.label && !piece.hideLabel ? `<small>${e(text(piece.label))}</small>` : ''}<b data-reading="${e(piece.id)}">${piece.hideIcon ? '' : glyph(piece.icon)}${e(value)}${unit ? ` <em>${e(unit)}</em>` : ''}</b></div>`;
     }
-    case 'graph': {
-      const { value, unit } = ctx.reading(piece);
-      return `<div class="kread">${piece.label && !piece.hideLabel ? `<small>${e(text(piece.label))} · <span data-reading="${e(piece.id)}">${e(value)}</span>${unit ? ` ${e(unit)}` : ''}</small>` : `<small data-reading="${e(piece.id)}">${e(value)}</small>`}<span data-spark="${e(piece.id)}">${sparkline(ctx.samples(piece))}</span></div>`;
-    }
+    case 'graph':
+      return chartFace(piece, ctx);
     case 'title':
       return `<div class="ktitle">${glyph(piece.icon)}${e(text(piece.label ?? ''))}</div>`;
     case 'separator':
@@ -235,6 +236,54 @@ export function sparkline(values: number[], width = 100, height = 30): string {
       `${((index / (values.length - 1)) * width).toFixed(1)} ${(height - 3 - ((value - low) / span) * (height - 6)).toFixed(1)}`,
   );
   return `<svg class="spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><path class="fill" d="M${points.join('L')}L${width} ${height}L0 ${height}Z"/><path class="line" d="M${points.join('L')}"/></svg>`;
+}
+
+export function chartSource(piece: ControlPiece): ControlPiece {
+  return piece.type === 'graph' ? piece : { ...piece, reading: piece.chart?.reading, attribute: piece.chart?.attribute };
+}
+
+export function chartFace(piece: ControlPiece, ctx: KeyContext, compact = false): string {
+  const { value, unit } = ctx.reading(chartSource(piece));
+  const series = ctx.chart?.(piece);
+  return `<div class="kread kgraph${compact ? ' inset-chart' : ''}">${!compact && piece.label && !piece.hideLabel ? `<small>${e(text(piece.label))}</small>` : ''}<b data-reading="${e(piece.id)}">${e(value)}${unit ? ` <em>${e(unit)}</em>` : ''}</b><span data-spark="${e(piece.id)}">${series ? historyChart(piece, series) : sparkline(ctx.samples(piece))}</span></div>`;
+}
+
+export function historyChart(piece: ControlPiece, series: HistorySeries & { status: 'loading' | 'offline' | 'ready' }): string {
+  const { from, to, samples, status } = series;
+  const { scale, min, max, style } = piece.chart ?? {};
+  const transform = scale === 'log' ? Math.log10 : (value: number) => value;
+  const values = samples.flatMap(point => point.value === null ? [] : [transform(point.value)]).filter(Number.isFinite);
+  const statusText = status === 'offline' ? t('Sin conexión') : status === 'loading' ? t('Cargando…') : t('Sin datos');
+  if (!values.length || status === 'offline') return `<small class="chart-status">${e(statusText)}</small>`;
+  const fixed = scale === 'fixed' && min !== undefined && max !== undefined && max > min;
+  const low = fixed ? min : Math.min(...values);
+  const high = fixed ? max : Math.max(...values);
+  const runs: string[][] = [];
+  let run: string[] | undefined;
+  const x = (at: number) => Math.max(0, Math.min(100, 100 * (at - from) / Math.max(1, to - from)));
+  for (const point of samples) {
+    const value = point.value === null ? NaN : transform(point.value);
+    if (!Number.isFinite(value)) { run = undefined; continue; }
+    const y = high === low ? 15 : Math.max(2, Math.min(28, 28 - 26 * (value - low) / (high - low)));
+    if (!run) { run = []; runs.push(run); }
+    run.push(`${x(point.at).toFixed(2)} ${y.toFixed(2)}`);
+  }
+  const paths = runs.map(points => {
+    const first = points[0].split(' ')[0];
+    const last = points.at(-1)!.split(' ')[0];
+    if (points.length === 1) return `<circle class="chart-point" cx="${first}" cy="${points[0].split(' ')[1]}" r="1"/>`;
+    const line = `M${points.join('L')}`;
+    return (style === 'line' ? '' : `<path class="fill" d="${line}L${last} 30H${first}Z"/>`) +
+      `<path class="line" d="${line}"/>`;
+  }).join('');
+  const time = new Intl.DateTimeFormat(undefined, (piece.period === '7d' || piece.period === '30d')
+    ? { month: 'short', day: 'numeric' } : { hour: 'numeric', minute: '2-digit' });
+  const start = e(time.format(from)), end = e(time.format(to));
+  const limits = new Intl.NumberFormat(undefined, {maximumSignificantDigits: 4});
+  const unscale = scale === 'log' ? (value: number) => 10 ** value : (value: number) => value;
+  const range = piece.h >= 2 && low !== high
+    ? `<span class="chart-scale"><span>${e(limits.format(unscale(low)))}</span><span>${e(limits.format(unscale(high)))}</span></span>` : '';
+  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${e(t('Historial'))} · ${start} – ${end}">${paths}</svg>${range}<span class="chart-axis"><time>${start}</time><time>${end}</time></span>`;
 }
 
 /** The body of the control: theme, colour, corners and the space between keys. */
@@ -287,9 +336,25 @@ export const keyStyles = `
 .kbar{flex:1;display:flex;align-items:center;gap:4px;padding:0 4px;position:relative;min-width:0}.kbar.v{flex-direction:column-reverse;padding:4px 0}
 .kbar .kpart,.kknob .kpart{width:28px;height:28px;border-radius:50%}
 .ktrack{flex:1;height:8px;border-radius:99px;background:color-mix(in srgb,var(--kfg) 18%,transparent);position:relative;overflow:hidden;cursor:pointer}
-.kbar.v .ktrack{width:8px;height:auto;align-self:stretch}
-.ktrack i{position:absolute;left:0;bottom:0;top:0;background:var(--kon);border-radius:inherit}.kbar.v .ktrack i{top:auto;right:0}
+.kbar.v .ktrack{width:clamp(24px,60%,44px);min-height:16px;height:auto;align-self:auto;background:none}
+.kbar.v .ktrack:before,.kbar.v .ktrack i{content:'';position:absolute;width:min(8px,30%);left:50%;right:auto;transform:translateX(-50%);border-radius:99px}
+.kbar.v .ktrack:before{inset-block:0;background:color-mix(in srgb,var(--kfg) 18%,transparent)}
+.ktrack i{position:absolute;left:0;bottom:0;top:0;background:var(--kon);border-radius:inherit}.kbar.v .ktrack i{top:auto}
 .kbarv{position:absolute;top:3px;left:50%;transform:translateX(-50%);font-size:10px;color:color-mix(in srgb,var(--kfg) 70%,transparent);pointer-events:none}
+.kbar.v .kbarv{top:50%;left:12%;transform:translateY(-50%);font-size:clamp(10px,var(--vsz,16px),22px);font-weight:700;color:var(--kfg);background:var(--kbg);border-radius:5px;padding:1px 2px}
+.ktrack:focus-visible{outline:2px solid var(--racc);outline-offset:-2px}
+.kgraph{min-width:0;gap:2px}
+.chart-axis{display:flex;justify-content:space-between;gap:2px;font-size:9px;line-height:1.15}
+.chart-status{display:block}
+.key-with-chart{flex-direction:column}.inset-chart{flex:0 1 auto;width:100%;padding:2px 5px;pointer-events:none}
+.inset-chart b{font-size:12px}.inset-chart .spark{height:12px}.inset-chart .chart-axis{display:none}
+.chart-scale{display:flex;justify-content:space-between;font-size:9px}
+.kgraph [data-spark]{min-width:0;width:100%}
+.chart-point{fill:var(--kon,var(--racc))}
+.kembed .absolute-widget{width:100%;padding:5px;display:grid;gap:4px}
+.kembed .absolute-widget label{display:grid;gap:3px;font:inherit;min-width:0}
+.kembed .absolute-widget label span{font-size:11px}
+.kembed .absolute-widget input[type=checkbox]{justify-self:center}
 .kknob{flex:1;display:flex;align-items:center;justify-content:space-between;padding:0 6px;min-width:0}
 .dial{width:min(64%,76px);aspect-ratio:1;border-radius:50%;background:conic-gradient(from -135deg,var(--kon) calc(var(--p) * .75%),color-mix(in srgb,var(--kfg) 15%,transparent) 0 75%,transparent 0);display:grid;place-items:center}
 .dial b{width:76%;aspect-ratio:1;border-radius:50%;background:var(--kbg);display:grid;place-items:center;font-size:13px;font-weight:500;box-shadow:0 2px 5px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.15)}
@@ -304,7 +369,7 @@ export const keyStyles = `
 .kread{flex:1;display:grid;align-content:center;padding:4px 12px;gap:1px;min-width:0}
 .kread small{font-size:var(--fs);color:var(--rsub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kread b{font-size:var(--vsz,20px);font-weight:500;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}.kread em{font-style:normal;font-size:12px;color:var(--rsub)}
-.spark{width:100%;height:28px}.spark .line{fill:none;stroke:var(--racc);stroke-width:2;vector-effect:non-scaling-stroke}.spark .fill{fill:color-mix(in srgb,var(--racc) 20%,transparent)}
+.spark{width:100%;height:28px}.spark .line{fill:none;stroke:var(--kon,var(--racc));stroke-width:2;vector-effect:non-scaling-stroke}.spark .fill{fill:color-mix(in srgb,var(--kon,var(--racc)) 20%,transparent)}
 .ktitle{flex:1;display:flex;align-items:center;gap:6px;font-size:var(--fs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--rsub);padding:0 6px;min-width:0}
 .ksep{flex:1;align-self:center;height:1px;background:color-mix(in srgb,var(--rfg) 18%,transparent);margin:0 6px}
 .kdpad{position:relative;flex:1}

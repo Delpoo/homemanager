@@ -78,7 +78,18 @@ export interface ControlPiece {
   options?: { label?: string | null; icon?: string | null }[];
   /** Blocks: which learned button each key sends. */
   slots?: Record<string, string>;
-  period?: '1h' | '24h' | '7d';
+  period?: '1h' | '24h' | '7d' | '30d';
+  chart?: {
+    reading?: string;
+    attribute?: string;
+    scale?: 'auto' | 'fixed' | 'log';
+    min?: number;
+    max?: number;
+    style?: 'area' | 'line';
+    precision?: 'decimals' | 'significant';
+    digits?: number;
+    unit?: string;
+  };
   /** Canvas only. */
   theme?: RemoteTheme;
   gap?: number;

@@ -132,11 +132,20 @@ class IrManager:
 
     def test(self, owner: object, candidate_id: str, emitter_id: str, carrier_hz: int, carrier_source: str) -> dict[str, str]:
         candidate = self._candidate(owner, candidate_id)
-        self._proxy.send(emitter_id, self._signal(owner, candidate_id, carrier_hz, carrier_source))
-        candidate.trials[:] = [{"id": secrets.token_hex(8), "at": timestamp(), "kind": "send", "status": "sent",
-                               "emitter": emitter_id, "settings": {"carrier_hz": carrier_hz, "carrier_source": carrier_source}},
-                              *candidate.trials[:5]]
+        trial = {"id": secrets.token_hex(8), "at": timestamp(), "kind": "send", "status": "error",
+                 "emitter": emitter_id, "settings": {"carrier_hz": carrier_hz, "carrier_source": carrier_source}}
+        try:
+            self._proxy.send(emitter_id, self._signal(owner, candidate_id, carrier_hz, carrier_source))
+            trial["status"] = "sent"
+        finally:
+            candidate.trials[:] = [trial, *candidate.trials[:5]]
         return {"result": "sent"}
+
+    def note_candidate(self, owner: object, candidate_id: str, response: str) -> None:
+        trials = self._candidate(owner, candidate_id).trials
+        if not trials or trials[0]["status"] != "sent":
+            raise ModelError("diagnostic_not_found", "the capture has no successful send to verify")
+        trials[0]["response"] = response
 
     async def async_save(self, owner: object, msg: dict[str, Any]) -> dict[str, str]:
         # Complete the single storage transaction even if its websocket closes
@@ -199,6 +208,18 @@ class IrManager:
             raise ModelError("button_not_found", "unknown infrared button")
         self._proxy.send(button.emitter or remote.emitter, button.signal)
         return {"result": "sent"}
+
+    def send_signal(self, emitter: str, signal: IrSignal) -> None:
+        self._proxy.send(emitter, signal)
+
+    async def async_import(self, name: str, emitter: str, buttons: list[tuple[str, IrSignal, dict[str, Any]]],
+                           remote_id: str | None = None) -> dict[str, Any]:
+        async with self._save_lock:
+            if self._hass.is_stopping:
+                raise ModelError("ir_save_failed", "Home Assistant is shutting down")
+            if not any(device["id"] == emitter for device in self.devices()["emitters"]):
+                raise ModelError("ir_emitter_unavailable", "the selected infrared emitter is unavailable")
+            return await self._library.async_import_ir(name, emitter, buttons, remote_id)
 
     async def async_diagnose(self, emitter: str, signal: IrSignal, receivers: dict[str, str]) -> dict[str, Any]:
         available = {device["id"] for device in self.devices()["receivers"]}

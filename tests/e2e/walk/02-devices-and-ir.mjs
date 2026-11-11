@@ -59,7 +59,7 @@ export default async (page, { shot, app, card, check }) => {
   await ir.getByRole('button', { name: 'Probar', exact: true }).click();
   await page.waitForTimeout(800);
   await shot('10h-ir-asked');
-  await ir.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
+  await ir.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await page.waitForTimeout(1500);
   check(await ir.getByText('Guardado en Home Assistant.').isVisible(), 'the IR button is saved');
   await shot('10i-ir-saved');

@@ -12,7 +12,7 @@ export default async (page, { shot, app, check }) => {
     .first()
     .click();
   await page.waitForTimeout(700);
-  await learn.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
+  await learn.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await page.waitForTimeout(1200);
   await shot('12b-after-second');
   await learn.getByRole('button', { name: 'Listo', exact: true }).click();

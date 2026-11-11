@@ -125,7 +125,7 @@ for (const dark of [false, true])
     await readable(rf(page));
     await learn.getByLabel('Nombre del botón').fill('Temporizador');
     await learn.getByRole('button', { name: 'Probar', exact: true }).click();
-    await expect(learn.getByText('¿El equipo reaccionó?', { exact: true })).toBeVisible();
+    await expect(learn.getByText('Verificación opcional', { exact: true })).toBeVisible();
     await readable(rf(page));
     await shot('trial');
     await learn.getByRole('button', { name: 'Listo', exact: true }).click();

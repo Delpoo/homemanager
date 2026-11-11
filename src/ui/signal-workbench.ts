@@ -410,7 +410,7 @@ class SignalWorkbench extends HTMLElement {
     const rows = this.sheet.history
       .map(
         row =>
-          `<div class="row"><strong>${e(t(row.camera ? cameraLabels[row.camera] : row.response ? responseLabels[row.response] : row.status === 'sent' ? 'Emisión solicitada' : 'Observación'))}</strong><small>${e(date(row.at))}</small>${row.emitter ? `<small>${e(this.emitters.find(device => device.id === row.emitter)?.name ?? row.emitter)}</small>` : ''}${row.camera && row.response ? `<span>${e(t(responseLabels[row.response]))}</span>` : ''}${row.note ? `<span>${e(row.note)}</span>` : ''}${row.snapshot ? `<button type="button" data-trial="${e(row.id)}">${e(t('Ver comparación'))}</button>` : ''}</div>`,
+          `<div class="row"><strong>${e(t(row.camera ? cameraLabels[row.camera] : row.response ? responseLabels[row.response] : row.status === 'sent' ? 'Emisión solicitada' : row.status === 'error' ? 'Error de envío' : 'Observación'))}</strong><small>${e(date(row.at))}</small>${row.emitter ? `<small>${e(this.emitters.find(device => device.id === row.emitter)?.name ?? row.emitter)}</small>` : ''}${row.camera && row.response ? `<span>${e(t(responseLabels[row.response]))}</span>` : ''}${row.note ? `<span>${e(row.note)}</span>` : ''}${row.snapshot ? `<button type="button" data-trial="${e(row.id)}">${e(t('Ver comparación'))}</button>` : ''}</div>`,
       )
       .join('');
     return `<section><form data-observation>${

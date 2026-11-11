@@ -175,6 +175,40 @@ class RemotesLibrary:
         await self._replace_ir(remote_id, raw)
         return remote_id
 
+    async def async_import_ir(self, name: str, emitter: str, signals: list[tuple[str, IrSignal, dict[str, Any]]],
+                              remote_id: str | None = None) -> dict[str, Any]:
+        stored = self._ir_data["remotes"]
+        if remote_id is None:
+            if len(stored) >= MAX_REMOTES:
+                raise ModelError("too_many_remotes", f"at most {MAX_REMOTES} infrared remotes")
+            name = _text(name, "remote name")
+            remote_id = slug(name, set(stored) | set(_retired(self._ir_data.get("retired"))))
+            raw = {"name": name, "emitter": emitter, "buttons": {}}
+            fingerprints: set[str] = set()
+        else:
+            remote = self.ir_remote(remote_id)
+            raw = deepcopy(stored[remote_id])
+            fingerprints = {button.signal.fingerprint for button in remote.buttons.values()}
+        timings = sum(len(button.signal.timings_us) for remote in self._ir.values() for button in remote.buttons.values())
+        buttons = raw["buttons"]
+        added = 0
+        for label, signal, provenance in signals:
+            if signal.fingerprint in fingerprints:
+                continue
+            if len(buttons) >= MAX_BUTTONS or timings + len(signal.timings_us) > MAX_IR_TIMINGS:
+                raise ModelError("ir_library_full", "the imported signals exceed the infrared library limits")
+            button_id = slug(label, set(buttons) | set(_retired(raw.get("retired_buttons"))))
+            buttons[button_id] = {"name": label, "icon": None, "signal": signal.as_dict(),
+                                  "emitter": emitter, "provenance": provenance}
+            if raw.get("layout") is not None:
+                raw["layout"] = append_layout_button(raw["layout"], button_id)
+            fingerprints.add(signal.fingerprint)
+            timings += len(signal.timings_us)
+            added += 1
+        if added:
+            await self._replace_ir(remote_id, raw)
+        return {"id": remote_id, "added": added, "duplicates": len(signals) - added}
+
     async def async_duplicate_ir_remote(self, remote_id: str, name: str, emitter: str | None) -> dict[str, Any]:
         """0.13: the same remote for another appliance, with its signals and design.
         A new emitter replaces the one of the original and of each button."""

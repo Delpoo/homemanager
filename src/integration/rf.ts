@@ -23,6 +23,7 @@ export interface RfAbout {
   description: string | null;
 }
 export interface RfButton {
+  provenance?: { source: string; brand: string; model: string; entry: string; revision: string; partial: boolean };
   id: string;
   name: string;
   icon: string | null;

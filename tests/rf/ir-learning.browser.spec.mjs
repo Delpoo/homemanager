@@ -160,8 +160,8 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   await sheet.getByRole('button', { name: 'Señal', exact: true }).click();
   await expect(sheet.locator('.signal-chart')).toContainText('Preparada');
   await sheet.getByRole('button', { name: 'Cerrar', exact: true }).click();
-  // After Test, the person answers: 👍 saves.
-  await ir.getByRole('button', { name: 'Sí, guardar', exact: true }).click();
+  // Saving stays available after testing without a physical observation.
+  await ir.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Guardado en Home Assistant');
   await ir.getByRole('button', { name: 'Encendido demo' }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Solicitud IR enviada');
