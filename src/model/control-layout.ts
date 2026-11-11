@@ -352,3 +352,11 @@ export function mapLayout(
   }
   return { layout: out, left };
 }
+
+/** A reading as people read it: 1012 W, 23.5 °C, 0.42 — not 1012.0631103515625. */
+export function formatReading(value: string): string {
+  const number = Number(value);
+  if (value.trim() === '' || !Number.isFinite(number) || !/\.\d{3,}/.test(value)) return value;
+  const digits = Math.abs(number) >= 100 ? 0 : Math.abs(number) >= 10 ? 1 : 2;
+  return String(Number(number.toFixed(digits)));
+}

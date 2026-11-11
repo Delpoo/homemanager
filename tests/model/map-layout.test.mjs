@@ -35,3 +35,13 @@ test('a design carried to another remote finds its buttons by name and leaves ou
   assert.deepEqual(layout[1].slots, { up: 'b4' });
   assert.deepEqual(layout[1].buttons, ['b4']);
 });
+
+test('readings are rounded the way people read them', async () => {
+  const { formatReading } = await import('../../.work/model/control-layout.js');
+  assert.equal(formatReading('1012.0631103515625'), '1012');
+  assert.equal(formatReading('23.456'), '23.5');
+  assert.equal(formatReading('0.41999'), '0.42');
+  assert.equal(formatReading('23.5'), '23.5');
+  assert.equal(formatReading('on'), 'on');
+  assert.equal(formatReading('—'), '—');
+});
