@@ -1,3 +1,4 @@
+import { historyPoints } from '../integration/history.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { t } from '../i18n/index.js';
 import {
@@ -397,6 +398,14 @@ export class HomeManagerIr extends HTMLElement {
         remote: drawIr(remote),
         name: remote.name,
         estimated: false,
+        pinTo: pieceId =>
+          this.dispatchEvent(
+            new CustomEvent('homemanager-shell-command', {
+              detail: { command: 'pin', irRemoteId: remote.id, pieceId },
+              bubbles: true,
+              composed: true,
+            }),
+          ),
         // Test mode sends for real, as the control in use does.
         press: buttonId => remotes.press(this._hass!, remote.id, buttonId),
         duplicate: {
@@ -410,6 +419,7 @@ export class HomeManagerIr extends HTMLElement {
           },
         },
         readValues: () => this._hass?.states ?? {},
+        history: (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute),
         save: async layout => {
           if (!this._hass) throw new Error(t('Algo falló.'));
           const updated = await remotes.editRemote(this._hass, remote.id, { layout });
@@ -418,6 +428,8 @@ export class HomeManagerIr extends HTMLElement {
       });
     } else {
       host?.append(this.player);
+      this.player.readValues = () => this._hass?.states ?? {};
+      this.player.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
       this.player.remote = drawIr(remote);
     }
   }

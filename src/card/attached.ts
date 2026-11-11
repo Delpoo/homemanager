@@ -1,10 +1,12 @@
+import { historyPoints } from '../integration/history.js';
 import { t } from '../i18n/index.js';
 import type { HomeManagerCard } from './home-manager-card.js';
 import type { Device } from './types.js';
 import type { RfWidget } from '../integration/rf.js';
 import { HomeManagerRfRemote } from '../rf/remote-view.js';
 import { layoutOf, type DrawableRemote } from '../rf/layout.js';
-import { attachedLook, type AttachedPiece } from '../model/control-layout.js';
+import { MAX_ATTACHED, attachedLook, type AttachedPiece } from '../model/control-layout.js';
+import { newAttached } from '../editor/attached-editor.js';
 import { designRemote } from '../ui/control-design-adapter.js';
 import { controlsOf } from './device-controls.js';
 import { irRemoteSource, rfRemoteSource } from './commands.js';
@@ -53,6 +55,47 @@ function load(card: HomeManagerCard, d: Device, source: Source): Promise<Drawabl
   return remote;
 }
 
+/** The symbols drawn with a remote (its RF or IR one). */
+function devicesWith(card: HomeManagerCard, source: { remoteId?: string; irRemoteId?: string }): Device[] {
+  return (card.draft?.catalog.devices ?? []).filter(d => {
+    if (source.remoteId) return card.remoteOf(d) === source.remoteId;
+    const entity = d.bindings.entityId ? card._hass?.states[d.bindings.entityId] : undefined;
+    const fromIr = entity?.attributes?.homemanager_ir_remote;
+    return (d.bindings.irRemoteId ?? (typeof fromIr === 'string' ? fromIr : null)) === source.irRemoteId;
+  });
+}
+
+export async function pinPiece(
+  card: HomeManagerCard,
+  source: { remoteId?: string; irRemoteId?: string },
+  pieceId: string,
+): Promise<void> {
+  const [d] = devicesWith(card, source);
+  if (!d || !card.draft) {
+    card.status(t('Ningún símbolo del plano usa este control.'));
+    return;
+  }
+  if (!card.editing) await card.toggleEdit();
+  if (!card.editing || !card.draft) return;
+  const remote = await attachedSource(card, d)?.load();
+  const piece = remote && layoutOf(remote).find(item => item.id === pieceId);
+  const device = card.draft.catalog.devices.find(item => item.id === d.id);
+  if (!piece || !device) return;
+  const list = device.display.attached ?? [];
+  if (list.length >= MAX_ATTACHED) {
+    card.status(t('Ya hay {count} elementos junto a este símbolo.', { count: MAX_ATTACHED }));
+    return;
+  }
+  const item = newAttached(list, piece);
+  const next = structuredClone(card.draft);
+  next.catalog.devices.find(entry => entry.id === d.id)!.display.attached = [...list, item];
+  card.change(next);
+  card.attachedChosen = { device: d.id, att: item.id };
+  card.select(d.id);
+  card.editor?.chooseAttached(item.id);
+  card.status(t('Pegado junto a {name}: arrastralo a su lugar.', { name: d.display.label }));
+}
+
 /** One piece alone, as the control draws it: a one-cell grid with its look on top. */
 export function attachedRemote(remote: DrawableRemote, item: AttachedPiece): DrawableRemote | null {
   const piece = layoutOf(remote).find(p => p.id === item.piece && p.type !== 'canvas');
@@ -91,6 +134,7 @@ export function mountAttached(this: HomeManagerCard): void {
       const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
       view.setAttribute('bare', '');
       view.readValues = () => this._hass?.states ?? {};
+      view.history = (entity, period, attribute) => historyPoints(this._hass, entity, period, attribute);
       view.onPress = ref => source.press(ref);
       box.append(view);
       if (this.editing && chosen)
@@ -112,10 +156,28 @@ export function mountAttached(this: HomeManagerCard): void {
           box.classList.toggle('missing', true);
           return;
         }
+        view.onState = () => showLevelRing(this, d.id);
         view.remote = drawn;
       });
     }
   }
+}
+
+/** 0.13: a ring around the symbol says how far up its first pinned level is (a fan's speed). */
+function showLevelRing(card: HomeManagerCard, device: string): void {
+  const overlay = card.root.querySelector<HTMLElement>('.overlay');
+  const marker = overlay?.querySelector<HTMLElement>(`.marker[data-id="${CSS.escape(device)}"]`);
+  if (!overlay || !marker) return;
+  let share: number | null = null;
+  for (const box of overlay.querySelectorAll<HTMLElement>(`.attached[data-device="${CSS.escape(device)}"]`)) {
+    const view = box.querySelector<HomeManagerRfRemote>('homemanager-rf-remote');
+    const piece = view?.remote?.layout?.find(item => item.type !== 'canvas');
+    share = piece && view ? view.levelShare(piece.id) : null;
+    if (share !== null) break;
+  }
+  marker.classList.toggle('has-level', share !== null);
+  if (share === null) marker.style.removeProperty('--hm-level');
+  else marker.style.setProperty('--hm-level', String(Math.round(share * 100)));
 }
 
 /** How much a device's attached pieces grow: with its symbol, unless they keep their size. */
@@ -237,6 +299,7 @@ function startAttachedDrag(card: HomeManagerCard, event: PointerEvent, box: HTML
 }
 
 export const attachedStyles = `
+.marker.has-level::before{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;transform:scale(var(--hm-symbol-scale,1));background:conic-gradient(var(--hm-brand) calc(var(--hm-level,0) * 1%),color-mix(in srgb,var(--hm-brand) 16%,transparent) 0);-webkit-mask:radial-gradient(circle,transparent calc(50% - 4px),#000 calc(50% - 3.5px));mask:radial-gradient(circle,transparent calc(50% - 4px),#000 calc(50% - 3.5px))}
 .attached{position:absolute;z-index:3;display:flex;transform-origin:0 0;pointer-events:auto;touch-action:none}
 .attached>homemanager-rf-remote{flex:1;min-width:0;min-height:0}
 .attached.dim{opacity:.35!important}

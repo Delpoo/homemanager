@@ -706,4 +706,8 @@ export const enPlan012: Record<string, string> = {
   'En el plano': 'On the plan',
   'Quitar del plano': 'Remove from the plan',
   Liso: 'Flat',
+  'Ningún símbolo del plano usa este control.': 'No symbol on the plan uses this control.',
+  'Ya hay {count} elementos junto a este símbolo.': 'There are already {count} elements next to this symbol.',
+  'Pegado junto a {name}: arrastralo a su lugar.': 'Pinned next to {name}: drag it into place.',
+  'Pegar junto a su símbolo': 'Pin next to its symbol',
 };
