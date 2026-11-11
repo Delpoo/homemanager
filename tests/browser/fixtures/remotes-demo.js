@@ -194,6 +194,11 @@ hass.callWS = async message => {
       return { id: record.id, added: 1, duplicates: 0 };
     }
     case 'homemanager/remotes/ir/test':
+      if (window.demoWaitForIrTest)
+        await new Promise(resolve => {
+          window.demoFinishIrTest = resolve;
+        });
+      return { result: 'sent' };
     case 'homemanager/remotes/ir/press':
       return { result: 'sent' };
     case 'homemanager/remotes/ir/save':

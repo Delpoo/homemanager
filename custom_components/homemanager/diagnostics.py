@@ -126,21 +126,31 @@ class Diagnostics:
             _LOGGER.warning("HomeManager diagnostic storage is unavailable")
 
     def on_rf_learned(self, remote_id: str, button_id: str, code: str, candidate: Candidate) -> None:
-        if candidate.observation:
-            original = {**candidate.observation, "receptions": {"frames": candidate.frames, "presses": candidate.bursts}}
-            self.hass.async_create_task(self._remember_rf(f"rf:{remote_id}:{button_id}", code, original, list(candidate.trials)),
-                                        "HomeManager RF signal evidence")
+        original = ({**candidate.observation, "receptions": {"frames": candidate.frames, "presses": candidate.bursts}}
+                    if candidate.observation else None)
+        if original or candidate.trials:
+            self.hass.async_create_task(
+                self._remember_rf(f"rf:{remote_id}:{button_id}", code, original, list(candidate.trials),
+                                  tuple(candidate.pending_trials)), "HomeManager RF signal evidence")
 
-    async def _remember_rf(self, key: str, code: str, original: dict[str, Any], trials: list[dict[str, Any]]) -> None:
+    async def _remember_rf(self, key: str, code: str, original: dict[str, Any] | None,
+                           trials: list[dict[str, Any]], pending: tuple[asyncio.Event, ...]) -> None:
+        if pending:
+            await asyncio.gather(*(event.wait() for event in pending))
         try:
             async with self._write_lock:
-                version = thumbnail(original["timings_us"])
+                source, remote_id, button_id = key.split(":", 2)
+                if self._button(source, remote_id, button_id).fingerprint != code:
+                    return
                 previous = self._data.get(key, {})
-                retained = previous.get("history", []) if previous.get("fingerprint") == code else []
-                data = {**self._data, key: {"fingerprint": code, "original": original,
-                                           "graphic": {"version": version["version"], "levels": version["levels"]},
-                                           "history": [*retained, *[{**trial, "id": secrets.token_hex(8)} for trial in reversed(trials)]][:MAX_HISTORY]}}
-                await self._save(data)
+                record = dict(previous) if previous.get("fingerprint") == code else {"fingerprint": code}
+                if original:
+                    version = thumbnail(original["timings_us"])
+                    record.update(original=original, graphic={"version": version["version"], "levels": version["levels"]})
+                retained = record.get("history", [])
+                learned = [{**trial, "id": secrets.token_hex(8)} for trial in trials]
+                record["history"] = sorted([*retained, *learned], key=lambda trial: trial.get("at", ""), reverse=True)[:MAX_HISTORY]
+                await self._save({**self._data, key: record})
         except ModelError:
             _LOGGER.warning("Could not keep optional evidence for a learned RF signal")
 
