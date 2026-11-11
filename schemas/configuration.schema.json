@@ -209,6 +209,27 @@
       },
       "$comment": "Semantic checks require unique rule/source IDs and homogeneous binary or numeric conditions."
     },
+    "planWidthMetres": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 10000,
+      "$comment": "0.13: the real width of the plan drawing, for measures in metres and areas in m²."
+    },
+    "pinnedAutomations": {
+      "type": "array",
+      "maxItems": 12,
+      "uniqueItems": true,
+      "$comment": "0.13: HomeManager automations with a button in Now. The automations live in Home Assistant.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "icon"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^homemanager_[a-z0-9_]{1,52}$" },
+          "icon": { "$ref": "catalog.schema.json#/$defs/mdiIcon" }
+        }
+      }
+    },
     "planViews": {
       "type": "array",
       "maxItems": 12,

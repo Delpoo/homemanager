@@ -197,5 +197,129 @@
         }
       ]
     }
+  ],
+  "pinsValid": [
+    [],
+    [
+      {
+        "id": "homemanager_dormir",
+        "icon": "mdi:weather-night"
+      }
+    ],
+    [
+      {
+        "id": "homemanager_a",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_salir_2",
+        "icon": "mdi:home-export-outline"
+      }
+    ]
+  ],
+  "pinsInvalid": [
+    [
+      {
+        "id": "1699",
+        "icon": "mdi:home"
+      }
+    ],
+    [
+      {
+        "id": "homemanager_x",
+        "icon": "home"
+      }
+    ],
+    [
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      }
+    ],
+    [
+      {
+        "id": "homemanager_x"
+      }
+    ],
+    [
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home",
+        "extra": 1
+      }
+    ],
+    "homemanager_x",
+    [
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      },
+      {
+        "id": "homemanager_x",
+        "icon": "mdi:home"
+      }
+    ]
+  ],
+  "widthValid": [
+    0.5,
+    12,
+    18.75,
+    10000
+  ],
+  "widthInvalid": [
+    0,
+    0.4,
+    10001,
+    "12",
+    null,
+    true
   ]
 }

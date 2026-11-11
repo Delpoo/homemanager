@@ -458,7 +458,7 @@ def _attached(items: Any) -> None:
 def validate_configuration(configuration: Any) -> dict[str, Any]:
     """Validate all persistent fields; pending action/panel references stay inert."""
     _json(configuration)
-    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels", "symbolSizes", "initialView", "baseRules"})
+    _fields(configuration, {"schemaVersion", "rooms", "catalog", "architecture", "actions", "panels", "stateSources"}, {"commandTtlSeconds", "rules", "planViews", "nowPanels", "symbolSizes", "initialView", "baseRules", "pinnedAutomations", "planWidthMetres"})
     if type(configuration["schemaVersion"]) is not int or configuration["schemaVersion"] != SCHEMA_VERSION:
         raise ModelError("unsupported_schema", "schemaVersion 2 required; migrate in the editor first")
     if len(json.dumps(configuration, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_CONFIGURATION_BYTES:
@@ -717,6 +717,22 @@ def validate_configuration(configuration: Any) -> dict[str, Any]:
                                 _id(value)
                             elif len(value) > 240 or (not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z0-9_]+", value) or value.endswith(".all")):
                                 _fail()
+    if "planWidthMetres" in configuration:
+        width = configuration["planWidthMetres"]
+        if isinstance(width, bool) or not isinstance(width, (int, float)) or not math.isfinite(width) or width < 0.5 or width > 10000:
+            _fail()
+    if "pinnedAutomations" in configuration:
+        pins = configuration["pinnedAutomations"]
+        if not isinstance(pins, list) or len(pins) > 12:
+            _fail()
+        seen = set()
+        for pin in pins:
+            _fields(pin, {"id", "icon"})
+            if not isinstance(pin["id"], str) or not re.fullmatch(r"homemanager_[a-z0-9_]{1,52}", pin["id"]) or pin["id"] in seen:
+                _fail()
+            if not isinstance(pin["icon"], str) or not MDI_ICON.fullmatch(pin["icon"]):
+                _fail()
+            seen.add(pin["id"])
     if "planViews" in configuration:
         views = configuration["planViews"]
         if not isinstance(views, list) or len(views) > 12:

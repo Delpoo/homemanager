@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { t, getLanguage } from '../i18n/index.js';
 import { TaskScreen, taskScreen } from '../ui/task-screen.js';
 import {
   addZone,
@@ -20,7 +20,7 @@ import {
   type EditZone,
   type ZoneDraft,
 } from '../model/zone-edit.js';
-import { labelPoint, pathOf, rectGeom, ringArea, tidyRing, type Geom, type Pt } from '../model/polygon.js';
+import { areaOf, labelPoint, pathOf, rectGeom, ringArea, tidyRing, type Geom, type Pt } from '../model/polygon.js';
 import { uiButton } from '../ui/components.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { installDialogComponents } from '../ui/panel-components.js';
@@ -35,13 +35,14 @@ import type { HomeManagerCard } from './home-manager-card.js';
  * intersecar, cortar con un trazo, puntos, mover, escalar, girar, voltear, alinear.
  * Everything stays in a draft until ✓, which is one undo step of the plan.
  */
-export type ZoneTool = 'select' | 'points' | 'rect' | 'poly' | 'cut';
+export type ZoneTool = 'select' | 'points' | 'rect' | 'poly' | 'cut' | 'measure';
 type Drag =
   | { kind: 'move'; p0: Pt; before: ZoneDraft; moved: boolean }
   | { kind: 'resize'; h: string; box: Box; before: ZoneDraft; moved: boolean }
   | { kind: 'vertex'; before: ZoneDraft; moved: boolean }
   | { kind: 'rect'; a: Pt; b: Pt }
-  | { kind: 'cut'; a: Pt; b: Pt };
+  | { kind: 'cut'; a: Pt; b: Pt }
+  | { kind: 'measure'; a: Pt; b: Pt };
 type Box = { x: number; y: number; width: number; height: number };
 export interface ZoneEdit {
   draft: ZoneDraft;
@@ -64,6 +65,11 @@ export interface ZoneEdit {
   renaming?: string;
   /** Kept for the old API: the first chosen space. */
   selected: string | null;
+  /** 0.13: the real width of the plan in metres (measures and m²), once it is known. */
+  metres?: number;
+  metresChanged?: boolean;
+  /** A line just measured with the ruler, waiting for its real length. */
+  asking?: { a: Pt; b: Pt };
 }
 
 /** An empty id draws a new space; a space without a shape opens ready to draw it. */
@@ -88,6 +94,7 @@ export function startZoneEdit(this: HomeManagerCard, id: string | null = null, t
     align: false,
     keys: false,
     selected: id,
+    ...(this.draft.planWidthMetres ? { metres: this.draft.planWidthMetres } : {}),
   };
   this.renderZoneEdit();
   this.fit(null, false);
@@ -114,6 +121,26 @@ const colorOf = (edit: ZoneEdit, id: string) =>
       edit.draft.zones.findIndex(zone => zone.id === id),
     ) % SPACE_COLORS.length
   ];
+
+/** 0.13: metres per plan unit across and down, when the scale is known. */
+function scaleOf(card: HomeManagerCard, edit: ZoneEdit): { x: number; y: number } | null {
+  if (!edit.metres || !card.box.width) return null;
+  return { x: edit.metres, y: (edit.metres * card.box.height) / card.box.width };
+}
+const metresText = (value: number) =>
+  value.toLocaleString(getLanguage(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const areaText = (value: number) =>
+  value.toLocaleString(getLanguage(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** Length of a segment in metres. */
+function lengthOf(card: HomeManagerCard, edit: ZoneEdit, a: Pt, b: Pt): number | null {
+  const scale = scaleOf(card, edit);
+  return scale ? Math.hypot((b[0] - a[0]) * scale.x, (b[1] - a[1]) * scale.y) : null;
+}
+/** Area of a shape in m². */
+function squareMetres(card: HomeManagerCard, edit: ZoneEdit, geom: Geom): number | null {
+  const scale = scaleOf(card, edit);
+  return scale ? areaOf(geom) * scale.x * scale.y : null;
+}
 
 /** Screen position of a plan point. */
 function screenOf(card: HomeManagerCard): (p: Pt) => Pt {
@@ -277,6 +304,48 @@ export function renderZoneEdit(this: HomeManagerCard): void {
       [x2, y2] = at(d.b);
     over += `<line class="zcut" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>`;
   }
+  // 0.13: measures in metres while drawing, and the ruler that sets the scale.
+  let measures = '';
+  const tag = (p: Pt, text: string, cls = '') => {
+    const [x, y] = at(p);
+    return `<span class="zmeas${cls}" style="left:${x}px;top:${y}px">${e(text)}</span>`;
+  };
+  const ruler = d?.kind === 'measure' ? d : edit.asking;
+  if (ruler) {
+    const [x1, y1] = at(ruler.a),
+      [x2, y2] = at(ruler.b);
+    over += `<line class="zruler" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line><circle class="zv first" cx="${x1}" cy="${y1}" r="4"></circle><circle class="zv first" cx="${x2}" cy="${y2}" r="4"></circle>`;
+  }
+  if (d?.kind === 'measure') {
+    const length = lengthOf(this, edit, d.a, d.b);
+    if (length !== null) measures += tag([(d.a[0] + d.b[0]) / 2, (d.a[1] + d.b[1]) / 2], `${metresText(length)} m`);
+  }
+  if (edit.asking) {
+    const [mx, my] = at([(edit.asking.a[0] + edit.asking.b[0]) / 2, (edit.asking.a[1] + edit.asking.b[1]) / 2]);
+    measures += `<span class="zmeas ask" style="left:${mx}px;top:${my}px"><input name="zone-metres" type="number" min="0.1" max="10000" step="0.01" inputmode="decimal" aria-label="${e(t('Metros de esa línea'))}" placeholder="0,00"><span>m</span>${tool('zone-scale-ok', t('Usar esta medida'), 'mdi:check', '', ' primary')}</span>`;
+  }
+  if (d?.kind === 'rect') {
+    const size = scaleOf(this, edit);
+    if (size)
+      measures += tag(
+        [(d.a[0] + d.b[0]) / 2, (d.a[1] + d.b[1]) / 2],
+        `${metresText(Math.abs(d.b[0] - d.a[0]) * size.x)} × ${metresText(Math.abs(d.b[1] - d.a[1]) * size.y)} m`,
+      );
+  }
+  if (edit.tool === 'poly' && edit.cursor && edit.poly.length) {
+    const last = edit.poly.at(-1)!;
+    const length = lengthOf(this, edit, last, edit.cursor);
+    if (length !== null) measures += tag([(last[0] + edit.cursor[0]) / 2, (last[1] + edit.cursor[1]) / 2], `${metresText(length)} m`);
+  }
+  if (box && edit.tool === 'select' && !d && scaleOf(this, edit)) {
+    const size = scaleOf(this, edit)!;
+    const area = zones.reduce((sum, zone) => sum + (squareMetres(this, edit, zone.geom) ?? 0), 0);
+    measures += tag(
+      [box.x + box.width / 2, box.y + box.height],
+      `${metresText(box.width * size.x)} × ${metresText(box.height * size.y)} m · ${areaText(area)} m²`,
+      ' under',
+    );
+  }
   if (edit.poly.length) {
     const tail = edit.cursor ? [...edit.poly, edit.cursor] : edit.poly;
     over += `<polyline class="zdraft" points="${tail.map(p => at(p).join(',')).join(' ')}"></polyline>${edit.poly.map((p, i) => `<circle class="zv${i === 0 ? ' first' : ''}" cx="${at(p)[0]}" cy="${at(p)[1]}" r="${i === 0 ? 7 : 5}"></circle>`).join('')}`;
@@ -297,7 +366,7 @@ export function renderZoneEdit(this: HomeManagerCard): void {
       return `<button type="button" class="zlabel${chosen.has(zone.id) ? ' on' : ''}" data-zone-label="${e(zone.id)}" style="left:${lx}px;top:${ly}px;--zc:${colorOf(edit, zone.id)}" title="${e(t('Doble clic: cambiar el nombre'))}">${e(zone.label || t('Sin nombre'))}</button>`;
     })
     .join('');
-  const drawing = edit.tool === 'rect' || edit.tool === 'poly' || edit.tool === 'cut';
+  const drawing = edit.tool === 'rect' || edit.tool === 'poly' || edit.tool === 'cut' || edit.tool === 'measure';
   const toolbar = `<div class="zvtools" role="toolbar" aria-label="${e(t('Herramientas'))}">${(
     [
       ['select', t('Elegir y mover · V'), 'mdi:cursor-default-outline'],
@@ -309,7 +378,7 @@ export function renderZoneEdit(this: HomeManagerCard): void {
   )
     .map(([k, label, icon]) => tool(`zone-tool-${k}`, label, icon, ` aria-pressed="${edit.tool === k}"`))
     .join('')}</div>`;
-  const corner = `<div class="ztr">${tool('zone-snap', t('Imán: alinea con la grilla y con los otros espacios'), edit.snap ? 'mdi:magnet-on' : 'mdi:magnet', ` aria-pressed="${edit.snap}"`)}${tool('zone-plan', t('Mostrar u ocultar el dibujo del plano'), edit.hidePlan ? 'mdi:eye-off-outline' : 'mdi:image-outline', ` aria-pressed="${!edit.hidePlan}"`)}${tool('zone-keys', t('Atajos de teclado'), 'mdi:keyboard-outline', ` aria-pressed="${edit.keys}"`)}</div>${
+  const corner = `<div class="ztr">${tool('zone-tool-measure', edit.metres ? t('Escala: {w} m de ancho. Medí una pared para cambiarla · M', { w: metresText(edit.metres) }) : t('Escala: medí una pared que conozcas · M'), 'mdi:ruler', ` aria-pressed="${edit.tool === 'measure'}"`)}${tool('zone-snap', t('Imán: alinea con la grilla y con los otros espacios'), edit.snap ? 'mdi:magnet-on' : 'mdi:magnet', ` aria-pressed="${edit.snap}"`)}${tool('zone-plan', t('Mostrar u ocultar el dibujo del plano'), edit.hidePlan ? 'mdi:eye-off-outline' : 'mdi:image-outline', ` aria-pressed="${!edit.hidePlan}"`)}${tool('zone-keys', t('Atajos de teclado'), 'mdi:keyboard-outline', ` aria-pressed="${edit.keys}"`)}</div>${
     edit.keys
       ? `<div class="zkeys">${(
           [
@@ -318,6 +387,7 @@ export function renderZoneEdit(this: HomeManagerCard): void {
             ['R', t('Rectángulo')],
             ['P', t('Forma libre')],
             ['K', t('Cortar')],
+            ['M', t('Medir')],
             ['Shift + clic', t('Sumar a la selección')],
             ['Ctrl + U', t('Unir')],
             ['Ctrl + D', t('Duplicar')],
@@ -372,7 +442,7 @@ export function renderZoneEdit(this: HomeManagerCard): void {
     .reverse()
     .map(
       zone =>
-        `<button type="button" class="zitem${chosen.has(zone.id) ? ' on' : ''}" data-zone-item="${e(zone.id)}"><i style="--zc:${colorOf(edit, zone.id)}"></i><span>${e(zone.label || t('Sin nombre'))}</span>${zone.geom.length ? '' : `<small>${e(t('sin forma'))}</small>`}</button>`,
+        `<button type="button" class="zitem${chosen.has(zone.id) ? ' on' : ''}" data-zone-item="${e(zone.id)}"><i style="--zc:${colorOf(edit, zone.id)}"></i><span>${e(zone.label || t('Sin nombre'))}</span>${zone.geom.length ? (scaleOf(this, edit) ? `<small>${e(areaText(squareMetres(this, edit, zone.geom)!))} m²</small>` : '') : `<small>${e(t('sin forma'))}</small>`}</button>`,
     )
     .join('')}</aside>`;
   layer.dataset.tool = edit.tool;
@@ -380,7 +450,7 @@ export function renderZoneEdit(this: HomeManagerCard): void {
   const focus = active?.getAttribute('name');
   // A rebuild must not drop the keyboard: the focus goes back to the tools.
   const hadFocus = !!active && layer.contains(active) && !focus;
-  layer.innerHTML = `<svg class="zsvg" aria-hidden="true">${shapes}${over}</svg>${drawing ? '<div class="zones-draw"></div>' : ''}<div class="zlabels">${labels}</div>${toolbar}${corner}${list}${ctx}${foot}`;
+  layer.innerHTML = `<svg class="zsvg" aria-hidden="true">${shapes}${over}</svg>${drawing ? '<div class="zones-draw"></div>' : ''}<div class="zlabels">${labels}${measures}</div>${toolbar}${corner}${list}${ctx}${foot}`;
   const input = layer.querySelector<HTMLInputElement>('[name="zone-rename"]');
   if (input && focus !== 'zone-rename') {
     input.focus();
@@ -444,6 +514,7 @@ export function bindZoneEdit(this: HomeManagerCard): void {
     const p = normalized(this, this.point(event));
     if (d.kind === 'rect') d.b = snapPoint(this, edit, p);
     else if (d.kind === 'cut') d.b = event.altKey ? p : ortho(d.a, snapPoint(this, edit, p), true);
+    else if (d.kind === 'measure') d.b = event.altKey ? p : ortho(d.a, snapPoint(this, edit, p), true);
     else if (d.kind === 'move') {
       const box = zoneBox(chosenZones({ ...edit, draft: d.before }));
       const [dx, dy] = snapDelta(this, edit, box, p[0] - d.p0[0], p[1] - d.p0[1], edit.chosen);
@@ -517,6 +588,13 @@ export function bindZoneEdit(this: HomeManagerCard): void {
         }
         edit.tool = 'select';
       }
+    } else if (d.kind === 'measure') {
+      // A line long enough asks for its real length right there.
+      if (Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]) > 0.01) edit.asking = { a: d.a, b: d.b };
+      edit.drag = undefined;
+      this.renderZoneEdit();
+      this.root.querySelector<HTMLInputElement>('[name="zone-metres"]')?.focus();
+      return;
     } else if (d.kind === 'cut') {
       const cut = cutZones(edit.draft, d.a, d.b, edit.chosen, taken(this));
       if (cut) {
@@ -576,6 +654,10 @@ export function bindZoneEdit(this: HomeManagerCard): void {
       } else if (edit.tool === 'cut') {
         const a = snapPoint(this, edit, p);
         edit.drag = { kind: 'cut', a, b: a };
+      } else if (edit.tool === 'measure') {
+        const a = snapPoint(this, edit, p);
+        edit.asking = undefined;
+        edit.drag = { kind: 'measure', a, b: a };
       } else if (edit.tool === 'poly') {
         if (double && edit.poly.length >= 3) return finishPoly(this, edit);
         let q = snapPoint(this, edit, p);
@@ -647,6 +729,15 @@ export function bindZoneEdit(this: HomeManagerCard): void {
   });
   layer.addEventListener('keydown', event => {
     const input = event.target as HTMLInputElement;
+    if (input.name === 'zone-metres') {
+      event.stopPropagation();
+      if (event.key === 'Enter') this.zoneCommand('zone-scale-ok');
+      if (event.key === 'Escape' && this.zoneEdit) {
+        this.zoneEdit.asking = undefined;
+        this.renderZoneEdit();
+      }
+      return;
+    }
     if (input.name !== 'zone-rename') return;
     event.stopPropagation();
     if (event.key === 'Enter') input.blur();
@@ -710,7 +801,7 @@ export function zoneKey(this: HomeManagerCard, event: KeyboardEvent): void {
     finishPoly(this, edit);
     return;
   }
-  const tools: Record<string, ZoneTool> = { v: 'select', a: 'points', r: 'rect', p: 'poly', k: 'cut' };
+  const tools: Record<string, ZoneTool> = { v: 'select', a: 'points', r: 'rect', p: 'poly', k: 'cut', m: 'measure' };
   if (!ctrl && tools[key]) return command(`zone-tool-${tools[key]}`);
   const step = event.shiftKey ? 0.025 : 0.005;
   const offset = (
@@ -774,6 +865,23 @@ export function zoneCommand(this: HomeManagerCard, command: string, trigger?: HT
       case 'zone-snap':
         edit.snap = !edit.snap;
         break;
+      case 'zone-scale-ok': {
+        const input = this.root.querySelector<HTMLInputElement>('[name="zone-metres"]');
+        const metres = Number(String(input?.value ?? '').replace(',', '.'));
+        const line = edit.asking;
+        const units = line ? Math.hypot((line.b[0] - line.a[0]) * this.box.width, (line.b[1] - line.a[1]) * this.box.height) : 0;
+        if (!line || !(metres > 0) || !units) {
+          input?.focus();
+          return;
+        }
+        edit.metres = Math.round(((metres / units) * this.box.width) * 1000) / 1000;
+        edit.metresChanged = true;
+        edit.asking = undefined;
+        edit.tool = 'select';
+        const size = scaleOf(this, edit)!;
+        this.status(t('Escala lista: el plano mide {w} × {h} m.', { w: metresText(size.x), h: metresText(size.y) }));
+        break;
+      }
       case 'zone-plan':
         edit.hidePlan = !edit.hidePlan;
         break;
@@ -907,6 +1015,13 @@ async function applyZones(this: HomeManagerCard, edit: ZoneEdit): Promise<void> 
   if (!this.draft) return;
   if (!edit.past.length) {
     this.endZoneEdit();
+    // Only the scale changed: it is part of the plan too.
+    if (edit.metresChanged && edit.metres) {
+      const next = structuredClone(this.draft);
+      next.planWidthMetres = edit.metres;
+      this.change(next);
+      this.status(t('Escala aplicada. Guardá el plano para conservarla.'));
+    }
     return;
   }
   const unnamed = edit.draft.zones.find(zone => !zone.label.trim());
@@ -928,6 +1043,7 @@ async function applyZones(this: HomeManagerCard, edit: ZoneEdit): Promise<void> 
     this.status(error instanceof Error ? error.message : t('Borrador no válido.'));
     return;
   }
+  if (edit.metresChanged && edit.metres) next.planWidthMetres = edit.metres;
   this.endZoneEdit();
   this.change(next);
   this.status(t('Espacios aplicados. Guardá el plano para conservarlos.'));
@@ -1032,6 +1148,13 @@ export const zoneEditStyles = `
 .zmid{fill:var(--hm-brand);opacity:.45;pointer-events:all;cursor:copy}.zmid:hover{opacity:1}
 .zdraft{fill:color-mix(in srgb,var(--hm-brand) 16%,transparent);stroke:var(--hm-brand);stroke-width:2;stroke-dasharray:6 4;pointer-events:none}
 polyline.zdraft{fill:none}
+.zruler{stroke:var(--hm-ink);stroke-width:2;pointer-events:none}
+.zmeas{position:absolute;transform:translate(-50%,-50%);padding:2px 8px;border-radius:8px;background:var(--hm-ink);color:var(--hm-surface);font:500 12px var(--hm-font);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+.zmeas.under{transform:translate(-50%,14px)}
+.zmeas.ask{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 10px;border-radius:12px;pointer-events:auto;z-index:5;box-shadow:var(--hm-shadow)}
+.zmeas.ask input{width:76px;min-height:32px;padding:2px 8px;border:0;border-radius:8px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;text-align:right}
+.zmeas.ask .ztool{width:32px;height:32px;min-height:32px}
+.zones-layer[data-tool=measure] .zlabel{pointer-events:none;opacity:.7}
 .zcut{stroke:var(--hm-alert);stroke-width:2;stroke-dasharray:7 4;pointer-events:none}
 .zguide{stroke:#d14fa0;stroke-width:1;pointer-events:none}
 .zones-draw{position:absolute;inset:0;pointer-events:auto;touch-action:none;cursor:crosshair}

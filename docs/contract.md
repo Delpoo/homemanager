@@ -160,6 +160,10 @@ Ausente: disposición y comportamiento anteriores. Los controles, acciones, gest
 
 ### E11: alternativas visuales
 
+`planWidthMetres?` (0.13) es el ancho real del dibujo del plano en metros (0,5 a 10 000). Se fija con la regla del editor de espacios midiendo una pared conocida; con él se ven las medidas en metros al dibujar y la superficie en m² de cada espacio. El alto sale de la proporción del dibujo.
+
+`pinnedAutomations?` (0.13) es una lista de hasta 12 `{ id, icon }`: automatizaciones de HomeManager que tienen botón en Ahora (★). `id` es el id de la automatización en Home Assistant (`homemanager_…`) e `icon` un icono MDI. Las automatizaciones viven en Home Assistant, no en el plano: su forma de edición se guarda en `variables.homemanager` de la propia automatización.
+
 `planViews?` es una lista de hasta 12 alternativas, con id, name, light/dark opcionales (al menos una) y lightBackground/darkBackground. Imagen: scope, sha256, format (svg/png/jpg), box [x,y,width,height]. Campos nuevos opcionales; architecture sigue siendo SVG y única base geométrica. Los bytes viven en almacenes HA privados de imágenes, contados dentro de 64 MiB; carga y lectura vía WebSocket autorizado. Exportar configuración conserva referencias; Exportar copia con imágenes incluye bytes y verifica las huellas al importar. Los almacenes .storage forman parte de las copias HA. Un vínculo de archivo sigue actualizando sólo el original; las alternativas no requieren zonas propias.
 
 

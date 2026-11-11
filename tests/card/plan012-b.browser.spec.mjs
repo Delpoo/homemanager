@@ -32,7 +32,7 @@ test('Settings is one page with one bar, grouped sections and Save only after a 
   await expect(save).toBeHidden();
   // 0.13 notebook: ⚙ opens a menu of grouped rows; a row slides its section in.
   const nav = screen.locator('.nb-menu');
-  for (const group of ['Mi casa', 'Pantallas', 'Alertas', 'Mantenimiento', 'Ayuda'])
+  for (const group of ['Mi casa', 'Pantallas', 'Avisos', 'Mantenimiento', 'Ayuda'])
     await expect(nav.getByRole('group', { name: group })).toBeVisible();
   // Duplicates are gone: one Rules, layers only under Appearance.
   await expect(nav.getByRole('button', { name: 'Alertas' })).toHaveCount(1);

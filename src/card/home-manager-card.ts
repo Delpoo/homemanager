@@ -1,4 +1,5 @@
 import { installTips } from '../ui/tips.js';
+import { subscribeFailures } from '../integration/automations.js';
 import { navMenuStyles } from '../shell/nav-menu.js';
 import { fullscreenStyles, syncFullscreen, paintFullscreenButton } from './fullscreen.js';
 import { moveGridStyles } from './move-grid.js';
@@ -230,7 +231,14 @@ export class HomeManagerCard extends HTMLElement {
     this.updateShell();
     editing.noteDraftBackup(this);
     if (this.home && this.homeState === 'idle' && this.isConnected) void this.loadHome();
+    if (!this.failureUnsubscribe && this.isConnected && value.connection?.subscribeMessage)
+      this.failureUnsubscribe = subscribeFailures(value, failures => {
+        this.feed.setFailures(failures);
+        this.updateShell();
+      }).catch(() => () => {});
   }
+  /** 0.13: failures HomeManager automations leave in HA, shown as alerts. */
+  private failureUnsubscribe?: Promise<() => void>;
   get hass(): Hass | undefined {
     return this._hass;
   }
@@ -327,6 +335,8 @@ export class HomeManagerCard extends HTMLElement {
     this.shellUnsubscribe = undefined;
     this.homeUnsubscribe?.then(unsubscribe => unsubscribe()).catch(() => {});
     this.homeUnsubscribe = undefined;
+    this.failureUnsubscribe?.then(unsubscribe => unsubscribe()).catch(() => {});
+    this.failureUnsubscribe = undefined;
     this.generation++;
     this.observer?.disconnect();
     this.unsubscribe?.();

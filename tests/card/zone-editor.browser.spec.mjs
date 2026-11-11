@@ -171,3 +171,34 @@ test('the rail plus opens the editor drawing a new space', async ({ page }) => {
   await expect(card(page).locator('.zvtools [data-command=zone-tool-rect]')).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page).locator('.zones-draw')).toBeVisible();
 });
+
+test('0.13: the ruler sets the scale; then shapes show metres and spaces their m²', async ({ page }) => {
+  await openEditor(page);
+  // Without a scale nothing is measured.
+  await expect(card(page).locator('.zitem small')).toHaveCount(0);
+  await tool(page, 'zone-tool-measure').click();
+  // Half the width of the plan is 6 m: the plan is 12 m wide.
+  await dragOnPlan(page, [0.1, 0.5], [0.6, 0.5]);
+  const ask = card(page).getByRole('spinbutton', { name: 'Metros de esa línea' });
+  await expect(ask).toBeFocused();
+  await ask.fill('6');
+  await ask.press('Enter');
+  expect((await editing(page)).metres).toBeCloseTo(12, 1);
+  // Each space in the list says its area, and a chosen one its size.
+  await expect(card(page).locator('.zitem small').first()).toContainText('m²');
+  await tapOnPlan(page, 0.72, 0.22);
+  await expect(card(page).locator('.zmeas.under')).toContainText(/× .* m · .* m²/);
+  // Applying keeps the scale in the plan, even when no space changed.
+  await tool(page, 'zone-apply').click();
+  await expect.poll(async () => (await draft(page)).planWidthMetres).toBeCloseTo(12, 1);
+  // Opened again it remembers it: a rectangle being drawn shows its size in metres.
+  await openEditor(page);
+  await tool(page, 'zone-tool-rect').click();
+  const a = await screen(page, 0.05, 0.05),
+    b = await screen(page, 0.3, 0.3);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 4 });
+  await expect(card(page).locator('.zmeas').first()).toContainText(/3[.,]0\d × .* m/);
+  await page.mouse.up();
+});

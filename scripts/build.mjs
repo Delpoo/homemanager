@@ -91,6 +91,7 @@ await build({
     'src/model/plan-import.ts',
     'src/model/control-layout.ts',
     'src/integration/history.ts',
+    'src/model/automations.ts',
     'src/model/learning-progress.ts',
     'src/model/draft-backup.ts',
     'src/model/move-grid.ts',

@@ -4,6 +4,7 @@ import { formattedValue } from '../model/symbol-spec.js';
 import { alertCleared, alertsOf, observeAlertRules, type AlertContext, type DeviceAlert } from '../model/alerts.js';
 import { airStamp, onAir } from '../integration/rf.js';
 import type { Configuration, Hass, RuntimeState } from '../card/types.js';
+import type { AutomationFailure } from '../model/automations.js';
 
 interface Tracked {
   token: string;
@@ -31,7 +32,43 @@ export class RuntimeFeed {
   private visualObservations: AlertContext = {};
   private visualResults: VisualResult[] = [];
   get ruleResults(): VisualResult[] {
-    return this.online ? this.visualResults : [];
+    return this.online ? [...this.visualResults, ...this.failureResults()] : [];
+  }
+  /** 0.13: an automation that failed leaves an alert on its symbol and in Now. */
+  private failures: AutomationFailure[] = [];
+  setFailures(failures: AutomationFailure[]): void {
+    this.failures = failures;
+  }
+  private failureResults(): VisualResult[] {
+    const devices = this.configuration?.catalog.devices ?? [];
+    return this.failures.map(failure => {
+      const device = devices.find(item => item.id === failure.deviceId);
+      const name = failure.title || failure.automationId;
+      return {
+        rule: {
+          id: failure.notificationId,
+          name,
+          enabled: true,
+          sources: [],
+          symbols: device ? [device.id] : [],
+          level: 'alert' as const,
+          badge: true,
+          highlight: true,
+          bar: true,
+          now: true,
+        },
+        alert: {
+          id: failure.notificationId,
+          deviceId: device?.id ?? '',
+          roomId: device?.roomId ?? null,
+          entityId: '',
+          rule: 'problem' as const,
+          level: 'critical' as const,
+          message: failure.message || name,
+        },
+        value: failure.message,
+      };
+    });
   }
   private online = false;
   constructor(readonly log: ActivityLog) {}

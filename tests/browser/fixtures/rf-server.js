@@ -127,6 +127,8 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
     throw Object.assign(new Error(message.type), { code: 'unknown_command' });
   };
   hass.connection.subscribeMessage = async (callback, message) => {
+    // HA keeps each subscription apart: notifications never take the RF events' place.
+    if (message.type === 'persistent_notification/subscribe') return () => {};
     calls.push(structuredClone(message));
     capture = callback;
     return () => (capture = null);

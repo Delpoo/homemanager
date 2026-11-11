@@ -149,3 +149,23 @@ async def test_quota_message_names_images_when_they_fill_it():
         check_quota({'homemanager.homes': 1000, 'homemanager.images.example': MAX_TOTAL_STORAGE_BYTES})
     with pytest.raises(ModelError, match='purge a retained'):
         check_quota({'homemanager.homes': MAX_TOTAL_STORAGE_BYTES, 'homemanager.images.example': 1000})
+
+
+def test_shared_pinned_automations_contract():
+    cases=json.loads((Path(__file__).parents[1]/'fixtures'/'plan-views.json').read_text())
+    for expected, entries in ((True,cases['pinsValid']),(False,cases['pinsInvalid'])):
+        for pins in entries:
+            c={**deepcopy(cases['base']),"pinnedAutomations":pins}
+            if expected: assert validate_configuration(c)==c
+            else:
+                with pytest.raises(ModelError):validate_configuration(c)
+
+
+def test_shared_plan_width_contract():
+    cases=json.loads((Path(__file__).parents[1]/'fixtures'/'plan-views.json').read_text())
+    for expected, entries in ((True,cases['widthValid']),(False,cases['widthInvalid'])):
+        for width in entries:
+            c={**deepcopy(cases['base']),"planWidthMetres":width}
+            if expected: assert validate_configuration(c)==c
+            else:
+                with pytest.raises(ModelError):validate_configuration(c)

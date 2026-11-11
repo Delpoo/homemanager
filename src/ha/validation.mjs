@@ -452,7 +452,17 @@ function shape(configuration) {
   fields(
     configuration,
     ['schemaVersion', 'rooms', 'catalog', 'architecture', 'actions', 'panels', 'stateSources'],
-    ['commandTtlSeconds', 'rules', 'planViews', 'nowPanels', 'symbolSizes', 'initialView', 'baseRules'],
+    [
+      'commandTtlSeconds',
+      'rules',
+      'planViews',
+      'nowPanels',
+      'symbolSizes',
+      'initialView',
+      'baseRules',
+      'pinnedAutomations',
+      'planWidthMetres',
+    ],
     'configuration',
   );
   if (configuration.schemaVersion !== 2)
@@ -793,6 +803,29 @@ function shape(configuration) {
       }
     }
   }
+  // 0.13: the plan's real width, for measures in metres and m².
+  if (
+    Object.hasOwn(configuration, 'planWidthMetres') &&
+    (typeof configuration.planWidthMetres !== 'number' ||
+      !Number.isFinite(configuration.planWidthMetres) ||
+      configuration.planWidthMetres < 0.5 ||
+      configuration.planWidthMetres > 10000)
+  )
+    invalid('planWidthMetres', 'between 0.5 and 10000 metres');
+  // 0.13: HomeManager automations with a button in Now (★): HA's automation id and an icon.
+  if (Object.hasOwn(configuration, 'pinnedAutomations')) {
+    const pins = configuration.pinnedAutomations;
+    if (!Array.isArray(pins) || pins.length > 12) invalid('pinnedAutomations', 'at most 12 automations');
+    const seen = new Set();
+    for (const pin of pins) {
+      fields(pin, ['id', 'icon'], [], 'pinnedAutomations');
+      if (typeof pin.id !== 'string' || !/^homemanager_[a-z0-9_]{1,52}$/.test(pin.id) || seen.has(pin.id))
+        invalid('pinnedAutomations.id', 'HomeManager automation id required');
+      if (typeof pin.icon !== 'string' || !MDI_ICON.test(pin.icon))
+        invalid('pinnedAutomations.icon', 'MDI icon identifier required');
+      seen.add(pin.id);
+    }
+  }
   if (Object.hasOwn(configuration, 'planViews')) {
     const views = configuration.planViews;
     if (!Array.isArray(views) || views.length > 12) invalid('planViews', 'at most 12 alternatives');
@@ -1085,22 +1118,39 @@ function assertPieceLook(p, path, isRef) {
         Object.values(value).every(ref => typeof ref === 'string' && isRef(ref)),
         key,
       );
-    } else if (key === 'period') check((kind === 'graph' || p.chart) && ['1h', '24h', '7d', '30d'].includes(value), key);
+    } else if (key === 'period')
+      check((kind === 'graph' || p.chart) && ['1h', '24h', '7d', '30d'].includes(value), key);
     else if (key === 'chart') {
       const keys = ['scale', 'min', 'max', 'style', 'precision', 'digits', 'unit', 'reading', 'attribute'];
-      check(!['canvas', 'title', 'separator'].includes(kind) && value && typeof value === 'object' && !Array.isArray(value) &&
-        Object.keys(value).every(name => keys.includes(name)), key);
+      check(
+        !['canvas', 'title', 'separator'].includes(kind) &&
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          Object.keys(value).every(name => keys.includes(name)),
+        key,
+      );
       if (value.reading !== undefined) entity(value.reading, key);
-      check(value.attribute === undefined || (typeof value.attribute === 'string' && /^[a-zA-Z0-9_]{1,80}$/.test(value.attribute)), key);
+      check(
+        value.attribute === undefined ||
+          (typeof value.attribute === 'string' && /^[a-zA-Z0-9_]{1,80}$/.test(value.attribute)),
+        key,
+      );
       check(value.scale === undefined || ['auto', 'fixed', 'log'].includes(value.scale), key);
       check(value.style === undefined || ['area', 'line'].includes(value.style), key);
       check(value.precision === undefined || ['decimals', 'significant'].includes(value.precision), key);
       check(value.digits === undefined || between(value.digits, value.precision === 'significant' ? 1 : 0, 6), key);
       check(value.unit === undefined || (typeof value.unit === 'string' && value.unit.length <= 16), key);
-      check(['min', 'max'].every(name => value[name] === undefined || Number.isFinite(value[name])), key);
-      check(value.scale !== 'fixed' || Number.isFinite(value.min) && Number.isFinite(value.max) && value.min < value.max, key);
-    }
-    else if (key === 'theme') check(kind === 'canvas' && ['grafito', 'claro', 'arena', 'vidrio'].includes(value), key);
+      check(
+        ['min', 'max'].every(name => value[name] === undefined || Number.isFinite(value[name])),
+        key,
+      );
+      check(
+        value.scale !== 'fixed' || (Number.isFinite(value.min) && Number.isFinite(value.max) && value.min < value.max),
+        key,
+      );
+    } else if (key === 'theme')
+      check(kind === 'canvas' && ['grafito', 'claro', 'arena', 'vidrio'].includes(value), key);
     else if (key === 'gap') check(kind === 'canvas' && between(value, 2, 24), key);
   }
   check(p.hold !== 'other' || p.holdButton !== undefined, 'holdButton');

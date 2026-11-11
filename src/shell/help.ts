@@ -9,6 +9,7 @@ const TOPICS: [string, string][] = [
   ['Usar el plano', 'mdi:gesture-tap'],
   ['Símbolos y módulos', 'mdi:shape-outline'],
   ['Alertas', 'mdi:bell-outline'],
+  ['Automatizaciones', 'mdi:robot-outline'],
   ['Controles RF', 'mdi:remote'],
   ['Configuración', 'mdi:cog-outline'],
 ];
@@ -48,6 +49,12 @@ export function helpBody(options: { tips?: boolean; guide?: boolean } = {}): str
       'Se arma como una frase: qué lectura mirar, la condición, el límite y cuánto tiempo. La vista previa dice si ahora se activaría.',
       'Las incluidas (batería baja, sin conexión, seguridad) ya vienen, con límites que podés cambiar. Ninguna alerta envía comandos.',
       'En Configuración › Alertas, el birrete abre una guía de cinco pasos.',
+    ]) +
+    part('Automatizaciones', [
+      'Una automatización hace cosas sola: Cuando → Hacer → Comprobar → Si falla. Por ejemplo, «Dormir»: a las 23:30 apaga los aires y la luz.',
+      'Comprobar mira el consumo de cada aparato: si no baja en el tiempo elegido, reenvía la orden hasta las veces que digas. Si el medidor no tiene datos, no reenvía.',
+      'Si falla, el símbolo y Ahora muestran una alerta, y Home Assistant deja un aviso. La próxima vez que salga bien, la alerta se va.',
+      'Con la ★ queda como botón arriba de Ahora. Se guardan como automatizaciones de Home Assistant, así que funcionan aunque la app esté cerrada.',
     ]) +
     part('Controles RF', [
       'Un control RF es un control remoto infrarrojo o de radio que HomeManager aprende botón por botón.',
