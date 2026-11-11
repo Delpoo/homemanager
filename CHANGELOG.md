@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0-beta.3 — beta
+
+Tercera parte del plan 0.13: Alertas, Mantenimiento y ayuda, Avanzado repartido, Automatizaciones, plano en metros y controles de estado absoluto.
+
+- **Alertas** (antes Reglas): se arman como una frase (lectura, condición, límite y duración), con cómo se ven, dónde y una vista previa con el valor actual. Guía de cinco pasos; las incluidas aparte.
+- **Automatizaciones:** Cuando → Hacer → Comprobar → Si falla. Se guardan como automatizaciones de Home Assistant. Comprobar mira el consumo de cada aparato y reenvía hasta N veces, nunca sin datos del medidor; si falla, alerta en el símbolo y en Ahora. La ★ las pone como botón arriba de Ahora.
+- **Plano en metros:** una regla mide una pared conocida; desde ahí se ven metros al dibujar y m² por espacio.
+- **Mantenimiento y ayuda:** Estado de la casa con filtros y arreglos con un toque; Datos y copias; Ayuda con buscador, temas y estados.
+- **Avanzado repartido:** las acciones se editan desde el Control de cada símbolo, las que nadie usa aparecen en Estado de la casa y un panel avanzado pasa al diseñador. Los datos guardados siguen valiendo.
+- **Controles:** controles de estado absoluto (Mitsubishi Electric 144 bits) con modos, lamas, SMART SET, POWERFUL COOL, temporizador del mando y horarios de HomeManager; biblioteca IR local (Flipper-IRDB, SmartIR, IRremoteESP8266) con procedencia; gráficas de Recorder de 1 h a 30 días; guardar una captura mientras se prueba.
+- **Arreglos:** valores redondeados como se leen; los botones de un equipo se llaman por lo que hacen; menús y textos en inglés revisados.
+
+Los campos nuevos (`pinnedAutomations`, `planWidthMetres`, gráficas y procedencia) son opcionales y se validan en la tarjeta, la integración y el esquema. Se agrega el almacén `homemanager.absolute_remotes`; para volver a una versión anterior después de usarlo, restaurar la copia completa. Antes de actualizar, conservar una copia completa de Home Assistant y una exportación del hogar. Las pruebas físicas RF/IR con los equipos siguen pendientes; enviar una señal no confirma el estado físico.
+
 ## 0.13.0-beta.2 — beta
 
 Segunda parte del plan 0.13, con los arreglos de la prueba del propietario en Home Assistant.
