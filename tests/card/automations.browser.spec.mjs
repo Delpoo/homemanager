@@ -110,8 +110,10 @@ test('an automation is built in four steps and saved as a Home Assistant automat
   await expect(section.locator('#g-do .ln')).toHaveCount(1);
   await section.getByRole('button', { name: 'Borrar' }).click();
   await section.locator('dialog [data-action=confirm], dialog button:has-text("Eliminar")').first().click();
+  // Back on the (now empty) list once HA said it was deleted.
+  await expect(section.getByRole('button', { name: 'Nueva automatización' })).toBeVisible();
   await expect(section.locator('.li')).toHaveCount(0);
-  expect(await page.evaluate(() => Object.keys(window.automationStore))).toEqual([]);
+  await expect.poll(() => page.evaluate(() => Object.keys(window.automationStore))).toEqual([]);
   expect((await draft(page)).pinnedAutomations).toBeUndefined();
 });
 
