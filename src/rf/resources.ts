@@ -171,10 +171,11 @@ export class HomeManagerRemoteResources extends HTMLElement {
     this.tab = 'control';
     this.scheduleOpen = false;
     this.scheduleDraft = undefined;
-    this.generation++;
+    const generation = ++this.generation;
     this.busy = false;
     void this.run(async () => {
-      this.data = await remoteResources.list(hass);
+      const data = await remoteResources.list(hass);
+      if (generation === this.generation) this.data = data;
     });
   }
 
@@ -187,6 +188,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
     try {
       await work();
     } catch (error) {
+      if (this.generation !== generation) return;
       this.error = true;
       this.message = error instanceof Error ? error.message : String((error as { message?: string })?.message ?? error);
     } finally {
@@ -407,9 +409,12 @@ export class HomeManagerRemoteResources extends HTMLElement {
         '<input type="time"' + attrs + ' required step="' + (cap.step ?? 60) + '" value="' + e(value) + '">',
       );
     return label(
-      (titles[key] ?? key) + (cap.unit ? ' · ' + cap.unit : ''),
+      (key === 'temperature' ? 'Temperatura' : (titles[key] ?? key)) + (cap.unit ? ' · ' + cap.unit : ''),
       '<input type="number"' +
         attrs +
+        ' aria-label="' +
+        e(titleFor(key) + (cap.unit ? ' · ' + cap.unit : '')) +
+        '"' +
         ' required min="' +
         cap.min +
         '" max="' +
@@ -474,6 +479,9 @@ export class HomeManagerRemoteResources extends HTMLElement {
           e(row.zone) +
           '</b><small>' +
           e(row.days.map(day => t(days[day])).join(' · ')) +
+          (row.power && row.state.temperature !== undefined
+            ? ' · ' + e(optionFor(String(row.state.mode))) + ' · ' + e(row.state.temperature) + ' °C'
+            : '') +
           (row.next
             ? ' · ' + e(t('Próximo')) + ' ' + e(new Date(row.next).toLocaleString(undefined, { timeZone: row.zone }))
             : '') +
@@ -555,25 +563,27 @@ export class HomeManagerRemoteResources extends HTMLElement {
   }
 
   private drawable(control: AbsoluteControl) {
-    const defaultLayout = this.controls(control).map(
-      (item, index): RfWidget => ({
-        id: 'control-' + item.id,
-        type: 'control',
-        buttons: [item.id],
-        label: null,
-        icon: null,
-        x: (index % 2) * 3,
-        y: Math.floor(index / 2),
-        w: 3,
-        h: 1,
-      }),
-    );
+    const defaultLayout = this.controls(control)
+      .filter(item => item.id in control.capabilities)
+      .map(
+        (item, index): RfWidget => ({
+          id: 'control-' + item.id,
+          type: 'control',
+          buttons: [item.id],
+          label: null,
+          icon: null,
+          x: (index % 2) * 2,
+          y: Math.floor(index / 2),
+          w: 2,
+          h: 1,
+        }),
+      );
     defaultLayout.unshift({
       id: 'canvas',
       type: 'canvas',
       x: 0,
       y: 0,
-      w: 6,
+      w: 4,
       h: Math.max(2, Math.ceil(defaultLayout.length / 2)),
       buttons: [],
       label: null,
@@ -602,7 +612,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
     if (!key) return null;
     const node = document.createElement('div');
     node.className = 'absolute-widget';
-    node.style.cssText = 'display:grid;align-content:center;min-width:0;width:100%;padding:4px';
+    node.style.alignContent = 'center';
     node.innerHTML =
       key === 'schedules'
         ? action('timers', 'Programación')

@@ -72,7 +72,7 @@ export const sidePanelStyles = `
 .li .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
 .li .t b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .t span{font-size:12.5px;color:var(--hm-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li .acts{display:flex}.li .acts .ib{width:36px;height:36px;min-height:36px;border-radius:10px}
+.li .acts{display:flex}.li .acts .ib{width:44px;height:44px;min-height:44px;border-radius:10px}
 @media(hover:hover){.li .acts{opacity:0;transition:opacity .15s}.li:hover .acts,.li:focus-within .acts{opacity:1}}
 .li button.t{align-items:flex-start;justify-content:center;border:0;background:transparent;padding:0;min-height:40px;border-radius:0;text-align:left;cursor:pointer}.li button.t:hover{background:transparent}
 .ico-tile{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--hm-surface-2);color:var(--hm-brand)}

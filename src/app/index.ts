@@ -28,6 +28,7 @@ const css = `${tokens}
 .content.controls-open .rf-host{min-width:0;height:100dvh;overflow:hidden;border-left:1px solid var(--hm-line);background:var(--hm-surface);box-shadow:-8px 0 24px rgba(0,0,0,.06)}
 .content.controls-open:has(homemanager-rf[data-stage]){grid-template-columns:0 minmax(0,1fr)}
 @media(max-width:700px){.content.controls-open{display:block;position:relative}
+ .content.controls-open .card-host{position:relative;isolation:isolate}
  .content.controls-open .rf-host{position:fixed;inset:auto 0 0;z-index:5;height:88dvh;border-left:0;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
  .content.controls-open:has(homemanager-rf[data-stage]) .rf-host{inset:0;height:100dvh;border-radius:0}}
 homemanager-card{--hm-shell-height:max(100dvh,450px);--hm-viewport-height:100%}

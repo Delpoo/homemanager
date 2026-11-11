@@ -239,7 +239,9 @@ export function sparkline(values: number[], width = 100, height = 30): string {
 }
 
 export function chartSource(piece: ControlPiece): ControlPiece {
-  return piece.type === 'graph' ? piece : { ...piece, reading: piece.chart?.reading, attribute: piece.chart?.attribute };
+  return piece.type === 'graph'
+    ? piece
+    : { ...piece, reading: piece.chart?.reading, attribute: piece.chart?.attribute };
 }
 
 export function chartFace(piece: ControlPiece, ctx: KeyContext, compact = false): string {
@@ -248,11 +250,16 @@ export function chartFace(piece: ControlPiece, ctx: KeyContext, compact = false)
   return `<div class="kread kgraph${compact ? ' inset-chart' : ''}">${!compact && piece.label && !piece.hideLabel ? `<small>${e(text(piece.label))}</small>` : ''}<b data-reading="${e(piece.id)}">${e(value)}${unit ? ` <em>${e(unit)}</em>` : ''}</b><span data-spark="${e(piece.id)}">${series ? historyChart(piece, series) : sparkline(ctx.samples(piece))}</span></div>`;
 }
 
-export function historyChart(piece: ControlPiece, series: HistorySeries & { status: 'loading' | 'offline' | 'ready' }): string {
+export function historyChart(
+  piece: ControlPiece,
+  series: HistorySeries & { status: 'loading' | 'offline' | 'ready' },
+): string {
   const { from, to, samples, status } = series;
   const { scale, min, max, style } = piece.chart ?? {};
   const transform = scale === 'log' ? Math.log10 : (value: number) => value;
-  const values = samples.flatMap(point => point.value === null ? [] : [transform(point.value)]).filter(Number.isFinite);
+  const values = samples
+    .flatMap(point => (point.value === null ? [] : [transform(point.value)]))
+    .filter(Number.isFinite);
   const statusText = status === 'offline' ? t('Sin conexión') : status === 'loading' ? t('Cargando…') : t('Sin datos');
   if (!values.length || status === 'offline') return `<small class="chart-status">${e(statusText)}</small>`;
   const fixed = scale === 'fixed' && min !== undefined && max !== undefined && max > min;
@@ -260,29 +267,49 @@ export function historyChart(piece: ControlPiece, series: HistorySeries & { stat
   const high = fixed ? max : Math.max(...values);
   const runs: string[][] = [];
   let run: string[] | undefined;
-  const x = (at: number) => Math.max(0, Math.min(100, 100 * (at - from) / Math.max(1, to - from)));
+  const x = (at: number) => Math.max(0, Math.min(100, (100 * (at - from)) / Math.max(1, to - from)));
   for (const point of samples) {
     const value = point.value === null ? NaN : transform(point.value);
-    if (!Number.isFinite(value)) { run = undefined; continue; }
-    const y = high === low ? 15 : Math.max(2, Math.min(28, 28 - 26 * (value - low) / (high - low)));
-    if (!run) { run = []; runs.push(run); }
+    if (!Number.isFinite(value)) {
+      run = undefined;
+      continue;
+    }
+    const y = high === low ? 15 : Math.max(2, Math.min(28, 28 - (26 * (value - low)) / (high - low)));
+    if (!run) {
+      run = [];
+      runs.push(run);
+    }
     run.push(`${x(point.at).toFixed(2)} ${y.toFixed(2)}`);
   }
-  const paths = runs.map(points => {
-    const first = points[0].split(' ')[0];
-    const last = points.at(-1)!.split(' ')[0];
-    if (points.length === 1) return `<circle class="chart-point" cx="${first}" cy="${points[0].split(' ')[1]}" r="1"/>`;
-    const line = `M${points.join('L')}`;
-    return (style === 'line' ? '' : `<path class="fill" d="${line}L${last} 30H${first}Z"/>`) +
-      `<path class="line" d="${line}"/>`;
-  }).join('');
-  const time = new Intl.DateTimeFormat(undefined, (piece.period === '7d' || piece.period === '30d')
-    ? { month: 'short', day: 'numeric' } : { hour: 'numeric', minute: '2-digit' });
-  const start = e(time.format(from)), end = e(time.format(to));
-  const limits = new Intl.NumberFormat(undefined, {maximumSignificantDigits: 4});
+  const paths = runs
+    .map(points => {
+      const first = points[0].split(' ')[0];
+      const last = points.at(-1)!.split(' ')[0];
+      if (points.length === 1)
+        return `<circle class="chart-point" cx="${first}" cy="${points[0].split(' ')[1]}" r="1"/>`;
+      const line = `M${points.join('L')}`;
+      return (
+        (style === 'line' ? '' : `<path class="fill" d="${line}L${last} 30H${first}Z"/>`) +
+        `<path class="line" d="${line}"/>`
+      );
+    })
+    .join('');
+  const time = new Intl.DateTimeFormat(
+    undefined,
+    piece.period === '7d' || piece.period === '30d'
+      ? { month: 'short', day: 'numeric' }
+      : piece.period === '1h'
+        ? { hour: 'numeric', minute: '2-digit' }
+        : { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+  );
+  const start = e(time.format(from)),
+    end = e(time.format(to));
+  const limits = new Intl.NumberFormat(undefined, { maximumSignificantDigits: 4 });
   const unscale = scale === 'log' ? (value: number) => 10 ** value : (value: number) => value;
-  const range = piece.h >= 2 && low !== high
-    ? `<span class="chart-scale"><span>${e(limits.format(unscale(low)))}</span><span>${e(limits.format(unscale(high)))}</span></span>` : '';
+  const range =
+    piece.h >= 2 && low !== high
+      ? `<span class="chart-scale"><span>${e(limits.format(unscale(low)))}</span><span>${e(limits.format(unscale(high)))}</span></span>`
+      : '';
   return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${e(t('Historial'))} · ${start} – ${end}">${paths}</svg>${range}<span class="chart-axis"><time>${start}</time><time>${end}</time></span>`;
 }
 
@@ -353,8 +380,11 @@ export const keyStyles = `
 .chart-point{fill:var(--kon,var(--racc))}
 .kembed .absolute-widget{width:100%;padding:5px;display:grid;gap:4px}
 .kembed .absolute-widget label{display:grid;gap:3px;font:inherit;min-width:0}
-.kembed .absolute-widget label span{font-size:11px}
-.kembed .absolute-widget input[type=checkbox]{justify-self:center}
+.kembed .absolute-widget label span{font-size:11px;line-height:1.1}
+.kembed .absolute-widget input[type=checkbox]{justify-self:start;inline-size:24px;block-size:24px;min-height:0;accent-color:var(--kon);margin:0}
+.kembed .absolute-widget :is(input:not([type=checkbox]),select,button){width:100%;min-width:0;height:28px;min-height:28px;padding-block:0;box-sizing:border-box;font:inherit}
+.kembed .absolute-widget select{color:var(--kfg);background:var(--kbg)}
+.kembed .absolute-widget :is(input,select,button):focus-visible{outline:2px solid var(--kon);outline-offset:1px}
 .kknob{flex:1;display:flex;align-items:center;justify-content:space-between;padding:0 6px;min-width:0}
 .dial{width:min(64%,76px);aspect-ratio:1;border-radius:50%;background:conic-gradient(from -135deg,var(--kon) calc(var(--p) * .75%),color-mix(in srgb,var(--kfg) 15%,transparent) 0 75%,transparent 0);display:grid;place-items:center}
 .dial b{width:76%;aspect-ratio:1;border-radius:50%;background:var(--kbg);display:grid;place-items:center;font-size:13px;font-weight:500;box-shadow:0 2px 5px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.15)}

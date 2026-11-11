@@ -8,6 +8,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .absolute_profiles import MITSUBISHI, decode_signal
 from .absolute_remotes import DATA_ABSOLUTE, AbsoluteRemotes
 from .errors import ModelError
 from .ir import DATA_IR
@@ -102,8 +103,19 @@ async def ws_import(hass: HomeAssistant, connection: websocket_api.ActiveConnect
         origin = {key: msg[key].strip() for key in ("source", "brand", "model", "entry", "revision")}
         if not all(origin.values()):
             raise ModelError("invalid_catalog", "fill in the source, brand, model and revision")
-        signals = [(rows[i][0], rows[i][1], {**origin, "index": i, "function": rows[i][0],
-                                          "partial": len(indexes) != len(rows)}) for i in indexes]
+        signals = []
+        for index in indexes:
+            name, signal, _ = rows[index]
+            assert signal is not None
+            try:
+                decode_signal(signal)
+            except ModelError:
+                protocol = "ir_raw"
+            else:
+                protocol = MITSUBISHI
+            provenance = {**origin, "index": index, "function": name, "protocol": protocol,
+                          "partial": len(indexes) != len(rows)}
+            signals.append((name, signal, provenance))
         result = await manager.async_import(msg["name"], msg["emitter"], signals, msg.get("remote_id"))
     except ModelError as error:
         connection.send_error(msg["id"], error.code, str(error))

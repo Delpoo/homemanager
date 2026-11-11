@@ -40,7 +40,18 @@ import type { HomeManagerIr } from './ir-manager.js';
  * Assistant gets (fans and lights) and the transmission settings each have their own
  * page in the same panel. Codes never reach this page. */
 
-type View = 'list' | 'new' | 'remote' | 'devices' | 'ir' | 'entities' | 'settings' | 'learn' | 'test' | 'absolute' | 'catalog';
+type View =
+  | 'list'
+  | 'new'
+  | 'remote'
+  | 'devices'
+  | 'ir'
+  | 'entities'
+  | 'settings'
+  | 'learn'
+  | 'test'
+  | 'absolute'
+  | 'catalog';
 type Trial = 'sent' | 'ok' | 'no';
 type Source = 'rf' | 'ir';
 /** What kind of appliance a new remote is for: only its icon follows from it. */
@@ -107,7 +118,10 @@ export class HomeManagerRf extends HTMLElement {
     });
     this.devices.onChange = () => void this.reload();
     this.resources.onImported = id => {
-      void this.run(async () => { await this.reload(); this.openIrRemote(id); });
+      void this.run(async () => {
+        await this.reload();
+        this.openIrRemote(id);
+      });
     };
     this.resources.onDesign = open => {
       this.resourceDesign = open;
@@ -230,7 +244,10 @@ export class HomeManagerRf extends HTMLElement {
       );
     else if (this.view === 'absolute' || this.view === 'catalog')
       page = this.panel(
-        panelHead(e(t(this.view === 'absolute' ? 'Controles de estado absoluto' : 'Biblioteca IR/RF')), { back: t('Volver'), close: t('Cerrar') }),
+        panelHead(e(t(this.view === 'absolute' ? 'Controles de estado absoluto' : 'Biblioteca IR/RF')), {
+          back: t('Volver'),
+          close: t('Cerrar'),
+        }),
         '<div data-slot="resources"></div>',
       );
     else if (this.view === 'devices')
@@ -296,22 +313,34 @@ export class HomeManagerRf extends HTMLElement {
       glyph: string | null,
       count: number,
       description: string | null,
+      partial = false,
     ) =>
-      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}</span></button>${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Diseñar {name}', { name: rfText(name) }), 'mdi:pencil-ruler', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
+      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Diseñar {name}', { name: rfText(name) }), 'mdi:pencil-ruler', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
     const items = [
       ...this.remotes.map(remote =>
         row('rf', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description),
       ),
       ...this.irRemotes.map(remote =>
-        row('ir', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description),
+        row(
+          'ir',
+          remote.id,
+          remote.name,
+          remote.icon,
+          remote.buttons.length,
+          remote.description,
+          remote.buttons.some(button => button.provenance?.partial),
+        ),
       ),
     ].join('');
     const empty = canCreate
       ? `<div class="empty-state">${icon('mdi:remote')}</div>`
       : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Ningún equipo envía ni escucha controles todavía.'))}</span><button type="button" class="next" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div>`;
-    return this.panel(head, `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}
+    return this.panel(
+      head,
+      `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}
       ${panelLabel(t('Recursos'))}<div class="chips"><button type="button" class="chip" data-view="absolute">${e(t('Controles de estado absoluto'))}</button>
-      <button type="button" class="chip" data-view="catalog">${e(t('Biblioteca IR/RF'))}</button></div>${status}`);
+      <button type="button" class="chip" data-view="catalog">${e(t('Biblioteca IR/RF'))}</button></div>${status}`,
+    );
   }
 
   private iconPicker(name: string, selected: string | null): string {
@@ -563,7 +592,7 @@ export class HomeManagerRf extends HTMLElement {
     root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (remote && this._hass)
-          openSignal(this._hass, { source: 'rf', remote_id: remote.id, button_id: button.dataset.signal! });
+          openSignal(this._hass, { source: 'rf', remote_id: remote.id, button_id: button.dataset.signal! }, 'tests');
       }),
     );
     root.querySelectorAll<HTMLInputElement>('[data-rf-icon]').forEach(picker =>
@@ -654,8 +683,11 @@ export class HomeManagerRf extends HTMLElement {
         void this.run(async () => {
           const trial_id = this.trialIds.get(remote.id + ':' + id);
           const worked = Boolean(button.dataset.trialOk);
-          await diagnostics.note(this._hass!, { source: 'rf', remote_id: remote.id, button_id: id },
-            { response: worked ? 'confirmed' : 'no_response', ...(trial_id ? { trial_id } : {}) });
+          await diagnostics.note(
+            this._hass!,
+            { source: 'rf', remote_id: remote.id, button_id: id },
+            { response: worked ? 'confirmed' : 'no_response', ...(trial_id ? { trial_id } : {}) },
+          );
           this.trials.set(id, worked ? 'ok' : 'no');
         });
       }),
