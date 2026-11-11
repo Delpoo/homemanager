@@ -220,7 +220,13 @@ test('plan settings and field help open without cluttering the map, and Move use
   await settings.locator('.task-back').click();
   const sections = settings.getByRole('navigation', { name: 'Secciones de configuración' });
   await openAdvanced(settings);
-  for (const name of ['Plano y espacios', 'Acciones lógicas', 'Paneles avanzados', 'Referencias pendientes', 'Copias'])
+  for (const name of [
+    'Plano y espacios',
+    'Acciones lógicas',
+    'Paneles avanzados',
+    'Estado de la casa',
+    'Datos y copias',
+  ])
     await expect(sections.getByRole('button', { name: new RegExp(`^${name}`) }).first()).toBeVisible();
   await page.keyboard.press('Escape');
   await select(page);
