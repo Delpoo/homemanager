@@ -57,6 +57,7 @@ import {
   upsertPanel,
   upsertRoom,
   upsertStateSource,
+  panelToDesign,
   type PositionMode,
 } from './model.js';
 type Box = { x: number; y: number; width: number; height: number };
@@ -770,14 +771,24 @@ export class HomeManagerEditor extends HTMLElement {
   /** Last storage share seen, so Home status can warn from 80 % (#74, #75). */
   storageShare?: number;
   private homeStatus(): StatusIssue[] {
+    const names = new Map(this.actionChoices().map(choice => [choice.id, choice.label]));
     return homeStatus(this.configuration, this._hass, {
       storageShare: this.storageShare,
       ...(this.irRemotes ? { irRemotes: new Set(this.irRemotes.map(item => item.id)) } : {}),
-    });
+    }).map(issue =>
+      issue.kind === 'unused-action' ? { ...issue, name: names.get(issue.actionId) ?? issue.name } : issue,
+    );
   }
   /** A Home status button opens the right place (#74). */
   private statusAction(issue: StatusIssue): void {
     switch (issue.kind) {
+      case 'unused-action': {
+        const next = clone(this.configuration);
+        delete next.actions[issue.actionId];
+        this.emit(next);
+        this.render();
+        return;
+      }
       case 'unlinked':
       case 'offline':
       case 'unknown-state':
@@ -1576,7 +1587,7 @@ export class HomeManagerEditor extends HTMLElement {
       <label class="switch-row" title="${esc(t('Se oculta con el filtro de infraestructura'))}"><ha-icon icon="mdi:lan" aria-hidden="true"></ha-icon><span>${esc(t('Infraestructura'))}</span><input type="checkbox" role="switch" data-infra${infra ? ' checked' : ''} aria-label="${esc(t('Infraestructura'))}"><input type="hidden" name="layer" value="${esc(device?.display.layer ?? '')}" data-other-layer="${otherLayer}"></label>
       <div class="lbl">${esc(t('Aspecto'))}<span class="grow"></span></div>${this.lookFields(device)}${this.colorFields(device)}</div>
       ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `<div class="fx-host">${indicatorsEditor(this.fxDraft ?? { list: [], selected: 0 }, device, this.valueCandidates(device), this._hass)}</div><div class="lbl">${esc(t('Valores'))}<span class="grow"></span></div>${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label></div>`, device)}${this.moduleMenu(device)}
+      ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>${this.symbolActions(device)}`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label>${panelId && panels.includes(panelId) ? `<button type="button" class="hm-icon-button small" data-command="panel-to-designer" aria-label="${esc(t('Pasar al diseñador'))}" title="${esc(t('Pasar el panel al diseño del control'))}"><ha-icon icon="mdi:pencil-ruler" aria-hidden="true"></ha-icon></button>` : ''}</div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1653,6 +1664,8 @@ export class HomeManagerEditor extends HTMLElement {
     // 0.13: the modules not used yet, as chips; what each does is its tooltip.
     const chips = moduleChoices(this.moduleDevice(device), this._hass)
       .filter(choice => !choice.present)
+      // 0.13: new panels are made in the designer; this module stays only for plans that have one.
+      .filter(choice => choice.id !== 'native' || Object.keys(this.configuration.panels).length > 0)
       .map(
         choice =>
           `<button type="button" class="module-add-row" data-command="module-add" data-module-id="${choice.id}" title="${esc(t(choice.reason ?? MODULE_PURPOSE[choice.id]))}" aria-label="${esc(t(MODULE_LABELS[choice.id]))}"${choice.reason ? ' disabled' : ''}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon><ha-icon icon="${MODULE_ICONS[choice.id]}" aria-hidden="true"></ha-icon><span>${esc(t(MODULE_LABELS[choice.id]))}</span></button>`,
@@ -1720,6 +1733,16 @@ export class HomeManagerEditor extends HTMLElement {
       select('hold', 'Al mantener', this.sheet?.hold) +
       `<p class="note">${esc(t('El clic derecho siempre abre el control completo.'))}</p>`
     );
+  }
+  /** 0.13 (was Advanced › Logical actions): the actions this symbol's controls send,
+   * each edited from here; ＋ makes a new one. */
+  private symbolActions(device?: Device): string {
+    if (!device) return '';
+    const text = JSON.stringify({ device, sheet: this.sheet });
+    const choices = this.actionChoices().filter(choice => text.includes(JSON.stringify(choice.id)));
+    const row = (choice: { id: string; label: string }) =>
+      `<div class="symbol-action"><ha-icon icon="mdi:flash-outline" aria-hidden="true"></ha-icon><span class="txt"><b>${esc(choice.label)}</b></span><button type="button" class="hm-icon-button small" data-command="action-edit" data-action="${esc(choice.id)}" aria-label="${esc(t('Editar acción {name}', { name: choice.label }))}" title="${esc(t('Editar acción'))}"><ha-icon icon="mdi:pencil-outline" aria-hidden="true"></ha-icon></button></div>`;
+    return `<div class="lbl">${esc(t('Acciones'))}<span class="grow"></span><button type="button" class="hm-icon-button small" data-command="action-new" aria-label="${esc(t('Nueva acción'))}" title="${esc(t('Nueva acción'))}"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon></button></div><div class="symbol-actions">${choices.map(row).join('')}</div>`;
   }
   private controlsSection(): string {
     return renderControlsEditor(this.sheet!, this.suggestions(), this.actionChoices());
@@ -2220,6 +2243,22 @@ export class HomeManagerEditor extends HTMLElement {
         case 'health-action': {
           const issue = this.planHealth()?.issues[Number(button.dataset.issue)];
           if (issue) this.healthAction(issue);
+          break;
+        }
+        case 'action-edit':
+        case 'action-new':
+          this.actionId = button.dataset.action ?? '';
+          this.openSettings('actions-section');
+          break;
+        case 'panel-to-designer': {
+          const device = this.device();
+          const panel = device?.bindings.advancedPopupId
+            ? this.configuration.panels[device.bindings.advancedPopupId]
+            : undefined;
+          if (!device || !panel || !this.flushDevice()) break;
+          this.emit(panelToDesign(this.configuration, device.id, panel));
+          this.notice(t('El panel pasó al diseño del control del símbolo.'));
+          this.render();
           break;
         }
         case 'health-filter':

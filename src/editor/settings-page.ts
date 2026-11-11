@@ -72,7 +72,6 @@ const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: tru
   { title: () => t('Controles'), sections: ['controls-section'] },
   { title: () => t('Alertas'), sections: ['rules-section'] },
   { title: () => t('Mantenimiento'), sections: ['health-section', 'import-section'] },
-  { title: () => t('Avanzado'), sections: ['actions-section', 'panels-section'], advanced: true },
   { title: () => t('Ayuda'), sections: ['help-section'] },
 ];
 /** One line under each section's title saying what it is for (#77). */
@@ -265,6 +264,8 @@ function statusText(issue: StatusIssue): { title: string; detail: string; fix: s
       };
     case 'rule-target':
       return { title: issue.name, detail: t('La alerta apunta a algo que ya no existe'), fix: t('Abrir Alertas') };
+    case 'unused-action':
+      return { title: issue.name, detail: t('Acción que ningún control usa'), fix: t('Quitar acción') };
     case 'storage':
       return {
         title: t('Almacenamiento'),
@@ -294,6 +295,7 @@ const STATUS_CAT: Record<StatusIssue['kind'], Exclude<HealthFilter, 'all'>> = {
   'view-image': 'ref',
   'rule-target': 'ref',
   storage: 'state',
+  'unused-action': 'ref',
 };
 const STATUS_ICON: Partial<Record<StatusIssue['kind'], string>> = {
   unlinked: 'mdi:link-variant-plus',
@@ -303,6 +305,7 @@ const STATUS_ICON: Partial<Record<StatusIssue['kind'], string>> = {
   'view-image': 'mdi:image-outline',
   'rule-target': 'mdi:bell-outline',
   storage: 'mdi:database-outline',
+  'unused-action': 'mdi:trash-can-outline',
 };
 const ISSUE_CAT: Record<HealthIssue['kind'], Exclude<HealthFilter, 'all'>> = {
   'no-geometry': 'out',

@@ -35,7 +35,12 @@ export async function openSettings(scope, section) {
     if (!(await gear.count())) await page.keyboard.press('Escape');
     await gear.first().click();
   }
-  if (section) await editor.locator(`.nb-row[data-settings="${section}"]`).click();
+  if (!section) return;
+  const row = editor.locator(`.nb-row[data-settings="${section}"]`);
+  // 0.13: some sections have no row of their own (Logical actions and Advanced panels
+  // are reached from a symbol); tests still open them directly.
+  if (await row.count()) await row.click();
+  else await editor.evaluate((node, id) => node.openSettings(id), section);
 }
 /** 0.13: every section has its icon in the strip; nothing is folded any more. */
 export async function openAdvanced() {}

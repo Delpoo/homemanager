@@ -9,7 +9,9 @@ export type StatusIssue =
   | { kind: 'remote-missing'; deviceId: string; label: string; source?: 'ir' }
   | { kind: 'view-image'; viewId: string; name: string; mode: 'light' | 'dark' }
   | { kind: 'rule-target'; ruleId: string; name: string }
-  | { kind: 'storage'; percent: number };
+  | { kind: 'storage'; percent: number }
+  /** 0.13: an action no control, gesture, shortcut or panel uses any more. */
+  | { kind: 'unused-action'; actionId: string; name: string };
 
 export interface StatusConfiguration {
   catalog: {
@@ -21,6 +23,7 @@ export interface StatusConfiguration {
   };
   planViews?: { id: string; name: string; light?: unknown; dark?: unknown }[];
   rules?: { id: string; name: string; sources: { reading: string }[]; symbols: string[] }[];
+  actions?: Record<string, unknown>;
 }
 
 /** The order of the list: what breaks a control first, then what only looks wrong. */
@@ -32,6 +35,7 @@ export const STATUS_ORDER: StatusIssue['kind'][] = [
   'rule-target',
   'unknown-state',
   'view-image',
+  'unused-action',
 ];
 
 export function homeStatus(
@@ -61,6 +65,13 @@ export function homeStatus(
   for (const rule of configuration.rules ?? [])
     if (rule.symbols.some(id => !ids.has(id)) || (hass && rule.sources.some(source => !hass.states[source.reading])))
       issues.push({ kind: 'rule-target', ruleId: rule.id, name: rule.name });
+  // An action is used when anything else in the plan names it (controls, gestures, shortcuts, panels...).
+  if (configuration.actions) {
+    const { actions, ...rest } = configuration;
+    const text = JSON.stringify(rest);
+    for (const id of Object.keys(actions))
+      if (!text.includes(JSON.stringify(id))) issues.push({ kind: 'unused-action', actionId: id, name: id });
+  }
   if ((extra.storageShare ?? 0) >= 0.8)
     issues.push({ kind: 'storage', percent: Math.round(extra.storageShare! * 100) });
   return issues.sort((a, b) => STATUS_ORDER.indexOf(a.kind) - STATUS_ORDER.indexOf(b.kind));

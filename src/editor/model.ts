@@ -469,3 +469,46 @@ export function summarizeImport(before: Configuration, after: Configuration): Im
     roomsRemoved: before.rooms.filter(room => !after.rooms.some(next => next.id === room.id)).map(room => room.id),
   };
 }
+
+/** 0.13: an advanced panel becomes the design of the symbol's control: one button per
+ * panel control, four per row. The panel itself stays in the plan, unused. */
+export function panelToDesign(
+  configuration: Configuration,
+  deviceId: string,
+  panel: { controls: { id: string; label: string; actionId: string }[] },
+): Configuration {
+  const next = structuredClone(configuration);
+  const device = next.catalog.devices.find(item => item.id === deviceId);
+  if (!device) return configuration;
+  const taken = new Set<string>();
+  const slug = (text: string) => {
+    let id = (
+      text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'b'
+    ).slice(0, 56);
+    let n = 2;
+    while (taken.has(id)) id = `${id.replace(/-\d+$/, '')}-${n++}`;
+    taken.add(id);
+    return id;
+  };
+  device.bindings.layout = panel.controls
+    .filter(control => Object.hasOwn(next.actions, control.actionId))
+    .slice(0, 63)
+    .map((control, index) => ({
+      id: slug(control.id || control.label),
+      type: 'button' as const,
+      x: index % 4,
+      y: Math.floor(index / 4),
+      w: 1,
+      h: 1,
+      buttons: [control.actionId],
+      label: control.label.slice(0, 40) || null,
+      icon: null,
+    }));
+  device.bindings.advancedPopupId = null;
+  return next;
+}

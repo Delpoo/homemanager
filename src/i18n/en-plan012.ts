@@ -806,4 +806,13 @@ export const enPlan012: Record<string, string> = {
   'Home Assistant recibió la orden; el efecto no está confirmado':
     'Home Assistant got the order; the effect is not confirmed',
   'Sin datos o la orden falló': 'No data or the order failed',
+  // 0.13 Advanced moves to where things are used.
+  'Pasar al diseñador': 'Move to the designer',
+  'Pasar el panel al diseño del control': "Move the panel to the control's design",
+  'Editar acción {name}': 'Edit action {name}',
+  'Editar acción': 'Edit action',
+  'El panel pasó al diseño del control del símbolo.': "The panel became the design of the symbol's control.",
+  'Acción que ningún control usa': 'Action no control uses',
+  'Quitar acción': 'Remove action',
+  'Nueva acción': 'New action',
 };
