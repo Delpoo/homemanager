@@ -27,6 +27,7 @@ ALLOWED = frozenset({
     "button.py", "fan.py", "light.py",
     "ir.py", "ir_model.py", "ir_proxy.py", "ir_websocket.py", "remotes.py", "signals.py",
     "diagnostics.py", "diagnostic_websocket.py",
+    "absolute_profiles.py", "absolute_remotes.py", "remote_catalog.py", "remote_resources_websocket.py",
 })
 SENSITIVE = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b|\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\b")
 
