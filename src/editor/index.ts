@@ -1667,16 +1667,20 @@ export class HomeManagerEditor extends HTMLElement {
   private rulesView?: RulesEditor;
   private readonly controlDesigner = new ControlDesigner();
   private symbolRules(device?: Device): string {
+    // 0.13 Alerts: the ones that use this symbol, each opens to be edited; ＋ makes a new one for it.
     const rules = device ? rulesForSymbol(this.configuration.rules ?? [], device.id) : [];
-    const level = (value: string) => t(value === 'alert' ? 'Alerta' : value === 'warning' ? 'Aviso' : 'Indicador');
-    return `<ul class="symbol-rules">${rules.map(r => `<li data-level="${esc(r.level)}"><b>${esc(r.name)}</b> · ${esc(level(r.level))} · ${esc(t(r.enabled ? 'Activa' : 'Apagada'))}</li>`).join('')}${(device?.display.alerts ?? []).map(r => `<li>${esc(readingName(r.reading, this._hass))} · ${esc(t('Aviso conservado'))}</li>`).join('')}</ul><button type="button" data-command="rules-open">${esc(t('Abrir Reglas'))}</button><button type="button" data-command="rules-create">${esc(t('Crear regla para este símbolo'))}</button>`;
+    const row = (level: string, name: string, key: string, on: boolean) =>
+      `<div class="symbol-rule${on ? '' : ' off'}" data-level="${esc(level)}"><span class="rule-dot" aria-hidden="true"></span><span class="rule-name">${esc(name)}</span><button type="button" class="hm-icon-button small" data-command="rules-open" data-rule="${esc(key)}" aria-label="${esc(t('Editar alerta'))}" title="${esc(t('Editar alerta'))}"><ha-icon icon="mdi:pencil-outline" aria-hidden="true"></ha-icon></button></div>`;
+    return `<div class="symbol-rules">${rules.map(r => row(r.level, r.name, r.id, r.enabled)).join('')}${(device?.display.alerts ?? []).map((r, index) => row(r.level, readingName(r.reading, this._hass), `legacy:${device!.id}:${index}`, r.enabled !== false)).join('')}</div><button type="button" class="hm-icon-button small" data-command="rules-create" aria-label="${esc(t('Nueva alerta para este símbolo'))}" title="${esc(t('Nueva alerta para este símbolo'))}"><ha-icon icon="mdi:bell-plus-outline" aria-hidden="true"></ha-icon></button>`;
   }
-  openRules(createFor?: string): void {
+  openRules(createFor?: string, rule?: string): void {
     if (!this.flushDevice()) return;
     this.surface = 'settings';
     this.settingsSection = 'rules-section';
+    this.settingsView = 'section';
     this.render();
     if (createFor) this.rulesView?.createFor(createFor);
+    else if (rule) this.rulesView?.openRule(rule);
   }
   private alertDraft?: AlertSettingsDraft;
   /** Sheet model of the device being edited (controls, tap, pins, size). */
@@ -2440,7 +2444,7 @@ export class HomeManagerEditor extends HTMLElement {
           }
           break;
         case 'rules-open':
-          this.openRules();
+          this.openRules(undefined, button.dataset.rule);
           break;
         case 'rules-create':
           this.openRules(this.device()?.id);

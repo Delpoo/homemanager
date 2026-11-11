@@ -1,5 +1,5 @@
 import { test, expect } from '../browser/local-test.mjs';
-import { openCardMenu } from '../browser/shell-helpers.mjs';
+import { openCardMenu, pickReading, pickSymbol } from '../browser/shell-helpers.mjs';
 import { mkdir } from 'node:fs/promises';
 import { openDeviceSections } from '../browser/device-picker-helpers.mjs';
 const card = page => page.locator('homemanager-card');
@@ -48,18 +48,19 @@ test.beforeEach(async ({ page }) => {
 test('old plant notices move to the unified editor only on explicit save and undo restores them', async ({ page }) => {
   await begin(page, 'Planta de prueba');
   const before = await draft(page);
-  await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
+  // 0.13: each alert of the symbol opens straight from its sheet.
+  await alerts(page).locator('[data-rule="legacy:plant:0"]').click();
   const rules = ruleScreen(page);
-  await rules.locator('[data-edit="legacy:plant:0"]').click();
+  await rules.getByRole('radio', { name: 'Fuera de rango', exact: true }).click();
   await rules.getByLabel('Menos de', { exact: true }).fill('0');
   await rules.getByLabel('Más de', { exact: true }).fill('90');
   await rules.getByLabel('Durante (minutos)', { exact: true }).fill('5');
   await readable(rules);
-  await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
+  await rules.getByRole('button', { name: 'Listo', exact: true }).click();
   let config = await draft(page);
   expect(config.catalog.devices.find(d => d.id === 'plant').display.alerts).toHaveLength(1);
   expect(config.rules[0]).toMatchObject({ below: 0, above: 90, forMinutes: 5, level: 'warning', symbols: ['plant'] });
-  await rules.getByRole('button', { name: 'Deshacer regla', exact: true }).click();
+  await rules.getByRole('button', { name: 'Deshacer', exact: true }).click();
   config = await draft(page);
   expect(config.catalog.devices.find(d => d.id === 'plant')).toEqual(
     before.catalog.devices.find(d => d.id === 'plant'),
@@ -68,20 +69,21 @@ test('old plant notices move to the unified editor only on explicit save and und
 test('presence highlighting and counting remain independent with no numeric defaults', async ({ page }) => {
   await expect(card(page).locator('[data-id=presence]')).toHaveAttribute('data-highlight', 'false');
   await begin(page, 'Puerta de prueba');
-  await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
+  await alerts(page).getByRole('button', { name: 'Nueva alerta para este símbolo', exact: true }).click();
   const rules = ruleScreen(page);
-  // One row per base rule type (#60): choose which symbols are highlighted.
-  await rules.locator('[data-edit="base:highlight"]').click();
+  await rules.getByRole('button', { name: 'Volver', exact: true }).click();
+  // One row per included alert (#60): choose which symbols are highlighted.
+  await rules.locator('button.ib[data-open="base:highlight"]').click();
   await rules.locator('input[data-check-field="base-devices"][value="presence"]').check();
   await rules.locator('[data-base-apply]').click();
   let saved = (await draft(page)).catalog.devices.find(d => d.id === 'presence');
   expect(saved.display.highlight).toBe(true);
   expect(saved.display.alerts).toBeUndefined();
-  await rules.getByRole('button', { name: '+ Nueva regla', exact: true }).click();
-  await rules.getByLabel('Nombre de la regla', { exact: true }).fill('Apertura de prueba');
-  await rules.locator('input[data-check-field=sources][value="binary_sensor.test_door"]').check();
-  await rules.locator('[name="symbol:presence"]').check();
-  await rules.getByRole('button', { name: 'Guardar regla', exact: true }).click();
+  await rules.getByRole('button', { name: 'Nueva alerta', exact: true }).click();
+  await rules.getByLabel('Nombre de la alerta', { exact: true }).fill('Apertura de prueba');
+  await pickReading(rules, 'binary_sensor.test_door');
+  await pickSymbol(rules, 'presence');
+  await rules.getByRole('button', { name: 'Listo', exact: true }).click();
   const rule = (await draft(page)).rules[0];
   expect(rule).toMatchObject({ state: 'on', level: 'warning', symbols: ['presence'] });
   expect(rule.below).toBeUndefined();
@@ -173,8 +175,7 @@ for (const dark of [false, true])
       await readable(alerts(page));
       await shot(`inspector-${slug}`);
       if (slug === 'plant') {
-        await alerts(page).getByRole('button', { name: 'Abrir Reglas', exact: true }).click();
-        await ruleScreen(page).locator('[data-edit="legacy:plant:0"]').click();
+        await alerts(page).locator('[data-rule="legacy:plant:0"]').click();
         await shot('inspector-rule');
         await page.evaluate(() => window.testHarness.card.editor.closeSurface());
         await card(page).getByRole('button', { name: 'Planta de prueba', exact: true }).click();
