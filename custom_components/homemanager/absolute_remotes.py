@@ -272,6 +272,9 @@ class AbsoluteRemotes:
                             schedule["result"] = "sent"
                         except ModelError as error:
                             schedule["result"] = error.code
+                        except Exception:  # noqa: BLE001 - an emitter that is not ready must not stop the other schedules
+                            _LOGGER.exception("A HomeManager schedule could not send its signal")
+                            schedule["result"] = "send_failed"
                         await self._save({**self.items, ident: item})
                     except ModelError:
                         _LOGGER.warning("Could not persist a HomeManager schedule execution")

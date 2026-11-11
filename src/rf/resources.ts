@@ -1,5 +1,5 @@
 import { escapeHTML as e, type Hass } from '../card/types.js';
-import { t } from '../i18n/index.js';
+import { t, getLanguage } from '../i18n/index.js';
 import { historySeries } from '../integration/history.js';
 import {
   remoteResources,
@@ -66,9 +66,61 @@ const option = (value: string, title: string, selected?: string) =>
 const label = (title: string, field: string) => '<label><span>' + e(t(title)) + '</span>' + field + '</label>';
 const input = (name: string, value = '', attrs = '') =>
   '<input name="' + name + '" value="' + e(value) + '" ' + attrs + '>';
-const action = (name: string, title: string, style = '') =>
-  '<button type="button" data-act="' + name + '" class="' + style + '">' + e(t(title)) + '</button>';
-const primary = (title: string) => '<button type="submit" class="primary-action">' + e(t(title)) + '</button>';
+const glyph = (icon: string) => '<ha-icon icon="' + e(icon) + '" aria-hidden="true"></ha-icon>';
+/** 0.13 design: actions are icons; their name shows on hover and is read aloud. */
+const ICONS: Record<string, string> = {
+  directory: 'mdi:arrow-left',
+  control: 'mdi:remote',
+  timers: 'mdi:timer-outline',
+  design: 'mdi:pencil-ruler',
+  send: 'mdi:send',
+  preset: 'mdi:content-save-outline',
+  recall: 'mdi:backup-restore',
+  powerful: 'mdi:snowflake-alert',
+  'unlink-powerful': 'mdi:link-variant-off',
+  remove: 'mdi:trash-can-outline',
+  'new-schedule': 'mdi:plus',
+  'cancel-schedule': 'mdi:close',
+  'remove-schedule': 'mdi:trash-can-outline',
+  preview: 'mdi:file-search-outline',
+  'select-all': 'mdi:checkbox-multiple-marked-outline',
+};
+const iconOf = (name: string) =>
+  ICONS[name] ??
+  (name.startsWith('schedule-') ? 'mdi:pencil-outline' : name.startsWith('toggle-') ? 'mdi:pause' : 'mdi:gesture-tap');
+const action = (name: string, title: string, style = '', icon = iconOf(name), hint = title) =>
+  '<button type="button" data-act="' +
+  name +
+  '" class="ib' +
+  (style === 'primary-action' ? ' primary' : style === 'danger' ? ' danger' : '') +
+  '" aria-label="' +
+  e(t(title)) +
+  '" title="' +
+  e(t(hint)) +
+  '">' +
+  glyph(icon) +
+  '</button>';
+const primary = (title: string, icon = 'mdi:check') =>
+  '<button type="submit" class="ib primary" aria-label="' +
+  e(t(title)) +
+  '" title="' +
+  e(t(title)) +
+  '">' +
+  glyph(icon) +
+  '</button>';
+/** What used to be a line of explanation is now on hover. */
+const info = (text: string) =>
+  '<ha-icon class="info" icon="mdi:information-outline" title="' +
+  e(t(text)) +
+  '" aria-label="' +
+  e(t(text)) +
+  '" role="img"></ha-icon>';
+const when = (iso: string, timeZone?: string) => {
+  const date = new Date(iso);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString(getLanguage(), { dateStyle: 'short', timeStyle: 'short', ...(timeZone ? { timeZone } : {}) })
+    : iso.replace('T', ' ');
+};
 const titleFor = (key: string) => t(titles[key] ?? key);
 const optionFor = (key: string) => t(choices[key] ?? key);
 
@@ -84,9 +136,46 @@ label :is(input,select,textarea){font-size:14px;color:var(--hm-ink)}
 .status{min-height:1.2em}.requested{display:grid;gap:5px;color:var(--hm-muted);font-size:13px}
 .schedule{border-top:1px solid var(--hm-line);padding-top:8px;display:grid;gap:5px}
 .library-row{display:flex;align-items:center;gap:8px;padding:5px;border-bottom:1px solid var(--hm-line);overflow-wrap:anywhere}
-.library-row label{display:flex;align-items:center;gap:7px;min-height:44px}
+.library-row label{display:flex;align-items:center;gap:10px;min-height:44px;flex:1;min-width:0;font-size:14px;color:var(--hm-ink)}
+.library-row label span{flex:1;min-width:0;overflow-wrap:normal;word-break:normal}
+.library-row .info{color:var(--hm-warn)}
 [hidden]{display:none!important}
+.ib{display:grid;place-items:center;width:40px;height:40px;min-height:40px;padding:0;border:0;border-radius:11px;background:transparent;color:var(--hm-ink);cursor:pointer;flex:none}
+.ib:hover:not(:disabled){background:var(--hm-surface-2)}.ib ha-icon{--mdc-icon-size:21px}.ib:disabled{opacity:.4;cursor:default}
+.ib.primary{background:var(--hm-brand);color:var(--hm-on-accent,#fff);border-radius:50%;width:44px;height:44px}
+.ib.danger{color:var(--hm-alert)}.ib[aria-pressed=true]{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.ib .count{position:absolute;margin:-26px -26px 0 0;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--hm-ink);color:var(--hm-surface);font-size:11px;line-height:18px}
+.bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.bar .grow{flex:1}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}
+.seg .ib{width:36px;height:34px;min-height:34px;border-radius:9px;color:var(--hm-muted)}
+.seg .ib[aria-pressed=true],.seg label:has(input:checked){background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
+.seg label{display:grid;place-items:center;width:40px;height:34px;border-radius:9px;color:var(--hm-muted);cursor:pointer}
+.seg label input{position:absolute;opacity:0;width:1px;height:1px}
+h3{display:flex;align-items:center;gap:6px}.info{--mdc-icon-size:17px;color:var(--hm-muted);cursor:help;flex:none}
+select,input:not([type=checkbox]):not([type=radio]):not([type=file]){min-height:40px;padding:4px 10px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;min-width:0}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:42px!important;min-width:42px!important;max-width:42px;height:24px!important;min-height:24px!important;padding:0;border:0;flex:none;margin:0;border-radius:12px;background:var(--hm-line);position:relative;cursor:pointer}
+input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--hm-surface);box-shadow:var(--hm-shadow);transition:left .15s}
+input[type=checkbox]:checked{background:var(--hm-brand)}input[type=checkbox]:checked::after{left:21px}input[type=checkbox]:disabled{opacity:.45}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.days label{display:grid;place-items:center;min-width:44px;height:36px;padding:0 8px;border:1px solid var(--hm-line);border-radius:999px;color:var(--hm-ink);font-size:13px;cursor:pointer}
+.days label:has(input:checked){background:color-mix(in srgb,var(--hm-brand) 16%,var(--hm-surface));border-color:var(--hm-brand);color:var(--hm-brand)}
+.days input{position:absolute;opacity:0;width:1px;height:1px}
+.drop{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px dashed var(--hm-line);border-radius:14px;cursor:pointer;color:var(--hm-ink)}
+.drop:hover{border-color:var(--hm-brand)}.drop ha-icon{--mdc-icon-size:24px;color:var(--hm-brand)}.drop span{display:grid;font-size:12.5px;color:var(--hm-muted)}.drop b{font-size:14px;font-weight:500;color:var(--hm-ink)}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.requested{display:flex;align-items:center;gap:8px;font-size:13px}.requested>ha-icon{color:var(--hm-brand)}
+.state{padding:2px 8px;border-radius:999px;font-size:11.5px;color:var(--hm-accent,#3f7fbf);background:color-mix(in srgb,var(--hm-accent,#3f7fbf) 12%,transparent);white-space:nowrap}
+.schedule{display:flex;align-items:center;gap:8px}.schedule .when{flex:1;min-width:0;display:grid;gap:2px}.schedule .when small{color:var(--hm-muted)}
+.schedule.paused .when{opacity:.55}
 `;
+
+const pieceStyles = `.absolute-widget label{display:grid;gap:4px;font-size:12px;color:var(--hm-muted);min-width:0}
+.absolute-widget :is(select,input[type=number],input[type=time]){min-height:36px;padding:2px 8px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:14px;min-width:0}
+.absolute-widget label{justify-items:start}.absolute-widget input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;flex:none;width:42px!important;min-width:42px!important;height:24px!important;min-height:24px!important;padding:0;border:0;margin:0;border-radius:12px;background:var(--hm-line);position:relative;cursor:pointer}
+.absolute-widget input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--hm-surface);box-shadow:var(--hm-shadow);transition:left .15s}
+.absolute-widget input[type=checkbox]:checked{background:var(--hm-brand)}.absolute-widget input[type=checkbox]:checked::after{left:21px}.absolute-widget input[type=checkbox]:disabled{opacity:.45}
+.absolute-widget .ib{display:grid;place-items:center;width:40px;height:40px;margin:auto;padding:0;border:0;border-radius:50%;background:var(--hm-brand);color:var(--hm-on-accent,#fff);cursor:pointer}
+.absolute-widget .ib ha-icon{--mdc-icon-size:21px}`;
 
 export class HomeManagerRemoteResources extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -259,10 +348,8 @@ export class HomeManagerRemoteResources extends HTMLElement {
       ).join('') +
       '</div><form class="resource-card" data-form="create"><h3>' +
       e(t('Nuevo control de estado absoluto')) +
-      '</h3>' +
-      '<p class="muted">' +
-      e(t('Elegí una captura aprendida de tu mando para identificar el perfil y la portadora.')) +
-      '</p><div class="form-grid">' +
+      info('Elegí una captura aprendida de tu mando para identificar el perfil y la portadora.') +
+      '</h3><div class="form-grid">' +
       label('Nombre', input('name', '', 'required maxlength="80"')) +
       label('Marca', input('brand', 'Mitsubishi Electric', 'required maxlength="80"')) +
       label('Modelo', input('model', '', 'required maxlength="80"')) +
@@ -286,9 +373,9 @@ export class HomeManagerRemoteResources extends HTMLElement {
         '<select name="button_id" required>' + option('', t('Elegí una señal')) + '</select>',
       ) +
       label('Emisor IR', '<select name="emitter" required>' + this.emitters() + '</select>') +
-      '</div>' +
-      primary('Crear control') +
-      '</form>'
+      '</div><div class="bar"><span class="grow"></span>' +
+      primary('Crear control', 'mdi:plus') +
+      '</div></form>'
     );
   }
 
@@ -306,44 +393,72 @@ export class HomeManagerRemoteResources extends HTMLElement {
     const status = requested
       ? e(requested.state.power ? t('Encendido solicitado') : t('Apagado solicitado')) +
         ' · ' +
-        e(new Date(requested.at).toLocaleString()) +
+        e(when(requested.at)) +
         ' · ' +
         e(String(requested.state.temperature ?? '')) +
         ' °C'
       : e(t('Sin solicitudes registradas'));
+    const tab = (name: 'control' | 'timers', title: string) =>
+      '<button type="button" class="ib" data-act="' +
+      name +
+      '" aria-pressed="' +
+      (this.tab === name) +
+      '" aria-label="' +
+      e(t(title)) +
+      '" title="' +
+      e(t(title)) +
+      '">' +
+      glyph(ICONS[name]!) +
+      '</button>';
     const navigation =
-      '<div class="row">' +
+      '<div class="bar">' +
       action('directory', 'Volver a la lista') +
-      action(this.tab === 'control' ? 'timers' : 'control', this.tab === 'control' ? 'Temporizadores' : 'Control') +
+      '<h3 class="grow">' +
+      e(control.name) +
+      '</h3><span class="seg">' +
+      tab('control', 'Control') +
+      tab('timers', 'Temporizadores') +
+      '</span>' +
       action('design', 'Diseñar') +
       '</div>';
     const summary =
-      '<div class="resource-card requested"><strong>' +
+      '<div class="resource-card requested" title="' +
       e(t('Estado solicitado')) +
-      '</strong><span>' +
+      '">' +
+      glyph('mdi:send-check-outline') +
+      '<span class="grow">' +
       status +
-      '</span><span>' +
-      e(t('Estado físico sin confirmación')) +
-      '</span></div>';
+      '</span>' +
+      (requested
+        ? '<span class="state" title="' +
+          e(t('Estado físico sin confirmación')) +
+          '">' +
+          e(t('Comando aceptado')) +
+          '</span>'
+        : '') +
+      '</div>';
+    const powerfulUntil =
+      control.powerful && new Date(control.powerful).getTime() > Date.now()
+        ? ' · ' +
+          t('hasta {time}', {
+            time: new Date(control.powerful).toLocaleTimeString(getLanguage(), { timeStyle: 'short' }),
+          })
+        : '';
     const actions =
-      '<div class="row">' +
-      action('send', 'Enviar estado', 'primary-action') +
+      '<div class="bar">' +
       action('preset', 'Guardar SMART SET') +
       (control.preset ? action('recall', 'Recuperar SMART SET') : '') +
-      (control.powerful_configured ? action('powerful', 'POWERFUL COOL') : '') +
-      '</div>' +
-      (control.powerful && new Date(control.powerful).getTime() > Date.now()
-        ? '<small>' +
-          e(t('Fin previsto de POWERFUL COOL')) +
-          ' · ' +
-          e(new Date(control.powerful).toLocaleTimeString()) +
-          '</small>'
-        : '');
+      (control.powerful_configured
+        ? action('powerful', 'POWERFUL COOL', '', ICONS.powerful, 'POWERFUL COOL' + powerfulUntil)
+        : '') +
+      '<span class="grow"></span>' +
+      action('send', 'Enviar estado', 'primary-action') +
+      '</div>';
     const powerful =
       control.profile === 'mitsubishi-electric-144'
-        ? '<form class="resource-card" data-form="link-powerful"><h3>POWERFUL COOL</h3><p class="muted">' +
-          e(t('Vinculá la señal que aprendiste con POWERFUL COOL activado en el mando.')) +
-          '</p><div class="form-grid">' +
+        ? '<form class="resource-card" data-form="link-powerful"><h3>POWERFUL COOL' +
+          info('Vinculá la señal que aprendiste con POWERFUL COOL activado en el mando.') +
+          '</h3><div class="form-grid">' +
           label(
             'Control IR aprendido',
             '<select name="remote_id" required>' +
@@ -355,15 +470,13 @@ export class HomeManagerRemoteResources extends HTMLElement {
             'Señal de referencia',
             '<select name="button_id" required>' + option('', t('Elegí una señal')) + '</select>',
           ) +
-          '</div><div class="row">' +
-          primary('Vincular señal') +
-          (control.powerful_configured ? action('unlink-powerful', 'Quitar vínculo') : '') +
+          '</div><div class="bar">' +
+          (control.powerful_configured ? action('unlink-powerful', 'Quitar vínculo', 'danger') : '') +
+          '<span class="grow"></span>' +
+          primary('Vincular señal', 'mdi:link-variant') +
           '</div></form>'
         : '';
     return (
-      '<h3>' +
-      e(control.name) +
-      '</h3>' +
       navigation +
       (this.tab === 'timers' ? this.timers(control) : '<div data-player-slot></div>' + actions) +
       summary +
@@ -372,9 +485,10 @@ export class HomeManagerRemoteResources extends HTMLElement {
       '</summary><form class="resource-card" data-form="settings"><div class="form-grid">' +
       label('Nombre', input('name', control.name, 'maxlength="80" required')) +
       label('Emisor IR', '<select name="emitter" required>' + this.emitters(control.emitter) + '</select>') +
-      '</div><div class="row">' +
+      '</div><div class="bar">' +
+      action('remove', 'Eliminar control', 'danger') +
+      '<span class="grow"></span>' +
       primary('Guardar ajustes') +
-      action('remove', 'Eliminar control') +
       '</div></form>' +
       powerful +
       '</details>'
@@ -388,7 +502,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
     if (cap.type === 'boolean')
       return label(
         titles[key] ?? key,
-        '<input type="checkbox"' +
+        '<input type="checkbox" role="switch"' +
           attrs +
           (value ? ' checked' : '') +
           (cap.mode && cap.mode !== this.draft.mode ? ' disabled' : '') +
@@ -459,67 +573,93 @@ export class HomeManagerRemoteResources extends HTMLElement {
     const builtIn =
       '<form data-form="native" class="resource-card"><h3>' +
       e(t('Temporizador del mando')) +
+      info('La hora del mando admite pasos de 10 minutos.') +
       '</h3>' +
       '<div class="form-grid">' +
       native.map(key => this.capability(key, control)).join('') +
-      '</div>' +
-      '<p class="muted">' +
-      e(t('La hora del mando admite pasos de 10 minutos.')) +
-      '</p>' +
-      primary('Enviar temporizador al equipo') +
-      '</form>';
+      '</div><div class="bar"><span class="grow"></span>' +
+      primary('Enviar temporizador al equipo', 'mdi:send') +
+      '</div></form>';
+    const zone = this.data!.zone;
     const scheduleRows = control.schedules
       .map(
         row =>
-          '<div class="schedule"><b>' +
+          '<div class="schedule' +
+          (row.enabled ? '' : ' paused') +
+          '">' +
+          glyph(row.power ? 'mdi:power' : 'mdi:power-off') +
+          '<span class="when"><b>' +
           e(t(row.power ? 'Encender' : 'Apagar')) +
           ' · ' +
           e(row.time) +
-          ' · ' +
-          e(row.zone) +
+          (row.zone !== zone ? ' · ' + e(row.zone.split('/').pop()!.replace(/_/g, ' ')) : '') +
           '</b><small>' +
           e(row.days.map(day => t(days[day])).join(' · ')) +
           (row.power && row.state.temperature !== undefined
             ? ' · ' + e(optionFor(String(row.state.mode))) + ' · ' + e(row.state.temperature) + ' °C'
             : '') +
-          (row.next
-            ? ' · ' + e(t('Próximo')) + ' ' + e(new Date(row.next).toLocaleString(undefined, { timeZone: row.zone }))
-            : '') +
+          (row.next ? ' · ' + e(t('Próximo')) + ' ' + e(when(row.next, row.zone)) : '') +
           (row.last
             ? ' · ' +
               e(t('Último intento')) +
               ' ' +
-              e(row.last) +
+              e(when(row.last)) +
               ' · ' +
-              e(row.result === 'sent' ? t('Emisión solicitada') : row.result)
+              e(
+                row.result === 'sent'
+                  ? t('Comando aceptado')
+                  : row.result === 'pending'
+                    ? t('Pendiente')
+                    : t('No se pudo enviar'),
+              )
             : '') +
-          '</small><div class="row">' +
+          '</small></span>' +
           action('schedule-' + row.id, 'Editar') +
-          action('toggle-' + row.id, row.enabled ? 'Pausar' : 'Activar') +
-          '</div></div>',
+          action('toggle-' + row.id, row.enabled ? 'Pausar' : 'Activar', '', row.enabled ? 'mdi:pause' : 'mdi:play') +
+          '</div>',
       )
       .join('');
     const editor = this.scheduleOpen
       ? '<form data-form="schedule" class="resource-card"><h3>' +
         e(t(schedule ? 'Editar horario' : 'Nuevo horario')) +
-        '</h3><div class="form-grid">' +
-        label(
-          'Acción',
-          '<select name="power">' +
-            option('on', t('Encender'), power) +
-            option('off', t('Apagar'), power) +
-            '</select>',
-        ) +
+        '</h3><div class="bar"><span class="seg" role="radiogroup" aria-label="' +
+        e(t('Acción')) +
+        '">' +
+        (
+          [
+            ['on', 'Encender', 'mdi:power'],
+            ['off', 'Apagar', 'mdi:power-off'],
+          ] as const
+        )
+          .map(
+            ([value, title, icon]) =>
+              '<label title="' +
+              e(t(title)) +
+              '"><input type="radio" name="power" value="' +
+              value +
+              '" aria-label="' +
+              e(t(title)) +
+              '"' +
+              (power === value ? ' checked' : '') +
+              '>' +
+              glyph(icon) +
+              '</label>',
+          )
+          .join('') +
+        '</span>' +
         label('Hora', input('time', String(draft?.get('time') ?? schedule?.time ?? '22:00'), 'type="time" required')) +
-        label(
-          'Zona horaria',
-          input('zone', String(draft?.get('zone') ?? schedule?.zone ?? this.data!.zone), 'maxlength="80" required'),
-        ) +
-        '</div><div class="row">' +
+        '</div>' +
+        ((draft?.get('zone') ?? schedule?.zone ?? zone) !== zone
+          ? label(
+              'Zona horaria',
+              input('zone', String(draft?.get('zone') ?? schedule?.zone), 'maxlength="80" required'),
+            )
+          : '<input type="hidden" name="zone" value="' + e(zone) + '">') +
+        '<div class="days">' +
         days
           .map(
             (day, index) =>
-              '<label class="check"><input type="checkbox" name="day" value="' +
+              '<label><input type="checkbox" name="day" value="' +
               index +
               '"' +
               ((draft ? draft.getAll('day').map(Number) : (schedule?.days ?? [0, 1, 2, 3, 4])).includes(index)
@@ -530,23 +670,29 @@ export class HomeManagerRemoteResources extends HTMLElement {
               '</label>',
           )
           .join('') +
-        '</div><label class="check"><span><input type="checkbox" name="current"' +
-        ((draft ? draft.has('current') : !schedule) ? ' checked' : '') +
-        '> ' +
+        '</div><label class="bar" title="' +
         e(t('Usar el ajuste del control para este horario')) +
-        '</span></label><div class="row">' +
-        primary('Guardar horario') +
+        '"><span class="grow">' +
+        e(t('Ajuste actual del control')) +
+        '</span><input type="checkbox" role="switch" name="current" aria-label="' +
+        e(t('Usar el ajuste del control para este horario')) +
+        '"' +
+        ((draft ? draft.has('current') : !schedule) ? ' checked' : '') +
+        '></label><div class="bar">' +
+        (schedule ? action('remove-schedule', 'Eliminar horario', 'danger') : '') +
         action('cancel-schedule', 'Cancelar') +
-        (schedule ? action('remove-schedule', 'Eliminar horario') : '') +
+        '<span class="grow"></span>' +
+        primary('Guardar horario') +
         '</div></form>'
       : '';
     return (
       builtIn +
-      '<section class="resource-card"><h3>' +
-      e(t('Programación de Home Management')) +
+      '<section class="resource-card"><div class="bar"><h3 class="grow">' +
+      e(t('Horarios de HomeManager')) +
       '</h3>' +
+      action('new-schedule', 'Agregar horario') +
+      '</div>' +
       scheduleRows +
-      action('new-schedule', 'Agregar horario', 'primary-action') +
       '</section>' +
       editor
     );
@@ -613,15 +759,19 @@ export class HomeManagerRemoteResources extends HTMLElement {
     const node = document.createElement('div');
     node.className = 'absolute-widget';
     node.style.alignContent = 'center';
+    // The piece lives inside the player: it carries the app's switch, select and icon look with it.
     node.innerHTML =
-      key === 'schedules'
+      '<style>' +
+      pieceStyles +
+      '</style>' +
+      (key === 'schedules'
         ? action('timers', 'Programación')
         : key === 'send'
           ? action('send', 'Enviar estado')
           : control.capabilities[key]
             ? this.capability(key, control)
-            : '';
-    if (!node.childElementCount) return null;
+            : '');
+    if (node.childElementCount < 2) return null;
     if (interactive) {
       this.bindCapabilities(node);
       const button = node.querySelector<HTMLButtonElement>('button[data-act]');
@@ -682,10 +832,15 @@ export class HomeManagerRemoteResources extends HTMLElement {
         'Fuente',
         '<select name="source">' + sources.map(source => option(source, source, this.source)).join('') + '</select>',
       ) +
-      label('Archivo del catálogo', '<input name="file" type="file" accept=".ir,.json,.txt,.cpp,.h">') +
-      (this.filename ? '<p class="muted">' + e(this.filename) + '</p>' : '') +
+      '<div class="bar"><label class="drop grow">' +
+      glyph('mdi:upload') +
+      '<span><b>' +
+      e(this.filename || t('Archivo del catálogo')) +
+      '</b>.ir · .json · .txt · .h</span><input name="file" type="file" aria-label="' +
+      e(t('Archivo del catálogo')) +
+      '" accept=".ir,.json,.txt,.cpp,.h"></label>' +
       action('preview', 'Revisar señales') +
-      '</div>';
+      '</div></div>';
     const learned = this.data!.learned.filter(remote => remote.buttons.some(button => button.provenance));
     const installed = learned.length
       ? panelLabel(t('Controles importados')) +
@@ -722,16 +877,19 @@ export class HomeManagerRemoteResources extends HTMLElement {
     if (!rows.length) return catalog + installed;
     return (
       catalog +
-      '<form data-form="import" class="resource-card"><h3>' +
+      '<form data-form="import" class="resource-card"><div class="bar"><h3 class="grow">' +
       e(t('Señales disponibles')) +
       '</h3>' +
+      action(
+        'select-all',
+        'Seleccionar disponibles',
+        '',
+        ICONS['select-all'],
+        'Seleccionar disponibles · hasta 64 señales por control',
+      ) +
+      '</div>' +
       label('Buscar función', input('filter', '', 'type="search"')) +
-      '<div class="row">' +
-      action('select-all', 'Seleccionar disponibles') +
-      '<small>' +
-      e(t('Hasta 64 señales por control.')) +
-      '</small>' +
-      '</div><div class="list">' +
+      '<div class="list">' +
       rows
         .map(
           row =>
@@ -742,10 +900,10 @@ export class HomeManagerRemoteResources extends HTMLElement {
             '"' +
             (this.chosen.has(row.index) ? ' checked' : '') +
             (row.supported ? '' : ' disabled') +
-            '>' +
+            '><span>' +
             e(row.name) +
-            '</label>' +
-            (row.supported ? '' : '<small>' + e(t('Formato de señal pendiente de soporte')) + '</small>') +
+            '</span></label>' +
+            (row.supported ? '' : info('Formato de señal pendiente de soporte')) +
             '</div>',
         )
         .join('') +
@@ -767,7 +925,9 @@ export class HomeManagerRemoteResources extends HTMLElement {
           this.data!.learned.map(remote => option(remote.id, remote.name, this.catalogForm.remote_id)).join('') +
           '</select>',
       ) +
-      '</div><button type="submit" class="primary-action" data-import></button></form>' +
+      '</div><div class="bar"><span class="grow"></span><button type="submit" class="ib primary" data-import>' +
+      glyph('mdi:download') +
+      '<span class="count"></span></button></div></form>' +
       installed
     );
   }
@@ -776,7 +936,11 @@ export class HomeManagerRemoteResources extends HTMLElement {
     const button = this.root.querySelector<HTMLButtonElement>('[data-import]');
     if (!button) return;
     button.disabled = this.busy || !this.chosen.size;
-    button.textContent = t('Importar {count} señales disponibles', { count: this.chosen.size });
+    const name = t('Importar {count} señales disponibles', { count: this.chosen.size });
+    button.setAttribute('aria-label', name);
+    button.title = name;
+    const count = button.querySelector('.count');
+    if (count) count.textContent = this.chosen.size ? String(this.chosen.size) : '';
   }
 
   private filterCatalog(query: string): void {
@@ -823,11 +987,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
     if (index < 0) this.data!.controls.push(saved);
     else this.data!.controls[index] = saved;
     if (command === 'create') this.draft = { ...saved.state };
-    this.message = t(
-      command === 'send' || command === 'powerful'
-        ? 'Emisión solicitada. Estado físico sin confirmación.'
-        : 'Guardado.',
-    );
+    this.message = t(command === 'send' || command === 'powerful' ? 'Comando aceptado' : 'Guardado');
   }
 
   private async handleAction(command: string): Promise<void> {
@@ -935,7 +1095,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
           days: data.getAll('day').map(Number),
           time: data.get('time'),
           zone: data.get('zone'),
-          power: data.get('power') === 'on',
+          power: (data.get('power') ?? 'on') === 'on',
           enabled: schedule?.enabled ?? true,
           state: data.has('current') || !schedule ? { ...this.draft } : schedule.state,
         });
