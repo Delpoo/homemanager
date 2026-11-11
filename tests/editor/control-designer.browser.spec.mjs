@@ -207,3 +207,34 @@ test('Shows › On the plan asks the app to pin the piece next to its symbol (0.
   expect(detail.pieceId).toBe((await last(page)).id);
   await rf.locator('.dfoot [data-command=edit]').click();
 });
+
+test('Design only gives this design to another learned remote, button by button name (0.13)', async ({ page }) => {
+  const other = {
+    ...ceiling(),
+    id: 'dormitorio',
+    name: 'Dormitorio',
+    buttons: [
+      { id: 'apagar-d', name: 'Apagar', icon: null, fingerprint: 'd1' },
+      { id: 'vel1-d', name: 'Velocidad 1', icon: null, fingerprint: 'd2' },
+    ],
+  };
+  const rf = await setup(page, { remotes: [ceiling(), other] });
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
+  const designer = rf.locator('homemanager-control-designer');
+  // A first change makes the current drawing a design of its own.
+  await designer.getByRole('button', { name: 'Grafito', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.rfServer.library[0].layout?.length ?? 0)).toBeGreaterThan(0);
+  await designer.getByRole('button', { name: 'Duplicar este control para otro aparato', exact: true }).click();
+  const sheet = designer.getByRole('dialog', { name: 'Duplicar control' });
+  await sheet.getByRole('button', { name: 'Solo el diseño', exact: true }).click();
+  await sheet.getByLabel('Control que recibe el diseño').selectOption('dormitorio');
+  await sheet.getByRole('button', { name: 'Copiar diseño', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.rfServer.library.find(item => item.id === 'dormitorio').layout))
+    .not.toBeNull();
+  const layout = await page.evaluate(() => window.rfServer.library.find(item => item.id === 'dormitorio').layout);
+  const refs = layout.flatMap(piece => piece.buttons);
+  expect(refs.sort()).toEqual(['apagar-d', 'vel1-d']);
+  expect(layout.find(piece => piece.type === 'canvas')?.theme).toBe('grafito');
+});
