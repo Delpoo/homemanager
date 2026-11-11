@@ -893,4 +893,6 @@ export const enPlan012: Record<string, string> = {
   'hasta {time}': 'until {time}',
   'Seleccionar disponibles · hasta 64 señales por control': 'Select available · up to 64 signals per control',
   Guardado: 'Saved',
+  Modelo: 'Model',
+  Perfil: 'Profile',
 };
