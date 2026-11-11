@@ -156,7 +156,7 @@ export class RulesEditor extends HTMLElement {
     const unit = source ? this.unit(source) : '';
     const value = (n: number) => `${n}${unit ? ` ${unit}` : ''}`;
     const condition =
-      rule.state !== undefined
+      rule.state !== undefined || source?.startsWith('binary_sensor.')
         ? `${name} = ${t(rule.state === 'off' ? 'sin detectar' : 'detectado')}`
         : rule.below !== undefined && rule.above !== undefined
           ? `${name} < ${value(rule.below)} · > ${value(rule.above)}`
@@ -230,7 +230,7 @@ export class RulesEditor extends HTMLElement {
   private compareOf(rule: VisualRule): Compare {
     const binary = this.binary(rule);
     if (this.compare && (binary ? ['on', 'off'] : ['lt', 'gt', 'out']).includes(this.compare)) return this.compare;
-    if (rule.state !== undefined) return rule.state === 'off' ? 'off' : 'on';
+    if (binary || rule.state !== undefined) return rule.state === 'off' ? 'off' : 'on';
     if (rule.below !== undefined && rule.above !== undefined) return 'out';
     return rule.above !== undefined ? 'gt' : 'lt';
   }
@@ -440,9 +440,10 @@ export class RulesEditor extends HTMLElement {
     const since = entity?.last_changed
       ? Math.max(0, Math.round((Date.now() - Date.parse(entity.last_changed)) / 60000))
       : null;
-    const value = entity
-      ? `${formatReading(entity.state)}${source && this.unit(source) ? ` ${this.unit(source)}` : ''}`
-      : t('Sin dato');
+    const missing = !entity || ['unknown', 'unavailable'].includes(entity.state);
+    const value = missing
+      ? t('Sin dato')
+      : `${formatReading(entity!.state)}${source && this.unit(source) ? ` ${this.unit(source)}` : ''}`;
     const ago =
       since === null
         ? ''
