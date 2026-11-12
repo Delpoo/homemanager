@@ -5,6 +5,14 @@ import { effectiveDark } from '../ui/theme-choice.js';
 import { t } from '../i18n/index.js';
 const chosen = new WeakMap<HomeManagerCard, string>();
 const generations = new WeakMap<HomeManagerCard, number>();
+const shown = new WeakMap<HomeManagerCard, string>();
+/** Cheap check called with every shell update: the choice is rebuilt only when the
+ * alternatives themselves changed (a home that finished loading, one just saved). */
+export function syncPlanChoice(card: HomeManagerCard): void {
+  const signature = JSON.stringify(card.draft?.planViews ?? []);
+  if (shown.get(card) === signature) return;
+  void renderPlanChoice(card);
+}
 const key = (card: HomeManagerCard) => 'homemanager-plan-view:' + (card.config?.home_id ?? card.config?.card_id ?? '');
 export async function renderPlanChoice(card: HomeManagerCard): Promise<void> {
   const host = card.root.querySelector<HTMLElement>('.architecture');
@@ -21,6 +29,7 @@ export async function renderPlanChoice(card: HomeManagerCard): Promise<void> {
     chosen.set(card, id);
   }
   const views = card.draft.planViews ?? [];
+  shown.set(card, JSON.stringify(views));
   let controls = card.root.querySelector<HTMLElement>('.plan-choices');
   if (!controls) {
     controls = document.createElement('div');

@@ -63,6 +63,9 @@ test('changing theme during upload keeps the image in its original mode', async 
   await expect.poll(() => card.evaluate(c => c.draft.planViews?.length)).toBe(1);
   expect(await card.evaluate(c => !!c.draft.planViews[0].light)).toBe(true);
   expect(await card.evaluate(c => c.draft.planViews[0].dark)).toBeUndefined();
+  // The plan offers it right away, without reloading (it was missing in the owner's Home Assistant).
+  await expect(card.locator('.plan-choices')).toBeVisible();
+  await expect(card.locator('.plan-choices option')).toHaveText(['Plano original', 'Original mode']);
 });
 test('alternative editor checks framing, keeps positions and supports duplicate/order/remove and discard', async ({
   page,

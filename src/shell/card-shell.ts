@@ -3,9 +3,11 @@ import { activityIsRecent } from '../model/activity.js';
 import { activityText } from './activity-view.js';
 import { updateTopBar } from './top-bar.js';
 import type { HomeManagerCard } from '../card/home-manager-card.js';
+import { syncPlanChoice } from '../card/plan-views.js';
 
 export function updateShell(this: HomeManagerCard): void {
   this.insights?.update(this);
+  if (this.svg) syncPlanChoice(this);
   updateTopBar(this.root, {
     title:
       this.shellContext?.homes.find(home => home.home_id === this.shellContext?.selected)?.title ??
