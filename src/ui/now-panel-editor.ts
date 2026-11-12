@@ -6,6 +6,7 @@ import { nowSections } from '../model/now.js';
 import { checkList, checkListStyles } from './check-list.js';
 import { controlsOf } from '../card/device-controls.js';
 import { personName } from '../model/names.js';
+import { alertText } from './alert-components.js';
 export class NowPanelEditor extends HTMLElement {
   private root = this.attachShadow({ mode: 'open' });
   private config!: Configuration;
@@ -55,7 +56,7 @@ export class NowPanelEditor extends HTMLElement {
               .slice(0, 6)
               .map(
                 row =>
-                  `<li><span>${e(personName(row.name) || row.name)}</span>${row.value ? `<b>${e(row.value)}</b>` : ''}</li>`,
+                  `<li><span>${e(row.alert ? alertText(row.alert) : personName(row.name) || row.name)}</span>${row.value ? `<b>${e(row.value)}</b>` : ''}</li>`,
               )
               .join('')}</ul>`
           : `<p class="muted">${e(t('Sin filas ahora'))}</p>`,
