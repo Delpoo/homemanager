@@ -55,7 +55,16 @@ export function reviewedScreenshot(relative, bytes, manifest) {
     /^docs\/evidence\/rediseno-lote2\/(?:desktop|mobile)-(?:light|dark)-(?:modules|gestures|add|color|icons|rules|rule-new|rf-icons|reference-modules|reference-rules)\.png$/.test(
       relative,
     );
+  const rfSwitch = /^docs\/evidence\/remotes-reception\/rf-switch-(?:before|after)-(?:desktop|mobile)\.png$/.test(
+    relative,
+  );
+  const remotesAudit =
+    /^docs\/evidence\/remotes-reception\/(?:aprendizaje-ir|historial-senal|clima|horarios|grafica-severity|biblioteca-parcial|plantilla)-(?:desktop|mobile)\.png$/.test(
+      relative,
+    );
   if (
+    !rfSwitch &&
+    !remotesAudit &&
     !legacy &&
     !picker &&
     !deviceScreen &&
@@ -76,35 +85,39 @@ export function reviewedScreenshot(relative, bytes, manifest) {
   const entry = manifest.assets.find(asset => asset.path === relative);
   return (
     entry?.source ===
-      (redesignBatchFour
-        ? 'scripts/capture-redesign-lote4.mjs'
-        : redesignBatchThree
-          ? 'scripts/capture-redesign-lote3.mjs'
-          : redesignBatchTwo
-            ? 'scripts/capture-redesign-lote2.mjs'
-            : redesignBatchOne
-              ? 'scripts/capture-redesign-lote1.mjs'
-              : taskClosure
-                ? 'scripts/capture-redesign-e02.mjs'
-                : taskScreens
-                  ? 'tests/card/task-screens.browser.spec.mjs'
-                  : editorDock
-                    ? 'tests/card/editor-dock.browser.spec.mjs'
-                    : redesignMockup
-                      ? 'docs/rediseno/maqueta-modulos.html'
-                      : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
-                            relative,
-                          )
-                        ? 'docs/vision-mockup.html'
-                        : picker
-                          ? 'tests/browser/fixtures/picker.html'
-                          : alertRules
-                            ? 'tests/editor/alerts.browser.spec.mjs'
-                            : rfDialogs
-                              ? 'tests/rf/cp6.browser.spec.mjs'
-                              : deviceScreen
-                                ? 'tests/browser/fixtures/device-screen.html'
-                                : 'tests/browser/fixtures/shell.html') &&
+      (rfSwitch
+        ? 'tests/rf/guided-learning.browser.spec.mjs'
+        : remotesAudit
+          ? 'tests/rf/resources.browser.spec.mjs'
+          : redesignBatchFour
+            ? 'scripts/capture-redesign-lote4.mjs'
+            : redesignBatchThree
+              ? 'scripts/capture-redesign-lote3.mjs'
+              : redesignBatchTwo
+                ? 'scripts/capture-redesign-lote2.mjs'
+                : redesignBatchOne
+                  ? 'scripts/capture-redesign-lote1.mjs'
+                  : taskClosure
+                    ? 'scripts/capture-redesign-e02.mjs'
+                    : taskScreens
+                      ? 'tests/card/task-screens.browser.spec.mjs'
+                      : editorDock
+                        ? 'tests/card/editor-dock.browser.spec.mjs'
+                        : redesignMockup
+                          ? 'docs/rediseno/maqueta-modulos.html'
+                          : /-reference(?:-devices|-readings|-components|-device|-now|-rf|-dialogs|-categories|-plan|-edit)?\.png$/.test(
+                                relative,
+                              )
+                            ? 'docs/vision-mockup.html'
+                            : picker
+                              ? 'tests/browser/fixtures/picker.html'
+                              : alertRules
+                                ? 'tests/editor/alerts.browser.spec.mjs'
+                                : rfDialogs
+                                  ? 'tests/rf/cp6.browser.spec.mjs'
+                                  : deviceScreen
+                                    ? 'tests/browser/fixtures/device-screen.html'
+                                    : 'tests/browser/fixtures/shell.html') &&
     entry?.review === 'fictional-only' &&
     entry?.sha256 === createHash('sha256').update(bytes).digest('hex') &&
     bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

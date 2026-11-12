@@ -349,3 +349,60 @@ async def test_remotes_from_0_4_are_migrated_with_the_same_entities(hass: HomeAs
     assert hass.states.get("fan.techo").attributes["percentage_step"] == 50
     assert hass.states.get("light.techo_light") is not None
     assert hass.states.get("button.techo_1h") is not None
+
+def test_decoder_uses_sync_adjacent_to_frame_after_noise() -> None:
+    # The final idle/noise gap is longer than the sync preceding this frame.
+    burst = encode_timings(1, CODE, 350)[:-1] + [-90000]
+    reading = summarize(decode(burst))
+    assert reading is not None
+    assert (reading.protocol, reading.bits, reading.pulse_us) == (1, CODE, 350)
+
+
+async def test_stopping_one_capture_keeps_another_on_same_receiver(
+    hass: HomeAssistant, setup_integration,
+) -> None:
+    from custom_components.homemanager.rf import RfManager
+
+    sent = _transmitter(hass)
+    manager = RfManager(hass)
+    first = await manager.async_capture("test_tx", 20, lambda event: None, lambda: None)
+    reports = []
+    second = await manager.async_capture("test_tx", 5, reports.append, lambda: None)
+    first()
+    await hass.async_block_till_done()
+    assert sent == [{"capture": 20}, {"capture": 20}]
+    hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(map(str, encode_timings(1, CODE, 350, repeats=3)))})
+    await hass.async_block_till_done()
+    assert reports[-1]["candidate"]["confirmed"]
+    second()
+    await hass.async_block_till_done()
+    assert sent[-1] == {"capture": 0}
+
+def test_decoder_keeps_protocol_7_data_spaces_inside_the_frame() -> None:
+    for code in (CODE, CODE + "0"):
+        reading = summarize(decode(encode_timings(7, code, 150, repeats=4)))
+        assert reading is not None
+        assert (reading.protocol, reading.bits, reading.pulse_us, reading.frames) == (7, code, 150, 4)
+
+def test_decoder_preserves_three_frames_with_a_long_leading_gap() -> None:
+    for protocol, pulse in ((1, 350), (1, 400), (2, 650), (4, 380)):
+        burst = encode_timings(protocol, CODE, pulse, repeats=3)
+        burst[1] = -90000
+        reading = summarize(decode(burst))
+        assert reading is not None
+        assert (reading.protocol, reading.bits, reading.pulse_us, reading.frames) == (protocol, CODE, pulse, 3)
+
+async def test_capture_confirms_first_press_with_a_long_leading_gap(
+    hass: HomeAssistant, setup_integration, hass_ws_client,
+) -> None:
+    _transmitter(hass)
+    admin = await hass_ws_client(hass)
+    capture = await _call(admin, {"type": "homemanager/rf/capture", "transmitter": "test_tx", "seconds": 20})
+    assert capture["success"]
+
+    burst = encode_timings(1, CODE, 400, repeats=3)
+    burst[1] = -90000
+    hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(map(str, burst))})
+    await hass.async_block_till_done()
+    candidate = (await admin.receive_json())["event"]["candidate"]
+    assert (candidate["frames"], candidate["bursts"], candidate["confirmed_by"]) == (3, 1, "frames")

@@ -65,6 +65,7 @@ export class HomeManagerRfLearn extends HTMLElement {
   private listening = false;
   private until = 0;
   private stopCapture: (() => void) | null = null;
+  private captureGeneration = 0;
   private candidate: RfCandidate | null = null;
   private unclassified = '';
   private readonly readings = new Map<string, RfCandidate>();
@@ -104,15 +105,21 @@ export class HomeManagerRfLearn extends HTMLElement {
   /** Closes the receiver's window. The host calls it when the panel closes. */
   stop(): void {
     this.until = 0;
+    this.captureGeneration += 1;
     const stop = this.stopCapture;
     this.stopCapture = null;
     this.listening = false;
+    this.releaseCapture(stop);
+  }
+
+  private releaseCapture(stop: (() => void) | null): void {
     try {
       stop?.();
     } catch {
       /* the window may already be closed */
     }
   }
+
   /** Returning from the parent page keeps the candidate, trial and typed name. */
   resume(): void {
     this.render();
@@ -135,27 +142,26 @@ export class HomeManagerRfLearn extends HTMLElement {
 
   private async capture(): Promise<void> {
     if (!this.hass || !this.listen) return;
+    const generation = ++this.captureGeneration;
+    const stop = this.stopCapture;
+    this.stopCapture = null;
+    this.releaseCapture(stop);
     if (this.hass.connection?.connected === false || this.receiverOnline?.(this.listen) === false) {
       this.listening = false;
       this.say(t('El receptor está desconectado. Conectalo y volvé a empezar.'));
       this.render();
       return;
     }
-    const stop = this.stopCapture;
-    this.stopCapture = null;
-    try {
-      stop?.();
-    } catch {
-      /* already closed */
-    }
     this.listening = true;
     try {
-      this.stopCapture = await rf.capture(
+      const unsubscribe = await rf.capture(
         this.hass,
         this.listen,
         WINDOW_SECONDS,
         event => {
+          if (generation !== this.captureGeneration) return;
           if (event.done) {
+            this.captureGeneration += 1;
             this.listening = false;
             this.stopCapture = null;
             if (Date.now() < this.until) void this.capture();
@@ -186,7 +192,13 @@ export class HomeManagerRfLearn extends HTMLElement {
         },
         true,
       );
+      if (generation !== this.captureGeneration) {
+        this.releaseCapture(unsubscribe);
+        return;
+      }
+      this.stopCapture = unsubscribe;
     } catch (error) {
+      if (generation !== this.captureGeneration) return;
       this.listening = false;
       this.report(error);
     }
