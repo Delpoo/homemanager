@@ -3562,6 +3562,132 @@
       "review": "fictional-only",
       "reviewDate": "2026-11-03",
       "sha256": "713cc5804073cd41fefe8ca623a4a86027b49b26b1f6b875105d49b1bcd1080b"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/aprendizaje-ir-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "6337c6848d09b3168ed2385bad81eaf6166c3ba7774f1eaf0befd4549cefe693"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/aprendizaje-ir-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "aa2a20673c6f9da3af76102d2b93d94df44603af05a6093fec073a826957bc9d"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/biblioteca-parcial-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "fe91576a38f2fba802c44caface28b10ca3e80569c9b311dd3402e9de5ef56e1"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/biblioteca-parcial-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "53ed786c84e90e3ac798ef48d49fcf71e256bc85f742fe9a7b0daa3a2f6f50de"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/clima-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "fd54c0b2bc6066d94d6e3ba0cb1f530b68d8df694b939be274f2f3c73bc6967d"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/clima-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "9f39c56c9080499822d40b418a25d6c9359e056471d0a720c6bb4c853fc61fa3"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/grafica-severity-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "78b254b527ade7d1fcc566894fcd9b3bce4b7dd18291fe4a69b5896d851c386c"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/grafica-severity-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "0b336b731c85bdbaa7b3659c9adee43e3fea6ce878eea6a6c3eacfdd7671aa16"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/historial-senal-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "eb63f11355b885cdec5dd03324cc265097e9c406cbcef1b10150973cd4b2970d"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/historial-senal-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "53d458b47d181646cebc78bb35d54ee1025c4d7831ca7f9a718025e59efb38e6"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/horarios-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "ef47b684d67f5e6108f19770b95674a1368880d6031d39dc90fd636128bd78f3"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/horarios-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "8b2f22d0d7974f76e6a0922766b4c307adaf2f386f793dcec2e5f676a0930d0a"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/plantilla-desktop.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "e23ab9056ffeba78564598d121788600a38eedc2a49701637c44faf93fa57e8f"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/plantilla-mobile.png",
+      "source": "tests/rf/resources.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "1ead80b5f526273c8ea9309b1723fe398a9aaa10bd14701a8792fc1ed9284f7f"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/rf-switch-after-desktop.png",
+      "source": "tests/rf/guided-learning.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "0dab3bd67c7fa54f5c080c920916155ebc3ad816ee2f1ce6f2c5eace8c9a96b4"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/rf-switch-after-mobile.png",
+      "source": "tests/rf/guided-learning.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "76dd5d4e6836f8ad512aa6bc8ad796fdeb323743c7cb579ac6ab32c09e5bc4d5"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/rf-switch-before-desktop.png",
+      "source": "tests/rf/guided-learning.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "34348c635de5e85b4fae4d379af7c2755a15b49f0fae6493d61a91776b30ce88"
+    },
+    {
+      "path": "docs/evidence/remotes-reception/rf-switch-before-mobile.png",
+      "source": "tests/rf/guided-learning.browser.spec.mjs",
+      "review": "fictional-only",
+      "reviewDate": "2026-11-12",
+      "sha256": "1db9874ca7aee1810c8be195d1aec2321007d29d765d042255fd7798745e5ff3"
     }
   ]
 }

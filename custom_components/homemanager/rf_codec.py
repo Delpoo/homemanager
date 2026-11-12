@@ -53,33 +53,34 @@ def _near(value: float, target: float) -> bool:
     return abs(value - target) <= target * TOLERANCE
 
 
-def _segments(timings: list[int]) -> tuple[list[list[int]], bool]:
+def _segments(timings: list[int], gap_pulses: int = 5) -> list[tuple[list[int], int | None]]:
     """Split on long spaces: each segment starts with a bit mark and usually ends
-    with the sync mark of the next frame. The flag says whether any sync space
-    was seen: receivers whose idle timeout is shorter than the sync space (for
-    example 10 ms against 31 x 350 us) deliver one frame per reception and
-    never include it."""
+    with the sync mark of the next frame. Use the preceding sync space when
+    present. A short receiver idle timeout may deliver frames without a sync
+    space (for example 10 ms against 31 x 350 us)."""
     durations = [abs(value) for value in timings if value]
     if len(durations) < 2 * MIN_BITS:
-        return [], False
+        return []
     short = median(sorted(durations)[: max(1, len(durations) // 2)])
-    segments: list[list[int]] = []
+    segments: list[tuple[list[int], int | None]] = []
     current: list[int] = []
-    synced = False
+    preceding_sync = None
     for value in timings:
-        if value < 0 and -value > short * 5:
-            synced = True
+        if value < 0 and -value > short * gap_pulses:
             if current:
-                segments.append(current)
+                segments.append((current, preceding_sync if preceding_sync is not None else -value))
             current = []
+            preceding_sync = -value
         elif value:
             current.append(value)
     if current:
-        segments.append(current)
-    return segments, synced
+        segments.append((current, preceding_sync))
+    return segments
 
 
-def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
+def _decode_segment(
+    segment: list[int], sync_low: float | None, *, protocol_only: int | None = None
+) -> Frame | None:
     # Drop a leading space and a trailing lone mark (the next frame's sync mark).
     if segment and segment[0] < 0:
         segment = segment[1:]
@@ -93,6 +94,8 @@ def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
     # (or the opposite) do not bias it. The share of the mark gives the value.
     period = median(high + low for high, low in pairs)
     for protocol, (one_high, one_low, sync, _nominal) in PROTOCOLS.items():
+        if protocol_only is not None and protocol != protocol_only:
+            continue
         total = one_high + one_low
         pulse = period / total
         # Without a sync space only the bit shape identifies the protocol; the
@@ -118,17 +121,17 @@ def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
 def decode(timings: list[int]) -> list[Frame]:
     """All frames found in one raw reception, in order."""
     frames: list[Frame] = []
-    # The sync space that precedes each segment identifies the protocol.
-    sync_lows = [-value for value in timings if value < 0]
-    if not sync_lows:
-        return frames
-    segments, synced = _segments(timings)
-    longest = sorted(sync_lows, reverse=True)
-    sync_low = median(longest[: max(1, len(segments))]) if synced else None
-    for segment in segments:
+    for segment, sync_low in _segments(timings):
         frame = _decode_segment(segment, sync_low)
         if frame:
             frames.append(frame)
+    if not frames:
+        # Protocol 7 uses six-pulse data spaces. The ordinary separator must
+        # still split six-pulse sync spaces for protocol 4.
+        for segment, sync_low in _segments(timings, gap_pulses=9):
+            frame = _decode_segment(segment, sync_low, protocol_only=7)
+            if frame:
+                frames.append(frame)
     return frames
 
 

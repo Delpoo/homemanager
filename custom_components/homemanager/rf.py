@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import logging
+from math import ceil
 import secrets
 import time
 from typing import Any
@@ -199,6 +200,8 @@ class RfManager:
         self.entities: dict[str, Any] = {}
         # Nodes in a learning capture: an echo must not shorten their window.
         self._learning: dict[str, int] = {}
+        self._capture_locks: dict[str, asyncio.Lock] = {}
+        self._capture_until: dict[str, float] = {}
         # Last echo of each remote: {"at", "result": heard|not_heard|unverified, "by"}.
         self.echoes: dict[str, dict[str, Any]] = {}
         self._echo_tasks: set[asyncio.Task[None]] = set()
@@ -452,11 +455,11 @@ class RfManager:
         return echo
 
     async def _open_echo_window(self, node: str) -> bool:
-        if self._learning.get(node):
-            return True
         try:
             async with asyncio.timeout(ECHO_OPEN_TIMEOUT_SECONDS):
-                await self.hass.services.async_call("esphome", f"{node}_{CAPTURE_ACTION}", {"seconds": ECHO_WINDOW_SECONDS}, blocking=True)
+                async with self._capture_locks.setdefault(node, asyncio.Lock()):
+                    if not self._learning.get(node):
+                        await self.hass.services.async_call("esphome", f"{node}_{CAPTURE_ACTION}", {"seconds": ECHO_WINDOW_SECONDS}, blocking=True)
             return True
         except Exception:  # An echo never blocks or fails a press.
             _LOGGER.debug("Could not open an echo window on %s", node)
@@ -604,7 +607,8 @@ class RfManager:
             self._learning[transmitter] = max(0, self._learning.get(transmitter, 1) - 1)
             unlisten()
             cancel_timer()
-            self.hass.async_create_task(self._stop_device_capture(transmitter))
+            if not self._learning[transmitter]:
+                self.hass.async_create_task(self._stop_device_capture(transmitter))
 
         @callback
         def expired(*_: Any) -> None:
@@ -614,14 +618,23 @@ class RfManager:
 
         cancel_timer = async_call_later(self.hass, seconds, expired)
         try:
-            await self.hass.services.async_call("esphome", f"{transmitter}_{CAPTURE_ACTION}", {"seconds": seconds}, blocking=True)
-        except Exception:
+            async with self._capture_locks.setdefault(transmitter, asyncio.Lock()):
+                if not stopped:
+                    clock = asyncio.get_running_loop().time
+                    remaining = ceil(self._capture_until.get(transmitter, 0) - clock())
+                    window = max(seconds, remaining)
+                    await self.hass.services.async_call("esphome", f"{transmitter}_{CAPTURE_ACTION}", {"seconds": window}, blocking=True)
+                    self._capture_until[transmitter] = clock() + window
+        except (Exception, asyncio.CancelledError):
             stop()
             raise
         return stop
 
     async def _stop_device_capture(self, transmitter: str) -> None:
         try:
-            await self.hass.services.async_call("esphome", f"{transmitter}_{CAPTURE_ACTION}", {"seconds": 0}, blocking=True)
+            async with self._capture_locks.setdefault(transmitter, asyncio.Lock()):
+                if not self._learning.get(transmitter):
+                    self._capture_until.pop(transmitter, None)
+                    await self.hass.services.async_call("esphome", f"{transmitter}_{CAPTURE_ACTION}", {"seconds": 0}, blocking=True)
         except Exception:  # The device stops by itself when its window ends.
             _LOGGER.debug("Could not end the capture window on %s early", transmitter)

@@ -69,3 +69,75 @@ test('without a configured receiver the visible panel explains setup without cap
   await expect(learn.getByRole('button', { name: 'Empezar', exact: true })).toBeDisabled();
   expect(await calls(page, 'homemanager/rf/capture')).toEqual([]);
 });
+
+test('switching receivers ignores events and late subscription acknowledgements from the old receiver', async ({
+  page,
+}, testInfo) => {
+  const rf = await setup(page, { remotes: [ceiling()] });
+  await rf.locator('[data-open=techo]').click();
+  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  const learn = rf.locator('homemanager-rf-learn');
+  await learn.evaluate(node => {
+    const connection = node.hass.connection;
+    const original = connection.subscribeMessage;
+    window.captureSessions = [];
+    connection.subscribeMessage = (callback, message) => {
+      if (message.type !== 'homemanager/rf/capture') return original(callback, message);
+      return new Promise(resolve => {
+        const session = {
+          callback,
+          stopped: false,
+          acknowledge: () =>
+            resolve(() => {
+              session.stopped = true;
+            }),
+        };
+        window.captureSessions.push(session);
+      });
+    };
+  });
+  await learn.getByLabel('Botón que querés aprender').fill('Luz de prueba');
+  await learn.getByRole('button', { name: 'Empezar', exact: true }).click();
+  await learn.locator('[data-listen=tx_b]').click();
+  await page.evaluate(() => {
+    const [old, current] = window.captureSessions;
+    current.acknowledge();
+    old.acknowledge();
+    old.callback({
+      candidate: {
+        candidate_id: 'old',
+        transmitter: 'tx_a',
+        protocol: 1,
+        nbits: 24,
+        pulse_us: 350,
+        frames: 3,
+        bursts: 1,
+        burst_frames: 3,
+        confirmed: true,
+        confirmed_by: 'frames',
+        known_as: [],
+      },
+    });
+    current.callback({
+      candidate: {
+        candidate_id: 'current',
+        transmitter: 'tx_b',
+        protocol: 1,
+        nbits: 24,
+        pulse_us: 400,
+        frames: 3,
+        bursts: 1,
+        burst_frames: 3,
+        confirmed: true,
+        confirmed_by: 'frames',
+        known_as: [],
+      },
+    });
+  });
+  await learn.getByText('Detalles de la señal', { exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath('rf-receiver-switch.png'), animations: 'disabled' });
+  await expect(learn.getByText(/pulso medido de la señal: 400 µs/)).toBeVisible();
+  expect(await page.evaluate(() => window.captureSessions[0].stopped)).toBe(true);
+  await learn.getByRole('button', { name: 'Listo', exact: true }).click();
+  expect(await page.evaluate(() => window.captureSessions[1].stopped)).toBe(true);
+});
