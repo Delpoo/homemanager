@@ -1,3 +1,4 @@
+import { shortId } from '../model/short-id.js';
 import { t } from '../i18n/index.js';
 import { clone, escapeHTML as e, type Configuration, type Hass } from '../card/types.js';
 import type { PlanView, PlanImage } from '../model/plan-views.js';
@@ -35,7 +36,7 @@ export class PlanViewsEditor extends HTMLElement {
     const views = clone(this.config.planViews ?? []);
     const index = views.findIndex(v => v.id === id);
     if (command === 'new') {
-      this.edit = { id: 'view-' + crypto.randomUUID().slice(0, 8), name: t('Nueva alternativa') };
+      this.edit = { id: 'view-' + shortId(), name: t('Nueva alternativa') };
       this.message = '';
     }
     if (command === 'edit') {
@@ -45,7 +46,7 @@ export class PlanViewsEditor extends HTMLElement {
     if (command === 'cancel') this.edit = undefined;
     if (command === 'duplicate') {
       const view = clone(views[index]);
-      view.id = 'view-' + crypto.randomUUID().slice(0, 8);
+      view.id = 'view-' + shortId();
       view.name += ' ' + t('Copia');
       this.commit([...views, view]);
     }

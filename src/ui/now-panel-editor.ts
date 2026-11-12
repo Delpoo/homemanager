@@ -1,3 +1,4 @@
+import { shortId } from '../model/short-id.js';
 import { t } from '../i18n/index.js';
 import { clone, escapeHTML as e, type Configuration, type Hass } from '../card/types.js';
 import { automaticBlocks, BLOCK_NAMES, configuredNow, type NowBlock, type NowBlockType } from '../model/now-panel.js';
@@ -123,7 +124,7 @@ export class NowPanelEditor extends HTMLElement {
     this.root.querySelectorAll<HTMLButtonElement>('[data-add-type]').forEach(
       button =>
         (button.onclick = () => {
-          this.selected = 'block-' + crypto.randomUUID().slice(0, 8);
+          this.selected = 'block-' + shortId();
           this.gallery = false;
           this.write([...blocks, { id: this.selected, type: button.dataset.addType as NowBlockType }]);
         }),

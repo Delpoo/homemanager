@@ -48,6 +48,8 @@ test('changing theme during upload keeps the image in its original mode', async 
   // Plan alternatives have their own Settings section (#70, #72).
   await showSection(card.locator('homemanager-editor'), 'rooms-section');
   const editor = card.locator('homemanager-plan-views-editor');
+  // Home Assistant on plain http:// has no crypto.randomUUID (not a secure context).
+  await page.evaluate(() => delete Crypto.prototype.randomUUID);
   await editor.getByRole('button', { name: '+ Agregar alternativa', exact: true }).click();
   await editor.getByLabel('Nombre', { exact: true }).fill('Original mode');
   const source = await card.evaluate(c => c.draft.architecture.content);
