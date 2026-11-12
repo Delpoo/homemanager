@@ -383,3 +383,26 @@ def test_decoder_keeps_protocol_7_data_spaces_inside_the_frame() -> None:
         reading = summarize(decode(encode_timings(7, code, 150, repeats=4)))
         assert reading is not None
         assert (reading.protocol, reading.bits, reading.pulse_us, reading.frames) == (7, code, 150, 4)
+
+def test_decoder_preserves_three_frames_with_a_long_leading_gap() -> None:
+    for protocol, pulse in ((1, 350), (1, 400), (2, 650), (4, 380)):
+        burst = encode_timings(protocol, CODE, pulse, repeats=3)
+        burst[1] = -90000
+        reading = summarize(decode(burst))
+        assert reading is not None
+        assert (reading.protocol, reading.bits, reading.pulse_us, reading.frames) == (protocol, CODE, pulse, 3)
+
+async def test_capture_confirms_first_press_with_a_long_leading_gap(
+    hass: HomeAssistant, setup_integration, hass_ws_client,
+) -> None:
+    _transmitter(hass)
+    admin = await hass_ws_client(hass)
+    capture = await _call(admin, {"type": "homemanager/rf/capture", "transmitter": "test_tx", "seconds": 20})
+    assert capture["success"]
+
+    burst = encode_timings(1, CODE, 400, repeats=3)
+    burst[1] = -90000
+    hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(map(str, burst))})
+    await hass.async_block_till_done()
+    candidate = (await admin.receive_json())["event"]["candidate"]
+    assert (candidate["frames"], candidate["bursts"], candidate["confirmed_by"]) == (3, 1, "frames")

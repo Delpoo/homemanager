@@ -53,28 +53,30 @@ def _near(value: float, target: float) -> bool:
     return abs(value - target) <= target * TOLERANCE
 
 
-def _segments(timings: list[int], gap_pulses: int = 5) -> list[tuple[list[int], int | None]]:
+def _segments(
+    timings: list[int], gap_pulses: int = 5
+) -> list[tuple[list[int], int | None, int | None]]:
     """Split on long spaces: each segment starts with a bit mark and usually ends
-    with the sync mark of the next frame. Use the preceding sync space when
+    with the sync mark of the next frame. Keep both adjacent sync spaces when
     present. A short receiver idle timeout may deliver frames without a sync
     space (for example 10 ms against 31 x 350 us)."""
     durations = [abs(value) for value in timings if value]
     if len(durations) < 2 * MIN_BITS:
         return []
     short = median(sorted(durations)[: max(1, len(durations) // 2)])
-    segments: list[tuple[list[int], int | None]] = []
+    segments: list[tuple[list[int], int | None, int | None]] = []
     current: list[int] = []
     preceding_sync = None
     for value in timings:
         if value < 0 and -value > short * gap_pulses:
             if current:
-                segments.append((current, preceding_sync if preceding_sync is not None else -value))
+                segments.append((current, preceding_sync, -value))
             current = []
             preceding_sync = -value
         elif value:
             current.append(value)
     if current:
-        segments.append((current, preceding_sync))
+        segments.append((current, preceding_sync, None))
     return segments
 
 
@@ -121,15 +123,19 @@ def _decode_segment(
 def decode(timings: list[int]) -> list[Frame]:
     """All frames found in one raw reception, in order."""
     frames: list[Frame] = []
-    for segment, sync_low in _segments(timings):
-        frame = _decode_segment(segment, sync_low)
+    for segment, preceding_sync, following_sync in _segments(timings):
+        frame = _decode_segment(segment, preceding_sync or following_sync)
+        if frame is None and preceding_sync and following_sync and len(segment) % 2 and segment[-1] > 0:
+            # The next sync mark and gap can identify a complete frame whose
+            # leading gap was lengthened by receiver idle or noise.
+            frame = _decode_segment(segment, following_sync)
         if frame:
             frames.append(frame)
     if not frames:
         # Protocol 7 uses six-pulse data spaces. The ordinary separator must
         # still split six-pulse sync spaces for protocol 4.
-        for segment, sync_low in _segments(timings, gap_pulses=9):
-            frame = _decode_segment(segment, sync_low, protocol_only=7)
+        for segment, preceding_sync, following_sync in _segments(timings, gap_pulses=9):
+            frame = _decode_segment(segment, preceding_sync or following_sync, protocol_only=7)
             if frame:
                 frames.append(frame)
     return frames
