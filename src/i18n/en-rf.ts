@@ -382,6 +382,7 @@ export const enRf: Record<string, string> = {
   Original: 'Original',
   Zoom: 'Zoom',
   Cursor: 'Cursor',
+  'Ruido de fondo en el receptor: se ignora': 'Background noise at the receiver: ignored',
 };
 
 Object.assign(enRf, {

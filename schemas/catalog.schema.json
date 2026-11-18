@@ -704,6 +704,68 @@
                         "type": "integer",
                         "minimum": 30,
                         "maximum": 100
+                      },
+                      "form": {
+                        "type": "string",
+                        "enum": [
+                          "round",
+                          "square",
+                          "pill",
+                          "icon",
+                          "switch",
+                          "lamp",
+                          "thermo",
+                          "bars",
+                          "fader",
+                          "window",
+                          "pair",
+                          "segment",
+                          "display",
+                          "big",
+                          "gauge",
+                          "pop"
+                        ]
+                      },
+                      "style": {
+                        "enum": [
+                          "normal",
+                          "digital",
+                          "retro",
+                          "color",
+                          "glass",
+                          "futurista"
+                        ]
+                      },
+                      "symAnim": {
+                        "enum": [
+                          "spin",
+                          "spinslow",
+                          "flicker",
+                          "bob",
+                          "pulse",
+                          "rock"
+                        ]
+                      },
+                      "symWhen": {
+                        "enum": [
+                          "on",
+                          "always"
+                        ]
+                      },
+                      "win": {
+                        "enum": [
+                          "roller",
+                          "venetian",
+                          "vertical",
+                          "curtains",
+                          "curtain"
+                        ]
+                      },
+                      "winSide": {
+                        "enum": [
+                          "l",
+                          "r"
+                        ]
                       }
                     }
                   }
@@ -1149,6 +1211,20 @@
                             "null"
                           ],
                           "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        },
+                        "color": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "anim": {
+                          "enum": [
+                            "spin",
+                            "spinslow",
+                            "flicker",
+                            "bob",
+                            "pulse",
+                            "rock"
+                          ]
                         }
                       }
                     }
@@ -1227,6 +1303,72 @@
                     "type": "integer",
                     "minimum": 2,
                     "maximum": 24
+                  },
+                  "form": {
+                    "type": "string",
+                    "enum": [
+                      "round",
+                      "square",
+                      "pill",
+                      "icon",
+                      "switch",
+                      "lamp",
+                      "thermo",
+                      "bars",
+                      "fader",
+                      "window",
+                      "pair",
+                      "segment",
+                      "display",
+                      "big",
+                      "gauge",
+                      "pop"
+                    ]
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "digital",
+                      "retro",
+                      "color",
+                      "glass",
+                      "futurista"
+                    ]
+                  },
+                  "accent": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "symAnim": {
+                    "enum": [
+                      "spin",
+                      "spinslow",
+                      "flicker",
+                      "bob",
+                      "pulse",
+                      "rock"
+                    ]
+                  },
+                  "symWhen": {
+                    "enum": [
+                      "on",
+                      "always"
+                    ]
+                  },
+                  "win": {
+                    "enum": [
+                      "roller",
+                      "venetian",
+                      "vertical",
+                      "curtains",
+                      "curtain"
+                    ]
+                  },
+                  "winSide": {
+                    "enum": [
+                      "l",
+                      "r"
+                    ]
                   }
                 },
                 "allOf": [

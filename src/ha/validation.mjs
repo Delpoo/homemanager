@@ -1014,7 +1014,33 @@ export const PIECE_LOOK_KEYS = [
   'chart',
   'theme',
   'gap',
+  'form',
+  'style',
+  'accent',
+  'symAnim',
+  'symWhen',
+  'win',
+  'winSide',
 ];
+const STYLES = ['normal', 'digital', 'retro', 'color', 'glass', 'futurista'];
+const SYM_ANIMS = ['spin', 'spinslow', 'flicker', 'bob', 'pulse', 'rock'];
+const WINDOW_KINDS = ['roller', 'venetian', 'vertical', 'curtains', 'curtain'];
+const FORMS = {
+  button: ['round', 'square', 'pill', 'icon'],
+  preset: ['round', 'square', 'pill', 'icon'],
+  toggle: ['switch', 'lamp', 'round', 'pill'],
+  updown: ['pair', 'bars'],
+  slider: ['fader', 'bars', 'thermo', 'window'],
+  steps: ['bars'],
+  knob: ['thermo'],
+  modes: ['segment', 'bars'],
+  cycle: ['round', 'square', 'pill'],
+  indicator: ['display', 'big', 'gauge'],
+  dpad: ['pop'],
+  numpad: ['pop'],
+  transport: ['pop'],
+  colors: ['pop'],
+};
 const between = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const shortText = (value, limit) => typeof value === 'string' && value.trim().length > 0 && value.length <= limit;
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -1097,7 +1123,9 @@ function assertPieceLook(p, path, isRef) {
         check(
           option &&
             typeof option === 'object' &&
-            Object.keys(option).every(k => k === 'label' || k === 'icon') &&
+            Object.keys(option).every(k => ['label', 'icon', 'color', 'anim'].includes(k)) &&
+            (option.color === undefined || (typeof option.color === 'string' && HEX.test(option.color))) &&
+            (option.anim === undefined || SYM_ANIMS.includes(option.anim)) &&
             (option.label === undefined || option.label === null || shortText(option.label, 20)) &&
             (option.icon === undefined ||
               option.icon === null ||
@@ -1152,6 +1180,13 @@ function assertPieceLook(p, path, isRef) {
     } else if (key === 'theme')
       check(kind === 'canvas' && ['grafito', 'claro', 'arena', 'vidrio'].includes(value), key);
     else if (key === 'gap') check(kind === 'canvas' && between(value, 2, 24), key);
+    else if (key === 'form') check((FORMS[kind] ?? []).includes(value), key);
+    else if (key === 'style') check(STYLES.includes(value), key);
+    else if (key === 'accent') check(kind === 'canvas' && typeof value === 'string' && HEX.test(value), key);
+    else if (key === 'symAnim') check(drawn && SYM_ANIMS.includes(value), key);
+    else if (key === 'symWhen') check(drawn && ['on', 'always'].includes(value), key);
+    else if (key === 'win') check(p.form === 'window' && WINDOW_KINDS.includes(value), key);
+    else if (key === 'winSide') check(p.form === 'window' && ['l', 'r'].includes(value), key);
   }
   check(p.hold !== 'other' || p.holdButton !== undefined, 'holdButton');
   if (level && pieceSendBy(p) === 'level') check((pieceLevelCount(p) ?? 0) <= MAX_LEVELS, 'levels');

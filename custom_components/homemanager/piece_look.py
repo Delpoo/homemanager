@@ -25,12 +25,33 @@ BLOCK_SLOTS = {
     "colors": ("red", "green", "yellow", "blue"),
 }
 THEMES = ("grafito", "claro", "arena", "vidrio")
+# 0.14 · six button styles, forms per type, animations of a symbol, kinds of window.
+STYLES = ("normal", "digital", "retro", "color", "glass", "futurista")
+SYM_ANIMS = ("spin", "spinslow", "flicker", "bob", "pulse", "rock")
+WINDOW_KINDS = ("roller", "venetian", "vertical", "curtains", "curtain")
+FORMS = {
+    "button": ("round", "square", "pill", "icon"),
+    "preset": ("round", "square", "pill", "icon"),
+    "toggle": ("switch", "lamp", "round", "pill"),
+    "updown": ("pair", "bars"),
+    "slider": ("fader", "bars", "thermo", "window"),
+    "steps": ("bars",),
+    "knob": ("thermo",),
+    "modes": ("segment", "bars"),
+    "cycle": ("round", "square", "pill"),
+    "indicator": ("display", "big", "gauge"),
+    "dpad": ("pop",),
+    "numpad": ("pop",),
+    "transport": ("pop",),
+    "colors": ("pop",),
+}
 MAX_LEVELS = 24
 LOOK_KEYS = frozenset(
     {
         "fontSize", "fontWeight", "iconSize", "border", "active", "radius", "relief", "anim", "brand",
         "hold", "holdButton", "values", "names", "wrap", "sendBy", "display", "valueSize",
         "options", "slots", "period", "theme", "gap", "chart",
+        "form", "style", "accent", "symAnim", "symWhen", "win", "winSide",
     }
 )
 
@@ -128,7 +149,9 @@ def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callabl
         elif key == "options":
             _check(kind in MODES and isinstance(value, list) and len(value) == len(used), key)
             for option in value:
-                _check(isinstance(option, dict) and option.keys() <= {"label", "icon"}, key)
+                _check(isinstance(option, dict) and option.keys() <= {"label", "icon", "color", "anim"}, key)
+                _check(option.get("color") is None or isinstance(option["color"], str) and bool(COLOR.fullmatch(option["color"])), key)
+                _check(option.get("anim") is None or option["anim"] in SYM_ANIMS, key)
                 _check(option.get("label") is None or _label(option["label"], 20), key)
                 _check(option.get("icon") is None or isinstance(option["icon"], str) and bool(ICON.fullmatch(option["icon"])), key)
         elif key == "slots":
@@ -156,6 +179,20 @@ def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callabl
             _check(kind == "canvas" and value in THEMES, key)
         elif key == "gap":
             _check(kind == "canvas" and _int(value, 2, 24), key)
+        elif key == "form":
+            _check(value in FORMS.get(kind, ()), key)
+        elif key == "style":
+            _check(value in STYLES, key)
+        elif key == "accent":
+            _check(kind == "canvas" and isinstance(value, str) and bool(COLOR.fullmatch(value)), key)
+        elif key == "symAnim":
+            _check(drawn and value in SYM_ANIMS, key)
+        elif key == "symWhen":
+            _check(drawn and value in ("on", "always"), key)
+        elif key == "win":
+            _check(raw.get("form") == "window" and value in WINDOW_KINDS, key)
+        elif key == "winSide":
+            _check(raw.get("form") == "window" and value in ("l", "r"), key)
         look[key] = value
     _check(raw.get("hold") != "other" or "holdButton" in raw, "holdButton")
     if kind in LEVELS and send_by(kind, raw) == "level":

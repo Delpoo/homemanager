@@ -478,14 +478,31 @@ export class HomeManagerRfRemote extends HTMLElement {
     const target = (event.target as HTMLElement).closest<HTMLElement>('[data-op]');
     const piece = this.piece(element.dataset.widget!);
     if (!target || !piece || target.dataset.op === 'pick') return;
+    // 0.14: «123» and «more» open their keys over the control; another tap closes them.
+    if (target.dataset.op === 'pop') {
+      element.classList.toggle('popopen');
+      return;
+    }
     if (this.held) {
       this.held = false;
       return;
     }
+    if (target.dataset.op === 'ring') {
+      // Thermostat: the angle on its 240° ring says the level.
+      const box = target.getBoundingClientRect();
+      let angle = (Math.atan2(event.clientY - box.top - box.height * 0.54, event.clientX - box.left - box.width / 2) * 180) / Math.PI;
+      if (angle < 0) angle += 360;
+      let rel = angle - 150;
+      if (rel < 0) rel += 360;
+      if (rel > 240) rel = rel > 300 ? 0 : 240;
+      target.dataset.v = String(Math.round((rel / 240) * Math.max(0, levelCount(piece) - 1)));
+    }
     if (target.dataset.op === 'track') {
       const box = target.getBoundingClientRect();
-      const vertical = piece.orientation === 'vertical';
-      const share = vertical ? 1 - (event.clientY - box.top) / box.height : (event.clientX - box.left) / box.width;
+      const axis = target.dataset.axis ?? (piece.orientation === 'vertical' ? 'v' : 'h');
+      const x = (event.clientX - box.left) / box.width, y = (event.clientY - box.top) / box.height;
+      // A window closes from the top, from one side or from both sides to the middle.
+      const share = axis === 'v' || axis === 'top' ? 1 - y : axis === 'hr' ? 1 - x : axis === 'c' ? Math.abs(x - 0.5) * 2 : x;
       target.dataset.v = String(Math.round(Math.max(0, Math.min(1, share)) * Math.max(0, levelCount(piece) - 1)));
     }
     void this.operate(piece, target, element);
@@ -530,6 +547,7 @@ export class HomeManagerRfRemote extends HTMLElement {
       case 'inc':
       case 'dec':
       case 'set':
+      case 'ring':
       case 'track':
         await this.moveLevel(piece, op, value, element);
         return;

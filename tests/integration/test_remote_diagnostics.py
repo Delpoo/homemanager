@@ -145,10 +145,10 @@ async def test_rf_diagnostics_keeps_legacy_rf_and_rejects_unattributed_echo(hass
         hass.services.async_register("esphome", f"{node}_homemanager_rf_send", send)
     admin = await hass_ws_client(hass)
     subscription = await call(admin, f"{RF}/capture", transmitter="tx_a", diagnostics=True)
-    hass.bus.async_fire(RAW_EVENT, {"device_id": "reg-tx_a", "timings": "130,-120,130,-100"})
+    hass.bus.async_fire(RAW_EVENT, {"device_id": "reg-tx_a", "timings": "330,-310,330,-290"})
     noise = (await admin.receive_json())["event"]
     raw_unknown = (await call(admin, f"{DIAG}/candidate", source="rf", candidate_id=noise["signal_id"], advanced=True))["result"]["original"]
-    assert raw_unknown["analysis"]["decoded"] is None and raw_unknown["timings_us"] == [130, -120, 130, -100]
+    assert raw_unknown["analysis"]["decoded"] is None and raw_unknown["timings_us"] == [330, -310, 330, -290]
     hass.bus.async_fire(RAW_EVENT, {"device_id": "reg-tx_a", "timings": ",".join(map(str, raw))})
     candidate = (await admin.receive_json())["event"]["candidate"]
     await call(admin, "unsubscribe_events", subscription=subscription["id"])

@@ -155,6 +155,7 @@ export const rfLearnRingStyles = `
 .ring .core{position:relative;z-index:1;display:grid;place-items:center;width:76px;height:76px;border-radius:50%;background:color-mix(in srgb,var(--hm-brand) 14%,var(--hm-surface));color:var(--hm-brand);transition:background .2s,color .2s}
 .ring .core ha-icon{--mdc-icon-size:34px}
 .listen.ok .ring .core{background:var(--hm-brand);color:var(--hm-on-accent)}
+.listen .hiss{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:var(--hm-muted);background:var(--hm-surface-2);justify-self:center}.listen .hiss ha-icon{--mdc-icon-size:14px}
 .listen.warn .ring .core{background:color-mix(in srgb,var(--hm-warn) 18%,var(--hm-surface));color:var(--hm-warn)}
 .ring .waves{position:absolute;inset:0;display:grid;place-items:center}
 .ring .waves i{position:absolute;width:76px;height:76px;border:2px solid var(--hm-brand);border-radius:50%;opacity:0}
