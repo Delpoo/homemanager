@@ -30,6 +30,9 @@ MIN_BITS = 8
 MAX_BITS = 64
 # Relative tolerance when classifying a duration against the measured pulse.
 TOLERANCE = 0.4
+# A receiver with nothing to hear picks up hiss: bursts of pulses near 100 µs.
+# Frames that do not decode and are mostly shorter than this are that hiss.
+STATIC_PULSE_US = 150
 
 
 @dataclass(frozen=True)
@@ -113,6 +116,12 @@ def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
         else:
             return Frame(protocol, "".join(bits), int(round(pulse / 10) * 10))
     return None
+
+
+def is_static(timings: list[int]) -> bool:
+    """True for receiver hiss: most durations shorter than any supported remote sends.
+    Only meant for frames that did not decode; a decoded frame is never hiss."""
+    return not timings or sum(abs(value) < STATIC_PULSE_US for value in timings) * 2 > len(timings)
 
 
 def decode(timings: list[int]) -> list[Frame]:

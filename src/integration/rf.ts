@@ -87,7 +87,14 @@ export interface RfCandidate {
   fingerprint: string;
   known_as: string[];
 }
-export type RfCaptureEvent = { candidate?: RfCandidate; noise?: number; done?: boolean; signal_id?: string };
+/** `static`: receiver hiss heard (a count, every few seconds at most); it never carries a sample. */
+export type RfCaptureEvent = {
+  candidate?: RfCandidate;
+  noise?: number;
+  static?: number;
+  done?: boolean;
+  signal_id?: string;
+};
 
 /** Roles each part kind accepts (rf_model.ROLES). */
 export const ROLES: Record<PartKind, string[]> = {

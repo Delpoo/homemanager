@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 
 from custom_components.homemanager.const import CONF_VIEWER_USER_IDS
 from custom_components.homemanager.rf import RAW_EVENT
-from custom_components.homemanager.rf_codec import decode, encode_timings, summarize
+from custom_components.homemanager.rf_codec import decode, encode_timings, is_static, summarize
 
 CODE = "101101011001011001110101"
 OTHER = "101101011001011001110110"
@@ -51,6 +51,9 @@ def test_decoder_prefers_full_frames_and_rejects_noise() -> None:
     assert summarize(decode(partial + full)).bits == CODE
     assert decode([120, -340, 95, -60, 300]) == []
     assert summarize([]) is None
+    # Receiver hiss (pulses near 100 µs) is told apart from a real signal that does not decode.
+    assert is_static([100, -90] * 20) and is_static([])
+    assert not is_static([300, -300] * 20) and not is_static(encode_timings(1, CODE, 350))
 
 
 def _transmitter(hass: HomeAssistant, node: str = "test_tx") -> list[dict]:
@@ -235,6 +238,13 @@ async def test_capture_confirms_two_quick_presses_and_reports_noise(hass: HomeAs
         hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(["300", "-300"] * 20)})
         await hass.async_block_till_done()
     assert [(await admin.receive_json())["event"] for _ in range(2)] == [{"noise": 1}, {"noise": 3}]
+
+    # Receiver hiss never becomes "not recognised" nor a sample: it is counted and reported rarely.
+    for moment in (40.0, 40.4, 45.2):
+        monkeypatch.setattr("custom_components.homemanager.rf._now", lambda moment=moment: moment)
+        hass.bus.async_fire(RAW_EVENT, {"timings": ",".join(["100", "-90"] * 20)})
+        await hass.async_block_till_done()
+    assert [(await admin.receive_json())["event"] for _ in range(2)] == [{"static": 1}, {"static": 3}]
 
 
 async def test_parts_layout_and_button_deletion(hass: HomeAssistant, setup_integration, hass_ws_client) -> None:

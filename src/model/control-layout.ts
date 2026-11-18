@@ -74,8 +74,20 @@ export interface ControlPiece {
   /** Levels: what the middle shows. Modes: 'list' folds the options. */
   display?: 'value' | 'name' | 'dots' | 'text' | 'list';
   valueSize?: number;
-  /** Modes and cycle: text and icon of each option, beside its button. */
-  options?: { label?: string | null; icon?: string | null }[];
+  /** Modes and cycle: text, icon, colour while chosen and animation of each option, beside its button. */
+  options?: { label?: string | null; icon?: string | null; color?: string; anim?: SymAnim }[];
+  /** 0.14 · how the piece is drawn inside its type (thermostat, segments, level bars, window…). */
+  form?: PieceForm;
+  /** 0.14 · button style. On the canvas it applies to every piece that does not choose its own. */
+  style?: ControlStyle;
+  /** 0.14 · canvas only: one accent colour for the whole control. */
+  accent?: string;
+  /** 0.14 · how the symbol moves, and when. */
+  symAnim?: SymAnim;
+  symWhen?: 'on' | 'always';
+  /** 0.14 · window form: kind of covering and the side it closes from. */
+  win?: WindowKind;
+  winSide?: 'l' | 'r';
   /** Blocks: which learned button each key sends. */
   slots?: Record<string, string>;
   period?: '1h' | '24h' | '7d' | '30d';
@@ -95,6 +107,59 @@ export interface ControlPiece {
   gap?: number;
 }
 export type RemoteTheme = 'grafito' | 'claro' | 'arena' | 'vidrio';
+/** 0.14 · the six button styles. */
+export type ControlStyle = 'normal' | 'digital' | 'retro' | 'color' | 'glass' | 'futurista';
+export const CONTROL_STYLES: ControlStyle[] = ['normal', 'digital', 'retro', 'color', 'glass', 'futurista'];
+/** A control saved with a theme and no style keeps looking the same. */
+export const THEME_STYLE: Record<RemoteTheme, ControlStyle> = {
+  grafito: 'normal',
+  claro: 'normal',
+  arena: 'retro',
+  vidrio: 'glass',
+};
+export type SymAnim = 'spin' | 'spinslow' | 'flicker' | 'bob' | 'pulse' | 'rock';
+export const SYM_ANIMS: SymAnim[] = ['spin', 'spinslow', 'flicker', 'bob', 'pulse', 'rock'];
+export type WindowKind = 'roller' | 'venetian' | 'vertical' | 'curtains' | 'curtain';
+export const WINDOW_KINDS: WindowKind[] = ['roller', 'venetian', 'vertical', 'curtains', 'curtain'];
+export type PieceForm =
+  | 'round'
+  | 'square'
+  | 'pill'
+  | 'icon'
+  | 'switch'
+  | 'lamp'
+  | 'thermo'
+  | 'bars'
+  | 'fader'
+  | 'window'
+  | 'pair'
+  | 'segment'
+  | 'display'
+  | 'big'
+  | 'gauge'
+  | 'pop';
+/** The forms each type can take; the type itself (what it does) does not change. */
+export const PIECE_FORMS: Partial<Record<PieceType, PieceForm[]>> = {
+  button: ['round', 'square', 'pill', 'icon'],
+  preset: ['round', 'square', 'pill', 'icon'],
+  toggle: ['switch', 'lamp', 'round', 'pill'],
+  updown: ['pair', 'bars'],
+  slider: ['fader', 'bars', 'thermo', 'window'],
+  steps: ['bars'],
+  knob: ['thermo'],
+  modes: ['segment', 'bars'],
+  cycle: ['round', 'square', 'pill'],
+  indicator: ['display', 'big', 'gauge'],
+  dpad: ['pop'],
+  numpad: ['pop'],
+  transport: ['pop'],
+  colors: ['pop'],
+};
+export const formsOf = (type: PieceType): PieceForm[] => PIECE_FORMS[type] ?? [];
+/** The style a piece is drawn with: its own, the control's, or the one of the old theme. */
+export function styleOf(piece: ControlPiece | undefined, canvas?: ControlPiece): ControlStyle {
+  return piece?.style ?? canvas?.style ?? (canvas?.theme ? THEME_STYLE[canvas.theme] : 'normal');
+}
 export const REMOTE_THEMES: RemoteTheme[] = ['grafito', 'claro', 'arena', 'vidrio'];
 export const LEVEL_TYPES: PieceType[] = ['updown', 'slider', 'steps', 'knob'];
 export const MAX_LEVELS = 24;

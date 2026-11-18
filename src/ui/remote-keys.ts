@@ -11,6 +11,7 @@ import {
   type RemoteTheme,
 } from '../model/control-layout.js';
 import { brandInitials, brandOf } from './brands.js';
+import { formContent, formStyles, moving } from './control-forms.js';
 import type { HistorySeries } from '../integration/history.js';
 
 /** One element of a designed control, drawn the same way everywhere (0.13): in the
@@ -47,6 +48,9 @@ export function brandMark(name: string, inKey = false): string {
 /** Corner radius in pixels; old pieces said round or square. */
 export function radiusOf(piece: ControlPiece): number {
   if (typeof piece.radius === 'number') return piece.radius;
+  // 0.14: a round, pill or lamp form is round unless its corners were set by hand.
+  if (piece.form === 'round' || piece.form === 'pill' || piece.form === 'lamp') return 999;
+  if (piece.form === 'square') return 4;
   return piece.shape === 'round' ? 999 : piece.shape === 'square' ? 4 : LEVEL_TYPES.includes(piece.type) ? 14 : 14;
 }
 
@@ -78,6 +82,8 @@ export function keyClasses(piece: ControlPiece, on: boolean): string {
     on ? 'on' : '',
     color(piece.border) ? 'bd' : '',
     piece.orientation === 'vertical' ? 'vertical' : '',
+    piece.form ? `f-${piece.form}` : '',
+    piece.style ? `st-${piece.style}` : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -111,15 +117,20 @@ export function keyContent(piece: ControlPiece, ctx: KeyContext): string {
   const refs = piece.buttons;
   const label = piece.label ?? (refs[0] ? ctx.name(refs[0]) : '');
   const iconOf = (ref?: string) => piece.icon ?? (ref ? ctx.icon(ref) : null);
+  // 0.14: a piece with a form of its own (thermostat, segments, bars, window…) is drawn there.
+  const formed = formContent(piece, ctx, p => keyContent(p, ctx));
+  if (formed !== null) return formed;
   switch (piece.type) {
     case 'button':
     case 'control': {
-      const mark = piece.brand ? brandMark(piece.brand, true) : glyph(iconOf(refs[0]) ?? 'mdi:gesture-tap');
+      const mark = piece.brand
+        ? brandMark(piece.brand, true)
+        : moving(piece, glyph(iconOf(refs[0]) ?? 'mdi:gesture-tap'), false);
       return `<button type="button" class="kface" data-op="press" aria-label="${e(text(label))}">${face(piece, mark, label)}</button>`;
     }
     case 'toggle': {
       const on = ctx.on(piece);
-      return `<button type="button" class="kface" data-op="toggle" aria-pressed="${on}" aria-label="${e(text(label))}">${face(piece, glyph(iconOf(refs[0]) ?? 'mdi:power'), label)}</button>`;
+      return `<button type="button" class="kface" data-op="toggle" aria-pressed="${on}" aria-label="${e(text(label))}">${face(piece, moving(piece, glyph(iconOf(refs[0]) ?? 'mdi:power'), on), label)}</button>`;
     }
     case 'preset':
       return `<button type="button" class="kface" data-op="preset" aria-label="${e(text(piece.label ?? t('Secuencia')))}">${face(piece, glyph(piece.icon ?? 'mdi:playlist-play'), piece.label ?? t('Secuencia'))}</button>`;
@@ -314,16 +325,20 @@ export function historyChart(
 }
 
 /** The body of the control: theme, colour, corners and the space between keys. */
-export function bodyVars(canvas: ControlPiece | undefined): { theme: RemoteTheme | 'hm'; style: string } {
+export function bodyVars(canvas: ControlPiece | undefined): { theme: RemoteTheme | 'hm'; style: string; cls: string } {
   const style: string[] = [];
   if (canvas && color(canvas.bg)) style.push(`--rbody:${canvas.bg}`);
   if (canvas && typeof canvas.radius === 'number') style.push(`--rrad:${canvas.radius}px`);
   if (canvas?.gap) style.push(`--gap:${canvas.gap}px`);
-  return { theme: canvas?.theme ?? 'hm', style: style.join(';') };
+  // 0.14: the control's style (or the one of its old theme) and one accent colour for all its keys.
+  if (canvas && color(canvas.accent)) style.push(`--racc:${canvas.accent}`);
+  const cls = canvas?.style ? `st-${canvas.style}` : '';
+  return { theme: canvas?.theme ?? 'hm', style: style.join(';'), cls };
 }
 
 /** Keys and bodies. "hm" is the theme of a control that never chose one: Home Manager's own colours. */
-export const keyStyles = `
+export const keyStyles =
+  `
 .body{--rbody:var(--hm-surface);--rkey:var(--hm-bg);--rfg:var(--hm-ink);--racc:var(--hm-brand);--rsub:var(--hm-muted);--rrad:28px;
   position:relative;border-radius:var(--rrad);background:var(--rbody);color:var(--rfg);border:1px solid var(--hm-line);box-shadow:var(--hm-shadow)}
 .body.theme-grafito,.body.theme-claro,.body.theme-arena,.body.theme-vidrio{border-color:transparent;box-shadow:0 28px 50px -22px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -2px 0 rgba(0,0,0,.18)}
@@ -420,17 +435,17 @@ export const keyStyles = `
 .brandmark ha-icon{--mdc-icon-size:18px}
 .brandmark.inkey{width:auto;height:auto;background:transparent;font-size:calc(var(--isz) * .7)}.brandmark.inkey ha-icon{--mdc-icon-size:var(--isz)}
 @media(prefers-reduced-motion:reduce){.k.press,.k.flash{animation:none}}
-`;
+` + formStyles;
 
 /** The body of a drawn control: its theme and its grid. */
 export function remoteShell(
-  look: { theme: string; style: string },
+  look: { theme: string; style: string; cls?: string },
   editing: boolean,
   columns: number,
   gap: number,
   inner: string,
 ): string {
-  return `<div class="body theme-${look.theme}${editing ? ' editing' : ' live-keys'}" style="--cols:${columns};--gap:${gap}px;${look.style}"><div class="grid">${inner}</div><p class="live" role="status" aria-live="polite"></p></div>`;
+  return `<div class="body theme-${look.theme}${look.cls ? ` ${look.cls}` : ''}${editing ? ' editing' : ' live-keys'}" style="--cols:${columns};--gap:${gap}px;${look.style}"><div class="grid">${inner}</div><p class="live" role="status" aria-live="polite"></p></div>`;
 }
 
 /** One piece in its cell of the grid, with its look. */

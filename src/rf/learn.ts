@@ -34,6 +34,8 @@ const LISTEN_MS = 10 * 60 * 1000;
 const WINDOW_SECONDS = 60;
 // A "signal not recognised" notice stays this long after the last one.
 const NOISE_MS = 3000;
+// The hiss symbol stays this long after the last report (reports come every 5 s at most).
+const STATIC_MS = 12000;
 
 export class HomeManagerRfLearn extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
@@ -70,6 +72,7 @@ export class HomeManagerRfLearn extends HTMLElement {
   private readonly readings = new Map<string, RfCandidate>();
   private chosenReading = '';
   private noiseAt = 0;
+  private staticAt = 0;
   private name = '';
   private glyph = '';
   private assign = '';
@@ -159,10 +162,25 @@ export class HomeManagerRfLearn extends HTMLElement {
             this.listening = false;
             this.stopCapture = null;
             if (Date.now() < this.until) void this.capture();
+          } else if (event.static) {
+            // Hiss changes nothing on screen: only the quiet symbol appears, once, and goes away later.
+            const shown = Date.now() - this.staticAt < STATIC_MS;
+            this.staticAt = Date.now();
+            window.setTimeout(
+              () => this.isConnected && Date.now() - this.staticAt >= STATIC_MS && this.render(),
+              STATIC_MS + 50,
+            );
+            if (shown) return;
           } else if (event.noise) {
+            // The signal shown stays put while its notice lasts: a new one does not make the graph jump.
+            if (!this.unclassified || Date.now() - this.noiseAt >= NOISE_MS) this.unclassified = event.signal_id ?? '';
+            const shown = Date.now() - this.noiseAt < NOISE_MS;
             this.noiseAt = Date.now();
-            this.unclassified = event.signal_id ?? '';
-            window.setTimeout(() => this.isConnected && this.render(), NOISE_MS + 50);
+            window.setTimeout(
+              () => this.isConnected && Date.now() - this.noiseAt >= NOISE_MS && this.render(),
+              NOISE_MS + 50,
+            );
+            if (shown || this.candidate) return;
           } else if (event.candidate) {
             const next = event.candidate;
             if (!this.guided && next.confirmed) {
@@ -324,7 +342,7 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
     }
     const tap = this.listening ? '' : this.guided && !this.until ? '' : ' data-command="listen"';
     const glyph = dot === 'ok' ? 'mdi:check' : dot === 'warn' ? 'mdi:alert-outline' : 'mdi:access-point';
-    return `<div class="listen ${dot}"><button type="button" class="ring${this.listening ? ' on' : ''}"${tap} aria-label="${e(this.listening ? title : t('Escuchar'))}"${tap ? '' : ' tabindex="-1"'}><span class="waves" aria-hidden="true"><i></i><i></i><i></i></span><span class="core">${icon(glyph)}</span></button><div class="text"><strong>${e(title)}</strong>${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div></div>`;
+    return `<div class="listen ${dot}"><button type="button" class="ring${this.listening ? ' on' : ''}"${tap} aria-label="${e(this.listening ? title : t('Escuchar'))}"${tap ? '' : ' tabindex="-1"'}><span class="waves" aria-hidden="true"><i></i><i></i><i></i></span><span class="core">${icon(glyph)}</span></button><div class="text"><strong>${e(title)}</strong>${this.listening && Date.now() - this.staticAt < STATIC_MS ? `<span class="hiss" role="img" title="${e(t('Ruido de fondo en el receptor: se ignora'))}" aria-label="${e(t('Ruido de fondo en el receptor: se ignora'))}">${icon('mdi:waveform')}</span>` : ''}${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div></div>`;
   }
 
   private roleOptions(): string {

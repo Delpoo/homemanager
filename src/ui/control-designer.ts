@@ -35,6 +35,12 @@ import {
   sendByOf,
   type PieceStep,
   type RemoteTheme,
+  CONTROL_STYLES,
+  SYM_ANIMS,
+  WINDOW_KINDS,
+  formsOf,
+  type ControlStyle,
+  type PieceForm,
 } from '../model/control-layout.js';
 import { BRAND_COUNT, BRAND_GROUPS } from './brands.js';
 import { brandMark, keyStyles, radiusOf } from './remote-keys.js';
@@ -126,6 +132,59 @@ const THEMES: [RemoteTheme | 'hm', string][] = [
 const TEMPLATES: [RemoteTheme, string][] = [
   ['claro', 'Clásico'], ['grafito', 'Digital'], ['arena', 'Retro'], ['vidrio', 'Futurista'],
 ];
+/** 0.14 · how each form, style, movement and window looks in the inspector: a name (hover) and a symbol. */
+const FORM_LOOK: Record<PieceForm, [string, string]> = {
+  round: ['Redondo', 'mdi:circle-outline'],
+  square: ['Cuadrado', 'mdi:square-rounded-outline'],
+  pill: ['Píldora', 'mdi:pill'],
+  icon: ['Solo símbolo', 'mdi:shape-outline'],
+  switch: ['Interruptor', 'mdi:toggle-switch-outline'],
+  lamp: ['Luz', 'mdi:lightbulb-outline'],
+  thermo: ['Termostato', 'mdi:thermostat'],
+  bars: ['Barras', 'mdi:chart-bar'],
+  fader: ['Barra deslizante', 'mdi:tune-vertical'],
+  window: ['Ventana', 'mdi:window-shutter'],
+  pair: ['Par', 'mdi:plus-minus-variant'],
+  segment: ['Segmentos', 'mdi:view-column-outline'],
+  display: ['Pantalla', 'mdi:numeric'],
+  big: ['Número grande', 'mdi:format-size'],
+  gauge: ['Medidor', 'mdi:gauge'],
+  pop: ['Detrás de un botón', 'mdi:arrow-expand'],
+};
+const STYLE_LOOK: Record<ControlStyle, string> = {
+  normal: 'Normal',
+  digital: 'Digital',
+  retro: 'Retro',
+  color: 'Colorido',
+  glass: 'Cristal',
+  futurista: 'Futurista',
+};
+const STYLE_ICON: Record<ControlStyle, string> = {
+  normal: 'mdi:circle-slice-8',
+  digital: 'mdi:numeric-8-box-outline',
+  retro: 'mdi:radio',
+  color: 'mdi:palette',
+  glass: 'mdi:blur',
+  futurista: 'mdi:rocket-launch-outline',
+};
+const ANIM_LOOK: [string, string, string][] = [
+  ['', 'Quieto', 'mdi:motion-pause-outline'],
+  ['spin', 'Gira', 'mdi:rotate-right'],
+  ['spinslow', 'Gira lento', 'mdi:fan-speed-1'],
+  ['flicker', 'Titila', 'mdi:fire'],
+  ['bob', 'Flota', 'mdi:arrow-up-down'],
+  ['pulse', 'Late', 'mdi:heart-pulse'],
+  ['rock', 'Se mece', 'mdi:rotate-left-variant'],
+];
+const WIN_LOOK: Record<string, [string, string]> = {
+  roller: ['Persiana enrollable', 'mdi:roller-shade'],
+  venetian: ['Veneciana', 'mdi:blinds-horizontal'],
+  vertical: ['Vertical', 'mdi:blinds-vertical'],
+  curtains: ['Dos cortinas', 'mdi:curtains'],
+  curtain: ['Una cortina', 'mdi:curtains-closed'],
+};
+/** Pieces whose symbol can move (a level or a list moves its own symbol through its form). */
+const MOVES: WidgetType[] = ['button', 'toggle', 'preset', 'cycle', 'steps', 'slider', 'updown', 'modes'];
 /** Words that tell which learned button belongs to each key of a block. */
 const SLOT_WORDS: Record<string, RegExp> = {
   up: /^(arriba|up|subir|▲)$/i,
@@ -546,6 +605,11 @@ export class ControlDesigner extends HTMLElement {
       delete piece.holdButton;
     }
     piece.type = variant.type;
+    if (piece.form && !formsOf(piece.type).includes(piece.form)) {
+      delete piece.form;
+      delete piece.win;
+      delete piece.winSide;
+    }
   }
 
   // Rendering ------------------------------------------------------------
@@ -695,7 +759,7 @@ export class ControlDesigner extends HTMLElement {
     const canvas = layout.find(piece => piece.type === 'canvas');
     const theme = canvas?.theme ?? 'hm';
     const height = grid.rows ?? Math.max(2, rows(layout));
-    return `<div class="ihead"><span class="tile">${glyph('mdi:remote')}</span><b>${e(personName(this.options?.name, t('Control')))}<small>${e(t('{count} elementos', { count: layout.filter(p => p.type !== 'canvas').length }))}</small></b></div><div class="insp-body"><div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div><div class="isec">${e(t('Plantillas'))}</div>${row('mdi:palette', t('Vista previa de plantilla'), `<select class="isel" data-template-preview aria-label="${e(t('Vista previa de plantilla'))}"><option value="">—</option>${TEMPLATES.map(([key, label]) => `<option value="${key}"${this.templatePreview === key ? ' selected' : ''}>${e(t(label))}</option>`).join('')}</select>`)}${this.templatePreview ? `<div class="chips"><button type="button" class="chip" data-template-apply>${e(t('Aplicar a {name}', {name: personName(this.options?.name, t('Control'))}))}</button><button type="button" class="chip" data-template-cancel>${e(t('Cancelar'))}</button></div>` : ''}${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}</div>`;
+    return `<div class="ihead"><span class="tile">${glyph('mdi:remote')}</span><b>${e(personName(this.options?.name, t('Control')))}<small>${e(t('{count} elementos', { count: layout.filter(p => p.type !== 'canvas').length }))}</small></b></div><div class="insp-body"><div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div><div class="isec">${e(t('Plantillas'))}</div>${row('mdi:palette', t('Vista previa de plantilla'), `<select class="isel" data-template-preview aria-label="${e(t('Vista previa de plantilla'))}"><option value="">—</option>${TEMPLATES.map(([key, label]) => `<option value="${key}"${this.templatePreview === key ? ' selected' : ''}>${e(t(label))}</option>`).join('')}</select>`)}${this.templatePreview ? `<div class="chips"><button type="button" class="chip" data-template-apply>${e(t('Aplicar a {name}', {name: personName(this.options?.name, t('Control'))}))}</button><button type="button" class="chip" data-template-cancel>${e(t('Cancelar'))}</button></div>` : ''}${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}<div class="isec">${e(t('Estilo de los botones'))}</div><div class="cstyles">${(['', ...CONTROL_STYLES] as (ControlStyle | '')[]).map(key => `<button type="button" class="cstyle${key ? ` st-${key}` : ''}" data-cstyle="${key}" aria-pressed="${(canvas?.style ?? '') === key}" title="${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}"><span class="cprev"><i>${glyph('mdi:power')}</i><i></i></span><span>${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}</span></button>`).join('')}</div>${row('mdi:palette', t('Color de acento'), swatches('accent', canvas?.accent, t('Color de acento')))}</div>`;
   }
 
   private lookRows(piece: RfWidget, many = false): string {
@@ -722,6 +786,7 @@ export class ControlDesigner extends HTMLElement {
             )
           : ''
       }`;
+    html += this.styleRows(piece, many);
     html += `<div class="isec">${e(t('Letra'))}</div>${row('mdi:format-size', t('Tamaño de letra'), slider('fontSize', 8, 40, piece.fontSize ?? 13, 'px', t('Tamaño de letra')))}${row(
       'mdi:format-bold',
       t('Grosor'),
@@ -761,6 +826,46 @@ export class ControlDesigner extends HTMLElement {
     return html;
   }
 
+  /** 0.14 · the form inside its type, the button style, how its symbol moves and, for a window, its kind and side. */
+  private styleRows(piece: RfWidget, many: boolean): string {
+    const forms = formsOf(piece.type);
+    let html = `<div class="isec">${e(t('Estilo'))}</div>`;
+    if (!many && forms.length)
+      html += row(
+        'mdi:shape-plus-outline',
+        t('Forma'),
+        seg('form', [['', t('Como siempre'), variantOf(piece).icon], ...forms.map(f => [f, t(FORM_LOOK[f][0]), FORM_LOOK[f][1]] as [string, string, string])], piece.form ?? '', true),
+      );
+    if (piece.form === 'window') {
+      html += row(
+        'mdi:window-closed-variant',
+        t('Tipo de ventana'),
+        seg('win', WINDOW_KINDS.map(k => [k === 'roller' ? '' : k, t(WIN_LOOK[k][0]), WIN_LOOK[k][1]] as [string, string, string]), piece.win && piece.win !== 'roller' ? piece.win : '', true),
+      );
+      if (piece.win === 'vertical' || piece.win === 'curtain')
+        html += row(
+          'mdi:arrow-left-right',
+          t('Lado donde se junta'),
+          seg('winSide', [['', t('Izquierda'), 'mdi:format-horizontal-align-left'], ['r', t('Derecha'), 'mdi:format-horizontal-align-right']], piece.winSide === 'r' ? 'r' : '', true),
+        );
+    }
+    html += row(
+      'mdi:palette-swatch-outline',
+      t('Estilo del botón'),
+      seg('style', [['', t('Del control'), 'mdi:link-variant'], ...CONTROL_STYLES.map(s => [s, t(STYLE_LOOK[s]), STYLE_ICON[s]] as [string, string, string])], piece.style ?? '', true),
+    );
+    if (MOVES.includes(piece.type) && !piece.brand) {
+      html += row('mdi:animation-play-outline', t('Movimiento del símbolo'), seg('symAnim', ANIM_LOOK.map(([v, label, icon]) => [v, t(label), icon] as [string, string, string]), piece.symAnim ?? '', true));
+      if (piece.symAnim)
+        html += row(
+          'mdi:clock-outline',
+          t('Cuándo se mueve'),
+          seg('symWhen', [['', t('Mientras está activo'), 'mdi:power'], ['always', t('Siempre'), 'mdi:all-inclusive']], piece.symWhen === 'always' ? 'always' : '', true),
+        );
+    }
+    return html;
+  }
+
   private refSelect(
     name: string,
     value: string | undefined,
@@ -773,6 +878,13 @@ export class ControlDesigner extends HTMLElement {
         ? this.options.controls.map(c => ({ id: c.id, name: c.label }))
         : this.learned();
     return `<select class="isel" ${name ? `name="${name}"` : ''} ${attributes} aria-label="${e(label)}"><option value="">${e(empty)}</option>${choices.map(c => `<option value="${e(c.id)}"${value === c.id ? ' selected' : ''}>${e(c.name)}</option>`).join('')}</select>`;
+  }
+
+  /** 0.14 · colour while an option is chosen and how its symbol moves. */
+  private optionLook(piece: RfWidget, i: number): string {
+    const option = piece.options?.[i];
+    const color = option?.color && /^#[0-9a-fA-F]{6}$/.test(option.color) ? option.color : '';
+    return `<div class="optx"><div class="seg icons" role="group">${ANIM_LOOK.map(([v, label, icon]) => `<button type="button" data-option-anim="${i}" data-value="${v}" aria-pressed="${(option?.anim ?? '') === v}" title="${e(t(label))}" aria-label="${e(t(label))}">${glyph(icon)}</button>`).join('')}</div><span class="ocolw"><label class="ocol${color ? ' set' : ''}" style="--c:${color || 'transparent'}" title="${e(t('Color al elegirla'))}"><input type="color" data-option-color="${i}" value="${color || '#4F7A5A'}" aria-label="${e(t('Color al elegirla'))}"></label>${color ? `<button type="button" class="oclr" data-option-color-clear="${i}" title="${e(t('Quitar color'))}" aria-label="${e(t('Quitar color'))}">${glyph('mdi:close')}</button>` : ''}</span></div>`;
   }
 
   private functionRows(piece: RfWidget): string {
@@ -954,7 +1066,7 @@ export class ControlDesigner extends HTMLElement {
       html += `<div class="isec">${e(t('Opciones'))}</div><div class="opts">${piece.buttons
         .map(
           (ref, i) =>
-            `<div class="optr">${iconPicker(piece.options?.[i]?.icon ?? '', t('Icono'), `data-option-icon="${i}" clearable`)}<input aria-label="${e(t('Texto'))}" data-option-label="${i}" maxlength="20" value="${e(piece.options?.[i]?.label ?? '')}" placeholder="${e(this.name(ref))}">${this.refSelect(`ref-${i}`, ref, undefined, '', t('Opción') + ' ' + (i + 1))}${piece.buttons.length > 2 ? iconButton(t('Quitar'), 'mdi:close', `data-remove-ref="${i}"`, 'sm') : ''}</div>`,
+            `<div class="optr">${iconPicker(piece.options?.[i]?.icon ?? '', t('Icono'), `data-option-icon="${i}" clearable`)}<input aria-label="${e(t('Texto'))}" data-option-label="${i}" maxlength="20" value="${e(piece.options?.[i]?.label ?? '')}" placeholder="${e(this.name(ref))}">${this.refSelect(`ref-${i}`, ref, undefined, '', t('Opción') + ' ' + (i + 1))}${piece.buttons.length > 2 ? iconButton(t('Quitar'), 'mdi:close', `data-remove-ref="${i}"`, 'sm') : ''}</div>${this.optionLook(piece, i)}`,
         )
         .join(
           '',
@@ -1332,6 +1444,15 @@ export class ControlDesigner extends HTMLElement {
         }),
       ),
     );
+    root.querySelectorAll<HTMLElement>('[data-cstyle]').forEach(button =>
+      button.addEventListener('click', () =>
+        this.changeCanvas(canvas => {
+          const style = button.dataset.cstyle as ControlStyle | '';
+          if (style && CONTROL_STYLES.includes(style)) canvas.style = style;
+          else delete canvas.style;
+        }),
+      ),
+    );
     root.querySelectorAll<HTMLElement>('[data-step-key=cols],[data-step-key=rows]').forEach(button =>
       button.addEventListener('click', () => {
         const key = button.dataset.stepKey!;
@@ -1481,6 +1602,18 @@ export class ControlDesigner extends HTMLElement {
           if (choice === 'icon') p.hideLabel = true;
           if (choice === 'text') p.hideIcon = true;
         } else if (key === 'fontWeight') p.fontWeight = Number(choice) as 400 | 500 | 700;
+        else if (key === 'form') {
+          if (choice && formsOf(p.type).includes(choice as PieceForm)) p.form = choice as PieceForm;
+          else delete p.form;
+          if (p.form !== 'window') {
+            delete p.win;
+            delete p.winSide;
+          }
+        } else if (key === 'win') {
+          if (choice) p.win = choice as RfWidget['win'];
+          else delete p.win;
+          if (p.win !== 'vertical' && p.win !== 'curtain') delete p.winSide;
+        }
         else if (key === 'wrap') {
           if (choice) p.wrap = true;
           else delete p.wrap;
@@ -1591,6 +1724,23 @@ export class ControlDesigner extends HTMLElement {
         }),
       'change',
     );
+    const optionLook = (index: number, look: { color?: string | null; anim?: string }) =>
+      this.change(p => {
+        p.options = p.buttons.map((_, i) => p.options?.[i] ?? { label: null, icon: null });
+        const next = { ...p.options[index] } as NonNullable<RfWidget['options']>[number];
+        if ('color' in look) {
+          if (look.color) next.color = look.color.toUpperCase();
+          else delete next.color;
+        }
+        if ('anim' in look) {
+          if (look.anim && (SYM_ANIMS as string[]).includes(look.anim)) next.anim = look.anim as typeof next.anim;
+          else delete next.anim;
+        }
+        p.options[index] = next;
+      });
+    on('[data-option-color]', element => optionLook(Number(element.dataset.optionColor), { color: value(element) }), 'change');
+    on('[data-option-color-clear]', element => optionLook(Number(element.dataset.optionColorClear), { color: null }));
+    on('[data-option-anim]', element => optionLook(Number(element.dataset.optionAnim), { anim: element.dataset.value ?? '' }));
     on(
       '[data-slot]',
       element =>
@@ -1790,7 +1940,7 @@ const designerStyles = `
 .seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--hm-surface-2);flex-wrap:wrap}
 .seg button{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--hm-muted);font-size:12.5px}
 .seg button[aria-pressed=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
-.seg.icons button{padding:0 8px}.seg ha-icon{--mdc-icon-size:16px}
+.seg.icons button{padding:0 6px}.seg ha-icon{--mdc-icon-size:16px}
 .ib.sm{width:32px;height:32px;min-height:32px;border-radius:9px}.ib.sm ha-icon{--mdc-icon-size:18px}.ib.danger{color:var(--hm-alert)}
 .res{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--hm-line);background:var(--hm-surface)}
 .rtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-bottom:1px solid var(--hm-line)}
@@ -1853,6 +2003,21 @@ const designerStyles = `
 .swc{position:relative;display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:var(--hm-surface-2);cursor:pointer}.swc ha-icon{--mdc-icon-size:14px}
 .swc input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;min-height:0;padding:0}
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cstyles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cstyle{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:11px;color:var(--hm-ink);min-width:0}
+.cstyle>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cstyle[aria-pressed=true]{border-color:var(--hm-brand);box-shadow:inset 0 0 0 1px var(--hm-brand)}
+.cprev{display:flex;gap:3px;padding:5px 6px;border-radius:9px;background:var(--rbody,var(--hm-bg));border:1px solid var(--hm-line)}
+.cprev i{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--rkey,var(--hm-surface));color:var(--rfg,var(--hm-ink))}
+.cprev i:last-child{background:var(--racc,var(--hm-brand))}.cprev ha-icon{--mdc-icon-size:11px}
+.optx{display:flex;align-items:center;gap:6px;margin:-2px 0 6px 0}
+.seg.icons:has(>button:nth-child(6)) button{width:30px;height:30px;min-height:30px;padding:0;border-radius:8px}
+.optx .seg.icons button{width:28px;height:28px;min-height:28px}.optx .seg ha-icon{--mdc-icon-size:14px}
+.ocolw{position:relative;flex:none;display:flex}
+.oclr{position:absolute;top:-6px;right:-6px;display:grid;place-items:center;width:16px;height:16px;min-height:0;padding:0;border-radius:50%;background:var(--hm-surface);border:1px solid var(--hm-line);color:var(--hm-muted)}.oclr ha-icon{--mdc-icon-size:11px}
+.ocol{position:relative;width:26px;height:26px;border-radius:8px;border:1px dashed var(--hm-line);background:var(--c);cursor:pointer;flex:none}
+.ocol.set{border-style:solid;border-color:transparent}
+.ocol input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .theme{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:11.5px;color:var(--hm-ink)}
 .theme[aria-pressed=true]{border-color:var(--hm-brand);box-shadow:inset 0 0 0 1px var(--hm-brand)}
 .tbody{display:grid;grid-template-columns:repeat(2,10px);gap:3px;padding:6px 8px;border-radius:9px;background:var(--hm-surface);border:1px solid var(--hm-line)}.tbody i{height:8px;border-radius:3px;background:var(--hm-bg)}

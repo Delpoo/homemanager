@@ -38,7 +38,7 @@ from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN
 from .model import ModelError
-from .rf_codec import decode, summarize
+from .rf_codec import decode, is_static, summarize
 from .rf_model import Library, Remote, fingerprint, migrate_remote_v1, validate_layout
 from .signals import prepare_rf, sample
 
@@ -60,6 +60,8 @@ CONFIRM_FRAMES = 3
 CANDIDATE_TTL_SECONDS = 15 * 60
 # Undecodable receptions are reported at most this often.
 NOISE_INTERVAL_SECONDS = 0.5
+# Receiver hiss is reported at most this often: it changes nothing on screen.
+STATIC_INTERVAL_SECONDS = 5
 # Echo of a press: receivers listen this long (the device closes its window by
 # itself), and the echo is awaited this long after the transmission ends.
 ECHO_WINDOW_SECONDS = 3
@@ -534,16 +536,17 @@ class RfManager:
 
     async def async_capture(self, transmitter: str, seconds: int, report: Callable[[dict[str, Any]], None], done: Callable[[], None], *, diagnostics: bool = False) -> Callable[[], None]:
         """Listens for `seconds`. Reports `{"candidate": ...}` for every heard code
-        as it accumulates frames and presses, and `{"noise": n}` when signals
-        arrive that no supported protocol explains. Returns a stop function
-        (also called when time runs out)."""
+        as it accumulates frames and presses, `{"noise": n}` when signals
+        arrive that no supported protocol explains, and `{"static": n}` (every
+        few seconds at most) for receiver hiss, which never gets a sample.
+        Returns a stop function (also called when time runs out)."""
         self._require(transmitter, CAPTURE_ACTION)
         seconds = max(1, min(MAX_CAPTURE_SECONDS, seconds))
         self._learning[transmitter] = self._learning.get(transmitter, 0) + 1
         device = self._device(transmitter)
         device_id = device.id if device else None
         heard: dict[tuple[int, str], Candidate] = {}
-        noise = {"count": 0, "reported": -NOISE_INTERVAL_SECONDS}
+        noise = {"count": 0, "reported": -NOISE_INTERVAL_SECONDS, "static": 0, "static_reported": -STATIC_INTERVAL_SECONDS}
 
         @callback
         def received(event: Event) -> None:
@@ -558,6 +561,12 @@ class RfManager:
             now = _now()
             attributable = device_id is not None and event.data.get("device_id") == device_id
             integrity = "possibly_truncated" if len(timings) >= 1500 else "received" if attributable else "unattributed"
+            if reading is None and is_static(timings):
+                noise["static"] += 1
+                if now - noise["static_reported"] >= STATIC_INTERVAL_SECONDS:
+                    noise["static_reported"] = now
+                    report({"static": noise["static"]})
+                return
             if reading is None:
                 noise["count"] += 1
                 if now - noise["reported"] >= NOISE_INTERVAL_SECONDS:
