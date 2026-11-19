@@ -1,0 +1,4058 @@
+{
+  "ac/classic": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 6,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-temperatura-mas",
+          "name": "Temperatura +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-eco",
+          "name": "Eco",
+          "icon": "mdi:leaf"
+        },
+        {
+          "id": "w-frio",
+          "name": "Frío",
+          "icon": "mdi:snowflake"
+        },
+        {
+          "id": "w-calor",
+          "name": "Calor",
+          "icon": "mdi:fire"
+        },
+        {
+          "id": "w-seco",
+          "name": "Seco",
+          "icon": "mdi:water-percent"
+        },
+        {
+          "id": "w-solo-ventilar",
+          "name": "Sólo ventilar",
+          "icon": "mdi:fan"
+        },
+        {
+          "id": "w-automatico",
+          "name": "Automático",
+          "icon": "mdi:autorenew"
+        },
+        {
+          "id": "w-ventilacion-automatica",
+          "name": "Ventilación automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "id": "w-ventilacion-baja",
+          "name": "Ventilación baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "id": "w-ventilacion-media",
+          "name": "Ventilación media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "id": "w-ventilacion-alta",
+          "name": "Ventilación alta",
+          "icon": "mdi:fan-speed-3"
+        },
+        {
+          "id": "w-apagar-a-las",
+          "name": "Apagar a las",
+          "icon": "mdi:timer-off-outline"
+        },
+        {
+          "id": "w-prender-a-las",
+          "name": "Prender a las",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-lamas-automatico",
+          "name": "Lamas automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "id": "w-lamas-1",
+          "name": "Lamas 1"
+        },
+        {
+          "id": "w-lamas-2",
+          "name": "Lamas 2"
+        },
+        {
+          "id": "w-lamas-3",
+          "name": "Lamas 3"
+        },
+        {
+          "id": "w-lamas-4",
+          "name": "Lamas 4"
+        },
+        {
+          "id": "w-lamas-5",
+          "name": "Lamas 5"
+        },
+        {
+          "id": "w-lamas-oscilan",
+          "name": "Lamas oscilan",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "id": "w-turbo",
+          "name": "Turbo",
+          "icon": "mdi:flash"
+        },
+        {
+          "id": "w-favorito-smart-set",
+          "name": "Favorito (Smart set)",
+          "icon": "mdi:star-outline"
+        },
+        {
+          "id": "w-hora-menos",
+          "name": "Hora −",
+          "icon": "mdi:clock-minus-outline"
+        },
+        {
+          "id": "w-hora-mas",
+          "name": "Hora +",
+          "icon": "mdi:clock-plus-outline"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 1,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-temperatura-menos",
+        "w-temperatura-mas"
+      ],
+      "label": "Temperatura",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "eco",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-eco"
+      ],
+      "label": null,
+      "icon": "mdi:leaf"
+    },
+    {
+      "id": "options",
+      "type": "modes",
+      "x": 0,
+      "y": 1,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-frio",
+        "w-calor",
+        "w-seco",
+        "w-solo-ventilar",
+        "w-automatico"
+      ],
+      "label": "Modo",
+      "icon": null,
+      "options": [
+        {
+          "label": "Frío",
+          "icon": "mdi:snowflake",
+          "color": "#3F7FBF",
+          "anim": "spin"
+        },
+        {
+          "label": "Calor",
+          "icon": "mdi:fire",
+          "color": "#D98B1F",
+          "anim": "flicker"
+        },
+        {
+          "label": "Seco",
+          "icon": "mdi:water-percent",
+          "color": "#4F7A5A",
+          "anim": "bob"
+        },
+        {
+          "label": "Sólo ventilar",
+          "icon": "mdi:fan",
+          "color": "#6F6BB8",
+          "anim": "spinslow"
+        },
+        {
+          "label": "Automático",
+          "icon": "mdi:autorenew",
+          "color": "#5F6E66",
+          "anim": "pulse"
+        }
+      ]
+    },
+    {
+      "id": "options-2",
+      "type": "modes",
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-ventilacion-automatica",
+        "w-ventilacion-baja",
+        "w-ventilacion-media",
+        "w-ventilacion-alta"
+      ],
+      "label": "Ventilación",
+      "icon": null,
+      "options": [
+        {
+          "label": "automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "label": "baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "label": "media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "label": "alta",
+          "icon": "mdi:fan-speed-3"
+        }
+      ]
+    },
+    {
+      "id": "apagar-a-las",
+      "type": "button",
+      "x": 0,
+      "y": 3,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-apagar-a-las"
+      ],
+      "label": null,
+      "icon": "mdi:timer-off-outline"
+    },
+    {
+      "id": "prender-a-las",
+      "type": "button",
+      "x": 2,
+      "y": 3,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-prender-a-las"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "options-3",
+      "type": "modes",
+      "x": 0,
+      "y": 4,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-lamas-automatico",
+        "w-lamas-1",
+        "w-lamas-2",
+        "w-lamas-3",
+        "w-lamas-4",
+        "w-lamas-5",
+        "w-lamas-oscilan"
+      ],
+      "label": "Lamas",
+      "icon": null,
+      "options": [
+        {
+          "label": "automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "label": "1",
+          "icon": null
+        },
+        {
+          "label": "2",
+          "icon": null
+        },
+        {
+          "label": "3",
+          "icon": null
+        },
+        {
+          "label": "4",
+          "icon": null
+        },
+        {
+          "label": "5",
+          "icon": null
+        },
+        {
+          "label": "oscilan",
+          "icon": "mdi:arrow-oscillating"
+        }
+      ]
+    },
+    {
+      "id": "turbo",
+      "type": "button",
+      "x": 0,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-turbo"
+      ],
+      "label": null,
+      "icon": "mdi:flash"
+    },
+    {
+      "id": "favorito-smart-set",
+      "type": "button",
+      "x": 1,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-favorito-smart-set"
+      ],
+      "label": "Favorito",
+      "icon": "mdi:star-outline"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 2,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-hora-menos",
+        "w-hora-mas"
+      ],
+      "label": "Hora",
+      "icon": null,
+      "sendBy": "updown"
+    }
+  ],
+  "ac/modern": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 6,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-eco",
+          "name": "Eco",
+          "icon": "mdi:leaf"
+        },
+        {
+          "id": "w-turbo",
+          "name": "Turbo",
+          "icon": "mdi:flash"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-temperatura-mas",
+          "name": "Temperatura +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-frio",
+          "name": "Frío",
+          "icon": "mdi:snowflake"
+        },
+        {
+          "id": "w-calor",
+          "name": "Calor",
+          "icon": "mdi:fire"
+        },
+        {
+          "id": "w-seco",
+          "name": "Seco",
+          "icon": "mdi:water-percent"
+        },
+        {
+          "id": "w-solo-ventilar",
+          "name": "Sólo ventilar",
+          "icon": "mdi:fan"
+        },
+        {
+          "id": "w-automatico",
+          "name": "Automático",
+          "icon": "mdi:autorenew"
+        },
+        {
+          "id": "w-ventilacion-automatica",
+          "name": "Ventilación automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "id": "w-ventilacion-baja",
+          "name": "Ventilación baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "id": "w-ventilacion-media",
+          "name": "Ventilación media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "id": "w-ventilacion-alta",
+          "name": "Ventilación alta",
+          "icon": "mdi:fan-speed-3"
+        },
+        {
+          "id": "w-lamas-automatico",
+          "name": "Lamas automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "id": "w-lamas-1",
+          "name": "Lamas 1"
+        },
+        {
+          "id": "w-lamas-2",
+          "name": "Lamas 2"
+        },
+        {
+          "id": "w-lamas-3",
+          "name": "Lamas 3"
+        },
+        {
+          "id": "w-lamas-4",
+          "name": "Lamas 4"
+        },
+        {
+          "id": "w-lamas-5",
+          "name": "Lamas 5"
+        },
+        {
+          "id": "w-lamas-oscilan",
+          "name": "Lamas oscilan",
+          "icon": "mdi:arrow-oscillating"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "eco",
+      "type": "toggle",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-eco"
+      ],
+      "label": "Eco",
+      "icon": "mdi:leaf",
+      "form": "lamp"
+    },
+    {
+      "id": "turbo",
+      "type": "toggle",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-turbo"
+      ],
+      "label": "Turbo",
+      "icon": "mdi:flash",
+      "form": "lamp"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "slider",
+      "x": 0,
+      "y": 1,
+      "w": 4,
+      "h": 3,
+      "buttons": [
+        "w-temperatura-menos",
+        "w-temperatura-mas"
+      ],
+      "label": "Temperatura",
+      "icon": null,
+      "sendBy": "updown",
+      "values": {
+        "min": 16,
+        "max": 30,
+        "step": 1,
+        "unit": "°"
+      },
+      "form": "thermo"
+    },
+    {
+      "id": "options",
+      "type": "modes",
+      "x": 0,
+      "y": 4,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-frio",
+        "w-calor",
+        "w-seco",
+        "w-solo-ventilar",
+        "w-automatico"
+      ],
+      "label": "Modo",
+      "icon": null,
+      "options": [
+        {
+          "label": "Frío",
+          "icon": "mdi:snowflake",
+          "color": "#3F7FBF",
+          "anim": "spin"
+        },
+        {
+          "label": "Calor",
+          "icon": "mdi:fire",
+          "color": "#D98B1F",
+          "anim": "flicker"
+        },
+        {
+          "label": "Seco",
+          "icon": "mdi:water-percent",
+          "color": "#4F7A5A",
+          "anim": "bob"
+        },
+        {
+          "label": "Sólo ventilar",
+          "icon": "mdi:fan",
+          "color": "#6F6BB8",
+          "anim": "spinslow"
+        },
+        {
+          "label": "Automático",
+          "icon": "mdi:autorenew",
+          "color": "#5F6E66",
+          "anim": "pulse"
+        }
+      ],
+      "form": "segment"
+    },
+    {
+      "id": "options-2",
+      "type": "modes",
+      "x": 0,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-ventilacion-automatica",
+        "w-ventilacion-baja",
+        "w-ventilacion-media",
+        "w-ventilacion-alta"
+      ],
+      "label": "Ventilación",
+      "icon": "mdi:fan",
+      "options": [
+        {
+          "label": "automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "label": "baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "label": "media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "label": "alta",
+          "icon": "mdi:fan-speed-3"
+        }
+      ],
+      "form": "bars"
+    },
+    {
+      "id": "options-3",
+      "type": "modes",
+      "x": 2,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-lamas-automatico",
+        "w-lamas-1",
+        "w-lamas-2",
+        "w-lamas-3",
+        "w-lamas-4",
+        "w-lamas-5",
+        "w-lamas-oscilan"
+      ],
+      "label": "Lamas",
+      "icon": "mdi:arrow-oscillating",
+      "options": [
+        {
+          "label": "automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "label": "1",
+          "icon": null
+        },
+        {
+          "label": "2",
+          "icon": null
+        },
+        {
+          "label": "3",
+          "icon": null
+        },
+        {
+          "label": "4",
+          "icon": null
+        },
+        {
+          "label": "5",
+          "icon": null
+        },
+        {
+          "label": "oscilan",
+          "icon": "mdi:arrow-oscillating"
+        }
+      ],
+      "form": "bars"
+    }
+  ],
+  "ac/advanced": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 9,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-temperatura-mas",
+          "name": "Temperatura +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-frio",
+          "name": "Frío",
+          "icon": "mdi:snowflake"
+        },
+        {
+          "id": "w-calor",
+          "name": "Calor",
+          "icon": "mdi:fire"
+        },
+        {
+          "id": "w-seco",
+          "name": "Seco",
+          "icon": "mdi:water-percent"
+        },
+        {
+          "id": "w-solo-ventilar",
+          "name": "Sólo ventilar",
+          "icon": "mdi:fan"
+        },
+        {
+          "id": "w-automatico",
+          "name": "Automático",
+          "icon": "mdi:autorenew"
+        },
+        {
+          "id": "w-ventilacion-automatica",
+          "name": "Ventilación automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "id": "w-ventilacion-baja",
+          "name": "Ventilación baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "id": "w-ventilacion-media",
+          "name": "Ventilación media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "id": "w-ventilacion-alta",
+          "name": "Ventilación alta",
+          "icon": "mdi:fan-speed-3"
+        },
+        {
+          "id": "w-lamas-automatico",
+          "name": "Lamas automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "id": "w-lamas-1",
+          "name": "Lamas 1"
+        },
+        {
+          "id": "w-lamas-2",
+          "name": "Lamas 2"
+        },
+        {
+          "id": "w-lamas-3",
+          "name": "Lamas 3"
+        },
+        {
+          "id": "w-lamas-4",
+          "name": "Lamas 4"
+        },
+        {
+          "id": "w-lamas-5",
+          "name": "Lamas 5"
+        },
+        {
+          "id": "w-lamas-oscilan",
+          "name": "Lamas oscilan",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-eco",
+          "name": "Eco",
+          "icon": "mdi:leaf"
+        },
+        {
+          "id": "w-turbo",
+          "name": "Turbo",
+          "icon": "mdi:flash"
+        }
+      ]
+    },
+    {
+      "id": "indicator",
+      "type": "indicator",
+      "x": 0,
+      "y": 0,
+      "w": 3,
+      "h": 1,
+      "buttons": [],
+      "label": "Adentro",
+      "icon": null,
+      "form": "display"
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "slider",
+      "x": 0,
+      "y": 1,
+      "w": 4,
+      "h": 3,
+      "buttons": [
+        "w-temperatura-menos",
+        "w-temperatura-mas"
+      ],
+      "label": "Temperatura",
+      "icon": null,
+      "sendBy": "updown",
+      "values": {
+        "min": 16,
+        "max": 30,
+        "step": 1,
+        "unit": "°"
+      },
+      "form": "thermo"
+    },
+    {
+      "id": "options",
+      "type": "modes",
+      "x": 0,
+      "y": 4,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-frio",
+        "w-calor",
+        "w-seco",
+        "w-solo-ventilar",
+        "w-automatico"
+      ],
+      "label": "Modo",
+      "icon": null,
+      "options": [
+        {
+          "label": "Frío",
+          "icon": "mdi:snowflake",
+          "color": "#3F7FBF",
+          "anim": "spin"
+        },
+        {
+          "label": "Calor",
+          "icon": "mdi:fire",
+          "color": "#D98B1F",
+          "anim": "flicker"
+        },
+        {
+          "label": "Seco",
+          "icon": "mdi:water-percent",
+          "color": "#4F7A5A",
+          "anim": "bob"
+        },
+        {
+          "label": "Sólo ventilar",
+          "icon": "mdi:fan",
+          "color": "#6F6BB8",
+          "anim": "spinslow"
+        },
+        {
+          "label": "Automático",
+          "icon": "mdi:autorenew",
+          "color": "#5F6E66",
+          "anim": "pulse"
+        }
+      ],
+      "form": "segment"
+    },
+    {
+      "id": "options-2",
+      "type": "modes",
+      "x": 0,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-ventilacion-automatica",
+        "w-ventilacion-baja",
+        "w-ventilacion-media",
+        "w-ventilacion-alta"
+      ],
+      "label": "Ventilación",
+      "icon": "mdi:fan",
+      "options": [
+        {
+          "label": "automática",
+          "icon": "mdi:fan-auto"
+        },
+        {
+          "label": "baja",
+          "icon": "mdi:fan-speed-1"
+        },
+        {
+          "label": "media",
+          "icon": "mdi:fan-speed-2"
+        },
+        {
+          "label": "alta",
+          "icon": "mdi:fan-speed-3"
+        }
+      ],
+      "form": "bars"
+    },
+    {
+      "id": "options-3",
+      "type": "modes",
+      "x": 2,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-lamas-automatico",
+        "w-lamas-1",
+        "w-lamas-2",
+        "w-lamas-3",
+        "w-lamas-4",
+        "w-lamas-5",
+        "w-lamas-oscilan"
+      ],
+      "label": "Lamas",
+      "icon": "mdi:arrow-oscillating",
+      "options": [
+        {
+          "label": "automático",
+          "icon": "mdi:arrow-oscillating"
+        },
+        {
+          "label": "1",
+          "icon": null
+        },
+        {
+          "label": "2",
+          "icon": null
+        },
+        {
+          "label": "3",
+          "icon": null
+        },
+        {
+          "label": "4",
+          "icon": null
+        },
+        {
+          "label": "5",
+          "icon": null
+        },
+        {
+          "label": "oscilan",
+          "icon": "mdi:arrow-oscillating"
+        }
+      ],
+      "form": "bars"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 0,
+      "y": 6,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "eco",
+      "type": "toggle",
+      "x": 2,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-eco"
+      ],
+      "label": "Eco",
+      "icon": "mdi:leaf",
+      "form": "lamp"
+    },
+    {
+      "id": "turbo",
+      "type": "toggle",
+      "x": 3,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-turbo"
+      ],
+      "label": "Turbo",
+      "icon": "mdi:flash",
+      "form": "lamp"
+    },
+    {
+      "id": "graph",
+      "type": "graph",
+      "x": 0,
+      "y": 7,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "period": "24h"
+    }
+  ],
+  "tv/classic": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 14,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-ambilight",
+          "name": "Ambilight",
+          "icon": "mdi:television-ambient-light"
+        },
+        {
+          "id": "w-netflix",
+          "name": "Netflix"
+        },
+        {
+          "id": "w-youtube",
+          "name": "YouTube"
+        },
+        {
+          "id": "w-prime-video",
+          "name": "Prime Video"
+        },
+        {
+          "id": "w-apps",
+          "name": "Apps",
+          "icon": "mdi:apps"
+        },
+        {
+          "id": "w-fuentes",
+          "name": "Fuentes",
+          "icon": "mdi:import"
+        },
+        {
+          "id": "w-ajustes",
+          "name": "Ajustes",
+          "icon": "mdi:cog-outline"
+        },
+        {
+          "id": "w-guia",
+          "name": "Guía",
+          "icon": "mdi:television-guide"
+        },
+        {
+          "id": "w-info",
+          "name": "Info",
+          "icon": "mdi:information-outline"
+        },
+        {
+          "id": "w-menu",
+          "name": "Menú",
+          "icon": "mdi:menu"
+        },
+        {
+          "id": "w-salir",
+          "name": "Salir",
+          "icon": "mdi:exit-to-app"
+        },
+        {
+          "id": "w-arriba",
+          "name": "Arriba"
+        },
+        {
+          "id": "w-abajo",
+          "name": "Abajo"
+        },
+        {
+          "id": "w-izquierda",
+          "name": "Izquierda"
+        },
+        {
+          "id": "w-derecha",
+          "name": "Derecha"
+        },
+        {
+          "id": "w-ok",
+          "name": "OK"
+        },
+        {
+          "id": "w-volver",
+          "name": "Volver",
+          "icon": "mdi:arrow-u-left-top"
+        },
+        {
+          "id": "w-inicio",
+          "name": "Inicio",
+          "icon": "mdi:home-outline"
+        },
+        {
+          "id": "w-silencio",
+          "name": "Silencio",
+          "icon": "mdi:volume-off"
+        },
+        {
+          "id": "w-retroceder",
+          "name": "Retroceder"
+        },
+        {
+          "id": "w-reproducir",
+          "name": "Reproducir"
+        },
+        {
+          "id": "w-adelantar",
+          "name": "Adelantar"
+        },
+        {
+          "id": "w-pausa",
+          "name": "Pausa",
+          "icon": "mdi:pause"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        },
+        {
+          "id": "w-rojo",
+          "name": "Rojo"
+        },
+        {
+          "id": "w-verde",
+          "name": "Verde"
+        },
+        {
+          "id": "w-amarillo",
+          "name": "Amarillo"
+        },
+        {
+          "id": "w-azul",
+          "name": "Azul"
+        },
+        {
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
+        },
+        {
+          "id": "w-volumen-mas",
+          "name": "Volumen +",
+          "icon": "mdi:volume-plus"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
+        },
+        {
+          "id": "w-canal-mas",
+          "name": "Canal +",
+          "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-audiodescripcion",
+          "name": "Audiodescripción",
+          "icon": "mdi:account-voice"
+        },
+        {
+          "id": "w-numero-0",
+          "name": "Número 0"
+        },
+        {
+          "id": "w-numero-1",
+          "name": "Número 1"
+        },
+        {
+          "id": "w-numero-2",
+          "name": "Número 2"
+        },
+        {
+          "id": "w-numero-3",
+          "name": "Número 3"
+        },
+        {
+          "id": "w-numero-4",
+          "name": "Número 4"
+        },
+        {
+          "id": "w-numero-5",
+          "name": "Número 5"
+        },
+        {
+          "id": "w-numero-6",
+          "name": "Número 6"
+        },
+        {
+          "id": "w-numero-7",
+          "name": "Número 7"
+        },
+        {
+          "id": "w-numero-8",
+          "name": "Número 8"
+        },
+        {
+          "id": "w-numero-9",
+          "name": "Número 9"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "ambilight",
+      "type": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ambilight"
+      ],
+      "label": null,
+      "icon": "mdi:television-ambient-light"
+    },
+    {
+      "id": "netflix",
+      "type": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-netflix"
+      ],
+      "label": "Netflix",
+      "icon": null,
+      "brand": "Netflix",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "youtube",
+      "type": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-youtube"
+      ],
+      "label": "YouTube",
+      "icon": null,
+      "brand": "YouTube",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "prime-video",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-prime-video"
+      ],
+      "label": "Prime Video",
+      "icon": null,
+      "brand": "Prime Video",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "apps",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-apps"
+      ],
+      "label": null,
+      "icon": "mdi:apps"
+    },
+    {
+      "id": "fuentes",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-fuentes"
+      ],
+      "label": null,
+      "icon": "mdi:import"
+    },
+    {
+      "id": "ajustes",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ajustes"
+      ],
+      "label": null,
+      "icon": "mdi:cog-outline"
+    },
+    {
+      "id": "guia",
+      "type": "button",
+      "x": 0,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-guia"
+      ],
+      "label": null,
+      "icon": "mdi:television-guide"
+    },
+    {
+      "id": "info",
+      "type": "button",
+      "x": 1,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-info"
+      ],
+      "label": null,
+      "icon": "mdi:information-outline"
+    },
+    {
+      "id": "menu",
+      "type": "button",
+      "x": 2,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-menu"
+      ],
+      "label": null,
+      "icon": "mdi:menu"
+    },
+    {
+      "id": "salir",
+      "type": "button",
+      "x": 3,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-salir"
+      ],
+      "label": null,
+      "icon": "mdi:exit-to-app"
+    },
+    {
+      "id": "dpad",
+      "type": "dpad",
+      "x": 0,
+      "y": 3,
+      "w": 3,
+      "h": 3,
+      "buttons": [
+        "w-arriba",
+        "w-abajo",
+        "w-izquierda",
+        "w-derecha",
+        "w-ok"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "up": "w-arriba",
+        "down": "w-abajo",
+        "left": "w-izquierda",
+        "right": "w-derecha",
+        "ok": "w-ok"
+      }
+    },
+    {
+      "id": "volver",
+      "type": "button",
+      "x": 3,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-volver"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-u-left-top"
+    },
+    {
+      "id": "inicio",
+      "type": "button",
+      "x": 3,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-inicio"
+      ],
+      "label": null,
+      "icon": "mdi:home-outline"
+    },
+    {
+      "id": "silencio",
+      "type": "button",
+      "x": 3,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-silencio"
+      ],
+      "label": null,
+      "icon": "mdi:volume-off"
+    },
+    {
+      "id": "transport",
+      "type": "transport",
+      "x": 0,
+      "y": 6,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-retroceder",
+        "w-reproducir",
+        "w-adelantar"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "rew": "w-retroceder",
+        "play": "w-reproducir",
+        "ff": "w-adelantar"
+      }
+    },
+    {
+      "id": "pausa",
+      "type": "button",
+      "x": 3,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-pausa"
+      ],
+      "label": null,
+      "icon": "mdi:pause"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 0,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop"
+    },
+    {
+      "id": "colors",
+      "type": "colors",
+      "x": 1,
+      "y": 7,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-rojo",
+        "w-verde",
+        "w-amarillo",
+        "w-azul"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "red": "w-rojo",
+        "green": "w-verde",
+        "yellow": "w-amarillo",
+        "blue": "w-azul"
+      }
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 8,
+      "w": 1,
+      "h": 2,
+      "buttons": [
+        "w-volumen-menos",
+        "w-volumen-mas"
+      ],
+      "label": "Vol",
+      "icon": null,
+      "sendBy": "updown",
+      "orientation": "vertical"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 3,
+      "y": 8,
+      "w": 1,
+      "h": 2,
+      "buttons": [
+        "w-canal-menos",
+        "w-canal-mas"
+      ],
+      "label": "CH",
+      "icon": null,
+      "sendBy": "updown",
+      "orientation": "vertical"
+    },
+    {
+      "id": "audiodescripcion",
+      "type": "button",
+      "x": 1,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-audiodescripcion"
+      ],
+      "label": "AD",
+      "icon": "mdi:account-voice"
+    },
+    {
+      "id": "numpad",
+      "type": "numpad",
+      "x": 0,
+      "y": 10,
+      "w": 3,
+      "h": 4,
+      "buttons": [
+        "w-numero-0",
+        "w-numero-1",
+        "w-numero-2",
+        "w-numero-3",
+        "w-numero-4",
+        "w-numero-5",
+        "w-numero-6",
+        "w-numero-7",
+        "w-numero-8",
+        "w-numero-9"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "0": "w-numero-0",
+        "1": "w-numero-1",
+        "2": "w-numero-2",
+        "3": "w-numero-3",
+        "4": "w-numero-4",
+        "5": "w-numero-5",
+        "6": "w-numero-6",
+        "7": "w-numero-7",
+        "8": "w-numero-8",
+        "9": "w-numero-9"
+      }
+    }
+  ],
+  "tv/modern": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 9,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-ambilight",
+          "name": "Ambilight",
+          "icon": "mdi:television-ambient-light"
+        },
+        {
+          "id": "w-fuentes",
+          "name": "Fuentes",
+          "icon": "mdi:import"
+        },
+        {
+          "id": "w-guia",
+          "name": "Guía",
+          "icon": "mdi:television-guide"
+        },
+        {
+          "id": "w-netflix",
+          "name": "Netflix"
+        },
+        {
+          "id": "w-youtube",
+          "name": "YouTube"
+        },
+        {
+          "id": "w-prime-video",
+          "name": "Prime Video"
+        },
+        {
+          "id": "w-apps",
+          "name": "Apps",
+          "icon": "mdi:apps"
+        },
+        {
+          "id": "w-arriba",
+          "name": "Arriba"
+        },
+        {
+          "id": "w-abajo",
+          "name": "Abajo"
+        },
+        {
+          "id": "w-izquierda",
+          "name": "Izquierda"
+        },
+        {
+          "id": "w-derecha",
+          "name": "Derecha"
+        },
+        {
+          "id": "w-ok",
+          "name": "OK"
+        },
+        {
+          "id": "w-volver",
+          "name": "Volver",
+          "icon": "mdi:arrow-u-left-top"
+        },
+        {
+          "id": "w-inicio",
+          "name": "Inicio",
+          "icon": "mdi:home-outline"
+        },
+        {
+          "id": "w-menu",
+          "name": "Menú",
+          "icon": "mdi:menu"
+        },
+        {
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
+        },
+        {
+          "id": "w-volumen-mas",
+          "name": "Volumen +",
+          "icon": "mdi:volume-plus"
+        },
+        {
+          "id": "w-retroceder",
+          "name": "Retroceder"
+        },
+        {
+          "id": "w-reproducir",
+          "name": "Reproducir"
+        },
+        {
+          "id": "w-adelantar",
+          "name": "Adelantar"
+        },
+        {
+          "id": "w-pausa",
+          "name": "Pausa",
+          "icon": "mdi:pause"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
+        },
+        {
+          "id": "w-canal-mas",
+          "name": "Canal +",
+          "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-silencio",
+          "name": "Silencio",
+          "icon": "mdi:volume-off"
+        },
+        {
+          "id": "w-numero-0",
+          "name": "Número 0"
+        },
+        {
+          "id": "w-numero-1",
+          "name": "Número 1"
+        },
+        {
+          "id": "w-numero-2",
+          "name": "Número 2"
+        },
+        {
+          "id": "w-numero-3",
+          "name": "Número 3"
+        },
+        {
+          "id": "w-numero-4",
+          "name": "Número 4"
+        },
+        {
+          "id": "w-numero-5",
+          "name": "Número 5"
+        },
+        {
+          "id": "w-numero-6",
+          "name": "Número 6"
+        },
+        {
+          "id": "w-numero-7",
+          "name": "Número 7"
+        },
+        {
+          "id": "w-numero-8",
+          "name": "Número 8"
+        },
+        {
+          "id": "w-numero-9",
+          "name": "Número 9"
+        },
+        {
+          "id": "w-audiodescripcion",
+          "name": "Audiodescripción",
+          "icon": "mdi:account-voice"
+        },
+        {
+          "id": "w-ajustes",
+          "name": "Ajustes",
+          "icon": "mdi:cog-outline"
+        },
+        {
+          "id": "w-info",
+          "name": "Info",
+          "icon": "mdi:information-outline"
+        },
+        {
+          "id": "w-rojo",
+          "name": "Rojo"
+        },
+        {
+          "id": "w-verde",
+          "name": "Verde"
+        },
+        {
+          "id": "w-amarillo",
+          "name": "Amarillo"
+        },
+        {
+          "id": "w-azul",
+          "name": "Azul"
+        },
+        {
+          "id": "w-salir",
+          "name": "Salir",
+          "icon": "mdi:exit-to-app"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "ambilight",
+      "type": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ambilight"
+      ],
+      "label": null,
+      "icon": "mdi:television-ambient-light"
+    },
+    {
+      "id": "fuentes",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-fuentes"
+      ],
+      "label": null,
+      "icon": "mdi:import"
+    },
+    {
+      "id": "guia",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-guia"
+      ],
+      "label": null,
+      "icon": "mdi:television-guide"
+    },
+    {
+      "id": "netflix",
+      "type": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-netflix"
+      ],
+      "label": "Netflix",
+      "icon": null,
+      "brand": "Netflix",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "youtube",
+      "type": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-youtube"
+      ],
+      "label": "YouTube",
+      "icon": null,
+      "brand": "YouTube",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "prime-video",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-prime-video"
+      ],
+      "label": "Prime Video",
+      "icon": null,
+      "brand": "Prime Video",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "apps",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-apps"
+      ],
+      "label": null,
+      "icon": "mdi:apps"
+    },
+    {
+      "id": "dpad",
+      "type": "dpad",
+      "x": 0,
+      "y": 2,
+      "w": 3,
+      "h": 3,
+      "buttons": [
+        "w-arriba",
+        "w-abajo",
+        "w-izquierda",
+        "w-derecha",
+        "w-ok"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "up": "w-arriba",
+        "down": "w-abajo",
+        "left": "w-izquierda",
+        "right": "w-derecha",
+        "ok": "w-ok"
+      }
+    },
+    {
+      "id": "volver",
+      "type": "button",
+      "x": 3,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-volver"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-u-left-top",
+      "form": "round"
+    },
+    {
+      "id": "inicio",
+      "type": "button",
+      "x": 3,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-inicio"
+      ],
+      "label": null,
+      "icon": "mdi:home-outline",
+      "form": "round"
+    },
+    {
+      "id": "menu",
+      "type": "button",
+      "x": 3,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-menu"
+      ],
+      "label": null,
+      "icon": "mdi:menu",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 5,
+      "w": 1,
+      "h": 2,
+      "buttons": [
+        "w-volumen-menos",
+        "w-volumen-mas"
+      ],
+      "label": "Vol",
+      "icon": null,
+      "sendBy": "updown",
+      "orientation": "vertical"
+    },
+    {
+      "id": "transport",
+      "type": "transport",
+      "x": 1,
+      "y": 5,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-retroceder",
+        "w-reproducir",
+        "w-adelantar"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "rew": "w-retroceder",
+        "play": "w-reproducir",
+        "ff": "w-adelantar"
+      }
+    },
+    {
+      "id": "pausa",
+      "type": "button",
+      "x": 1,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-pausa"
+      ],
+      "label": null,
+      "icon": "mdi:pause",
+      "form": "round"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 3,
+      "y": 5,
+      "w": 1,
+      "h": 2,
+      "buttons": [
+        "w-canal-menos",
+        "w-canal-mas"
+      ],
+      "label": "CH",
+      "icon": null,
+      "sendBy": "updown",
+      "orientation": "vertical"
+    },
+    {
+      "id": "silencio",
+      "type": "button",
+      "x": 2,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-silencio"
+      ],
+      "label": null,
+      "icon": "mdi:volume-off",
+      "form": "round"
+    },
+    {
+      "id": "numpad",
+      "type": "numpad",
+      "x": 0,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-numero-0",
+        "w-numero-1",
+        "w-numero-2",
+        "w-numero-3",
+        "w-numero-4",
+        "w-numero-5",
+        "w-numero-6",
+        "w-numero-7",
+        "w-numero-8",
+        "w-numero-9"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "0": "w-numero-0",
+        "1": "w-numero-1",
+        "2": "w-numero-2",
+        "3": "w-numero-3",
+        "4": "w-numero-4",
+        "5": "w-numero-5",
+        "6": "w-numero-6",
+        "7": "w-numero-7",
+        "8": "w-numero-8",
+        "9": "w-numero-9"
+      },
+      "form": "pop"
+    },
+    {
+      "id": "audiodescripcion",
+      "type": "button",
+      "x": 1,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-audiodescripcion"
+      ],
+      "label": "AD",
+      "icon": "mdi:account-voice"
+    },
+    {
+      "id": "ajustes",
+      "type": "button",
+      "x": 2,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ajustes"
+      ],
+      "label": null,
+      "icon": "mdi:cog-outline"
+    },
+    {
+      "id": "info",
+      "type": "button",
+      "x": 3,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-info"
+      ],
+      "label": null,
+      "icon": "mdi:information-outline"
+    },
+    {
+      "id": "colors",
+      "type": "colors",
+      "x": 0,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-rojo",
+        "w-verde",
+        "w-amarillo",
+        "w-azul"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "red": "w-rojo",
+        "green": "w-verde",
+        "yellow": "w-amarillo",
+        "blue": "w-azul"
+      },
+      "form": "pop"
+    },
+    {
+      "id": "salir",
+      "type": "button",
+      "x": 2,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-salir"
+      ],
+      "label": null,
+      "icon": "mdi:exit-to-app"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 3,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop"
+    }
+  ],
+  "tv/advanced": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 11,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-ambilight",
+          "name": "Ambilight",
+          "icon": "mdi:television-ambient-light"
+        },
+        {
+          "id": "w-netflix",
+          "name": "Netflix"
+        },
+        {
+          "id": "w-youtube",
+          "name": "YouTube"
+        },
+        {
+          "id": "w-prime-video",
+          "name": "Prime Video"
+        },
+        {
+          "id": "w-apps",
+          "name": "Apps",
+          "icon": "mdi:apps"
+        },
+        {
+          "id": "w-arriba",
+          "name": "Arriba"
+        },
+        {
+          "id": "w-abajo",
+          "name": "Abajo"
+        },
+        {
+          "id": "w-izquierda",
+          "name": "Izquierda"
+        },
+        {
+          "id": "w-derecha",
+          "name": "Derecha"
+        },
+        {
+          "id": "w-ok",
+          "name": "OK"
+        },
+        {
+          "id": "w-volver",
+          "name": "Volver",
+          "icon": "mdi:arrow-u-left-top"
+        },
+        {
+          "id": "w-inicio",
+          "name": "Inicio",
+          "icon": "mdi:home-outline"
+        },
+        {
+          "id": "w-menu",
+          "name": "Menú",
+          "icon": "mdi:menu"
+        },
+        {
+          "id": "w-fuentes",
+          "name": "Fuentes",
+          "icon": "mdi:import"
+        },
+        {
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
+        },
+        {
+          "id": "w-volumen-mas",
+          "name": "Volumen +",
+          "icon": "mdi:volume-plus"
+        },
+        {
+          "id": "w-silencio",
+          "name": "Silencio",
+          "icon": "mdi:volume-off"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
+        },
+        {
+          "id": "w-canal-mas",
+          "name": "Canal +",
+          "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-numero-0",
+          "name": "Número 0"
+        },
+        {
+          "id": "w-numero-1",
+          "name": "Número 1"
+        },
+        {
+          "id": "w-numero-2",
+          "name": "Número 2"
+        },
+        {
+          "id": "w-numero-3",
+          "name": "Número 3"
+        },
+        {
+          "id": "w-numero-4",
+          "name": "Número 4"
+        },
+        {
+          "id": "w-numero-5",
+          "name": "Número 5"
+        },
+        {
+          "id": "w-numero-6",
+          "name": "Número 6"
+        },
+        {
+          "id": "w-numero-7",
+          "name": "Número 7"
+        },
+        {
+          "id": "w-numero-8",
+          "name": "Número 8"
+        },
+        {
+          "id": "w-numero-9",
+          "name": "Número 9"
+        },
+        {
+          "id": "w-audiodescripcion",
+          "name": "Audiodescripción",
+          "icon": "mdi:account-voice"
+        },
+        {
+          "id": "w-ajustes",
+          "name": "Ajustes",
+          "icon": "mdi:cog-outline"
+        },
+        {
+          "id": "w-guia",
+          "name": "Guía",
+          "icon": "mdi:television-guide"
+        },
+        {
+          "id": "w-info",
+          "name": "Info",
+          "icon": "mdi:information-outline"
+        },
+        {
+          "id": "w-salir",
+          "name": "Salir",
+          "icon": "mdi:exit-to-app"
+        },
+        {
+          "id": "w-pausa",
+          "name": "Pausa",
+          "icon": "mdi:pause"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        },
+        {
+          "id": "w-rojo",
+          "name": "Rojo"
+        },
+        {
+          "id": "w-verde",
+          "name": "Verde"
+        },
+        {
+          "id": "w-amarillo",
+          "name": "Amarillo"
+        },
+        {
+          "id": "w-azul",
+          "name": "Azul"
+        },
+        {
+          "id": "w-retroceder",
+          "name": "Retroceder"
+        },
+        {
+          "id": "w-reproducir",
+          "name": "Reproducir"
+        },
+        {
+          "id": "w-adelantar",
+          "name": "Adelantar"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "ambilight",
+      "type": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ambilight"
+      ],
+      "label": null,
+      "icon": "mdi:television-ambient-light"
+    },
+    {
+      "id": "netflix",
+      "type": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-netflix"
+      ],
+      "label": "Netflix",
+      "icon": null,
+      "brand": "Netflix",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "youtube",
+      "type": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-youtube"
+      ],
+      "label": "YouTube",
+      "icon": null,
+      "brand": "YouTube",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "prime-video",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-prime-video"
+      ],
+      "label": "Prime Video",
+      "icon": null,
+      "brand": "Prime Video",
+      "radius": 12,
+      "hideLabel": true
+    },
+    {
+      "id": "apps",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-apps"
+      ],
+      "label": null,
+      "icon": "mdi:apps"
+    },
+    {
+      "id": "dpad",
+      "type": "dpad",
+      "x": 0,
+      "y": 2,
+      "w": 3,
+      "h": 3,
+      "buttons": [
+        "w-arriba",
+        "w-abajo",
+        "w-izquierda",
+        "w-derecha",
+        "w-ok"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "up": "w-arriba",
+        "down": "w-abajo",
+        "left": "w-izquierda",
+        "right": "w-derecha",
+        "ok": "w-ok"
+      }
+    },
+    {
+      "id": "volver",
+      "type": "button",
+      "x": 3,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-volver"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-u-left-top",
+      "form": "round"
+    },
+    {
+      "id": "inicio",
+      "type": "button",
+      "x": 3,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-inicio"
+      ],
+      "label": null,
+      "icon": "mdi:home-outline",
+      "form": "round"
+    },
+    {
+      "id": "menu",
+      "type": "button",
+      "x": 3,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-menu"
+      ],
+      "label": null,
+      "icon": "mdi:menu",
+      "form": "round"
+    },
+    {
+      "id": "fuentes",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-fuentes"
+      ],
+      "label": null,
+      "icon": "mdi:import"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 5,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-volumen-menos",
+        "w-volumen-mas"
+      ],
+      "label": "Volumen",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "silencio",
+      "type": "button",
+      "x": 3,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-silencio"
+      ],
+      "label": null,
+      "icon": "mdi:volume-off",
+      "form": "round"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 0,
+      "y": 6,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-canal-menos",
+        "w-canal-mas"
+      ],
+      "label": "Canal",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "numpad",
+      "type": "numpad",
+      "x": 2,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-numero-0",
+        "w-numero-1",
+        "w-numero-2",
+        "w-numero-3",
+        "w-numero-4",
+        "w-numero-5",
+        "w-numero-6",
+        "w-numero-7",
+        "w-numero-8",
+        "w-numero-9"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "0": "w-numero-0",
+        "1": "w-numero-1",
+        "2": "w-numero-2",
+        "3": "w-numero-3",
+        "4": "w-numero-4",
+        "5": "w-numero-5",
+        "6": "w-numero-6",
+        "7": "w-numero-7",
+        "8": "w-numero-8",
+        "9": "w-numero-9"
+      },
+      "form": "pop"
+    },
+    {
+      "id": "audiodescripcion",
+      "type": "button",
+      "x": 3,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-audiodescripcion"
+      ],
+      "label": "AD",
+      "icon": "mdi:account-voice"
+    },
+    {
+      "id": "ajustes",
+      "type": "button",
+      "x": 0,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-ajustes"
+      ],
+      "label": null,
+      "icon": "mdi:cog-outline"
+    },
+    {
+      "id": "guia",
+      "type": "button",
+      "x": 1,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-guia"
+      ],
+      "label": null,
+      "icon": "mdi:television-guide"
+    },
+    {
+      "id": "info",
+      "type": "button",
+      "x": 2,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-info"
+      ],
+      "label": null,
+      "icon": "mdi:information-outline"
+    },
+    {
+      "id": "salir",
+      "type": "button",
+      "x": 3,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-salir"
+      ],
+      "label": null,
+      "icon": "mdi:exit-to-app"
+    },
+    {
+      "id": "pausa",
+      "type": "button",
+      "x": 0,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-pausa"
+      ],
+      "label": null,
+      "icon": "mdi:pause"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 1,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop"
+    },
+    {
+      "id": "colors",
+      "type": "colors",
+      "x": 2,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-rojo",
+        "w-verde",
+        "w-amarillo",
+        "w-azul"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "red": "w-rojo",
+        "green": "w-verde",
+        "yellow": "w-amarillo",
+        "blue": "w-azul"
+      },
+      "form": "pop"
+    },
+    {
+      "id": "transport",
+      "type": "transport",
+      "x": 3,
+      "y": 8,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-retroceder",
+        "w-reproducir",
+        "w-adelantar"
+      ],
+      "label": null,
+      "icon": null,
+      "slots": {
+        "rew": "w-retroceder",
+        "play": "w-reproducir",
+        "ff": "w-adelantar"
+      },
+      "form": "pop"
+    },
+    {
+      "id": "graph",
+      "type": "graph",
+      "x": 0,
+      "y": 9,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "period": "7d"
+    }
+  ],
+  "light/classic": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-noche",
+          "name": "Noche",
+          "icon": "mdi:weather-night"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
+        },
+        {
+          "id": "w-brillo-mas",
+          "name": "Brillo +",
+          "icon": "mdi:brightness-7"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
+        },
+        {
+          "id": "w-mas-calido",
+          "name": "Más cálido",
+          "icon": "mdi:white-balance-incandescent"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power"
+    },
+    {
+      "id": "noche",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-noche"
+      ],
+      "label": null,
+      "icon": "mdi:weather-night"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 1,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-brillo-menos",
+        "w-brillo-mas"
+      ],
+      "label": "Brillo",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 2,
+      "y": 1,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-mas-frio",
+        "w-mas-calido"
+      ],
+      "label": "Tono",
+      "icon": null,
+      "sendBy": "updown"
+    }
+  ],
+  "light/modern": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 4,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-noche",
+          "name": "Noche",
+          "icon": "mdi:weather-night"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
+        },
+        {
+          "id": "w-brillo-mas",
+          "name": "Brillo +",
+          "icon": "mdi:brightness-7"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
+        },
+        {
+          "id": "w-mas-calido",
+          "name": "Más cálido",
+          "icon": "mdi:white-balance-incandescent"
+        }
+      ]
+    },
+    {
+      "id": "power",
+      "type": "toggle",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": "Luz",
+      "icon": "mdi:lightbulb-outline",
+      "form": "switch"
+    },
+    {
+      "id": "noche",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-noche"
+      ],
+      "label": null,
+      "icon": "mdi:weather-night",
+      "form": "round"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 3,
+      "buttons": [
+        "w-brillo-menos",
+        "w-brillo-mas"
+      ],
+      "label": "Brillo",
+      "icon": "mdi:brightness-6",
+      "sendBy": "updown",
+      "orientation": "vertical"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 1,
+      "y": 1,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-mas-frio",
+        "w-mas-calido"
+      ],
+      "label": "Tono",
+      "icon": "mdi:thermometer",
+      "sendBy": "updown"
+    }
+  ],
+  "light/advanced": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 6,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
+        },
+        {
+          "id": "w-brillo-mas",
+          "name": "Brillo +",
+          "icon": "mdi:brightness-7"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
+        },
+        {
+          "id": "w-mas-calido",
+          "name": "Más cálido",
+          "icon": "mdi:white-balance-incandescent"
+        },
+        {
+          "id": "w-noche",
+          "name": "Noche",
+          "icon": "mdi:weather-night"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        }
+      ]
+    },
+    {
+      "id": "power",
+      "type": "toggle",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": "Luz",
+      "icon": "mdi:lightbulb-outline",
+      "form": "switch"
+    },
+    {
+      "id": "indicator",
+      "type": "indicator",
+      "x": 2,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "form": "display"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 1,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-brillo-menos",
+        "w-brillo-mas"
+      ],
+      "label": "Brillo",
+      "icon": "mdi:brightness-6",
+      "sendBy": "updown"
+    },
+    {
+      "id": "level-2",
+      "type": "updown",
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-mas-frio",
+        "w-mas-calido"
+      ],
+      "label": "Tono",
+      "icon": "mdi:thermometer",
+      "sendBy": "updown"
+    },
+    {
+      "id": "noche",
+      "type": "button",
+      "x": 0,
+      "y": 3,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-noche"
+      ],
+      "label": null,
+      "icon": "mdi:weather-night"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 2,
+      "y": 3,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "graph",
+      "type": "graph",
+      "x": 0,
+      "y": 4,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "period": "7d"
+    }
+  ],
+  "fan/classic": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-velocidad-mas",
+          "name": "Velocidad +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-modo",
+          "name": "Modo",
+          "icon": "mdi:format-list-bulleted"
+        },
+        {
+          "id": "w-girar",
+          "name": "Girar",
+          "icon": "mdi:rotate-3d-variant"
+        },
+        {
+          "id": "w-invierno-verano",
+          "name": "Invierno / verano",
+          "icon": "mdi:sun-snowflake-variant"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 1,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-velocidad-menos",
+        "w-velocidad-mas"
+      ],
+      "label": "Velocidad",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "modo",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-modo"
+      ],
+      "label": null,
+      "icon": "mdi:format-list-bulleted"
+    },
+    {
+      "id": "girar",
+      "type": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-girar"
+      ],
+      "label": null,
+      "icon": "mdi:rotate-3d-variant"
+    },
+    {
+      "id": "invierno-verano",
+      "type": "button",
+      "x": 1,
+      "y": 1,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-invierno-verano"
+      ],
+      "label": null,
+      "icon": "mdi:sun-snowflake-variant"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    }
+  ],
+  "fan/modern": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-velocidad-mas",
+          "name": "Velocidad +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-girar",
+          "name": "Girar",
+          "icon": "mdi:rotate-3d-variant"
+        },
+        {
+          "id": "w-invierno-verano",
+          "name": "Invierno / verano",
+          "icon": "mdi:sun-snowflake-variant"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        },
+        {
+          "id": "w-modo",
+          "name": "Modo",
+          "icon": "mdi:format-list-bulleted"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 1,
+      "y": 0,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-velocidad-menos",
+        "w-velocidad-mas"
+      ],
+      "label": "Velocidad",
+      "icon": "mdi:fan",
+      "sendBy": "updown"
+    },
+    {
+      "id": "girar",
+      "type": "toggle",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-girar"
+      ],
+      "label": "Girar",
+      "icon": "mdi:rotate-3d-variant",
+      "form": "lamp"
+    },
+    {
+      "id": "invierno-verano",
+      "type": "toggle",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-invierno-verano"
+      ],
+      "label": "Invierno / verano",
+      "icon": "mdi:sun-snowflake-variant",
+      "form": "lamp"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "modo",
+      "type": "button",
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 1,
+      "buttons": [
+        "w-modo"
+      ],
+      "label": null,
+      "icon": "mdi:format-list-bulleted"
+    }
+  ],
+  "fan/advanced": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 5,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-encender-apagar",
+          "name": "Encender / apagar",
+          "icon": "mdi:power"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
+        },
+        {
+          "id": "w-velocidad-mas",
+          "name": "Velocidad +",
+          "icon": "mdi:plus"
+        },
+        {
+          "id": "w-girar",
+          "name": "Girar",
+          "icon": "mdi:rotate-3d-variant"
+        },
+        {
+          "id": "w-invierno-verano",
+          "name": "Invierno / verano",
+          "icon": "mdi:sun-snowflake-variant"
+        },
+        {
+          "id": "w-modo",
+          "name": "Modo",
+          "icon": "mdi:format-list-bulleted"
+        },
+        {
+          "id": "w-temporizador",
+          "name": "Temporizador",
+          "icon": "mdi:timer-outline"
+        }
+      ]
+    },
+    {
+      "id": "encender-apagar",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-encender-apagar"
+      ],
+      "label": null,
+      "icon": "mdi:power",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 1,
+      "y": 0,
+      "w": 3,
+      "h": 1,
+      "buttons": [
+        "w-velocidad-menos",
+        "w-velocidad-mas"
+      ],
+      "label": "Velocidad",
+      "icon": "mdi:fan",
+      "sendBy": "updown"
+    },
+    {
+      "id": "girar",
+      "type": "toggle",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-girar"
+      ],
+      "label": "Girar",
+      "icon": "mdi:rotate-3d-variant",
+      "form": "lamp"
+    },
+    {
+      "id": "invierno-verano",
+      "type": "toggle",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-invierno-verano"
+      ],
+      "label": "Invierno / verano",
+      "icon": "mdi:sun-snowflake-variant",
+      "form": "lamp"
+    },
+    {
+      "id": "modo",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-modo"
+      ],
+      "label": null,
+      "icon": "mdi:format-list-bulleted"
+    },
+    {
+      "id": "temporizador",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-temporizador"
+      ],
+      "label": null,
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "id": "indicator",
+      "type": "indicator",
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 1,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "form": "display"
+    },
+    {
+      "id": "graph",
+      "type": "graph",
+      "x": 0,
+      "y": 3,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": "Consumo",
+      "icon": null,
+      "period": "7d"
+    }
+  ],
+  "cover/classic": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-abrir",
+          "name": "Abrir",
+          "icon": "mdi:arrow-up"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        },
+        {
+          "id": "w-cerrar",
+          "name": "Cerrar",
+          "icon": "mdi:arrow-down"
+        },
+        {
+          "id": "w-favorita",
+          "name": "Favorita",
+          "icon": "mdi:star-outline"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
+        },
+        {
+          "id": "w-inclinar-mas",
+          "name": "Inclinar +",
+          "icon": "mdi:angle-acute"
+        }
+      ]
+    },
+    {
+      "id": "abrir",
+      "type": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-abrir"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-up"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop"
+    },
+    {
+      "id": "cerrar",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-cerrar"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-down"
+    },
+    {
+      "id": "favorita",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-favorita"
+      ],
+      "label": null,
+      "icon": "mdi:star-outline"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 0,
+      "y": 1,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-inclinar-menos",
+        "w-inclinar-mas"
+      ],
+      "label": "Inclinar",
+      "icon": null,
+      "sendBy": "updown"
+    }
+  ],
+  "cover/modern": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 3,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-cerrar",
+          "name": "Cerrar",
+          "icon": "mdi:arrow-down"
+        },
+        {
+          "id": "w-abrir",
+          "name": "Abrir",
+          "icon": "mdi:arrow-up"
+        },
+        {
+          "id": "w-favorita",
+          "name": "Favorita",
+          "icon": "mdi:star-outline"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
+        },
+        {
+          "id": "w-inclinar-mas",
+          "name": "Inclinar +",
+          "icon": "mdi:angle-acute"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "type": "slider",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 3,
+      "buttons": [
+        "w-cerrar",
+        "w-abrir"
+      ],
+      "label": "Cortina",
+      "icon": null,
+      "names": [
+        "Cerrada",
+        "Abierta"
+      ],
+      "sendBy": "level",
+      "form": "window"
+    },
+    {
+      "id": "abrir",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-abrir"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-up",
+      "form": "round"
+    },
+    {
+      "id": "favorita",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-favorita"
+      ],
+      "label": null,
+      "icon": "mdi:star-outline",
+      "form": "round"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop",
+      "form": "round"
+    },
+    {
+      "id": "cerrar",
+      "type": "button",
+      "x": 2,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-cerrar"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-down",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 2,
+      "buttons": [
+        "w-inclinar-menos",
+        "w-inclinar-mas"
+      ],
+      "label": "Inclinar",
+      "icon": null,
+      "sendBy": "updown",
+      "orientation": "vertical"
+    }
+  ],
+  "cover/advanced": [
+    {
+      "id": "canvas",
+      "type": "canvas",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 5,
+      "buttons": [],
+      "label": null,
+      "icon": null,
+      "wanted": [
+        {
+          "id": "w-cerrar",
+          "name": "Cerrar",
+          "icon": "mdi:arrow-down"
+        },
+        {
+          "id": "w-abrir",
+          "name": "Abrir",
+          "icon": "mdi:arrow-up"
+        },
+        {
+          "id": "w-parar",
+          "name": "Parar",
+          "icon": "mdi:stop"
+        },
+        {
+          "id": "w-favorita",
+          "name": "Favorita",
+          "icon": "mdi:star-outline"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
+        },
+        {
+          "id": "w-inclinar-mas",
+          "name": "Inclinar +",
+          "icon": "mdi:angle-acute"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "type": "slider",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 3,
+      "buttons": [
+        "w-cerrar",
+        "w-abrir"
+      ],
+      "label": "Cortina",
+      "icon": null,
+      "names": [
+        "Cerrada",
+        "Abierta"
+      ],
+      "sendBy": "level",
+      "form": "window"
+    },
+    {
+      "id": "abrir",
+      "type": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-abrir"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-up",
+      "form": "round"
+    },
+    {
+      "id": "parar",
+      "type": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-parar"
+      ],
+      "label": null,
+      "icon": "mdi:stop",
+      "form": "round"
+    },
+    {
+      "id": "cerrar",
+      "type": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-cerrar"
+      ],
+      "label": null,
+      "icon": "mdi:arrow-down",
+      "form": "round"
+    },
+    {
+      "id": "favorita",
+      "type": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "buttons": [
+        "w-favorita"
+      ],
+      "label": null,
+      "icon": "mdi:star-outline",
+      "form": "round"
+    },
+    {
+      "id": "level",
+      "type": "updown",
+      "x": 2,
+      "y": 2,
+      "w": 2,
+      "h": 1,
+      "buttons": [
+        "w-inclinar-menos",
+        "w-inclinar-mas"
+      ],
+      "label": "Inclinar",
+      "icon": null,
+      "sendBy": "updown"
+    },
+    {
+      "id": "graph",
+      "type": "graph",
+      "x": 0,
+      "y": 3,
+      "w": 4,
+      "h": 2,
+      "buttons": [],
+      "label": "Posición",
+      "icon": null,
+      "period": "7d"
+    }
+  ]
+}

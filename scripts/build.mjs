@@ -90,6 +90,7 @@ await build({
     'src/model/activity.ts',
     'src/model/plan-import.ts',
     'src/model/control-layout.ts',
+    'src/model/remote-templates.ts',
     'src/integration/history.ts',
     'src/model/automations.ts',
     'src/model/learning-progress.ts',
