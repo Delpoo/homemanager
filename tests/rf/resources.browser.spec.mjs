@@ -59,11 +59,14 @@ test('absolute setpoints, the remote clock, and independent persistent schedule 
   await expect(resources.locator('.schedule')).toContainText('Encender · 23:15');
   await expect(resources.locator('.schedule')).toContainText('Próximo');
   await shot(page, info, 'horarios');
-  await resources.getByRole('button', { name: 'Diseñar', exact: true }).click();
+  await resources.getByRole('button', { name: 'Editar control', exact: true }).click();
   const designer = resources.locator('homemanager-control-designer');
-  await designer.getByRole('tab', { name: 'Elementos' }).click();
+  // 0.14: the pieces of the air with full state are in «Especiales».
+  await designer.locator('[data-command=new-piece]').click();
+  await designer.locator('[data-cat-tab=special]').click();
   await expect(designer.locator('[data-absolute-piece=temperature]')).toBeVisible();
   await designer.locator('[data-absolute-piece=temperature]').click();
+  await designer.locator('[data-draft=save]').click();
   await expect
     .poll(
       async () =>
@@ -87,13 +90,16 @@ test('a template previews on the named control, and a partial catalog import rea
   expect((await slider.boundingBox()).width).toBeGreaterThanOrEqual(24);
   await slider.press('ArrowUp');
   await expect(slider).toBeFocused();
-  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
+  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   const designer = rf.locator('homemanager-control-designer');
+  // 0.14: templates are in «Estilo y lienzo»; «Guardar» keeps what was applied.
+  await designer.locator('[data-mod=canvas]').click();
   await designer.getByLabel('Vista previa de plantilla').selectOption('arena');
   await expect(designer.locator('.theme-arena.body')).toBeVisible();
   await expect(designer.getByRole('button', { name: 'Aplicar a Techo', exact: true })).toBeVisible();
   await shot(page, info, 'plantilla');
   await designer.getByRole('button', { name: 'Aplicar a Techo', exact: true }).click();
+  await designer.locator('[data-draft=save]').click();
   await expect
     .poll(async () =>
       page.evaluate(

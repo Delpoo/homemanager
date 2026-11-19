@@ -129,19 +129,18 @@ for (const dark of [false, true])
     await readable(rf(page));
     await shot('trial');
     await learn.getByRole('button', { name: 'Listo', exact: true }).click();
-    await rf(page).getByRole('button', { name: 'Diseñar', exact: true }).click();
+    await rf(page).getByRole('button', { name: 'Editar', exact: true }).click();
     await readable(rf(page));
     await shot('designer');
-    // 0.13: brands have their own tab; a chosen piece shows its inspector.
+    // 0.14: «Botón nuevo» opens the catalogue; a new button is edited by steps.
     const designer = rf(page).locator('homemanager-control-designer');
-    await designer.getByRole('tab', { name: 'Marcas', exact: true }).click();
-    await designer
-      .getByRole('complementary', { name: 'Recursos' })
-      .getByRole('button', { name: 'Netflix', exact: true })
-      .click();
-    await expect(designer.getByRole('tab', { name: 'Aspecto', exact: true })).toBeVisible();
+    await designer.locator('[data-command=new-piece]').click();
+    await designer.locator('[data-entry=brand]').click();
+    await expect(designer.locator('[data-step-open=look]')).toBeVisible();
     await readable(rf(page));
     await shot('widget');
+    await designer.locator('[data-draft=save]').click();
+    await expect(designer.locator('[data-draft=save]')).toBeDisabled();
     await rf(page).locator('.dfoot [data-command=edit]').click();
     await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
     await rf(page).getByRole('button', { name: 'Agregar ventilador', exact: true }).click();

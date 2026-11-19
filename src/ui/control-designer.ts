@@ -1638,7 +1638,8 @@ export class ControlDesigner extends HTMLElement {
     } else if (ctrl && key === 'y') {
       event.preventDefault();
       this.root.querySelector<HTMLButtonElement>('[data-redo]')?.click();
-    } else if (ctrl && key === 'd' && this.selected.length) {
+    } else if (ctrl && key === 'd' && this.selected.length && !event.composedPath().includes(this.canvas)) {
+      // On the canvas the control itself duplicates (once); here only from the panel.
       event.preventDefault();
       this.duplicatePieces(this.selected);
     } else if (
@@ -2625,7 +2626,7 @@ const designerStyles = `
 @container (max-width:980px){.designer{grid-template-columns:minmax(0,1fr) 320px}}
 @container (max-width:760px){
   .designer{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(360px,1fr) auto;min-height:0;height:auto}
-  .dedit{flex-wrap:wrap;row-gap:4px}.dedit .dtitle{flex:1 1 100%}
+  .dedit{flex-wrap:wrap;row-gap:2px}.dedit>ha-icon{display:none}.dedit .dtitle{flex:1 1 100%}.dedit .grow{display:none}.dedit .dlink:first-of-type{margin-left:auto}
   .insp{border-left:0;border-top:1px solid var(--hm-line)}.insp-body{overflow:visible}
   .dmode span{display:none}
 }
