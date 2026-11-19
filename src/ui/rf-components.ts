@@ -234,3 +234,35 @@ export const remotePieceStyles = `
 :host([data-designer]) .editing .widget{outline-style:dotted}
 @keyframes hm-preset{to{box-shadow:0 0 0 4px color-mix(in srgb,var(--hm-brand) 35%,transparent)}}
 `;
+
+/** 0.14 · «Control nuevo»: numbered steps, designs with a small live preview, the buttons to learn. */
+export const rfGuideStyles = `
+.gtitle{display:grid;min-width:0}.gtitle small{font-size:12px;font-weight:400;color:var(--hm-muted)}
+.gdots{display:flex;align-items:center;justify-content:center;gap:0;margin:0 0 6px;padding:0;list-style:none}
+.gdots li:not(.bar){display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--hm-surface-2);color:var(--hm-muted);font-size:12px;font-weight:600;flex:none}
+.gdots li.cur{background:var(--hm-brand);color:var(--hm-on-accent,#fff)}.gdots li.done{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.gdots li ha-icon{--mdc-icon-size:15px}.gdots .bar{width:28px;height:2px;background:var(--hm-line)}
+.gkinds{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+.gdesigns{display:grid;gap:10px}
+.gdesign{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);cursor:pointer;min-width:0}
+.gdesign[aria-checked=true]{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 8%,var(--hm-surface))}
+.gdesign:focus-visible{outline:none;box-shadow:var(--hm-focus)}
+.gprev{position:relative;width:118px;height:150px;flex:none;overflow:hidden;border-radius:10px;background:var(--hm-surface-2)}
+.gprev homemanager-rf-remote{position:absolute;left:0;top:0;width:328px;transform:scale(.36);transform-origin:top left;pointer-events:none}
+.gtx{flex:1;min-width:0;display:grid;gap:4px}.gtx b{display:flex;align-items:center;gap:6px;font-weight:600}.gtx b ha-icon{--mdc-icon-size:16px}
+.gtx small{font-size:12.5px;color:var(--hm-muted)}.gtx .gcount{color:var(--hm-ink)}
+.gradio{width:18px;height:18px;border-radius:50%;border:2px solid var(--hm-line);flex:none}
+.gdesign[aria-checked=true] .gradio{border-color:var(--hm-brand);box-shadow:inset 0 0 0 4px var(--hm-surface);background:var(--hm-brand)}
+.glive{position:relative;height:210px;overflow:hidden;border-radius:14px;background:var(--hm-surface-2);display:flex;justify-content:center}
+.glive homemanager-rf-remote{width:328px;transform:scale(.6);transform-origin:top center;margin-top:8px;pointer-events:none}
+.gprog{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:10px;background:var(--hm-surface);font-size:12px;font-weight:600;box-shadow:var(--hm-shadow)}
+.gnow{display:grid;justify-items:center;gap:2px;text-align:center}.gnow small{color:var(--hm-muted);font-size:12px}.gnow b{font-size:18px;font-weight:600}
+.gskip{justify-self:center;align-self:center}
+.glist{display:flex;flex-direction:column;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto}
+.gitem{display:flex;align-items:center;gap:10px;min-height:38px;padding:4px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13.5px;text-align:left;width:100%}
+.gitem:last-child{border-bottom:0}.gitem.cur{background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}
+.gn{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--hm-surface-2);font-size:11.5px;color:var(--hm-muted);flex:none}.gn ha-icon{--mdc-icon-size:14px}
+.gitem.ok .gn{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.gitem.skip{color:var(--hm-muted)}.gitem.skip .gn{background:color-mix(in srgb,var(--hm-warn,#d98b1f) 18%,transparent);color:var(--hm-warn,#b86e10)}
+.gsum{font-size:15px;font-weight:500}
+`;
