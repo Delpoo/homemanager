@@ -1425,6 +1425,23 @@ export class HomeManagerEditor extends HTMLElement {
         reason: () => '',
       };
       const controls = designDevice.bindings.controls ?? [];
+      // 0.14 · the device's Home Assistant buttons (a robot's routines), offered in «Especiales».
+      const deviceId =
+        designDevice.bindings.deviceId ??
+        (designDevice.bindings.entityId
+          ? this._hass?.entities?.[designDevice.bindings.entityId]?.device_id
+          : undefined);
+      const routines = deviceId
+        ? Object.entries(this._hass?.entities ?? {})
+            .filter(([entityId, entity]) => entity.device_id === deviceId && entityId.startsWith('button.'))
+            .map(([entityId]) => ({
+              id: `routine-${entityId.slice(7).replace(/[^a-z0-9_-]+/g, '-')}`.slice(0, 64),
+              entity: entityId,
+              name: String(
+                this._hass?.states[entityId]?.attributes?.friendly_name ?? entityId.slice(7).replace(/_/g, ' '),
+              ),
+            }))
+        : [];
       designHost.append(this.controlDesigner);
       this.controlDesigner.configure({
         key: designDevice.id,
@@ -1433,11 +1450,20 @@ export class HomeManagerEditor extends HTMLElement {
         controls,
         estimated: false,
         trayTitle: t('Acciones'),
+        routines: routines.map(({ id, name }) => ({ id, name })),
         readValues: () => this._hass?.states ?? {},
         history: (entity, period, attribute) => historySeries(this._hass, entity, period, attribute),
         renderContent: p => renderDesignPiece(p, controls, host),
         save: layout => {
-          const next = clone(this.configuration);
+          let next = clone(this.configuration);
+          // A routine placed on the control becomes an action that presses its button.
+          for (const routine of routines)
+            if (layout?.some(piece => piece.buttons.includes(routine.id)) && !Object.hasOwn(next.actions, routine.id))
+              next = placeAction(next, routine.id, {
+                domain: 'button',
+                service: 'press',
+                target: { entity_id: routine.entity },
+              }).configuration;
           const d = next.catalog.devices.find(d => d.id === designDevice.id)!;
           if (layout === null) delete d.bindings.layout;
           else d.bindings.layout = layout;

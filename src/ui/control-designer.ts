@@ -68,6 +68,8 @@ export interface DesignerOptions {
   save(layout: RfWidget[] | null): Promise<void> | void;
   /** Test mode: a tap sends for real. Without it the designer never sends. */
   press?: (buttonId: string) => Promise<unknown>;
+  /** 0.14 · Home Assistant buttons of the symbol's device (a robot's routines): «Especiales › Rutinas». */
+  routines?: { id: string; name: string }[];
   /** 0.14 · the appliance of this remote: «Diseño» swaps its starting designs. */
   appliance?: ApplianceKind | null;
   /** "Learn more buttons" from the tray; with a name, the button the control waits for. */
@@ -457,7 +459,11 @@ export class ControlDesigner extends HTMLElement {
       .filter((item): item is RfWidget => !!item);
   }
   private learned(): { id: string; name: string; icon: string | null }[] {
-    return this.remote?.buttons ?? [];
+    const buttons = this.remote?.buttons ?? [];
+    const routines = (this.options?.routines ?? [])
+      .filter(routine => !buttons.some(button => button.id === routine.id))
+      .map(routine => ({ id: routine.id, name: routine.name, icon: 'mdi:play-circle-outline' }));
+    return [...buttons, ...routines];
   }
   private name(ref: string): string {
     return personName(this.learned().find(button => button.id === ref)?.name ?? this.wanted().find(item => item.id === ref)?.name, ref);
@@ -1105,6 +1111,32 @@ export class ControlDesigner extends HTMLElement {
       slot.append(this.designPreviews[i]);
     });
   }
+  /** «Rutinas»: one big card per routine not on the control yet, two per row below what is there. */
+  private addRoutines(): void {
+    const routines = this.options?.routines ?? [];
+    let layout = this.layout();
+    const used = this.users();
+    const missing = routines.filter(routine => !used.has(routine.id));
+    if (!missing.length) {
+      this.error = t('Todas las rutinas ya están en el control.');
+      this.render();
+      return;
+    }
+    const columns = gridOf(layout).columns;
+    const width = Math.max(1, Math.floor(columns / 2));
+    let row = Math.max(0, ...layout.filter(piece => piece.type !== 'canvas').map(piece => piece.y + piece.h));
+    missing.forEach((routine, i) => {
+      const x = (i % 2) * width;
+      if (i && i % 2 === 0) row++;
+      const piece: RfWidget = { id: uniqueId(layout, 'rutina'), type: 'button', x, y: row, w: width, h: 1, buttons: [routine.id], label: routine.name, icon: 'mdi:play-circle-outline', form: 'pill' };
+      layout = add(layout, piece);
+    });
+    const canvas = layout.find(item => item.type === 'canvas');
+    if (canvas && row + 1 > canvas.h) layout = layout.map(item => (item === canvas ? { ...canvas, h: Math.min(MAX_GRID_ROWS, row + 1) } : item));
+    this.adding = false;
+    this.selected = [];
+    void this.commit(layout);
+  }
   /** Swaps the arrangement for a starting design; asks first, and it can be undone. */
   private async useDesign(design: StartDesign): Promise<void> {
     const kind = this.options?.appliance;
@@ -1139,6 +1171,10 @@ export class ControlDesigner extends HTMLElement {
       const preview = ['dpad', 'numpad', 'transport', 'colors'].includes(entry) ? `<span class="bprev">${blockPreview(entry as WidgetType)}</span>` : glyph(icon);
       return `<button type="button" class="ctile" data-entry="${entry}" aria-pressed="${current === entry}" title="${e(t(label))}">${preview}<span>${e(t(label))}</span>${count ? `<em>${count}</em>` : ''}</button>`;
     });
+    if (this.catTab === 'special' && this.options?.routines?.length)
+      entries.push(
+        `<button type="button" class="ctile" data-routines title="${e(t('Rutinas'))}">${glyph('mdi:robot-vacuum')}<span>${e(t('Rutinas'))}</span></button>`,
+      );
     if (this.catTab === 'special' && this.options?.absolute)
       for (const control of this.options.controls ?? [])
         entries.push(
@@ -1934,6 +1970,7 @@ export class ControlDesigner extends HTMLElement {
     on('[data-steps=discard]', () => this.discardPiece());
     on('[data-command=piece-back]', () => this.select([]));
     on('[data-use-design]', element => void this.useDesign(element.dataset.useDesign as StartDesign));
+    on('[data-routines]', () => this.addRoutines());
     on('[data-learn-wanted]', element => {
       const item = this.wanted().find(entry => entry.id === element.dataset.learnWanted);
       if (item) this.options?.learn?.(item.name);

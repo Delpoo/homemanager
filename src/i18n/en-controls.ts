@@ -261,4 +261,6 @@ export const enControls: Record<string, string> = {
   '¿Quitar la biblioteca «{name}»?': 'Remove the «{name}» library?',
   'Los controles que trajeron botones de ella no cambian.': 'Remotes that brought buttons from it do not change.',
   'Guardar en Mis bibliotecas': 'Keep in My libraries',
+  Rutinas: 'Routines',
+  'Todas las rutinas ya están en el control.': 'Every routine is already on the control.',
 };
