@@ -130,7 +130,7 @@ const titleFor = (key: string) => t(titles[key] ?? key);
 const optionFor = (key: string) => t(choices[key] ?? key);
 
 const styles = `
-.prog-list{display:grid;gap:4px}.prog-row{display:flex;align-items:center;gap:8px}.prog-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.programs-card .row input{flex:1;min-width:0}
+.prog-list{display:grid;gap:4px}.prog-row{display:flex;align-items:center;gap:8px}.prog-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.prog-name{display:grid}.prog-name b,.prog-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prog-name small{font-size:12px;color:var(--hm-muted)}.programs-card .row input{flex:1;min-width:0}
 :host{display:block;min-width:0}.resources{display:grid;gap:12px;min-width:0}
 .resource-card{border:1px solid var(--hm-line);border-radius:14px;padding:12px;display:grid;gap:10px;min-width:0}
 h3,p{margin:0}h3{font-size:15px;font-weight:600}
@@ -976,13 +976,17 @@ export class HomeManagerRemoteResources extends HTMLElement {
         library =>
           '<div class="prog-row">' +
           glyph('mdi:bookshelf') +
-          '<span><b>' +
+          '<span class="prog-name"><b>' +
           e(library.name) +
-          '</b> · ' +
-          e([library.brand, library.model, library.source].join(' · ')) +
-          ' · ' +
-          e(t('{count} botones', { count: library.count })) +
-          '</span>' +
+          '</b><small>' +
+          e(
+            [
+              `${library.brand} ${library.model}`.trim(),
+              library.source,
+              t('{count} botones', { count: library.count }),
+            ].join(' · '),
+          ) +
+          '</small></span>' +
           action('library-del-' + library.id, 'Quitar', 'danger', 'mdi:close') +
           '</div>',
       )
@@ -993,9 +997,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
       '</h3>' +
       (rows
         ? '<div class="prog-list">' + rows + '</div>'
-        : '<p class="muted">' +
-          e(t('Revisá un archivo y guardalo acá para reconocer controles y traer sus botones.')) +
-          '</p>') +
+        : '<p class="muted">' + e(t('Todavía no hay bibliotecas.')) + '</p>') +
       '</section>'
     );
   }

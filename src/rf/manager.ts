@@ -493,7 +493,7 @@ export class HomeManagerRf extends HTMLElement {
       body = `${panelLabel(t('¿Qué aparato manejás con este control?'))}<div class="kinds gkinds" role="group" aria-label="${e(t('Tipo de aparato'))}">${kinds}</div>${panelLabel(t('Cómo se controla'))}<div class="seg big2" role="group" aria-label="${e(t('Cómo se controla'))}">${sources}</div>${panelLabel(t('Con qué equipo'))}${
         chips
           ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>`
-          : `<div class="row-icon">${icon('mdi:ear-off')}<div class="chips"><button type="button" class="chip" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div></div>`
+          : `<div class="row-icon">${icon('mdi:ear-hearing-off')}<div class="chips"><button type="button" class="chip" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div></div>`
       }`;
       // IR finds its receivers on the learning page; RF needs one that listens.
       next = nextButton(t('Siguiente'), this.newSource === 'ir' || !!chosen);

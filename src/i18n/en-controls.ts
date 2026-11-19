@@ -254,8 +254,6 @@ export const enControls: Record<string, string> = {
   'Esa biblioteca no tiene botones con esos nombres.': 'That library has no buttons with those names.',
   '{count} botones traídos de la biblioteca.': '{count} buttons brought from the library.',
   'Mis bibliotecas': 'My libraries',
-  'Revisá un archivo y guardalo acá para reconocer controles y traer sus botones.':
-    'Review a file and keep it here to recognise remotes and bring their buttons.',
   'Completá nombre, marca y modelo para guardarla.': 'Fill in name, brand and model to keep it.',
   'Guardada en Mis bibliotecas.': 'Kept in My libraries.',
   '¿Quitar la biblioteca «{name}»?': 'Remove the «{name}» library?',
@@ -275,4 +273,5 @@ export const enControls: Record<string, string> = {
   'Controles aprendidos': 'Learned remotes',
   'Nada coincide con la búsqueda.': 'Nothing matches the search.',
   'Todavía no hay controles aprendidos.': 'No learned remotes yet.',
+  'Todavía no hay bibliotecas.': 'No libraries yet.',
 };
