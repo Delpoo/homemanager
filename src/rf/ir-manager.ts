@@ -117,6 +117,24 @@ export class HomeManagerIr extends HTMLElement {
   }
 
   /** A new IR remote from Controls › New: its name and receiver are already chosen. */
+  /** 0.14 · the «Control nuevo» guide: learn one named button into this remote (or a new one). */
+  guided?: { onSaved: (remoteId: string) => void };
+  guide(button: string, remoteName: string, remoteId: string, receiver: string, onSaved: (remoteId: string) => void): void {
+    this.guided = { onSaved };
+    this.remoteId = remoteId;
+    this.remoteName = remoteName;
+    this.buttonName = button;
+    this.replaceButton = '';
+    this.editing = '';
+    if (receiver) this.receiver = receiver;
+    this.pickEmitter();
+    this.render();
+  }
+  endGuide(): void {
+    this.guided = undefined;
+    this.render();
+  }
+
   startNew(name: string, receiver = ''): void {
     this.remoteId = '';
     this.remoteName = name;
@@ -313,6 +331,7 @@ export class HomeManagerIr extends HTMLElement {
     this.saved = library;
     if (this.editing === 'buttons') this.settings = await remotes.settings(hass, saved.id);
     this.message = t('Guardado en Home Assistant.');
+    this.guided?.onSaved(saved.id);
   }
 
   /** "Botón 3" when no name is typed. */
@@ -422,14 +441,14 @@ export class HomeManagerIr extends HTMLElement {
     this.root.innerHTML = `<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
       ${receivers ? `<div class="row-icon" role="group" aria-label="${e(t('Receptor IR'))}">${glyph('mdi:ear-hearing')}<div class="chips">${receivers}</div></div>` : ''}
       ${this.requested && !this.busy && !this.failed && !this.receivers.length ? `<p class="muted">${e(t('No hay un receptor IR disponible.'))}</p>` : ''}
-      ${learn}</section>${library ? `<section aria-label="${e(t('Controles IR guardados'))}">${library}</section>` : ''}
+      ${learn}</section>${library && !this.guided ? `<section aria-label="${e(t('Controles IR guardados'))}">${library}</section>` : ''}
       <p role="status" data-ir-status class="status${this.failed ? ' error' : ''}">${e(this.message || (this.busy ? t('Cargando…') : ''))}</p>`;
     this.bind();
     if (candidate && this._hass) {
       this.root.querySelector('[data-preview]')?.append(this.preview);
       this.preview.configure(this._hass, { source: 'ir', candidate_id: candidate.candidate_id });
     }
-    if (remote && this.editing !== 'buttons') this.mountPlayer(remote);
+    if (remote && this.editing !== 'buttons' && !this.guided) this.mountPlayer(remote);
     this.updateActions();
     restoreFocus();
   }
