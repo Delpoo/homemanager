@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0-beta.3 — beta
+
+Resto de los controles nuevos (maqueta v14): editar con borrador, guía para crear un control, programas del aire, bibliotecas propias y rutinas.
+
+- **Editar control:** el editor trabaja sobre un borrador. Nada se guarda hasta tocar Guardar; Deshacer y Descartar cambios vuelven atrás, y al salir con cambios pregunta si guardar, descartar o seguir editando. El botón dice «Editar», no «Diseñar».
+- **Botón nuevo:** un solo catálogo en cinco pestañas (Botones, Grupos, Niveles y listas, Información y Especiales). Cada pieza se arma por pasos (qué botón es, forma y tamaño, aspecto, qué hace, gestos, qué muestra y en el plano); un paso con cambios sin aceptar queda marcado y se puede aceptar o descartar uno por uno o todos juntos.
+- **Botones por aprender:** una plantilla puede dejar botones que todavía no se aprendieron. Quedan en el control con «!», no envían nada y se aprenden ahí mismo.
+- **Control nuevo:** guía de cinco pasos: tipo de aparato (o sin plantilla), diseño de partida (Clásico, Moderno o Avanzado), aprender los botones de a uno con la vista previa llenándose (saltear, repetir o traer de la biblioteca), botones extra y nombre. El diseño se puede cambiar después sin perder lo aprendido.
+- **Aire con estado completo:** la pantalla del aire y «Reenviar estado» como piezas del control; hasta 6 programas (por ejemplo «Noche») que dejan el aire como se guardó con un toque.
+- **Mis bibliotecas:** un archivo de catálogo IR revisado se guarda como biblioteca propia (hasta 8). Al aprender un botón IR, si la señal se parece a uno de una biblioteca, se ofrece su nombre; en la guía, «Traer de la biblioteca» trae de una vez los botones que el diseño pide.
+- **Rutinas:** los botones de Home Assistant del aparato del símbolo (por ejemplo las rutinas de un robot) aparecen en Especiales › Rutinas y se agregan como tarjetas grandes.
+- **Controles del símbolo:** lista con cada control (radio o infrarrojo) y una ✕ para quitarlo; «Agregar un control» abre un selector con buscador y las pestañas Todos y Controles aprendidos.
+- **Ayuda «?»** debajo del control: numera las piezas y dice qué hace cada una.
+- **Arreglos:** un ícono que no existía en la pantalla de Controles; «Traer de la biblioteca» ya no se corta en el teléfono.
+
+Los campos nuevos (`wanted` del lienzo, piezas `screen` y `programs`, programas del aire) son opcionales y se validan en la tarjeta, la integración y el esquema. Se agrega el almacén `homemanager.ir_libraries`. Un control guardado con 0.14.0-beta.2 se ve y funciona igual. Antes de actualizar, conservar una copia completa de Home Assistant.
+
 ## 0.14.0-beta.2 — beta
 
 Arreglo de la primera prueba con controles reales.
