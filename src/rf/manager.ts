@@ -25,6 +25,16 @@ import { diagnostics } from '../integration/diagnostics.js';
 import { openSignal, type SignalTab } from '../ui/signal-workbench.js';
 import { HomeManagerRemoteResources } from './resources.js';
 import './remote-view.js';
+import {
+  APPLIANCES,
+  DESIGNS,
+  applyTemplate,
+  learnOrder,
+  pieceCount,
+  template,
+  type ApplianceKind,
+  type StartDesign,
+} from '../model/remote-templates.js';
 import './learn.js';
 import './devices.js';
 import './ir-manager.js';
@@ -63,6 +73,7 @@ const KINDS: [string, string][] = [
   ['mdi:projector', 'Proyector'],
   ['mdi:remote', 'Otro'],
 ];
+type GuideStep = 1 | 2 | 3 | 4 | 5;
 export class HomeManagerRf extends HTMLElement {
   private readonly root = this.attachShadow({ mode: 'open' });
   private _hass?: Hass;
@@ -99,16 +110,34 @@ export class HomeManagerRf extends HTMLElement {
   private readonly infrared = document.createElement('homemanager-ir-manager') as HomeManagerIr;
   private readonly resources = new HomeManagerRemoteResources();
   private resourceDesign = false;
+  /** 0.14 · «Control nuevo»: five steps, from the appliance to its name. */
+  private guide: {
+    step: GuideStep;
+    kind: ApplianceKind | null;
+    design: StartDesign;
+    index: number;
+    skipped: string[];
+    name: string;
+    irRemote: string;
+  } = { step: 1, kind: 'ac', design: 'modern', index: 0, skipped: [], name: '', irRemote: '' };
+  private readonly guidePreviews = DESIGNS.map(() => document.createElement('homemanager-rf-remote') as HomeManagerRfRemote);
+  private readonly guideLive = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
 
   constructor() {
     super();
     installPanelComponents(
       this.root,
       'rf-manager',
-      rfManagerStyles + learningWorkspaceStyles + sidePanelStyles + rfControlsStyles + rfTestStyles,
+      rfManagerStyles + learningWorkspaceStyles + sidePanelStyles + rfControlsStyles + rfTestStyles + guideStyles,
       true,
     );
     this.remoteView.onPress = buttonId => rf.press(this._hass!, this.selected!, buttonId);
+    for (const preview of this.guidePreviews) {
+      preview.setAttribute('data-template', '');
+      preview.preview = true;
+      preview.inert = true;
+    }
+    this.guideLive.preview = true;
     this.learn.onSaved = id => void this.learned(id);
     this.learn.onClose = () => this.closeLearn();
     this.learn.receiverOnline = id => this.rfDevices.find(d => d.id === id)?.online !== false;
@@ -255,7 +284,7 @@ export class HomeManagerRf extends HTMLElement {
         panelHead(e(t('Equipos')), { back: t('Volver'), close: t('Cerrar') }),
         `<div data-slot="devices"></div>${status}`,
       );
-    else if (this.view === 'new') page = this.renderNew(status);
+    else if (this.view === 'new') page = this.renderGuide(status);
     else if (this.view === 'test' && this.remote()) page = this.renderTest(this.remote()!, status);
     else if (this.view === 'learn' && (this.remote() || this.draft))
       page = this.panel(
@@ -276,8 +305,10 @@ export class HomeManagerRf extends HTMLElement {
       ['devices', this.devices],
       ['infrared', this.infrared],
       ['resources', this.resources],
+      ['glive', this.guideLive],
     ] as const)
       this.root.querySelector(`[data-slot=${slot}]`)?.replaceWith(element);
+    if (this.view === 'new') this.mountGuidePreviews();
     this.bind();
     restoreFocus();
   }
@@ -372,38 +403,249 @@ export class HomeManagerRf extends HTMLElement {
       .join('<li class="bar" aria-hidden="true"></li>')}</ol>`;
   }
 
-  private renderNew(status: string): string {
-    const draft = this.newRemote;
-    const kinds = KINDS.map(
-      ([glyph, label]) =>
-        `<button type="button" class="kind" data-kind="${glyph}" aria-pressed="${draft.icon === glyph}">${icon(glyph)}<span>${e(t(label))}</span></button>`,
-    ).join('');
-    const sources = (['ir', 'rf'] as Source[])
-      .map(
-        source =>
-          `<button type="button" class="ib" data-source="${source}" aria-pressed="${this.newSource === source}" title="${e(source === 'ir' ? t('Infrarrojo') : t('Radio 433 MHz'))}">${icon(source === 'ir' ? 'mdi:remote-tv' : 'mdi:access-point')}<span>${source.toUpperCase()}</span></button>`,
-      )
-      .join('');
-    const listeners: { id: string; name: string }[] =
-      this.newSource === 'rf'
-        ? this.transmitters.filter(item => item.can_capture)
-        : this.irReceivers.map(item => ({ id: item.id, name: item.name }));
-    const chosen = this.newSource === 'rf' ? this.receiver() : this.irReceiver();
-    const chips = listeners
-      .map(
-        item =>
-          `<button type="button" class="chip" data-receiver="${e(item.id)}" aria-pressed="${item.id === chosen}" title="${e(t('Escucha'))}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
-      )
-      .join('');
-    const body = `${this.stepper(0)}<input class="title-in" name="new-name" maxlength="80" value="${e(draft.name)}" placeholder="${e(this.newName())}" aria-label="${e(t('Nombre'))}"><div class="kinds" role="group" aria-label="${e(t('Icono'))}">${kinds}</div>${panelLabel(t('Señal'))}<div class="seg big2" role="group" aria-label="${e(t('Señal'))}">${sources}</div>${chips ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>` : this.newSource === 'rf' ? `<div class="row-icon">${icon('mdi:ear-off')}<div class="chips"><button type="button" class="chip" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div></div>` : ''}${status}`;
-    // The name is optional (the kind's name is used). IR looks for its receivers on
-    // the next page; RF needs one that listens, else the way to Devices is right here.
-    const ready = this.newSource === 'ir' || !!chosen;
-    return this.panel(
-      panelHead(e(t('Nuevo control')), { back: t('Volver'), close: t('Cerrar') }),
-      body,
-      `<span class="grow"></span><button type="button" class="next" data-command="create"${ready ? '' : ' disabled'}>${icon('mdi:access-point')}${e(t('Aprender botones'))}</button>`,
+  private guideSteps(): GuideStep[] {
+    return this.guide.kind ? [1, 2, 3, 4, 5] : [1, 4, 5];
+  }
+  private guideOrder() {
+    return this.guide.kind ? learnOrder(this.guide.kind, this.guide.design) : [];
+  }
+  /** The remote the guide is filling (RF draft saved with its first button, or the IR one). */
+  private guideRemote(): { id: string; name: string; buttons: { id: string; name: string; icon: string | null }[] } | undefined {
+    if (this.newSource === 'ir') return this.irRemotes.find(item => item.id === this.guide.irRemote);
+    return this.remote() ?? undefined;
+  }
+  private guideKnown(): Set<string> {
+    return new Set((this.guideRemote()?.buttons ?? []).map(button => button.name.trim().toLowerCase()));
+  }
+  private guideDefaultName(): string {
+    return t(APPLIANCES.find(([kind]) => kind === this.guide.kind)?.[1] ?? 'Control');
+  }
+
+  /** 0.14 · «Control nuevo»: the appliance, its starting design, its buttons one by one, extras and a name. */
+  private renderGuide(status: string): string {
+    const g = this.guide;
+    const steps = this.guideSteps();
+    const position = Math.max(0, steps.indexOf(g.step));
+    const titles: Record<GuideStep, string> = {
+      1: t('Tipo de aparato'),
+      2: t('Diseño de partida'),
+      3: t('Aprender los botones'),
+      4: g.kind ? t('Botones extra') : t('Aprender los botones'),
+      5: t('Nombre'),
+    };
+    const head = panelHead(
+      `<span class="gtitle">${e(t('Control nuevo'))}<small>${e(t('Paso {n} de {total} · {title}', { n: position + 1, total: steps.length, title: titles[g.step] }))}</small></span>`,
+      { back: t('Volver'), close: t('Cerrar') },
     );
+    const dots = `<ol class="gdots" aria-label="${e(t('Pasos'))}">${steps
+      .map((_, i) => `<li class="${i < position ? 'done' : i === position ? 'cur' : ''}"${i === position ? ' aria-current="step"' : ''}>${i < position ? icon('mdi:check') : i + 1}</li>`)
+      .join('<li class="bar" aria-hidden="true"></li>')}</ol>`;
+    const nextButton = (label = t('Siguiente'), enabled = true, command = 'next') =>
+      `<button type="button" class="next" data-guide="${command}"${enabled ? '' : ' disabled'}>${e(label)}${icon(command === 'finish' ? 'mdi:check' : 'mdi:chevron-right')}</button>`;
+    let body = '';
+    let next = '';
+    if (g.step === 1) {
+      const kinds = [...APPLIANCES.map(([kind, label, glyph]) => [kind, label, glyph] as const), [null, 'Sin plantilla', 'mdi:remote'] as const]
+        .map(
+          ([kind, label, glyph]) =>
+            `<button type="button" class="kind" data-gkind="${kind ?? ''}" aria-pressed="${g.kind === kind}">${icon(glyph)}<span>${e(t(label))}</span></button>`,
+        )
+        .join('');
+      const sources = (['ir', 'rf'] as Source[])
+        .map(
+          source =>
+            `<button type="button" class="ib" data-source="${source}" aria-pressed="${this.newSource === source}" title="${e(source === 'ir' ? t('Infrarrojo') : t('Radio 433 MHz'))}">${icon(source === 'ir' ? 'mdi:remote-tv' : 'mdi:access-point')}<span>${source === 'ir' ? e(t('Infrarrojo (IR)')) : e(t('Radio (RF)'))}</span></button>`,
+        )
+        .join('');
+      const listeners: { id: string; name: string }[] =
+        this.newSource === 'rf'
+          ? this.transmitters.filter(item => item.can_capture)
+          : this.irReceivers.map(item => ({ id: item.id, name: item.name }));
+      const chosen = this.newSource === 'rf' ? this.receiver() : this.irReceiver();
+      const chips = listeners
+        .map(
+          item =>
+            `<button type="button" class="chip" data-receiver="${e(item.id)}" aria-pressed="${item.id === chosen}" title="${e(t('Escucha'))}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
+        )
+        .join('');
+      body = `${panelLabel(t('¿Qué aparato manejás con este control?'))}<div class="kinds gkinds" role="group" aria-label="${e(t('Tipo de aparato'))}">${kinds}</div>${panelLabel(t('Cómo se controla'))}<div class="seg big2" role="group" aria-label="${e(t('Cómo se controla'))}">${sources}</div>${panelLabel(t('Con qué equipo'))}${
+        chips
+          ? `<div class="row-icon">${icon('mdi:ear-hearing')}<div class="chips">${chips}</div></div>`
+          : `<div class="row-icon">${icon('mdi:ear-off')}<div class="chips"><button type="button" class="chip" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div></div>`
+      }`;
+      next = nextButton(t('Siguiente'), !!chosen);
+    } else if (g.step === 2 && g.kind) {
+      const kind = g.kind;
+      body = `${panelLabel(t('Elegí cómo arranca. Después se puede cambiar todo.'))}<div class="gdesigns" role="radiogroup" aria-label="${e(t('Diseño de partida'))}">${DESIGNS.map(
+        ([design, label, about, glyph], i) =>
+          `<div class="gdesign" role="radio" tabindex="0" data-gdesign="${design}" aria-checked="${g.design === design}"><span class="gprev" data-gprev="${i}"></span><span class="gtx"><b>${icon(glyph)}${e(t(label))}</b><small>${e(t(about))}</small><small class="gcount">${e(t('{pieces} botones · {learn} para aprender', { pieces: pieceCount(kind, design), learn: learnOrder(kind, design).length }))}</small></span><i class="gradio" aria-hidden="true"></i></div>`,
+      ).join('')}</div>`;
+      next = nextButton();
+    } else if (g.step === 3) {
+      const order = this.guideOrder();
+      const known = this.guideKnown();
+      const done = order.filter(item => known.has(item.name.toLowerCase())).length;
+      const current = order[g.index];
+      const learner = this.newSource === 'ir' ? '<div data-slot="infrared"></div>' : '<div data-slot="learn"></div>';
+      body = `<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
+        current
+          ? `<div class="gnow"><small>${e(t('Botón {n} de {total}', { n: g.index + 1, total: order.length }))}</small><b>${e(current.name)}</b></div>${learner}<button type="button" class="chip gskip" data-guide="skip">${icon('mdi:debug-step-over')}${e(t('Saltar: mi control no lo tiene'))}</button>`
+          : `<p class="muted">${e(t('Ya pasaste por todos los botones.'))}</p>`
+      }<div class="glist">${order
+        .map((item, i) => {
+          const state = known.has(item.name.toLowerCase()) ? 'ok' : g.skipped.includes(item.id) ? 'skip' : '';
+          return `<button type="button" class="gitem ${state}${i === g.index ? ' cur' : ''}" data-gitem="${i}" title="${e(state === 'ok' ? t('Aprendido: tocá para repetirlo') : state === 'skip' ? t('Salteado') : t('Aprender'))}"><span class="gn">${state === 'ok' ? icon('mdi:check') : state === 'skip' ? icon('mdi:debug-step-over') : i + 1}</span><span>${e(item.name)}</span></button>`;
+        })
+        .join('')}</div>`;
+      next = nextButton();
+    } else if (g.step === 4) {
+      const names = new Set(this.guideOrder().map(item => item.name.toLowerCase()));
+      const extras = (this.guideRemote()?.buttons ?? []).filter(button => !names.has(button.name.trim().toLowerCase()));
+      const learner = this.newSource === 'ir' ? '<div data-slot="infrared"></div>' : '<div data-slot="learn"></div>';
+      body = `${panelLabel(g.kind ? t('Botones que tu control tiene y la plantilla no') : t('Aprendé los botones de tu control'))}<div class="glist">${
+        extras.map(button => `<div class="gitem ok"><span class="gn">${icon('mdi:check')}</span><span>${e(rfText(button.name))}</span></div>`).join('') ||
+        `<p class="muted">${e(g.kind ? t('Ninguno todavía (es opcional).') : t('Ninguno todavía.'))}</p>`
+      }</div>${learner}`;
+      next = nextButton();
+    } else {
+      const remote = this.guideRemote();
+      const order = this.guideOrder();
+      const known = this.guideKnown();
+      const missing = order.filter(item => !known.has(item.name.toLowerCase())).length;
+      const design = DESIGNS.find(([id]) => id === g.design)?.[1] ?? '';
+      const summary = [this.guideDefaultName(), g.kind ? t(design) : t('Sin plantilla'), this.newSource.toUpperCase()].join(' · ');
+      body = `${panelField(t('Nombre'), `<input class="title-in" name="guide-name" maxlength="80" value="${e(g.name)}" placeholder="${e(this.guideDefaultName())}">`)}${panelLabel(t('Resumen'))}<p class="gsum">${e(summary)}</p><p class="muted">${e(
+        remote
+          ? t('{learned} botones aprendidos', { learned: remote.buttons.length }) + (missing ? ` · ${t('{count} sin aprender: quedan con «!»', { count: missing })}` : '')
+          : t('Aprendé al menos un botón para crear el control.'),
+      )}</p>`;
+      next = nextButton(t('Crear y editar'), !!remote, 'finish');
+    }
+    const foot = `${
+      position
+        ? `<button type="button" class="ghost" data-guide="back">${icon('mdi:chevron-left')}${e(t('Atrás'))}</button>`
+        : `<button type="button" class="ghost" data-command="list">${e(t('Cancelar'))}</button>`
+    }<span class="grow"></span>${next}`;
+    return this.panel(head, `${dots}${body}${status}`, foot);
+  }
+
+  /** The three designs in step 2, and the control filling up in step 3. */
+  private mountGuidePreviews(): void {
+    const g = this.guide;
+    if (g.step === 2 && g.kind)
+      DESIGNS.forEach(([design], i) => {
+        const slot = this.root.querySelector(`[data-gprev="${i}"]`);
+        if (!slot) return;
+        this.guidePreviews[i].remote = { id: `template-${design}`, buttons: [], parts: [], layout: template(g.kind!, design) };
+        slot.append(this.guidePreviews[i]);
+      });
+    if (g.step === 3 && g.kind) {
+      const buttons = this.guideRemote()?.buttons ?? [];
+      this.guideLive.remote = {
+        id: 'guide',
+        buttons: buttons.map(button => ({ ...button, fingerprint: '' })) as RfRemote['buttons'],
+        parts: [],
+        layout: applyTemplate(g.kind, g.design, buttons),
+      };
+    }
+  }
+
+  /** Steps 3 and 4 learn with the receiver chosen in step 1; step 3 asks for one name at a time. */
+  private guideLearn(name: string): void {
+    if (this.newSource === 'ir') {
+      this.infrared.hass = this._hass!;
+      this.infrared.guide(name, this.guide.name.trim() || this.guideDefaultName(), this.guide.irRemote, this.irReceiver(), id => {
+        this.guide.irRemote = id;
+        void this.guideSaved();
+      });
+      return;
+    }
+    const learn = this.learn;
+    if (!this.remote() && !this.draft)
+      this.draft = {
+        name: this.guide.name.trim() || this.guideDefaultName(),
+        icon: APPLIANCES.find(([kind]) => kind === this.guide.kind)?.[2] ?? 'mdi:remote',
+        description: null,
+      };
+    learn.hass = this._hass;
+    learn.inline = true;
+    learn.transmitters = this.transmitters;
+    learn.remote = this.remote() ?? null;
+    learn.draft = learn.remote ? null : this.draft;
+    this.learnOwner = this.selected;
+    this.learning = true;
+    learn.prepare(this.receiver(), name);
+  }
+  /** After a button is saved: the next one still to learn. */
+  private async guideSaved(): Promise<void> {
+    if (this.view !== 'new') return;
+    if (this.newSource === 'ir') this.irRemotes = await irApi.library(this._hass!);
+    if (this.guide.step === 3) this.guideAdvance();
+    else if (this.guide.step === 4) this.guideLearn('');
+    this.render();
+  }
+  private guideAdvance(): void {
+    const order = this.guideOrder();
+    const known = this.guideKnown();
+    const open = (i: number) => !known.has(order[i].name.toLowerCase()) && !this.guide.skipped.includes(order[i].id);
+    let next = order.findIndex((_, i) => i > this.guide.index && open(i));
+    if (next < 0) next = order.findIndex((_, i) => open(i));
+    this.guide.index = next < 0 ? order.length : next;
+    if (order[this.guide.index]) this.guideLearn(order[this.guide.index].name);
+    else this.guideStopLearning();
+  }
+  private guideStopLearning(): void {
+    this.learn.stop();
+    this.learning = false;
+    this.infrared.endGuide();
+  }
+  private guideGo(step: GuideStep): void {
+    this.guide.step = step;
+    if (step === 3) {
+      this.guide.index = -1;
+      this.guideAdvance();
+    } else if (step === 4) this.guideLearn('');
+    else this.guideStopLearning();
+    this.render();
+  }
+  /** «Crear y editar»: the name, the chosen design with the learned buttons in place, then the editor. */
+  private async guideFinish(): Promise<void> {
+    const remote = this.guideRemote();
+    if (!remote || !this._hass) return;
+    const hass = this._hass;
+    const g = this.guide;
+    const name = g.name.trim() || this.guideDefaultName();
+    const order = new Set(this.guideOrder().map(item => item.name.toLowerCase()));
+    let layout = g.kind ? applyTemplate(g.kind, g.design, remote.buttons) : null;
+    // Extra buttons go below the design, four per row.
+    if (layout) {
+      const extras = remote.buttons.filter(button => !order.has(button.name.trim().toLowerCase()));
+      const canvas = layout.find(piece => piece.type === 'canvas')!;
+      let row = canvas.h;
+      extras.forEach((button, i) => {
+        if (i % 4 === 0 && i) row++;
+        layout!.push({ id: `extra-${i + 1}`, type: 'button', x: i % 4, y: row, w: 1, h: 1, buttons: [button.id], label: null, icon: null });
+      });
+      if (extras.length) canvas.h = row + 1;
+    }
+    this.guideStopLearning();
+    await this.run(async () => {
+      if (this.newSource === 'ir') {
+        const icon = APPLIANCES.find(([kind]) => kind === g.kind)?.[2] ?? 'mdi:remote-tv';
+        await irApi.editRemote(hass, remote.id, { name, icon, ...(layout ? { layout } : {}) });
+        this.irRemotes = await irApi.library(hass);
+        this.openIrRemote(remote.id);
+        return;
+      }
+      if (name !== remote.name) await this.saveAbout({ name });
+      if (layout) await rf.saveLayout(hass, remote.id, layout);
+      await this.reload();
+      this.selected = remote.id;
+      this.draft = null;
+      this.wizard = false;
+      this.view = 'remote';
+      this.editing = true;
+    });
   }
 
   private renderRemote(status: string): string {
@@ -628,7 +870,7 @@ export class HomeManagerRf extends HTMLElement {
         else void this.saveAbout({ icon: picker.value || null });
       }),
     );
-    if (this.view === 'new') this.bindNew();
+    if (this.view === 'new') this.bindGuide();
     if (this.view === 'test' && remote) this.bindTest(remote);
     if (remote && (this.view === 'remote' || this.view === 'entities' || this.view === 'settings')) {
       this.remoteView.readValues = () => this._hass?.states ?? {};
@@ -771,40 +1013,66 @@ export class HomeManagerRf extends HTMLElement {
     });
   }
 
-  private bindNew(): void {
+  private bindGuide(): void {
     const root = this.root;
-    const refresh = () => {
-      const create = root.querySelector<HTMLButtonElement>('[data-command=create]');
-      if (create) create.disabled = this.newSource === 'rf' && !this.receiver();
-    };
-    root.querySelector<HTMLInputElement>('input[name=new-name]')?.addEventListener('input', event => {
-      this.newRemote.name = (event.target as HTMLInputElement).value;
-      refresh();
+    const g = this.guide;
+    const on = (selector: string, work: (element: HTMLElement) => void) =>
+      root.querySelectorAll<HTMLElement>(selector).forEach(element => element.addEventListener('click', () => work(element)));
+    on('[data-gkind]', element => {
+      g.kind = (element.dataset.gkind || null) as ApplianceKind | null;
+      // Air and TV usually go by infrared; fans, lights and covers by radio.
+      const ir = g.kind === 'ac' || g.kind === 'tv';
+      if (ir && this.irReceivers.length) this.newSource = 'ir';
+      else if (!ir && this.transmitters.some(item => item.can_capture)) this.newSource = 'rf';
+      this.render();
     });
-    root.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.newRemote.icon = button.dataset.kind!;
-        root
-          .querySelectorAll<HTMLButtonElement>('[data-kind]')
-          .forEach(other => other.setAttribute('aria-pressed', String(other === button)));
-        root.querySelector<HTMLInputElement>('input[name=new-name]')?.setAttribute('placeholder', this.newName());
-      }),
-    );
-    root.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.newSource = button.dataset.source as Source;
+    on('[data-source]', element => {
+      this.newSource = element.dataset.source as Source;
+      this.render();
+    });
+    on('[data-receiver]', element => {
+      this.newReceiver = element.dataset.receiver!;
+      this.render();
+    });
+    on('[data-gdesign]', element => {
+      g.design = element.dataset.gdesign as StartDesign;
+      this.render();
+    });
+    root.querySelectorAll<HTMLElement>('[data-gdesign]').forEach(element =>
+      element.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        g.design = element.dataset.gdesign as StartDesign;
         this.render();
       }),
     );
-    root.querySelectorAll<HTMLButtonElement>('[data-receiver]').forEach(button =>
-      button.addEventListener('click', () => {
-        this.newReceiver = button.dataset.receiver!;
-        root
-          .querySelectorAll<HTMLButtonElement>('[data-receiver]')
-          .forEach(other => other.setAttribute('aria-pressed', String(other === button)));
-        refresh();
-      }),
-    );
+    on('[data-gitem]', element => {
+      g.index = Number(element.dataset.gitem);
+      const item = this.guideOrder()[g.index];
+      if (item) {
+        g.skipped = g.skipped.filter(id => id !== item.id);
+        this.guideLearn(item.name);
+      }
+      this.render();
+    });
+    on('[data-guide=skip]', () => {
+      const item = this.guideOrder()[g.index];
+      if (item && !g.skipped.includes(item.id)) g.skipped.push(item.id);
+      this.guideAdvance();
+      this.render();
+    });
+    on('[data-guide=next]', () => {
+      const steps = this.guideSteps();
+      this.guideGo(steps[Math.min(steps.length - 1, steps.indexOf(g.step) + 1)]);
+    });
+    on('[data-guide=back]', () => {
+      const steps = this.guideSteps();
+      this.guideGo(steps[Math.max(0, steps.indexOf(g.step) - 1)]);
+    });
+    on('[data-guide=finish]', () => void this.guideFinish());
+    root.querySelector<HTMLInputElement>('input[name=guide-name]')?.addEventListener('input', event => {
+      g.name = (event.target as HTMLInputElement).value;
+    });
   }
 
   private bindEditSections(remote: RfRemote): void {
@@ -930,6 +1198,10 @@ export class HomeManagerRf extends HTMLElement {
       return;
     if (name === 'close') return this.leave();
     if (name === 'back' && this.view === 'list') return this.leave('settings');
+    if (name === 'back' && this.view === 'new' && this.guideSteps().indexOf(this.guide.step) > 0) {
+      const steps = this.guideSteps();
+      return this.guideGo(steps[steps.indexOf(this.guide.step) - 1]);
+    }
     if (name === 'back') {
       if (this.view === 'remote' && this.editing) return void this.command('edit');
       if (this.view === 'learn' && this.remote()) {
@@ -949,8 +1221,11 @@ export class HomeManagerRf extends HTMLElement {
       switch (name) {
         case 'new':
           this.newRemote = { name: '', icon: 'mdi:air-conditioner', description: null };
-          this.newSource = this.transmitters.length ? 'rf' : 'ir';
+          this.newSource = this.irReceivers.length ? 'ir' : 'rf';
           this.newReceiver = '';
+          this.guide = { step: 1, kind: 'ac', design: 'modern', index: 0, skipped: [], name: '', irRemote: '' };
+          this.selected = null;
+          this.draft = null;
           this.show('new');
           break;
         case 'list':
@@ -1069,6 +1344,7 @@ export class HomeManagerRf extends HTMLElement {
       this.learn.remote = this.remote() ?? null;
       this.say('');
     });
+    if (this.view === 'new') await this.guideSaved();
   }
 
   // Saving --------------------------------------------------------------
@@ -1177,3 +1453,35 @@ export class HomeManagerRf extends HTMLElement {
 }
 
 if (!customElements.get('homemanager-rf')) customElements.define('homemanager-rf', HomeManagerRf);
+
+/** 0.14 · «Control nuevo»: numbered steps, designs with a small live preview, the buttons to learn. */
+const guideStyles = `
+.gtitle{display:grid;min-width:0}.gtitle small{font-size:12px;font-weight:400;color:var(--hm-muted)}
+.gdots{display:flex;align-items:center;justify-content:center;gap:0;margin:0 0 6px;padding:0;list-style:none}
+.gdots li:not(.bar){display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--hm-surface-2);color:var(--hm-muted);font-size:12px;font-weight:600;flex:none}
+.gdots li.cur{background:var(--hm-brand);color:var(--hm-on-accent,#fff)}.gdots li.done{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.gdots li ha-icon{--mdc-icon-size:15px}.gdots .bar{width:28px;height:2px;background:var(--hm-line)}
+.gkinds{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+.gdesigns{display:grid;gap:10px}
+.gdesign{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);cursor:pointer;min-width:0}
+.gdesign[aria-checked=true]{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 8%,var(--hm-surface))}
+.gdesign:focus-visible{outline:none;box-shadow:var(--hm-focus)}
+.gprev{position:relative;width:118px;height:150px;flex:none;overflow:hidden;border-radius:10px;background:var(--hm-surface-2)}
+.gprev homemanager-rf-remote{position:absolute;left:0;top:0;width:328px;transform:scale(.36);transform-origin:top left;pointer-events:none}
+.gtx{flex:1;min-width:0;display:grid;gap:4px}.gtx b{display:flex;align-items:center;gap:6px;font-weight:600}.gtx b ha-icon{--mdc-icon-size:16px}
+.gtx small{font-size:12.5px;color:var(--hm-muted)}.gtx .gcount{color:var(--hm-ink)}
+.gradio{width:18px;height:18px;border-radius:50%;border:2px solid var(--hm-line);flex:none}
+.gdesign[aria-checked=true] .gradio{border-color:var(--hm-brand);box-shadow:inset 0 0 0 4px var(--hm-surface);background:var(--hm-brand)}
+.glive{position:relative;height:210px;overflow:hidden;border-radius:14px;background:var(--hm-surface-2);display:flex;justify-content:center}
+.glive homemanager-rf-remote{width:328px;transform:scale(.6);transform-origin:top center;margin-top:8px;pointer-events:none}
+.gprog{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:10px;background:var(--hm-surface);font-size:12px;font-weight:600;box-shadow:var(--hm-shadow)}
+.gnow{display:grid;justify-items:center;gap:2px;text-align:center}.gnow small{color:var(--hm-muted);font-size:12px}.gnow b{font-size:18px;font-weight:600}
+.gskip{justify-self:center;align-self:center}
+.glist{display:flex;flex-direction:column;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto}
+.gitem{display:flex;align-items:center;gap:10px;min-height:38px;padding:4px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13.5px;text-align:left;width:100%}
+.gitem:last-child{border-bottom:0}.gitem.cur{background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}
+.gn{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--hm-surface-2);font-size:11.5px;color:var(--hm-muted);flex:none}.gn ha-icon{--mdc-icon-size:14px}
+.gitem.ok .gn{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}
+.gitem.skip{color:var(--hm-muted)}.gitem.skip .gn{background:color-mix(in srgb,var(--hm-warn,#d98b1f) 18%,transparent);color:var(--hm-warn,#b86e10)}
+.gsum{font-size:15px;font-weight:500}
+`;

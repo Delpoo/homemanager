@@ -113,7 +113,9 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
         if (message.layout) {
           const { assertControlLayout } = await import('/src/ha/validation.mjs');
           assertControlLayout(message.layout);
-          const known = new Set(remote.buttons.map(button => button.id));
+          // 0.14: also the buttons the canvas waits for (not learned yet).
+          const wanted = message.layout.find(piece => piece.type === 'canvas')?.wanted ?? [];
+          const known = new Set([...remote.buttons.map(button => button.id), ...wanted.map(item => item.id)]);
           const refs = message.layout.flatMap(piece => [
             ...piece.buttons,
             ...(piece.holdButton ? [piece.holdButton] : []),

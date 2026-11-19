@@ -322,7 +322,10 @@ export class HomeManagerRfRemote extends HTMLElement {
     const withChart = widget.type !== 'graph' && !!widget.chart?.reading;
     // 0.14 · waiting for a button that is not learned yet: dimmed with «!».
     const remote = this._remote;
-    const waiting = !!remote && [...widget.buttons, ...Object.values(widget.slots ?? {})].some(ref => !buttonById(remote, ref) && !!wantedById(remote, ref));
+    const waiting =
+      !!remote &&
+      !this.hasAttribute('data-template') &&
+      [...widget.buttons, ...Object.values(widget.slots ?? {})].some(ref => !buttonById(remote, ref) && !!wantedById(remote, ref));
     const mark = waiting ? `<span class="kwant" title="${e(t('Sin aprender'))}" aria-label="${e(t('Sin aprender'))}">!</span>` : '';
     return keyWidget(widget, keyClasses(widget, on) + (withChart ? ' key-with-chart' : '') + (waiting ? ' waiting' : ''), editable,
       content + (withChart ? chartFace(widget, ctx, true) : '') + mark, tools, this._editing);
