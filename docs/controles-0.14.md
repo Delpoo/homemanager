@@ -115,6 +115,31 @@ Hecha en la rama `claude/controles-etapa2`, sin publicar. Se publica junto con l
 - La lista «Sin aprender» está en la página de los controles de radio y de los infrarrojos.
 - **Arreglo de paso:** «Ctrl+D» sobre el lienzo duplicaba dos veces una vez que se guarda al final.
 
+## Etapa 3 · lista de trabajo
+
+Sale de la maqueta v14 (pantalla 3, «Crear un control nuevo», y las notas de las versiones 8 a 12).
+
+1. **Plantillas por aparato** para Aire, Tele, Luz, Ventilador y Cortina, cada una en Clásico, Moderno y Avanzado.
+   - Se arman con las piezas de la app y piden los mismos botones, en el mismo orden, que la maqueta. Por ejemplo, el Aire Moderno pide 22 botones y el Ventilador, 7.
+   - Cada botón de la plantilla es un botón sin aprender («!») hasta que se aprende.
+2. **Guía «Control nuevo» de 5 pasos**, para radio e infrarrojo:
+   1. Qué aparato es (o «Sin plantilla»), cómo se controla (radio o infrarrojo) y con qué equipo.
+   2. Diseño de partida: Clásico, Moderno o Avanzado, con vista previa y cuántos botones tiene y cuántos hay que aprender.
+   3. Aprender los botones de a uno. Cada uno se escucha, se prueba, se repite o se saltea si tu control no lo tiene. La vista previa se va encendiendo y la lista muestra cuáles se aprendieron y cuáles se saltearon.
+   4. Botones extra que tu control tiene y la plantilla no (es opcional).
+   5. Nombre y resumen. «Crear y editar» abre el editor con el control armado. Los botones salteados quedan con «!».
+   - Cada paso tiene Atrás. Si salís sin terminar, pregunta.
+3. **Diseño después.** En el editor, el módulo «Diseño» muestra Clásico, Moderno y Avanzado del aparato, con vista previa.
+   - Cambiar de diseño conserva los botones aprendidos, porque los busca por nombre.
+   - Pregunta antes, porque reemplaza el acomodo, y se puede deshacer.
+4. **Aire con estado completo:**
+   - «Reenviar estado» como botón destacado del control: vuelve a mandar todo el estado sin cambiar nada.
+   - «Pantalla del aire» como pieza especial: modo, temperatura pedida y ventilación.
+5. **Ayuda «?» en cada control.** Numera cada botón y abajo dice en una frase qué hace. Está en Probar y en el control.
+6. **Verificación:** pruebas automáticas y recorrido en PC y teléfono, con HA claro y oscuro.
+
+Quedan para la etapa 4: «Traer de la biblioteca» al aprender, los programas del aire, el robot y la luz por Home Assistant.
+
 ## Próximas etapas
 
 1. **Catálogo y edición.**
