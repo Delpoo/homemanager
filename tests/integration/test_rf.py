@@ -51,9 +51,14 @@ def test_decoder_prefers_full_frames_and_rejects_noise() -> None:
     assert summarize(decode(partial + full)).bits == CODE
     assert decode([120, -340, 95, -60, 300]) == []
     assert summarize([]) is None
-    # Receiver hiss (pulses near 100 µs) is told apart from a real signal that does not decode.
+    # Receiver hiss is told apart from a real signal that does not decode: short
+    # bursts near 100 µs, and random durations with many glitches under 100 µs.
     assert is_static([100, -90] * 20) and is_static([])
+    generator = random.Random(7)
+    hiss = [int(generator.expovariate(1 / 300)) + 20 for _ in range(220)]
+    assert sum(value < 150 for value in hiss) * 2 < len(hiss) and is_static([value * (-1) ** i for i, value in enumerate(hiss)])
     assert not is_static([300, -300] * 20) and not is_static(encode_timings(1, CODE, 350))
+    assert not is_static(_jitter(encode_timings(7, CODE, 150))) and not is_static([-450, 900, -900, 450] * 12 + [-10350])
 
 
 def _transmitter(hass: HomeAssistant, node: str = "test_tx") -> list[dict]:

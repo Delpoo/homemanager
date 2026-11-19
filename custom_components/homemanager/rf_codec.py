@@ -30,9 +30,14 @@ MIN_BITS = 8
 MAX_BITS = 64
 # Relative tolerance when classifying a duration against the measured pulse.
 TOLERANCE = 0.4
-# A receiver with nothing to hear picks up hiss: bursts of pulses near 100 µs.
-# Frames that do not decode and are mostly shorter than this are that hiss.
+# A receiver with nothing to hear picks up hiss: bursts of random durations,
+# many far shorter than the 150 µs pulse of the fastest remote. A frame that
+# does not decode is that hiss when most of it is under STATIC_PULSE_US or at
+# least one duration in GLITCH_SHARE is under GLITCH_US; a real remote, even a
+# protocol this decoder does not support, has next to none that short.
 STATIC_PULSE_US = 150
+GLITCH_US = 100
+GLITCH_SHARE = 8
 
 
 @dataclass(frozen=True)
@@ -119,9 +124,13 @@ def _decode_segment(segment: list[int], sync_low: float | None) -> Frame | None:
 
 
 def is_static(timings: list[int]) -> bool:
-    """True for receiver hiss: most durations shorter than any supported remote sends.
+    """True for receiver hiss: durations far shorter than any remote sends (see GLITCH_US).
     Only meant for frames that did not decode; a decoded frame is never hiss."""
-    return not timings or sum(abs(value) < STATIC_PULSE_US for value in timings) * 2 > len(timings)
+    if not timings:
+        return True
+    short = sum(abs(value) < STATIC_PULSE_US for value in timings)
+    glitches = sum(abs(value) < GLITCH_US for value in timings)
+    return short * 2 > len(timings) or glitches * GLITCH_SHARE >= len(timings)
 
 
 def decode(timings: list[int]) -> list[Frame]:

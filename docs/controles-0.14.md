@@ -22,8 +22,8 @@ La rama `claude/controles-maqueta` parte de `0.13.0-beta.3` (`8b99150`) y lleva 
 - **Seis estilos de botones.** Normal, Digital, Retro, Colorido, Cristal y Futurista. Se elige uno para todo el control, con un color de acento, y cualquier pieza puede tener su propio estilo. Los temas de 0.13 (Grafito, Claro, Arena, Vidrio) y las plantillas siguen disponibles. Mientras no se elija un estilo, el control se ve igual que antes.
 - **Movimiento del símbolo.** Opciones: gira, gira lento, titila, flota, late y se mece. Se mueve mientras la pieza está activa o siempre. En Modos, cada opción tiene su propio color y su propio movimiento mientras está elegida. Con «reducir movimiento» activado en el sistema, todo queda quieto.
 - **Inspector.** La sección «Estilo» de Aspecto muestra una fila de símbolos con el nombre al pasar el mouse. El lienzo tiene «Estilo de los botones» con vista previa y color de acento. Las opciones de Modos tienen color y movimiento.
-- **RF: ruido de fondo.** Un receptor sin nada que escuchar capta ruido: ráfagas de pulsos de unos 100 µs. Antes, cada ráfaga contaba como «señal no reconocida» y cambiaba el gráfico dos o tres veces por segundo. Ahora pasa esto:
-  - Una trama que no se decodifica y tiene más de la mitad de sus pulsos por debajo de 150 µs cuenta como ruido de fondo. Nunca se descarta una trama que se decodifica.
+- **RF: ruido de fondo.** Un receptor sin nada que escuchar capta ruido: ráfagas de pulsos al azar, muchos de menos de 100 µs. Antes, cada ráfaga contaba como «señal no reconocida» y cambiaba el gráfico dos o tres veces por segundo. Ahora pasa esto:
+  - Una trama que no se decodifica cuenta como ruido de fondo si más de la mitad de sus pulsos duran menos de 150 µs o si al menos uno de cada ocho dura menos de 100 µs. Ningún control real, ni siquiera uno de un protocolo no admitido, manda pulsos tan cortos. Nunca se descarta una trama que se decodifica.
   - El ruido se informa cada 5 s como máximo y no genera muestra ni gráfico. En la pantalla aparece un único símbolo quieto con el nombre al pasar el mouse.
   - Una señal real que no se reconoce queda fija en pantalla mientras dura el aviso.
 
