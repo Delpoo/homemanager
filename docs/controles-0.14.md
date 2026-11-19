@@ -178,7 +178,10 @@ Hecha en la rama `claude/controles-etapa4`, sin publicar.
   - **«Traer de la biblioteca»** en la guía, con una tabla de nombres equivalentes (`libraryNames`).
   - **«Rutinas»** en Especiales, para los botones de Home Assistant del aparato del símbolo.
   - **Arreglo:** la integración ahora acepta la «Pantalla del aire» en el diseño.
-- **No hecho:** «Agregar un control al símbolo» con el selector de dispositivos de la app. Hoy siguen las dos listas, una de radio y otra de infrarrojo, en el módulo Controles del símbolo.
+- **«Agregar un control al símbolo»:**
+  - El módulo Controles del símbolo muestra sus controles, cada uno con ✕, y el botón «Agregar un control».
+  - Ese botón abre un selector con buscador y dos pestañas, «Todos» y «Controles aprendidos». Los controles aparecen agrupados por radio e infrarrojo, con su ícono y cuántos botones tienen; lo que ya está en el símbolo queda marcado.
+  - El aparato de Home Assistant del símbolo aparece en «Todos» como ya elegido, porque un símbolo tiene un solo aparato. Se cambia con el selector de dispositivos de siempre.
 - **Sin cambios:** la Luz por Home Assistant ya se maneja desde el editor del símbolo, con sus acciones de Home Assistant.
 
 ## Próximas etapas
