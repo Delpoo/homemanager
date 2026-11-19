@@ -236,4 +236,13 @@ export const enControls: Record<string, string> = {
   'Otra idea del mismo control: datos, gráficas y lo poco usado a un toque.':
     'Another take on the same remote: data, charts and the rarely used one tap away.',
   'Reenviar estado': 'Resend state',
+  // 0.14 · stage 4: programs of the air
+  'Sin programas: se guardan en el panel del aire.': 'No programs yet: they are saved in the air conditioner panel.',
+  'Programas del aire': 'Air conditioner programs',
+  'Nombre del programa': 'Program name',
+  '¿Quitar el programa «{name}»?': 'Remove the «{name}» program?',
+  'El aire no cambia; sólo se borra este programa.':
+    'The air conditioner does not change; only this program is deleted.',
+  'Guardar lo que tiene el control ahora': 'Save what the remote has now',
+  Correr: 'Run',
 };

@@ -140,3 +140,39 @@ async def test_an_emitter_that_fails_unexpectedly_does_not_stop_other_schedules(
     assert len(calls) == 2
     results = sorted(row["schedules"][0]["result"] for row in absolute.resources()["controls"])
     assert results == ["send_failed", "sent"]
+
+
+async def test_programs_of_the_air_are_whole_states_run_with_one_tap(
+    hass, setup_integration, hass_ws_client, monkeypatch,
+):
+    """0.14: up to six programs; running one sends its whole state and becomes the state."""
+    monkeypatch.setattr(IrProxy, "devices", lambda self: {"receivers": [], "emitters": [{"id": TX, "name": "Synthetic"}]})
+    send = Mock()
+    monkeypatch.setattr(IrProxy, "send", send)
+    admin = await hass_ws_client(hass)
+    document = "uint8_t state[18] = {" + ",".join(str(byte) for byte in FRAME) + "};"
+    imported = await _call(admin, "catalog/import", source="IRremoteESP8266", document=document, indexes=[0],
+                           name="Example AC", brand="Mitsubishi Electric", model="Example 144",
+                           entry="synthetic vector", revision="fixture", emitter=TX)
+    saved = (await _call(admin, "resources"))["learned"][0]
+    created = await _call(admin, "absolute", command="create", fields={
+        "profile": MITSUBISHI, "name": "Synthetic AC", "brand": "Mitsubishi Electric", "model": "144",
+        "remote_id": imported["id"], "button_id": saved["buttons"][0]["id"], "emitter": TX,
+    })
+    night = {**created["state"], "power": True, "temperature": 26}
+    control = await _call(admin, "absolute", command="program", control_id=created["id"],
+                          fields={"name": "Dormir", "icon": "mdi:weather-night", "state": night})
+    assert [(item["name"], item["icon"], item["state"]["temperature"]) for item in control["programs"]] == [
+        ("Dormir", "mdi:weather-night", 26)]
+    program = control["programs"][0]["id"]
+    ran = await _call(admin, "absolute", command="run-program", control_id=created["id"], fields={"program_id": program})
+    assert send.call_count == 1 and ran["state"]["temperature"] == 26
+    for i in range(5):
+        await _call(admin, "absolute", command="program", control_id=created["id"],
+                    fields={"name": f"P{i}", "state": created["state"]})
+    await admin.send_json({"id": 999, "type": "homemanager/remotes/absolute", "command": "program",
+                           "control_id": created["id"], "fields": {"name": "Uno más", "state": created["state"]}})
+    assert not (await admin.receive_json())["success"]
+    assert await hass.config_entries.async_reload(setup_integration.entry_id)
+    await hass.async_block_till_done()
+    assert len(hass.data[DATA_ABSOLUTE].resources()["controls"][0]["programs"]) == 6

@@ -45,7 +45,7 @@ def ws_resources(hass: HomeAssistant, connection: websocket_api.ActiveConnection
 @websocket_api.require_admin
 @websocket_api.websocket_command({
     vol.Required("type"): "homemanager/remotes/absolute",
-    vol.Required("command"): vol.In(("create", "configure", "send", "preset", "schedule", "remove", "design", "link-powerful", "powerful")),
+    vol.Required("command"): vol.In(("create", "configure", "send", "preset", "schedule", "remove", "design", "link-powerful", "powerful", "program", "run-program")),
     vol.Optional("control_id"): ID,
     vol.Optional("fields", default=dict): {
         vol.Optional("profile"): ID, vol.Optional("remote_id"): ID, vol.Optional("button_id"): ID,
@@ -55,6 +55,7 @@ def ws_resources(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         vol.Optional("zone"): TEXT, vol.Optional("enabled"): bool,
         vol.Optional("state"): {str: vol.Any(bool, str, int, float)},
         vol.Optional("layout"): vol.Any(None, vol.All(list, vol.Length(max=160))),
+        vol.Optional("program_id"): ID, vol.Optional("icon"): vol.Any(None, vol.All(str, vol.Length(max=72))),
     },
 })
 @websocket_api.async_response
