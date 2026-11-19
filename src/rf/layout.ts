@@ -145,3 +145,11 @@ export function layoutOf(remote: Pick<RfRemote, 'buttons' | 'parts' | 'layout'>)
 export function buttonById(remote: Pick<RfRemote, 'buttons'>, id: string): RfButton | undefined {
   return remote.buttons.find(button => button.id === id);
 }
+/** 0.14 · a button the control waits for (not learned yet), listed on its canvas. */
+export function wantedById(
+  remote: { layout?: { type: string; wanted?: { id: string; name: string; icon?: string | null }[] }[] | null },
+  id: string,
+): { id: string; name: string; icon: string | null } | undefined {
+  const wanted = remote.layout?.find(piece => piece.type === 'canvas')?.wanted?.find(item => item.id === id);
+  return wanted ? { id: wanted.id, name: wanted.name, icon: wanted.icon ?? null } : undefined;
+}

@@ -4,7 +4,7 @@ import { installPanelComponents } from '../ui/panel-components.js';
 import { rfText, remoteCell, positionRemoteWidget } from '../ui/rf-components.js';
 import type { RfButton, RfWidget } from '../integration/rf.js';
 import type { DrawableRemote } from './layout.js';
-import { MAX_HEIGHT, MAX_ROWS, buttonById, columnsOf, layoutOf, overlaps, place, rows } from './layout.js';
+import { MAX_HEIGHT, MAX_ROWS, buttonById, columnsOf, layoutOf, overlaps, place, rows, wantedById } from './layout.js';
 import {
   drawnPieces,
   gridOf,
@@ -158,8 +158,8 @@ export class HomeManagerRfRemote extends HTMLElement {
   }
   private context(remote: DrawableRemote): KeyContext {
     return {
-      name: ref => rfText(buttonById(remote, ref)?.name ?? t('Botón')),
-      icon: ref => buttonById(remote, ref)?.icon ?? null,
+      name: ref => rfText((buttonById(remote, ref) ?? wantedById(remote, ref))?.name ?? t('Botón')),
+      icon: ref => (buttonById(remote, ref) ?? wantedById(remote, ref))?.icon ?? null,
       level: piece => {
         const entity = this.entity(piece);
         if (entity) {
@@ -320,8 +320,12 @@ export class HomeManagerRfRemote extends HTMLElement {
       ? ` tabindex="0" role="group" aria-roledescription="${e(t('elemento movible'))}" aria-label="${e(rfText(label))}"`
       : '';
     const withChart = widget.type !== 'graph' && !!widget.chart?.reading;
-    return keyWidget(widget, keyClasses(widget, on) + (withChart ? ' key-with-chart' : ''), editable,
-      content + (withChart ? chartFace(widget, ctx, true) : ''), tools, this._editing);
+    // 0.14 · waiting for a button that is not learned yet: dimmed with «!».
+    const remote = this._remote;
+    const waiting = !!remote && [...widget.buttons, ...Object.values(widget.slots ?? {})].some(ref => !buttonById(remote, ref) && !!wantedById(remote, ref));
+    const mark = waiting ? `<span class="kwant" title="${e(t('Sin aprender'))}" aria-label="${e(t('Sin aprender'))}">!</span>` : '';
+    return keyWidget(widget, keyClasses(widget, on) + (withChart ? ' key-with-chart' : '') + (waiting ? ' waiting' : ''), editable,
+      content + (withChart ? chartFace(widget, ctx, true) : '') + mark, tools, this._editing);
   }
 
   /** The chosen pieces are outlined; one alone gets its handles and mini bar. */
@@ -407,6 +411,13 @@ export class HomeManagerRfRemote extends HTMLElement {
   /** Sends in order, one after another; what a piece is at changes only once it went out. */
   private async send(refs: string[], element: HTMLElement | null, name: string): Promise<boolean> {
     if (!refs.length) return false;
+    // 0.14 · a button the control waits for sends nothing until it is learned.
+    const remote = this._remote;
+    const missing = remote ? refs.filter(ref => !buttonById(remote, ref) && wantedById(remote, ref)) : [];
+    if (missing.length) {
+      this.say(t('«{name}» todavía no tiene su botón aprendido.', { name: rfText(wantedById(remote!, missing[0])!.name) }));
+      return false;
+    }
     if (this.preview) {
       this.say(t('Vista previa: no se envían comandos.'));
       return false;

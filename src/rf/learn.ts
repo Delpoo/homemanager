@@ -54,11 +54,11 @@ export class HomeManagerRfLearn extends HTMLElement {
   private target = '';
 
   /** An always-visible panel is idle until the user starts a capture. */
-  prepare(receiver: string): void {
+  prepare(receiver: string, name = ''): void {
     this.stop();
     this.readings.clear();
     this.listen = receiver;
-    this.target = '';
+    this.target = name;
     this.reset();
     this.render();
   }

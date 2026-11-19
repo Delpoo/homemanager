@@ -1339,6 +1339,36 @@
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
                   },
+                  "wanted": {
+                    "type": "array",
+                    "maxItems": 64,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "icon": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        }
+                      }
+                    }
+                  },
                   "symAnim": {
                     "enum": [
                       "spin",

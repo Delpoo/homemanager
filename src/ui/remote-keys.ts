@@ -435,6 +435,8 @@ export const keyStyles =
 .brandmark ha-icon{--mdc-icon-size:18px}
 .brandmark.inkey{width:auto;height:auto;background:transparent;font-size:calc(var(--isz) * .7)}.brandmark.inkey ha-icon{--mdc-icon-size:var(--isz)}
 @media(prefers-reduced-motion:reduce){.k.press,.k.flash{animation:none}}
+.widget.waiting>.content{opacity:.42;filter:grayscale(.7)}
+.kwant{position:absolute;top:5px;right:5px;z-index:3;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700;line-height:1;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 ` + formStyles;
 
 /** The body of a drawn control: its theme and its grid. */

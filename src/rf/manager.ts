@@ -314,11 +314,12 @@ export class HomeManagerRf extends HTMLElement {
       count: number,
       description: string | null,
       partial = false,
+      waiting = 0,
     ) =>
-      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Diseñar {name}', { name: rfText(name) }), 'mdi:pencil-ruler', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
+      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
     const items = [
       ...this.remotes.map(remote =>
-        row('rf', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description),
+        row('rf', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description, false, remote.layout?.find(piece => piece.type === 'canvas')?.wanted?.length ?? 0),
       ),
       ...this.irRemotes.map(remote =>
         row(
@@ -419,12 +420,22 @@ export class HomeManagerRf extends HTMLElement {
           )
           .join('')}</div>`
       : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
+    // 0.14 · buttons the control waits for: learned from here, one by one.
+    const wanted = remote.layout?.find(piece => piece.type === 'canvas')?.wanted ?? [];
+    const waiting = wanted.length
+      ? `${panelLabel(t('Sin aprender'))}<div class="list">${wanted
+          .map(
+            item =>
+              `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(rfText(item.name))}</b></span>${iconButton(t('Aprender «{name}»', { name: rfText(item.name) }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}</div>`,
+          )
+          .join('')}</div>`
+      : '';
     return this.panel(
       panelHead(`${icon(about.icon ?? 'mdi:remote')}<span>${e(rfText(about.name))}</span>${sourceTag('rf')}`, {
         back: t('Volver'),
         close: t('Cerrar'),
       }),
-      `<div class="rprev" data-slot="remote"></div>${tools}${panelLabel(t('Botones'))}${buttons}${status}`,
+      `<div class="rprev" data-slot="remote"></div>${tools}${waiting}${panelLabel(t('Botones'))}${buttons}${status}`,
     );
   }
 
@@ -589,6 +600,13 @@ export class HomeManagerRf extends HTMLElement {
         void this.command('learn');
       }),
     );
+    root.querySelectorAll<HTMLButtonElement>('[data-learn-name]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.editing = false;
+        this.startLearn(button.dataset.learnName!);
+        this.render();
+      }),
+    );
     root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (remote && this._hass)
@@ -643,10 +661,10 @@ export class HomeManagerRf extends HTMLElement {
           this.render();
         },
         press: buttonId => rf.press(this._hass!, remote.id, buttonId),
-        learn: async () => {
+        learn: async name => {
           if (!(await this.designer.confirmLeave())) return;
           this.editing = false;
-          this.startLearn();
+          this.startLearn(name);
           this.render();
         },
       });
@@ -996,7 +1014,7 @@ export class HomeManagerRf extends HTMLElement {
 
   /** Learning is a page of the panel (0.13). A saved remote waits for the person to
    * name the button they will press (guided); a new one starts listening at once. */
-  private startLearn(): void {
+  private startLearn(name = ''): void {
     const learn = this.learn;
     this.view = 'learn';
     this.say('');
@@ -1013,7 +1031,7 @@ export class HomeManagerRf extends HTMLElement {
     learn.remote = this.remote() ?? null;
     learn.draft = learn.remote ? null : this.draft;
     this.learning = true;
-    if (learn.remote) learn.prepare(this.receiver());
+    if (learn.remote) learn.prepare(this.receiver(), name);
     else learn.start(this.receiver());
   }
 
