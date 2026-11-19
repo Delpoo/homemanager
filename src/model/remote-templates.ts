@@ -515,6 +515,85 @@ function cover(design: StartDesign): ControlPiece[] {
     .done();
 }
 
+/** Common names of the same button in library files (Flipper-IRDB, SmartIR, IRremoteESP8266). */
+const SYNONYMS: Record<string, string[]> = {
+  'Encender / apagar': ['power', 'power_toggle', 'pwr', 'on_off', 'onoff', 'power_on_off'],
+  'Volumen +': ['vol_up', 'volume_up', 'vol+', 'volup', 'vol_plus'],
+  'Volumen −': ['vol_dn', 'vol_down', 'volume_down', 'vol-', 'voldown', 'vol_minus'],
+  'Canal +': ['ch_up', 'channel_up', 'ch+', 'ch_next', 'chup', 'next_channel'],
+  'Canal −': ['ch_dn', 'ch_down', 'channel_down', 'ch-', 'ch_prev', 'chdown', 'prev_channel'],
+  Silencio: ['mute'],
+  Arriba: ['up'],
+  Abajo: ['down'],
+  Izquierda: ['left'],
+  Derecha: ['right'],
+  OK: ['ok', 'enter', 'select', 'center'],
+  Volver: ['back', 'return'],
+  Inicio: ['home'],
+  Menú: ['menu'],
+  Info: ['info', 'information'],
+  Guía: ['guide', 'epg'],
+  Salir: ['exit'],
+  Fuentes: ['source', 'input', 'sources'],
+  Ajustes: ['settings', 'setup', 'options'],
+  Reproducir: ['play'],
+  Pausa: ['pause'],
+  Parar: ['stop'],
+  Adelantar: ['ff', 'fast_forward', 'forward', 'fwd'],
+  Retroceder: ['rew', 'rewind', 'rwd'],
+  Rojo: ['red'],
+  Verde: ['green'],
+  Amarillo: ['yellow'],
+  Azul: ['blue'],
+  Netflix: ['netflix'],
+  YouTube: ['youtube'],
+  'Prime Video': ['prime_video', 'amazon', 'prime'],
+  Apps: ['apps', 'smart', 'smart_tv'],
+  'Temperatura +': ['temp_up', 'temp+', 'temperature_up', 'tempup'],
+  'Temperatura −': ['temp_dn', 'temp_down', 'temp-', 'temperature_down', 'tempdown'],
+  Frío: ['cool', 'cooling'],
+  Calor: ['heat', 'heating'],
+  Seco: ['dry'],
+  'Sólo ventilar': ['fan', 'fan_only'],
+  Automático: ['auto'],
+  Turbo: ['turbo', 'powerful', 'jet'],
+  Eco: ['eco', 'econo', 'energy_saving'],
+  Temporizador: ['timer'],
+  'Velocidad +': ['speed_up', 'fan_speed_up', 'speed+'],
+  'Velocidad −': ['speed_down', 'fan_speed_down', 'speed-'],
+  Girar: ['swing', 'oscillate', 'rotate', 'osc'],
+  Modo: ['mode'],
+  Abrir: ['open', 'up'],
+  Cerrar: ['close', 'down'],
+  ...Object.fromEntries(
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(d => [
+      `Número ${d}`,
+      [d, `num_${d}`, `key_${d}`, `digit_${d}`, `number_${d}`],
+    ]),
+  ),
+};
+const looseName = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[−]/g, '-')
+    .replace(/[^a-z0-9+-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+/** Library buttons that are buttons a design asks for: {library index: template name}. */
+export function libraryNames(wanted: Wanted[], entries: { index: number; name: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const used = new Set<number>();
+  for (const item of wanted) {
+    const keys = [looseName(item.name), ...(SYNONYMS[item.name] ?? []).map(looseName)];
+    const hit = entries.find(entry => !used.has(entry.index) && keys.includes(looseName(entry.name)));
+    if (!hit) continue;
+    out[String(hit.index)] = item.name;
+    used.add(hit.index);
+  }
+  return out;
+}
+
 /** One starting design, as a layout that waits for every button it uses. */
 export function template(kind: ApplianceKind, design: StartDesign): ControlPiece[] {
   return { ac, tv, light, fan, cover }[kind](design);

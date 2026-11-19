@@ -31,6 +31,7 @@ import { confirmDialog } from '../ui/confirm-dialog.js';
 import { diagnostics } from '../integration/diagnostics.js';
 import { openSignal, type SignalTab } from '../ui/signal-workbench.js';
 import { HomeManagerRemoteResources } from './resources.js';
+import { remoteResources, type IrLibrary } from '../integration/remote-resources.js';
 import './remote-view.js';
 import {
   APPLIANCES,
@@ -38,6 +39,7 @@ import {
   applyTemplate,
   kindOfIcon,
   learnOrder,
+  libraryNames,
   pieceCount,
   template,
   type ApplianceKind,
@@ -132,6 +134,8 @@ export class HomeManagerRf extends HTMLElement {
     () => document.createElement('homemanager-rf-remote') as HomeManagerRfRemote,
   );
   private readonly guideLive = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+  /** 0.14 · kept infrared libraries, to bring a template's buttons from one. */
+  private guideLibraries: IrLibrary[] = [];
 
   constructor() {
     super();
@@ -506,7 +510,18 @@ export class HomeManagerRf extends HTMLElement {
       const done = order.filter(item => known.has(item.name.toLowerCase())).length;
       const current = order[g.index];
       const learner = this.newSource === 'ir' ? '<div data-slot="infrared"></div>' : '<div data-slot="learn"></div>';
-      body = `<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
+      const bring =
+        this.newSource === 'ir' && this.guideLibraries.length
+          ? `<div class="row-icon gbring">${icon('mdi:bookshelf')}<select name="glibrary" aria-label="${e(t('Biblioteca'))}">${this.guideLibraries
+              .map(
+                library =>
+                  `<option value="${e(library.id)}">${e(`${library.name} · ${library.brand} ${library.model}`)}</option>`,
+              )
+              .join(
+                '',
+              )}</select><button type="button" class="chip" data-guide="bring">${e(t('Traer de la biblioteca'))}</button></div>`
+          : '';
+      body = `${bring}<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
         current
           ? `<div class="gnow"><small>${e(t('Botón {n} de {total}', { n: g.index + 1, total: order.length }))}</small><b>${e(current.name)}</b></div>${learner}<button type="button" class="chip gskip" data-guide="skip">${icon('mdi:debug-step-over')}${e(t('Saltar: mi control no lo tiene'))}</button>`
           : `<p class="muted">${e(t('Ya pasaste por todos los botones.'))}</p>`
@@ -640,7 +655,49 @@ export class HomeManagerRf extends HTMLElement {
     this.learning = false;
     this.infrared.endGuide();
   }
+  /** «Traer de la biblioteca»: the buttons the design asks for that the chosen library has, named as the design names them. */
+  private async guideBring(): Promise<void> {
+    const hass = this._hass;
+    const library = this.root.querySelector<HTMLSelectElement>('select[name=glibrary]')?.value;
+    if (!hass || !library) return;
+    await this.run(async () => {
+      const entries = await remoteResources.libraryEntries(hass, library);
+      const known = this.guideKnown();
+      const names = libraryNames(
+        this.guideOrder().filter(item => !known.has(item.name.toLowerCase())),
+        entries,
+      );
+      const indexes = Object.keys(names).map(Number);
+      if (!indexes.length) {
+        this.say(t('Esa biblioteca no tiene botones con esos nombres.'));
+        return;
+      }
+      const brought = await remoteResources.bringLibrary(hass, {
+        library_id: library,
+        indexes,
+        names,
+        emitter: this.irEmitters[0]?.id ?? '',
+        ...(this.guide.irRemote
+          ? { remote_id: this.guide.irRemote }
+          : { remote_name: this.guide.name.trim() || this.guideDefaultName() }),
+      });
+      this.guide.irRemote = brought.id;
+      this.irRemotes = await irApi.library(hass);
+      this.say(t('{count} botones traídos de la biblioteca.', { count: brought.added }));
+      this.guide.index = -1;
+      this.guideAdvance();
+    });
+    this.render();
+  }
   private guideGo(step: GuideStep): void {
+    if (step === 3 && this.newSource === 'ir' && this._hass)
+      void remoteResources
+        .libraries(this._hass)
+        .then(list => {
+          this.guideLibraries = list;
+          if (this.view === 'new' && this.guide.step === 3) this.render();
+        })
+        .catch(() => undefined);
     this.guide.step = step;
     if (step === 3) {
       this.guide.index = -1;
@@ -1124,6 +1181,7 @@ export class HomeManagerRf extends HTMLElement {
       this.guideGo(steps[Math.max(0, steps.indexOf(g.step) - 1)]);
     });
     on('[data-guide=finish]', () => void this.guideFinish());
+    on('[data-guide=bring]', () => void this.guideBring());
     root.querySelector<HTMLInputElement>('input[name=guide-name]')?.addEventListener('input', event => {
       g.name = (event.target as HTMLInputElement).value;
     });

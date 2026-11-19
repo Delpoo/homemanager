@@ -245,4 +245,20 @@ export const enControls: Record<string, string> = {
     'The air conditioner does not change; only this program is deleted.',
   'Guardar lo que tiene el control ahora': 'Save what the remote has now',
   Correr: 'Run',
+  // 0.14 · stage 4: my libraries
+  'Coincide con una biblioteca': 'Matches a library',
+  'Usar el nombre de la biblioteca': "Use the library's name",
+  'coincide {n} %': 'matches {n} %',
+  Biblioteca: 'Library',
+  'Traer de la biblioteca': 'Bring from the library',
+  'Esa biblioteca no tiene botones con esos nombres.': 'That library has no buttons with those names.',
+  '{count} botones traídos de la biblioteca.': '{count} buttons brought from the library.',
+  'Mis bibliotecas': 'My libraries',
+  'Revisá un archivo y guardalo acá para reconocer controles y traer sus botones.':
+    'Review a file and keep it here to recognise remotes and bring their buttons.',
+  'Completá nombre, marca y modelo para guardarla.': 'Fill in name, brand and model to keep it.',
+  'Guardada en Mis bibliotecas.': 'Kept in My libraries.',
+  '¿Quitar la biblioteca «{name}»?': 'Remove the «{name}» library?',
+  'Los controles que trajeron botones de ella no cambian.': 'Remotes that brought buttons from it do not change.',
+  'Guardar en Mis bibliotecas': 'Keep in My libraries',
 };

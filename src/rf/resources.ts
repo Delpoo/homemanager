@@ -4,6 +4,7 @@ import { historySeries } from '../integration/history.js';
 import {
   remoteResources,
   type AbsoluteControl,
+  type IrLibrary,
   type AbsoluteState,
   type CatalogRow,
   type Resources,
@@ -265,6 +266,14 @@ export class HomeManagerRemoteResources extends HTMLElement {
   }
 
   open(section: 'absolute' | 'catalog', hass: Hass): void {
+    if (section === 'catalog')
+      void remoteResources
+        .libraries(hass)
+        .then(list => {
+          this.libraries = list;
+          this.render();
+        })
+        .catch(() => undefined);
     this.section = section;
     this.hass = hass;
     this.control = undefined;
@@ -959,6 +968,38 @@ export class HomeManagerRemoteResources extends HTMLElement {
     });
   }
 
+  /** 0.14 · «Mis bibliotecas»: kept files to recognise a remote and bring its buttons. */
+  private libraries: IrLibrary[] = [];
+  private librariesCard(): string {
+    const rows = this.libraries
+      .map(
+        library =>
+          '<div class="prog-row">' +
+          glyph('mdi:bookshelf') +
+          '<span><b>' +
+          e(library.name) +
+          '</b> · ' +
+          e([library.brand, library.model, library.source].join(' · ')) +
+          ' · ' +
+          e(t('{count} botones', { count: library.count })) +
+          '</span>' +
+          action('library-del-' + library.id, 'Quitar', 'danger', 'mdi:close') +
+          '</div>',
+      )
+      .join('');
+    return (
+      '<section class="resource-card"><h3>' +
+      e(t('Mis bibliotecas')) +
+      '</h3>' +
+      (rows
+        ? '<div class="prog-list">' + rows + '</div>'
+        : '<p class="muted">' +
+          e(t('Revisá un archivo y guardalo acá para reconocer controles y traer sus botones.')) +
+          '</p>') +
+      '</section>'
+    );
+  }
+
   private catalog(): string {
     const rows = this.catalogRows;
     const catalog =
@@ -977,7 +1018,8 @@ export class HomeManagerRemoteResources extends HTMLElement {
       e(t('Archivo del catálogo')) +
       '" accept=".ir,.json,.txt,.cpp,.h"></label>' +
       action('preview', 'Revisar señales') +
-      '</div></div>';
+      '</div></div>' +
+      this.librariesCard();
     const learned = this.data!.learned.filter(remote => remote.buttons.some(button => button.provenance));
     const installed = learned.length
       ? panelLabel(t('Controles importados')) +
@@ -1062,7 +1104,9 @@ export class HomeManagerRemoteResources extends HTMLElement {
           this.data!.learned.map(remote => option(remote.id, remote.name, this.catalogForm.remote_id)).join('') +
           '</select>',
       ) +
-      '</div><div class="bar"><span class="grow"></span><button type="submit" class="ib primary" data-import>' +
+      '</div><div class="bar">' +
+      action('library-keep', 'Guardar en Mis bibliotecas', '', 'mdi:bookshelf') +
+      '<span class="grow"></span><button type="submit" class="ib primary" data-import>' +
       glyph('mdi:download') +
       '<span class="count"></span></button></div></form>' +
       installed
@@ -1152,6 +1196,40 @@ export class HomeManagerRemoteResources extends HTMLElement {
       )
         return;
       return this.run(() => this.update(command, { state: { ...this.draft } }));
+    } else if (command === 'library-keep') {
+      const field = (name: string) => this.root.querySelector<HTMLInputElement>(`[name=${name}]`)?.value.trim() ?? '';
+      const [name, brand, model] = [field('name'), field('brand'), field('model')];
+      if (!name || !brand || !model || !this.document) {
+        this.message = t('Completá nombre, marca y modelo para guardarla.');
+        this.render();
+        return;
+      }
+      return this.run(async () => {
+        await remoteResources.addLibrary(this.hass!, {
+          source: this.source,
+          document: this.document,
+          name,
+          brand,
+          model,
+        });
+        this.libraries = await remoteResources.libraries(this.hass!);
+        this.message = t('Guardada en Mis bibliotecas.');
+      });
+    } else if (command.startsWith('library-del-')) {
+      const id = command.slice(12);
+      const name = this.libraries.find(library => library.id === id)?.name ?? '';
+      if (
+        await confirmDialog(this.root, {
+          title: t('¿Quitar la biblioteca «{name}»?', { name }),
+          message: t('Los controles que trajeron botones de ella no cambian.'),
+          confirm: t('Quitar'),
+        })
+      )
+        return this.run(async () => {
+          await remoteResources.removeLibrary(this.hass!, id);
+          this.libraries = await remoteResources.libraries(this.hass!);
+        });
+      return;
     } else if (command === 'program-save') {
       const name = this.root.querySelector<HTMLInputElement>('input[name=program-name]')?.value.trim() ?? '';
       if (!name) return void this.root.querySelector<HTMLInputElement>('input[name=program-name]')?.focus();

@@ -176,3 +176,33 @@ async def test_programs_of_the_air_are_whole_states_run_with_one_tap(
     assert await hass.config_entries.async_reload(setup_integration.entry_id)
     await hass.async_block_till_done()
     assert len(hass.data[DATA_ABSOLUTE].resources()["controls"][0]["programs"]) == 6
+
+
+async def test_my_libraries_recognise_a_signal_and_bring_buttons_with_template_names(
+    hass, setup_integration, hass_ws_client, monkeypatch,
+):
+    """0.14: a kept library says which button a capture probably is, and its buttons come in named as asked."""
+    from custom_components.homemanager.ir_libraries import DATA_IR_LIBRARIES, similarity
+
+    monkeypatch.setattr(IrProxy, "devices", lambda self: {"receivers": [], "emitters": [{"id": TX, "name": "Synthetic"}]})
+    admin = await hass_ws_client(hass)
+    added = await _call(admin, "libraries/add", source="Flipper-IRDB", document=FLIPPER,
+                        name="Demo TV", brand="Ejemplo", model="T1")
+    assert added["count"] == 1 and added["brand"] == "Ejemplo"
+    assert [row["name"] for row in await _call(admin, "libraries/entries", library_id=added["id"])] == ["Demo power"]
+    assert similarity([500, -700, 500, -800], [520, -690, 480, -810]) == 1.0
+    assert similarity([500, -700, 500, -800], [2000, -3000, 2000, -3000]) < 0.5
+    found = hass.data[DATA_IR_LIBRARIES].match((510, -705, 495, -790))
+    assert found[0]["entry"] == "Demo power" and found[0]["model"] == "T1" and found[0]["score"] >= 0.75
+    brought = await _call(admin, "libraries/bring", library_id=added["id"], indexes=[0],
+                          names={"0": "Encender / apagar"}, emitter=TX, remote_name="Tele")
+    learned = (await _call(admin, "resources"))["learned"]
+    remote = next(item for item in learned if item["id"] == brought["id"])
+    assert remote["name"] == "Tele" and remote["buttons"][0]["name"] == "Encender / apagar"
+    assert remote["buttons"][0]["provenance"]["revision"] == "Mis bibliotecas"
+    assert await hass.config_entries.async_reload(setup_integration.entry_id)
+    await hass.async_block_till_done()
+    admin = await hass_ws_client(hass)
+    assert [row["name"] for row in await _call(admin, "libraries/list")] == ["Demo TV"]
+    await _call(admin, "libraries/remove", library_id=added["id"])
+    assert await _call(admin, "libraries/list") == []

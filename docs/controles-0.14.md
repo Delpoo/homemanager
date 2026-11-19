@@ -154,6 +154,19 @@ Hecha en la rama `claude/controles-etapa3`, sin publicar.
   - Las piezas de datos del Avanzado (valor y gráfica) arrancan sin sensor; se elige en «Qué muestra».
 - **Lo que sacó la guía:** el paso «Probar» de la creación anterior. Cada botón se prueba al aprenderlo, y «Probar botones» sigue en la página del control.
 
+## Etapa 4 · lista de trabajo
+
+Sale de la maqueta v14 (notas de las versiones 11, 12 y 14) y de lo que dejó la etapa 3.
+
+1. **Programas del aire.** Hasta seis estados completos guardados; un toque deja el aire así y manda todo. Se ven como una pieza especial del control, y en el panel del aire se guardan, se corren o se quitan. El programa que coincide con el estado queda encendido.
+2. **Mis bibliotecas.** Se sube un archivo Flipper-IRDB, SmartIR o IRremoteESP8266 con su nombre, marca y modelo, y queda guardado para usarlo después. Se pueden quitar.
+3. **Reconocer.** Al aprender un botón infrarrojo, si la señal coincide con una biblioteca, aparece «Marca · Modelo · coincide N %» con el nombre de ese botón.
+4. **Traer de la biblioteca.** En la guía, se traen de una biblioteca los botones que la plantilla pide, cuando sus nombres coinciden.
+5. **Rutinas del robot y dispositivos.**
+   - En el editor del control de un símbolo del plano, «Especiales» ofrece «Rutinas» con los botones de Home Assistant del aparato, en tarjetas grandes.
+   - «Agregar un control al símbolo» usa el mismo selector de dispositivos que el resto de la app.
+6. **Verificación:** pruebas automáticas y recorrido.
+
 ## Próximas etapas
 
 1. **Catálogo y edición.**

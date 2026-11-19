@@ -21,6 +21,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_GLOBAL_FRONTEND, CONF_VIEWER_USER_IDS, DOMAIN, LINKED_PLAN_FOLDER, FRONTEND_FILENAME, FRONTEND_URL_BASE, PANEL_ELEMENT, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
 from .absolute_remotes import DATA_ABSOLUTE, AbsoluteRemotes
+from .ir_libraries import DATA_IR_LIBRARIES, IrLibraries
 from .diagnostic_websocket import async_register as async_register_diagnostics
 from .diagnostics import DATA_DIAGNOSTICS, Diagnostics
 from .ir import DATA_IR, IrManager
@@ -57,6 +58,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     absolute = AbsoluteRemotes(hass, remotes, ir)
     await absolute.async_load()
     hass.data[DATA_ABSOLUTE] = absolute
+    libraries = IrLibraries(hass)
+    await libraries.async_load()
+    hass.data[DATA_IR_LIBRARIES] = libraries
     diagnostics = Diagnostics(hass, rf, ir, remotes)
     await diagnostics.async_load()
     hass.data[DATA_DIAGNOSTICS] = diagnostics
@@ -83,6 +87,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         store.async_close()
     if rf := hass.data.pop(DATA_RF, None):
         rf.on_learned = None
+    hass.data.pop(DATA_IR_LIBRARIES, None)
     if absolute := hass.data.pop(DATA_ABSOLUTE, None):
         await absolute.async_close()
     hass.data.pop(DATA_REMOTES, None)
