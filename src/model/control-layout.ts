@@ -156,6 +156,14 @@ export const PIECE_FORMS: Partial<Record<PieceType, PieceForm[]>> = {
   colors: ['pop'],
 };
 export const formsOf = (type: PieceType): PieceForm[] => PIECE_FORMS[type] ?? [];
+/** Forms that show a level: a plain up/down with no levels has nothing to draw in them. */
+const LEVEL_FORMS: PieceForm[] = ['bars', 'thermo', 'window'];
+/** The forms this piece can take now. */
+export function formsFor(piece: ControlPiece): PieceForm[] {
+  const forms = formsOf(piece.type);
+  if (!LEVEL_TYPES.includes(piece.type) || levelCount(piece) > 0) return forms;
+  return forms.filter(form => !LEVEL_FORMS.includes(form));
+}
 /** The style a piece is drawn with: its own, the control's, or the one of the old theme. */
 export function styleOf(piece: ControlPiece | undefined, canvas?: ControlPiece): ControlStyle {
   return piece?.style ?? canvas?.style ?? (canvas?.theme ? THEME_STYLE[canvas.theme] : 'normal');

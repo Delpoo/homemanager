@@ -1,7 +1,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { personName } from '../model/names.js';
-import { levelCount, levelText, type ControlPiece } from '../model/control-layout.js';
+import { formsFor, levelCount, levelText, type ControlPiece } from '../model/control-layout.js';
 
 /** 0.14 forms of a piece: the same type (what it does), drawn another way. They only add markup:
  * whoever draws them keeps the state and sends, as with every other piece (data-op says what a tap does).
@@ -77,7 +77,10 @@ function bars(piece: ControlPiece, ctx: FormContext): string {
   const name = text(piece.label ?? t('Nivel'));
   const op = modes ? 'mode' : 'set';
   const lead = moving(piece, icon(piece.icon ?? (modes ? 'mdi:format-list-bulleted' : 'mdi:fan')), index > 0);
-  return `<div class="fbars" role="group" aria-label="${e(name)}">${lead ? `<span class="blead">${lead}</span>` : ''}<div class="bset">${Array.from({ length: count }, (_, j) => `<button type="button" data-op="${op}" data-v="${j}" aria-pressed="${j === index}" aria-label="${e(text(label(j)))}" title="${e(text(label(j)))}" class="${j <= index ? 'on' : ''}" style="height:${30 + ((j + 1) / Math.max(1, count)) * 70}%"></button>`).join('')}</div><b class="bval">${e(index >= 0 ? text(label(index)) : '–')}</b></div>`;
+  // Taller than wide: the levels stack upwards like a meter instead of standing side by side.
+  const tall = piece.h > piece.w;
+  const size = (j: number) => `${tall ? 'width' : 'height'}:${30 + ((j + 1) / Math.max(1, count)) * 70}%`;
+  return `<div class="fbars${tall ? ' tall' : ''}" role="group" aria-label="${e(name)}">${lead ? `<span class="blead">${lead}</span>` : ''}<div class="bset">${Array.from({ length: count }, (_, j) => `<button type="button" data-op="${op}" data-v="${j}" aria-pressed="${j === index}" aria-label="${e(text(label(j)))}" title="${e(text(label(j)))}" class="${j <= index ? 'on' : ''}" style="${size(j)}"></button>`).join('')}</div><b class="bval">${e(index >= 0 ? text(label(index)) : '–')}</b></div>`;
 }
 
 function segment(piece: ControlPiece, ctx: FormContext): string {
@@ -137,6 +140,7 @@ function display(piece: ControlPiece, ctx: FormContext): string {
 
 /** The content of a piece with a 0.14 form, or null to draw it as before. */
 export function formContent(piece: ControlPiece, ctx: FormContext, plain: (p: ControlPiece) => string): string | null {
+  if (!piece.form || !formsFor(piece).includes(piece.form)) return null;
   switch (piece.form) {
     case 'thermo':
       return thermo(piece, ctx);
@@ -207,6 +211,10 @@ export const formStyles = `
 .bset button{flex:1 1 0;max-width:24px;border-radius:4px!important;background:color-mix(in srgb,var(--kfg) 16%,transparent)!important;transition:height .2s,background .25s}
 .bset button.on{background:var(--kon)!important}.bset button[aria-pressed=true]{box-shadow:0 0 0 3px color-mix(in srgb,var(--kon) 30%,transparent)!important}
 .bval{flex:none;font-size:12px;white-space:nowrap}
+.fbars.tall{flex-direction:column;padding:8px 4px;gap:6px}
+.fbars.tall .bset{flex-direction:column-reverse;align-items:center;justify-content:flex-start;align-self:stretch;margin:0;gap:4px}
+.fbars.tall .bset button{flex:1 1 0;max-width:none;max-height:18px;min-height:4px}
+.fbars.tall .bval{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .fseg{flex:1;display:flex;align-items:center;padding:4px;min-width:0}
 .sin{position:relative;flex:1;display:flex;align-self:stretch;min-width:0;border-radius:999px;background:color-mix(in srgb,var(--kfg) 8%,transparent)}
 .sind{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--kon);box-shadow:0 2px 6px rgba(0,0,0,.22);transition:left .38s cubic-bezier(.3,1.35,.5,1),background .3s}

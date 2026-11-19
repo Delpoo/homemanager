@@ -38,7 +38,7 @@ import {
   CONTROL_STYLES,
   SYM_ANIMS,
   WINDOW_KINDS,
-  formsOf,
+  formsFor,
   type ControlStyle,
   type PieceForm,
 } from '../model/control-layout.js';
@@ -605,7 +605,7 @@ export class ControlDesigner extends HTMLElement {
       delete piece.holdButton;
     }
     piece.type = variant.type;
-    if (piece.form && !formsOf(piece.type).includes(piece.form)) {
+    if (piece.form && !formsFor(piece).includes(piece.form)) {
       delete piece.form;
       delete piece.win;
       delete piece.winSide;
@@ -828,7 +828,7 @@ export class ControlDesigner extends HTMLElement {
 
   /** 0.14 · the form inside its type, the button style, how its symbol moves and, for a window, its kind and side. */
   private styleRows(piece: RfWidget, many: boolean): string {
-    const forms = formsOf(piece.type);
+    const forms = formsFor(piece);
     let html = `<div class="isec">${e(t('Estilo'))}</div>`;
     if (!many && forms.length)
       html += row(
@@ -1603,7 +1603,7 @@ export class ControlDesigner extends HTMLElement {
           if (choice === 'text') p.hideIcon = true;
         } else if (key === 'fontWeight') p.fontWeight = Number(choice) as 400 | 500 | 700;
         else if (key === 'form') {
-          if (choice && formsOf(p.type).includes(choice as PieceForm)) p.form = choice as PieceForm;
+          if (choice && formsFor(p).includes(choice as PieceForm)) p.form = choice as PieceForm;
           else delete p.form;
           if (p.form !== 'window') {
             delete p.win;
