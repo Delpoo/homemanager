@@ -419,7 +419,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
       tab('control', 'Control') +
       tab('timers', 'Temporizadores') +
       '</span>' +
-      action('design', 'Editar') +
+      action('design', 'Editar control') +
       '</div>';
     const summary =
       '<div class="resource-card requested" title="' +

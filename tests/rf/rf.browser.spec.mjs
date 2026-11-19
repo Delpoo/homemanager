@@ -151,11 +151,23 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   const remote = rf.locator('homemanager-rf-remote');
   // Until designed, every button is drawn.
   await expect(remote.getByRole('button')).toHaveCount(6);
-  await rf.getByRole('button', { name: 'Diseñar', exact: true }).click();
-  // 0.13: a piece is added from Elements; Function says what each level sends.
+  await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   const editor = rf.locator('homemanager-control-designer');
   const inspector = editor.getByRole('complementary', { name: 'Inspector' });
-  await editor.getByRole('button', { name: 'Escalones', exact: true }).click();
+  // 0.14: changes are a draft; «Guardar» sends the layout once.
+  const save = async () => {
+    const before = (await calls(page, 'homemanager/rf/layout/save')).length;
+    await editor.locator('[data-draft=save]').click();
+    await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(before + 1);
+    return (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
+  };
+  // «Botón nuevo» → Nivel, in the form of steps; «Qué hace» says what each level sends.
+  await editor.locator('[data-command=new-piece]').click();
+  await editor.locator('[data-cat-tab=levels]').click();
+  await editor.locator('[data-entry=level]').click();
+  await editor.locator('[data-shape="v:steps"]').click();
+  await editor.locator('[data-step-open=does]').click();
+  await inspector.locator('[data-set=values][data-value=numbers]').click();
   await inspector.getByRole('button', { name: 'Uno por nivel', exact: true }).click();
   await inspector.getByLabel('Hasta', { exact: true }).fill('3');
   await inspector.getByLabel('Hasta', { exact: true }).dispatchEvent('change');
@@ -165,32 +177,26 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
     ['3', 'v3'],
   ])
     await inspector.getByLabel(step, { exact: true }).selectOption(id);
-  await inspector.getByRole('tab', { name: 'Aspecto', exact: true }).click();
+  await editor.locator('[data-step-open=look]').click();
   const label = editor.locator('[name=widget-label]');
   await label.fill('Velocidad');
   await label.dispatchEvent('change');
-  await expect
-    .poll(async () => (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.at(-1).label)
-    .toBe('Velocidad');
-  const saved = (await calls(page, 'homemanager/rf/layout/save')).length;
-  let layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
+  await editor.locator('[data-steps=accept]').click();
+  let layout = await save();
   expect(layout.at(-1)).toMatchObject({
     type: 'steps',
     buttons: ['v1', 'v2', 'v3'],
     sendBy: 'level',
     values: { min: 1, max: 3, step: 1 },
     label: 'Velocidad',
-    w: 3,
-    x: 0,
-    y: 2,
   });
+  await editor.locator('[data-command=piece-back]').click();
 
   // Keyboard: arrows move, Shift+arrows resize; covered elements move down.
   const off = remote.getByRole('group', { name: 'Apagar', exact: true });
   await off.focus();
   await page.keyboard.press('Shift+ArrowRight');
-  await expect.poll(async () => (await calls(page, 'homemanager/rf/layout/save')).length).toBe(saved + 1);
-  layout = (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout;
+  layout = await save();
   expect(layout.find(widget => widget.id === 'b-off')).toMatchObject({ x: 0, y: 0, w: 2 });
   expect(layout.find(widget => widget.id === 'b-v1')).toMatchObject({ x: 1, y: 1 });
 
@@ -202,22 +208,17 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await page.mouse.down();
   await page.mouse.move(grid.x + grid.width * 0.875, grid.y + 5 * 74 + 30, { steps: 8 });
   await page.mouse.up();
-  await expect
-    .poll(async () =>
-      (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.find(widget => widget.id === 'b-luz'),
-    )
-    .toMatchObject({ x: 3, y: 5 });
+  if (await editor.locator('[data-steps=accept]').count()) await editor.locator('[data-steps=accept]').click();
+  layout = await save();
+  expect(layout.find(widget => widget.id === 'b-luz')).toMatchObject({ x: 3, y: 5 });
 
   // Removing asks first; the button itself stays learned. A tap selects the piece.
   await off.click();
   await inspector.getByRole('button', { name: /^Quitar/ }).click();
   const confirm = rf.getByRole('dialog', { name: '¿Quitar «Apagar» del control?' });
   await confirm.getByRole('button', { name: 'Quitar', exact: true }).click();
-  await expect
-    .poll(async () =>
-      (await calls(page, 'homemanager/rf/layout/save')).at(-1).layout.some(widget => widget.id === 'b-off'),
-    )
-    .toBe(false);
+  layout = await save();
+  expect(layout.some(widget => widget.id === 'b-off')).toBe(false);
   await rf.locator('.dfoot [data-command=edit]').click();
   await expect(remote.getByRole('button', { name: 'Apagar' })).toHaveCount(0);
   await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(1);

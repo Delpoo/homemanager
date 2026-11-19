@@ -607,7 +607,8 @@ export class HomeManagerIr extends HTMLElement {
     if (!remote) return;
     const click = (selector: string, work: () => void) =>
       this.root.querySelector(selector)?.addEventListener('click', work);
-    click('[data-edit]', () => {
+    click('[data-edit]', async () => {
+      if (this.editing === 'layout' && !(await this.designer.confirmLeave())) return;
       this.editing = this.editing === 'buttons' ? '' : 'buttons';
       this.render();
       if (this.editing === 'buttons')
