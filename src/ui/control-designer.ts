@@ -43,6 +43,7 @@ import {
   type PieceForm,
 } from '../model/control-layout.js';
 import { BRAND_COUNT, BRAND_GROUPS } from './brands.js';
+import { resolveWanted } from '../model/remote-templates.js';
 import { brandMark, keyStyles, radiusOf } from './remote-keys.js';
 import { personName } from '../model/names.js';
 
@@ -176,32 +177,6 @@ function restoreStep(piece: RfWidget, snap: RfWidget, step: StepId): RfWidget {
     else delete out[key];
   }
   return out as unknown as RfWidget;
-}
-/** A learned button with the name of one the control waits for takes its place in every piece;
- * that one leaves the list. Returns the new layout, or null when nothing changes. */
-function resolveWanted(layout: RfWidget[] | null, learned: { id: string; name: string }[]): RfWidget[] | null {
-  const canvas = layout?.find(piece => piece.type === 'canvas');
-  if (!layout || !canvas?.wanted?.length) return null;
-  const byName = new Map(learned.map(button => [button.name.trim().toLowerCase(), button.id]));
-  const swap = new Map<string, string>();
-  for (const item of canvas.wanted) {
-    const id = byName.get(item.name.trim().toLowerCase());
-    if (id) swap.set(item.id, id);
-  }
-  if (!swap.size) return null;
-  const to = (ref: string) => swap.get(ref) ?? ref;
-  return layout.map(piece => {
-    const next = structuredClone(piece);
-    next.buttons = next.buttons.map(to);
-    if (next.slots) next.slots = Object.fromEntries(Object.entries(next.slots).map(([slot, ref]) => [slot, to(ref)]));
-    if (next.holdButton) next.holdButton = to(next.holdButton);
-    if (next.sequence) next.sequence = next.sequence.map(step => ('button' in step ? { ...step, button: to(step.button) } : step));
-    if (next.type === 'canvas') {
-      next.wanted = (next.wanted ?? []).filter(item => !swap.has(item.id));
-      if (!next.wanted.length) delete next.wanted;
-    }
-    return next;
-  });
 }
 /** Nivel and Opciones: the old kinds are now forms of one type. */
 const FAMILY: Partial<Record<Entry, string[]>> = {
