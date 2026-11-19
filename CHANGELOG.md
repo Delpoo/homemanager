@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0-beta.4 — beta
+
+Arreglos de la prueba de 0.14.0-beta.3 con la cuenta real, en inglés.
+
+- **Plantillas en el idioma de la app:** los botones y piezas de la guía «Control nuevo» (por ejemplo «Speed +», «Timer», «Mode») se nombran en el idioma de Home Assistant. Un botón aprendido con el nombre en español se sigue reconociendo, y «Traer de la biblioteca» encuentra los mismos botones en cualquier idioma.
+- **Catálogo traducido:** las pestañas Groups, Levels and lists y Special, y las entradas On / off, App button, Colors, Chart y Air control.
+- **«Editar control» se llama así:** el panel que se abre desde un símbolo ya no dice «Diseñador de controles».
+- **Volver al símbolo:** ← en «Editar control» abierto desde un símbolo vuelve a ese símbolo, en vez de ir al menú de Ajustes.
+- **Guía sin empezar:** si la guía se cierra en los pasos 1 o 2, al volver a Controles aparece la lista; con botones ya aprendidos, sigue donde quedó.
+
 ## 0.14.0-beta.3 — beta
 
 Resto de los controles nuevos (maqueta v14): editar con borrador, guía para crear un control, programas del aire, bibliotecas propias y rutinas.
