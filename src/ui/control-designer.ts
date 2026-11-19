@@ -60,8 +60,8 @@ export interface DesignerOptions {
   save(layout: RfWidget[] | null): Promise<void> | void;
   /** Test mode: a tap sends for real. Without it the designer never sends. */
   press?: (buttonId: string) => Promise<unknown>;
-  /** "Learn more buttons" from the tray. */
-  learn?: () => void;
+  /** "Learn more buttons" from the tray; with a name, the button the control waits for. */
+  learn?: (name?: string) => void;
   /** What the tray lists: learned buttons (remotes) or actions (a plan symbol). */
   trayTitle?: string;
   /** 0.13: pins a piece next to the symbol that uses this control. */
@@ -176,6 +176,32 @@ function restoreStep(piece: RfWidget, snap: RfWidget, step: StepId): RfWidget {
     else delete out[key];
   }
   return out as unknown as RfWidget;
+}
+/** A learned button with the name of one the control waits for takes its place in every piece;
+ * that one leaves the list. Returns the new layout, or null when nothing changes. */
+function resolveWanted(layout: RfWidget[] | null, learned: { id: string; name: string }[]): RfWidget[] | null {
+  const canvas = layout?.find(piece => piece.type === 'canvas');
+  if (!layout || !canvas?.wanted?.length) return null;
+  const byName = new Map(learned.map(button => [button.name.trim().toLowerCase(), button.id]));
+  const swap = new Map<string, string>();
+  for (const item of canvas.wanted) {
+    const id = byName.get(item.name.trim().toLowerCase());
+    if (id) swap.set(item.id, id);
+  }
+  if (!swap.size) return null;
+  const to = (ref: string) => swap.get(ref) ?? ref;
+  return layout.map(piece => {
+    const next = structuredClone(piece);
+    next.buttons = next.buttons.map(to);
+    if (next.slots) next.slots = Object.fromEntries(Object.entries(next.slots).map(([slot, ref]) => [slot, to(ref)]));
+    if (next.holdButton) next.holdButton = to(next.holdButton);
+    if (next.sequence) next.sequence = next.sequence.map(step => ('button' in step ? { ...step, button: to(step.button) } : step));
+    if (next.type === 'canvas') {
+      next.wanted = (next.wanted ?? []).filter(item => !swap.has(item.id));
+      if (!next.wanted.length) delete next.wanted;
+    }
+    return next;
+  });
 }
 /** Nivel and Opciones: the old kinds are now forms of one type. */
 const FAMILY: Partial<Record<Entry, string[]>> = {
@@ -316,6 +342,7 @@ export class ControlDesigner extends HTMLElement {
   private stepPiece?: string;
   private pieceBase?: RfWidget;
   private nextStep: StepId | null = null;
+  private addingWanted = false;
   private tab: 'look' | 'function' | 'shows' = 'look';
   private brandQuery = '';
   private brandsFor = false;
@@ -362,7 +389,14 @@ export class ControlDesigner extends HTMLElement {
     this.remote = structuredClone(options.remote);
     this.saved = structuredClone(options.remote.layout ?? null);
     if (draft !== undefined) this.remote.layout = draft;
+    // 0.14: a button learned with the name of one the control waits for takes its place.
+    const resolved = resolveWanted(this.remote.layout ?? null, this.remote.buttons ?? []);
+    if (resolved) this.remote.layout = resolved;
     this.render();
+  }
+  /** Buttons the control waits for (not learned yet). */
+  private wanted(): { id: string; name: string; icon?: string | null }[] {
+    return this.layout().find(piece => piece.type === 'canvas')?.wanted ?? [];
   }
   /** True while the draft differs from what is saved. */
   get dirty(): boolean {
@@ -435,7 +469,7 @@ export class ControlDesigner extends HTMLElement {
     return this.remote?.buttons ?? [];
   }
   private name(ref: string): string {
-    return personName(this.learned().find(button => button.id === ref)?.name, ref);
+    return personName(this.learned().find(button => button.id === ref)?.name ?? this.wanted().find(item => item.id === ref)?.name, ref);
   }
   /** How many pieces use each learned button. */
   private usage(): Map<string, number> {
@@ -991,9 +1025,29 @@ export class ControlDesigner extends HTMLElement {
           }</div>`;
         })
         .join('') || `<p class="muted">${e(t('Todavía no hay botones aprendidos.'))}</p>`;
-    const learnFoot = this.options?.learn
-      ? `<button type="button" class="mfoot" data-command="learn">${glyph('mdi:plus')}${e(t('Aprender un botón más'))}</button>`
-      : '';
+    const waitRows = this.wanted()
+      .map(item => {
+        const using = users.get(item.id) ?? [];
+        return `<div class="mrow waiting"><span class="mic"><b class="mwant">!</b></span><span class="mtx"><b>${e(item.name)}</b><small>${e(t('Sin aprender'))}${using.length ? ` · ${e([...new Set(using.map(piece => this.pieceTitle(piece)))].join(' · '))}` : ''}</small></span>${
+          this.options?.learn
+            ? `<button type="button" class="madd" data-learn-wanted="${e(item.id)}" aria-label="${e(t('Aprender «{name}»', { name: item.name }))}" title="${e(t('Aprender «{name}»', { name: item.name }))}">${glyph('mdi:access-point')}</button>`
+            : ''
+        }${
+          using.length
+            ? `<button type="button" class="mgo" data-open-piece="${e(using[0].id)}" aria-label="${e(t('Abrir {name}', { name: this.pieceTitle(using[0]) }))}" title="${e(t('Abrir {name}', { name: this.pieceTitle(using[0]) }))}">${glyph('mdi:chevron-right')}</button>`
+            : `<button type="button" class="mgo" data-unwant="${e(item.id)}" aria-label="${e(t('Quitar «{name}»', { name: item.name }))}" title="${e(t('Quitar «{name}»', { name: item.name }))}">${glyph('mdi:close')}</button>`
+        }</div>`;
+      })
+      .join('');
+    const learnFoot = `${
+      this.options?.learn
+        ? `<button type="button" class="mfoot" data-command="learn">${glyph('mdi:plus')}${e(t('Aprender un botón más'))}</button>`
+        : ''
+    }${
+      this.addingWanted
+        ? `<div class="mwadd"><input class="tin" name="wanted-name" maxlength="40" placeholder="${e(t('Nombre del botón'))}" aria-label="${e(t('Nombre del botón'))}"><button type="button" class="madd" data-command="wanted-ok" aria-label="${e(t('Agregar'))}" title="${e(t('Agregar'))}">${glyph('mdi:check')}</button><button type="button" class="mgo" data-command="wanted-cancel" aria-label="${e(t('Cancelar'))}" title="${e(t('Cancelar'))}">${glyph('mdi:close')}</button></div>`
+        : `<button type="button" class="mfoot quiet" data-command="wanted-add">${glyph('mdi:alert-circle-outline')}${e(t('Agregar uno para aprender después'))}</button>`
+    }`;
     const pieceRows = pieces
       .map(piece => {
         const entry = ENTRY[entryOf(piece)];
@@ -1018,8 +1072,8 @@ export class ControlDesigner extends HTMLElement {
       'learned',
       'mdi:access-point',
       title,
-      learned.length ? t('{count} · {unused} sin usar', { count: learned.length, unused }) : '—',
-      `<div class="mlist">${learnedRows}</div>${learnFoot}`,
+      `${learned.length ? t('{count} · {unused} sin usar', { count: learned.length, unused }) : '—'}${this.wanted().length ? ` · ${t('{count} sin aprender', { count: this.wanted().length })}` : ''}`,
+      `<div class="mlist">${waitRows}${learnedRows}</div>${learnFoot}`,
     )}${this.module(
       'pieces',
       'mdi:view-grid-outline',
@@ -1206,7 +1260,7 @@ export class ControlDesigner extends HTMLElement {
     const choices =
       this.options?.controls && this.selected.length === 1 && this.pieces()[0]?.type === 'control'
         ? this.options.controls.map(c => ({ id: c.id, name: c.label }))
-        : this.learned();
+        : [...this.learned(), ...this.wanted().map(item => ({ id: item.id, name: `${item.name} · ${t('sin aprender')}` }))];
     return `<select class="isel" ${name ? `name="${name}"` : ''} ${attributes} aria-label="${e(label)}"><option value="">${e(empty)}</option>${choices.map(c => `<option value="${e(c.id)}"${value === c.id ? ' selected' : ''}>${e(c.name)}</option>`).join('')}</select>`;
   }
 
@@ -1841,6 +1895,46 @@ export class ControlDesigner extends HTMLElement {
     });
     on('[data-steps=discard]', () => this.discardPiece());
     on('[data-command=piece-back]', () => this.select([]));
+    on('[data-learn-wanted]', element => {
+      const item = this.wanted().find(entry => entry.id === element.dataset.learnWanted);
+      if (item) this.options?.learn?.(item.name);
+    });
+    on('[data-unwant]', element =>
+      this.changeCanvas(canvas => {
+        canvas.wanted = (canvas.wanted ?? []).filter(item => item.id !== element.dataset.unwant);
+        if (!canvas.wanted.length) delete canvas.wanted;
+      }),
+    );
+    on('[data-command=wanted-add]', () => {
+      this.addingWanted = true;
+      this.render();
+      this.root.querySelector<HTMLInputElement>('[name=wanted-name]')?.focus();
+    });
+    on('[data-command=wanted-cancel]', () => {
+      this.addingWanted = false;
+      this.render();
+    });
+    const addWanted = () => {
+      const name = this.root.querySelector<HTMLInputElement>('[name=wanted-name]')?.value.trim().slice(0, 40) ?? '';
+      this.addingWanted = false;
+      if (!name) return this.render();
+      this.changeCanvas(canvas => {
+        const list = canvas.wanted ?? [];
+        const taken = new Set([...list.map(item => item.id), ...this.learned().map(button => button.id)]);
+        const base = `w-${name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'boton'}`;
+        let id = base;
+        for (let i = 2; taken.has(id); i++) id = `${base}-${i}`;
+        canvas.wanted = [...list, { id, name }];
+      });
+    };
+    on('[data-command=wanted-ok]', addWanted);
+    on('[name=wanted-name]', (_, event) => {
+      if ((event as KeyboardEvent).key === 'Enter') addWanted();
+      if ((event as KeyboardEvent).key === 'Escape') {
+        this.addingWanted = false;
+        this.render();
+      }
+    }, 'keydown');
     this.bindCanvasInspector();
     if (this.pieces().length) this.bindPieceInspector();
   }
@@ -2432,6 +2526,10 @@ const designerStyles = `
 .mrow.unused .mtx small{color:var(--hm-warn,#b86e10)}
 .mgo,.madd{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);flex:none}.mgo ha-icon,.madd ha-icon{--mdc-icon-size:18px}
 .madd{background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand)}
+.mrow.waiting .mtx small{color:var(--hm-warn,#b86e10)}
+.mwant{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700}
+.mwadd{display:flex;align-items:center;gap:6px}.mwadd .tin{flex:1;min-width:0}
+.mfoot.quiet{color:var(--hm-muted);border-style:dotted}
 .mfoot{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px dashed var(--hm-line);border-radius:12px;background:transparent;color:var(--hm-brand);font:inherit;font-size:13px;font-weight:500}.mfoot ha-icon{--mdc-icon-size:18px}
 .ctabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}
 .ctabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:46px;padding:4px 2px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font-size:10.5px;min-width:0}

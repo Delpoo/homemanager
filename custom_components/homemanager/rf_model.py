@@ -25,7 +25,7 @@ import re
 from typing import Any
 
 from .model import ModelError
-from .piece_look import BLOCK_SLOTS, LookError, check_piece, inputs
+from .piece_look import BLOCK_SLOTS, LookError, check_piece, inputs, wanted_ids
 from .rf_codec import MAX_BITS, MIN_BITS, PROTOCOLS
 
 ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
@@ -244,6 +244,16 @@ def _widget(raw: Any, buttons: Container[str], taken: set[str], columns: int = C
     }
 
 
+class _Known:
+    """Learned buttons plus the ones the canvas waits for."""
+
+    def __init__(self, buttons: Container[str], wanted: set[str]) -> None:
+        self.buttons, self.wanted = buttons, wanted
+
+    def __contains__(self, ref: object) -> bool:
+        return ref in self.wanted or ref in self.buttons
+
+
 def validate_layout(raw: Any, buttons: Container[str]) -> list[dict[str, Any]] | None:
     """Checks a designed layout. Overlaps are the designer's business, bounds and
     button references are not: a widget never points at a missing button."""
@@ -257,8 +267,11 @@ def validate_layout(raw: Any, buttons: Container[str]) -> list[dict[str, Any]] |
     if len(canvases) > 1:
         raise ModelError("invalid_layout", "a layout has at most one canvas")
     columns = canvases[0].get("w") if canvases and isinstance(canvases[0].get("w"), int) else COLUMNS
+    # 0.14: a piece may also point at a button the control waits for (not learned yet).
+    wanted = wanted_ids(raw)
+    known = _Known(buttons, wanted) if wanted else buttons
     for item in raw:
-        widget = _widget(item, buttons, taken, columns)
+        widget = _widget(item, known, taken, columns)
         taken.add(widget["id"])
         widgets.append(widget)
     return widgets

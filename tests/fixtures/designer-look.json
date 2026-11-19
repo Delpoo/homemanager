@@ -26,6 +26,11 @@
       { "id": "mode", "type": "modes", "x": 0, "y": 2, "w": 4, "h": 1, "buttons": ["a-1", "a-2", "a-3"], "label": null, "icon": null, "form": "segment", "options": [{"label": "Frío", "icon": "mdi:snowflake", "color": "#3F7FBF", "anim": "pulse"}, {"label": null, "icon": null}, {"label": "Calor", "icon": "mdi:fire", "color": "#D0453A", "anim": "flicker"}] },
       { "id": "fan", "type": "toggle", "x": 0, "y": 3, "w": 2, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "form": "lamp", "symAnim": "spin", "symWhen": "always", "style": "retro" },
       { "id": "keys", "type": "numpad", "x": 2, "y": 3, "w": 2, "h": 1, "buttons": [], "label": null, "icon": null, "form": "pop" }
+    ],
+    [
+      { "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-temp-up", "name": "Temperatura +", "icon": "mdi:plus" }, { "id": "w-turbo", "name": "Turbo" }] },
+      { "id": "up", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["w-temp-up"], "label": null, "icon": null },
+      { "id": "turbo", "type": "button", "x": 1, "y": 0, "w": 1, "h": 1, "buttons": ["w-turbo"], "label": null, "icon": null }
     ]
   ],
   "invalid": [
@@ -61,6 +66,14 @@
     [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 4, "h": 4, "buttons": [], "label": null, "icon": null, "symAnim": "spin" }],
     [{ "id": "p", "type": "toggle", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "symWhen": "sometimes" }],
     [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "options": [{"label": "x", "color": "red"}, {"label": "y"}] }],
-    [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "options": [{"label": "x", "anim": "dance"}, {"label": "y"}] }]
+    [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "options": [{"label": "x", "anim": "dance"}, {"label": "y"}] }],
+    [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "Uno" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "Uno" }, { "id": "w-1", "name": "Otro" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "W!", "name": "Uno" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "  " }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "Uno", "icon": "power" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-1", "name": "Uno", "code": "101" }] }],
+    [{ "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": { "id": "w-1", "name": "Uno" } }]
   ]
 }

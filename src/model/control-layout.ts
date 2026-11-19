@@ -82,6 +82,9 @@ export interface ControlPiece {
   style?: ControlStyle;
   /** 0.14 · canvas only: one accent colour for the whole control. */
   accent?: string;
+  /** 0.14 · canvas only: buttons the control waits for. A piece may point at one before it is learned;
+   * it shows «!» and sends nothing until then. */
+  wanted?: { id: string; name: string; icon?: string | null }[];
   /** 0.14 · how the symbol moves, and when. */
   symAnim?: SymAnim;
   symWhen?: 'on' | 'always';

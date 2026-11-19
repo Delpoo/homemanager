@@ -29,6 +29,9 @@ THEMES = ("grafito", "claro", "arena", "vidrio")
 STYLES = ("normal", "digital", "retro", "color", "glass", "futurista")
 SYM_ANIMS = ("spin", "spinslow", "flicker", "bob", "pulse", "rock")
 WINDOW_KINDS = ("roller", "venetian", "vertical", "curtains", "curtain")
+# 0.14 · buttons a control waits for: pieces may point at them before they are learned.
+WANTED_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}\Z")
+MAX_WANTED = 64
 FORMS = {
     "button": ("round", "square", "pill", "icon"),
     "preset": ("round", "square", "pill", "icon"),
@@ -51,7 +54,7 @@ LOOK_KEYS = frozenset(
         "fontSize", "fontWeight", "iconSize", "border", "active", "radius", "relief", "anim", "brand",
         "hold", "holdButton", "values", "names", "wrap", "sendBy", "display", "valueSize",
         "options", "slots", "period", "theme", "gap", "chart",
-        "form", "style", "accent", "symAnim", "symWhen", "win", "winSide",
+        "form", "style", "accent", "symAnim", "symWhen", "win", "winSide", "wanted",
     }
 )
 
@@ -100,6 +103,36 @@ def inputs(kind: str, raw: dict[str, Any], default: tuple[int, int]) -> tuple[in
         return (1, 1)
     count = level_count(raw)
     return (count, count) if count is not None else (2, MAX_LEVELS)
+
+
+def wanted_ok(value: Any) -> bool:
+    """A list of {id, name, icon?}: ids unique, a short name, an mdi icon or none."""
+    return (
+        isinstance(value, list)
+        and len(value) <= MAX_WANTED
+        and all(
+            isinstance(item, dict)
+            and item.keys() <= {"id", "name", "icon"}
+            and isinstance(item.get("id"), str)
+            and bool(WANTED_ID.fullmatch(item["id"]))
+            and isinstance(item.get("name"), str)
+            and 0 < len(item["name"].strip()) <= 40
+            and (item.get("icon") is None or isinstance(item["icon"], str) and bool(ICON.fullmatch(item["icon"])))
+            for item in value
+        )
+        and len({item["id"] for item in value}) == len(value)
+    )
+
+
+def wanted_ids(layout: Any) -> set[str]:
+    """Ids of the buttons the canvas of a layout waits for (empty when it has none)."""
+    if not isinstance(layout, list):
+        return set()
+    canvas = next((item for item in layout if isinstance(item, dict) and item.get("type") == "canvas"), None)
+    wanted = canvas.get("wanted") if canvas else None
+    if not isinstance(wanted, list):
+        return set()
+    return {item["id"] for item in wanted if isinstance(item, dict) and isinstance(item.get("id"), str)}
 
 
 def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callable[[str], bool]) -> dict[str, Any]:
@@ -193,6 +226,9 @@ def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callabl
             _check(raw.get("form") == "window" and value in WINDOW_KINDS, key)
         elif key == "winSide":
             _check(raw.get("form") == "window" and value in ("l", "r"), key)
+        elif key == "wanted":
+            _check(kind == "canvas" and wanted_ok(value), key)
+            value = [{name: item[name] for name in ("id", "name", "icon") if name in item} for item in value]
         look[key] = value
     _check(raw.get("hold") != "other" or "holdButton" in raw, "holdButton")
     if kind in LEVELS and send_by(kind, raw) == "level":

@@ -1021,6 +1021,7 @@ export const PIECE_LOOK_KEYS = [
   'symWhen',
   'win',
   'winSide',
+  'wanted',
 ];
 const STYLES = ['normal', 'digital', 'retro', 'color', 'glass', 'futurista'];
 const SYM_ANIMS = ['spin', 'spinslow', 'flicker', 'bob', 'pulse', 'rock'];
@@ -1067,6 +1068,29 @@ export function pieceInputs(p, fallback) {
   if (mode === 'advance') return [1, 1];
   const count = pieceLevelCount(p);
   return count === null ? [2, MAX_LEVELS] : [count, count];
+}
+/** 0.14 · buttons a control waits for: {id, name, icon?}, ids unique. */
+function wantedOk(value) {
+  return (
+    Array.isArray(value) &&
+    value.length <= 64 &&
+    value.every(
+      item =>
+        item &&
+        typeof item === 'object' &&
+        !Array.isArray(item) &&
+        Object.keys(item).every(key => ['id', 'name', 'icon'].includes(key)) &&
+        typeof item.id === 'string' &&
+        /^[a-z0-9][a-z0-9_-]{0,63}$/.test(item.id) &&
+        typeof item.name === 'string' &&
+        item.name.trim().length > 0 &&
+        item.name.trim().length <= 40 &&
+        (item.icon === undefined ||
+          item.icon === null ||
+          (typeof item.icon === 'string' && /^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.icon))),
+    ) &&
+    new Set(value.map(item => item.id)).size === value.length
+  );
 }
 function assertPieceLook(p, path, isRef) {
   const kind = p.type;
@@ -1187,6 +1211,7 @@ function assertPieceLook(p, path, isRef) {
     else if (key === 'symWhen') check(drawn && ['on', 'always'].includes(value), key);
     else if (key === 'win') check(p.form === 'window' && WINDOW_KINDS.includes(value), key);
     else if (key === 'winSide') check(p.form === 'window' && ['l', 'r'].includes(value), key);
+    else if (key === 'wanted') check(kind === 'canvas' && wantedOk(value), key);
   }
   check(p.hold !== 'other' || p.holdButton !== undefined, 'holdButton');
   if (level && pieceSendBy(p) === 'level') check((pieceLevelCount(p) ?? 0) <= MAX_LEVELS, 'levels');
