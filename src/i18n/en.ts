@@ -804,7 +804,6 @@ Object.assign(en, {
 Object.assign(en, {
   'Diseñar control': 'Design control',
   'Vista previa: no se envían comandos.': 'Preview: no commands are sent.',
-  'Diseñador de controles': 'Control designer',
   'Lecturas y más controles': 'Readings and more controls',
   'Indicador de valor': 'Value indicator',
   Separador: 'Separator',

@@ -94,6 +94,13 @@ test('a new fan from a template: design, buttons one by one with skip, the waite
   // Three starting designs with how many buttons each has and how many to learn.
   await expect(rf.locator('.gdesign')).toHaveCount(3);
   await expect(rf.locator('[data-gdesign=modern] .gcount')).toHaveText('6 botones · 7 para aprender');
+  // ✕ before learning anything drops the guide: Controls opens on the list again.
+  await rf.locator('[data-command=close]').first().click();
+  expect(await rf.evaluate(element => element.view)).toBe('list');
+  await rf.evaluate(element => element.render());
+  await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
+  await rf.locator('[data-gkind=fan]').click();
+  await rf.locator('[data-guide=next]').click();
   await rf.locator('[data-gdesign=modern]').click();
   await rf.locator('[data-guide=next]').click();
   // One by one: «+» before «−», as on the remote.

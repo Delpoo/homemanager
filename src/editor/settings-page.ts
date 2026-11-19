@@ -66,7 +66,7 @@ const SECTIONS: SectionInfo[] = [
   { id: 'pending-section', title: () => t('Referencias pendientes'), icon: 'mdi:alert-outline' },
   { id: 'help-section', title: () => t('Ayuda'), icon: 'mdi:help-circle-outline' },
   // Reached from a symbol's sheet only; #73 merges it into one designer.
-  { id: 'designer-section', title: () => t('Diseñador de controles'), icon: 'mdi:remote' },
+  { id: 'designer-section', title: () => t('Editar control'), icon: 'mdi:remote' },
 ];
 const GROUPS: { title: () => string; sections: SettingsSection[]; advanced?: true }[] = [
   { title: () => t('Mi casa'), sections: ['rooms-section', 'homes-section'] },

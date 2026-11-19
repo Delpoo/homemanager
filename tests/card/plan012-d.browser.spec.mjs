@@ -111,6 +111,10 @@ test('the designer always says what it designs, and Settings never shows an empt
     await expect(editor(page).locator('homemanager-control-designer').locator('.dedit')).toContainText(
       'Editando el control de',
     );
+    // 0.14: ← goes back to the symbol it was opened from, not to the Settings menu.
+    await editor(page).locator('.settings-dialog .task-back').click();
+    await expect(editor(page).locator('#device-controls-section')).toBeVisible();
+    await expect(editor(page).locator('homemanager-control-designer')).toHaveCount(0);
   }
   await expect(editor(page).locator('[data-settings="designer-section"]')).toHaveCount(0);
 });

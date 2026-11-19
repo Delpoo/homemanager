@@ -10,6 +10,8 @@ import {
   applyTemplate,
   learnOrder,
   libraryNames,
+  resolveWanted,
+  setTemplateNames,
   template,
   wantedId,
 } from '../../.work/model/remote-templates.js';
@@ -111,4 +113,44 @@ test('library buttons are recognised by their usual names, each used once', () =
       0: 'Encender / apagar',
     },
   );
+});
+
+test('templates speak the screen language; ids, Spanish learned names and library words still match', () => {
+  const english = {
+    'Velocidad +': 'Speed +',
+    'Velocidad −': 'Speed −',
+    Velocidad: 'Speed',
+    'Encender / apagar': 'On / off',
+  };
+  setTemplateNames(name => english[name] ?? name);
+  try {
+    const layout = template('fan', 'modern');
+    const wanted = layout.find(piece => piece.type === 'canvas').wanted;
+    const plus = wanted.find(item => item.id === wantedId('Velocidad +'));
+    assert.equal(plus.name, 'Speed +');
+    assert.ok(layout.some(piece => piece.label === 'Speed'));
+    // A button learned with the Spanish name still takes its place; an English one too.
+    const resolved = resolveWanted(layout, [
+      { id: 'b1', name: 'Velocidad +' },
+      { id: 'b2', name: 'On / off' },
+    ]);
+    const left = resolved.find(piece => piece.type === 'canvas').wanted ?? [];
+    assert.ok(!left.some(item => item.id === wantedId('Velocidad +') || item.id === wantedId('Encender / apagar')));
+    assert.ok(
+      resolved.some(piece => piece.buttons.includes('b1')) && resolved.some(piece => piece.buttons.includes('b2')),
+    );
+    // Library words are found by the waited id, whatever the language.
+    assert.deepEqual(
+      libraryNames(wanted, [
+        { index: 0, name: 'speed_up' },
+        { index: 1, name: 'POWER' },
+      ]),
+      {
+        0: 'Speed +',
+        1: 'On / off',
+      },
+    );
+  } finally {
+    setTemplateNames(name => name);
+  }
 });

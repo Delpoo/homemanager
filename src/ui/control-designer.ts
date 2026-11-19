@@ -48,11 +48,14 @@ import {
   applyTemplate,
   learnOrder,
   resolveWanted,
+  setTemplateNames,
   type ApplianceKind,
   type StartDesign,
 } from '../model/remote-templates.js';
 import { brandMark, keyStyles, radiusOf } from './remote-keys.js';
 import { personName } from '../model/names.js';
+// Templates name their buttons and pieces in the screen's language.
+setTemplateNames(name => t(name));
 
 export interface DesignerOptions {
   key: string;

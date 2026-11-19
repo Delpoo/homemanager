@@ -295,6 +295,8 @@ export class HomeManagerEditor extends HTMLElement {
   private settingsSection: SettingsSection = 'rooms-section';
   /** On a phone, Settings first lists its sections (#70). */
   private settingsView: 'list' | 'section' = 'section';
+  /** 0.14 · «Editar control» opened from a symbol: ← goes back to that symbol, not to the menu. */
+  private designerFromSymbol = false;
   /** The notebook's slide for the next paint: into a section or back to the list. */
   private settingsSlide: 'fwd' | 'back' | '' = '';
   /** The HomeManager sidebar panel's homes, when the card runs inside it. */
@@ -353,6 +355,7 @@ export class HomeManagerEditor extends HTMLElement {
         );
         return;
       }
+      this.designerFromSymbol = false;
       this.settingsSection = section;
       this.settingsView = 'section';
       this.settingsSlide = 'fwd';
@@ -1523,7 +1526,14 @@ export class HomeManagerEditor extends HTMLElement {
           ? 'settings:' + this.settingsSection + ':' + this.actionId + ':' + this.panelId
           : 'settings:menu';
       // ← in a section goes back to the menu; in the menu it leaves Settings.
-      dialog.onBack = () => {
+      dialog.onBack = async () => {
+        if (this.settingsView === 'section' && this.settingsSection === 'designer-section' && this.designerFromSymbol) {
+          if (!(await this.controlDesigner.confirmLeave())) return;
+          this.designerFromSymbol = false;
+          this.surface = 'device';
+          this.render();
+          return;
+        }
         if (this.settingsView === 'section') {
           this.settingsView = 'list';
           this.settingsSlide = 'back';
@@ -2692,6 +2702,7 @@ export class HomeManagerEditor extends HTMLElement {
             }
             this.surface = 'settings';
             this.settingsSection = 'designer-section';
+            this.designerFromSymbol = true;
             this.render();
           }
           break;
