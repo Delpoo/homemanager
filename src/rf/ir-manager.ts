@@ -390,7 +390,7 @@ export class HomeManagerIr extends HTMLElement {
     const remote = this.saved.find(item => item.id === this.selected);
     const library = remote
       ? `<div class="shelf">${this.saved.length > 1 ? `<label>${e(t('Control remoto'))}<select name="selected-remote">${this.saved.map(item => option(item.id, item.name, this.selected)).join('')}</select></label>` : ''}
-      <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil-ruler', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
+      <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
       ${this.editing === 'buttons' ? this.renderEdit(remote) : `<div class="controls" data-player></div>`}
       ${
         !this.editing && remote.buttons.length
@@ -544,7 +544,8 @@ export class HomeManagerIr extends HTMLElement {
       this.replaceButton = '';
       this.render();
     });
-    value('selected-remote', 'change', id => {
+    value('selected-remote', 'change', async id => {
+      if (this.editing === 'layout' && !(await this.designer.confirmLeave())) return this.render();
       this.selected = id;
       this.settings = undefined;
       this.editing = '';
@@ -614,7 +615,9 @@ export class HomeManagerIr extends HTMLElement {
           this.settings = await remotes.settings(hass, remote.id);
         });
     });
-    click('[data-design]', () => {
+    click('[data-design]', async () => {
+      // 0.14: the editor keeps a draft; leaving it with changes asks first.
+      if (this.editing === 'layout' && !(await this.designer.confirmLeave())) return;
       this.editing = this.editing === 'layout' ? '' : 'layout';
       this.render();
     });

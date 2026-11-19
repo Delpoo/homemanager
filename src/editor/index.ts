@@ -321,10 +321,17 @@ export class HomeManagerEditor extends HTMLElement {
     super();
     useBindingComponents(this.root);
     this.root.addEventListener('click', this.onClick);
-    this.root.addEventListener('click', event => {
+    this.root.addEventListener('click', async event => {
       const target = (event.target as Element).closest<HTMLElement>('[data-settings]');
       if (!target) return;
       const section = target.dataset.settings as SettingsSection;
+      // 0.14: the control editor keeps a draft; leaving it with changes asks first.
+      if (
+        this.settingsSection === 'designer-section' &&
+        section !== 'designer-section' &&
+        !(await this.controlDesigner.confirmLeave())
+      )
+        return;
       // 0.13: Controls is its own page beside the plan, with ← back to this menu.
       if (section === 'controls-section') {
         this.dispatchEvent(
@@ -1311,8 +1318,8 @@ export class HomeManagerEditor extends HTMLElement {
           : ''),
       bodies: {
         'designer-section': this.device()
-          ? `<div class="designer-title"><ha-icon icon="${esc(this.device()!.display.icon)}" aria-hidden="true"></ha-icon><b>${esc(t('Diseñando el control de «{name}»', { name: this.device()!.display.label }))}</b></div><div class="designer-host"></div>`
-          : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Diseñar control.'))}</p>`,
+          ? `<div class="designer-host"></div>`
+          : `<p class="note">${esc(t('Elegí un símbolo en el plano y abrí Control › Editar control.'))}</p>`,
         'rules-section': '<div class="rules-host"></div>',
         'automations-section': '<div class="automations-host"></div>',
         'now-section': '<div class=now-editor-host></div>',

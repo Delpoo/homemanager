@@ -406,11 +406,11 @@ export class HomeManagerRf extends HTMLElement {
       );
     if (this.editing)
       return this.panel(
-        panelHead(`${e(t('Diseño'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
+        panelHead(`${e(t('Editar'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
         `<div class="stage-host"><div data-slot="remote"></div></div>${status}`,
         `<span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="edit"', 'primary')}`,
       );
-    const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Probar botones'), 'mdi:play-circle-outline', 'data-command="test"')}${iconButton(t('Diseñar'), 'mdi:pencil-ruler', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
+    const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Probar botones'), 'mdi:play-circle-outline', 'data-command="test"')}${iconButton(t('Editar'), 'mdi:pencil', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
     const buttons = remote.buttons.length
       ? `<div class="list">${remote.buttons
           .map(
@@ -643,7 +643,8 @@ export class HomeManagerRf extends HTMLElement {
           this.render();
         },
         press: buttonId => rf.press(this._hass!, remote.id, buttonId),
-        learn: () => {
+        learn: async () => {
+          if (!(await this.designer.confirmLeave())) return;
           this.editing = false;
           this.startLearn();
           this.render();
@@ -892,6 +893,14 @@ export class HomeManagerRf extends HTMLElement {
   private async command(name: string): Promise<void> {
     const hass = this._hass;
     if (!hass) return;
+    // 0.14: the editor keeps a draft; leaving it with changes asks first.
+    if (
+      this.view === 'remote' &&
+      this.editing &&
+      ['close', 'back', 'edit'].includes(name) &&
+      !(await this.designer.confirmLeave())
+    )
+      return;
     if (name === 'close') return this.leave();
     if (name === 'back' && this.view === 'list') return this.leave('settings');
     if (name === 'back') {
