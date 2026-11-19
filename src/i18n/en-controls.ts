@@ -266,7 +266,6 @@ export const enControls: Record<string, string> = {
   // 0.14 · stage 4: «Agregar un control»
   'Quitar {name} de este símbolo': 'Remove {name} from this symbol',
   'Controles de este símbolo': 'Controls of this symbol',
-  'Ninguno elegido: se usa el de su entidad, si tiene.': "None chosen: its entity's control is used, if it has one.",
   'Agregar un control': 'Add a control',
   'Controles por radio': 'Radio remotes',
   'Controles por infrarrojo': 'Infrared remotes',

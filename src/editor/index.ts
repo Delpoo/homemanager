@@ -1615,11 +1615,7 @@ export class HomeManagerEditor extends HTMLElement {
         : remoteId
           ? controlRow('remoteId', remoteId, 'mdi:remote', 0, 'RF')
           : ''
-    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}${
-      !remoteId && !irRemoteId
-        ? `<p class="note">${esc(t('Ninguno elegido: se usa el de su entidad, si tiene.'))}</p>`
-        : ''
-    }<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button></div>`;
+    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button></div>`;
     const irField = '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
