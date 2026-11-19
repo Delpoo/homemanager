@@ -230,8 +230,9 @@ export class HomeManagerRfRemote extends HTMLElement {
     const look = bodyVars(all.find(piece => piece.type === 'canvas'));
     const gap = columns <= 6 ? 10 : columns <= 12 ? 6 : 3;
     // 0.14 · «?»: each piece gets its number and a line below says what it does.
-    const helpable = !this._editing && !this.hasAttribute('data-template') && layout.length > 0;
-    const numbered = helpable ? this.helpPieces(layout) : [];
+    // Only on a whole control: a single piece pinned to the plan has nothing to number.
+    const numbered = !this._editing && !this.hasAttribute('data-template') ? this.helpPieces(layout) : [];
+    const helpable = numbered.length > 1;
     const help = helpable
       ? `<button type="button" class="khelp" data-help aria-pressed="${this.helping}" aria-label="${e(t('Qué hace cada botón'))}" title="${e(t('Qué hace cada botón'))}">?</button>${
           this.helping
@@ -240,7 +241,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         }`
       : '';
     this.root.innerHTML = remoteShell(look, this._editing, columns, gap, `${cells}${widgets}${empty}`) + help;
-    if (this.helping)
+    if (this.helping && helpable)
       for (const [piece, n] of numbered)
         this.root
           .querySelector(`[data-widget="${CSS.escape(piece.id)}"]`)

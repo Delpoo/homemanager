@@ -140,6 +140,20 @@ Sale de la maqueta v14 (pantalla 3, «Crear un control nuevo», y las notas de l
 
 Quedan para la etapa 4: «Traer de la biblioteca» al aprender, los programas del aire, el robot y la luz por Home Assistant.
 
+### Estado de la etapa 3
+
+Hecha en la rama `claude/controles-etapa3`, sin publicar.
+
+- **Hecho:** los puntos 1 a 5.
+  - Las plantillas están en `src/model/remote-templates.ts`. Se validan en la tarjeta, en la integración y en el esquema con `tests/fixtures/remote-templates.json`, que se regenera con `scripts/remote-templates-fixture.mjs`.
+  - La guía sirve para radio e infrarrojo. En el paso 3, el aprendizaje de radio o de infrarrojo recibe el nombre del botón ya escrito.
+  - «Sin plantilla» va directo a aprender botones libremente y después al nombre.
+- **Diferencias con la maqueta:**
+  - La Luz por radio o infrarrojo pide encender/apagar, brillo, tono, noche y temporizador. En la maqueta, la Luz va por Home Assistant.
+  - La Tele pide los números de a uno («Número 1» … «Número 0»), porque el teclado necesita un botón por número.
+  - Las piezas de datos del Avanzado (valor y gráfica) arrancan sin sensor; se elige en «Qué muestra».
+- **Lo que sacó la guía:** el paso «Probar» de la creación anterior. Cada botón se prueba al aprenderlo, y «Probar botones» sigue en la página del control.
+
 ## Próximas etapas
 
 1. **Catálogo y edición.**
