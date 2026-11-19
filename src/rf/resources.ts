@@ -72,7 +72,7 @@ const ICONS: Record<string, string> = {
   directory: 'mdi:arrow-left',
   control: 'mdi:remote',
   timers: 'mdi:timer-outline',
-  design: 'mdi:pencil-ruler',
+  design: 'mdi:pencil',
   send: 'mdi:send',
   preset: 'mdi:content-save-outline',
   recall: 'mdi:backup-restore',
@@ -419,7 +419,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
       tab('control', 'Control') +
       tab('timers', 'Temporizadores') +
       '</span>' +
-      action('design', 'Diseñar') +
+      action('design', 'Editar') +
       '</div>';
     const summary =
       '<div class="resource-card requested" title="' +
@@ -991,6 +991,8 @@ export class HomeManagerRemoteResources extends HTMLElement {
   }
 
   private async handleAction(command: string): Promise<void> {
+    // 0.14: the editor keeps a draft; leaving it with changes asks first.
+    if (this.tab === 'design' && command !== 'design' && !(await this.designer.confirmLeave())) return;
     if (command.startsWith('open-')) {
       this.control = this.data?.controls.find(item => item.id === command.slice(5));
       this.draft = { ...this.control?.state };

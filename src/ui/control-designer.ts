@@ -16,7 +16,7 @@ import { HomeManagerRfRemote } from '../rf/remote-view.js';
 import { installPanelComponents } from './panel-components.js';
 import { rfManagerStyles } from './rf-components.js';
 import { iconPicker } from './icon-picker.js';
-import { confirmDialog } from './confirm-dialog.js';
+import { choiceDialog, confirmDialog } from './confirm-dialog.js';
 import { iconButton, sidePanelStyles } from './side-panel.js';
 import {
   BLOCK_SLOTS,
@@ -208,15 +208,16 @@ const glyph = (name: string) => `<ha-icon icon="${e(name)}" aria-hidden="true"><
 const clampNumber = (value: string | number, low: number, high: number) =>
   Math.max(low, Math.min(high, Math.round(Number(value) || low)));
 
-/** The free designer (0.13), as in a design program: resources on the left (learned
- * buttons, elements, blocks, brands), the control in the middle (drag, resize, test)
- * and the inspector on the right (Look, Function, Shows). Every change is saved at
- * once and can be undone; it edits only layout and references, and sends nothing
- * unless test mode is on. */
+/** The control editor (0.14): the control in the middle (drag, resize, test) and the
+ * «Editar control» panel on the right. Changes stay in a draft that can be undone and
+ * is kept only with «Guardar»; leaving with changes asks first. It edits only layout
+ * and references, and sends nothing unless test mode is on. */
 export class ControlDesigner extends HTMLElement {
   private root = this.attachShadow({ mode: 'open' });
   private options?: DesignerOptions;
   private remote?: DrawableRemote;
+  /** The layout as last saved; the draft is `remote.layout`. */
+  private saved: RfWidget[] | null = null;
   private history: (RfWidget[] | null)[] = [];
   private future: (RfWidget[] | null)[] = [];
   private selected: string[] = [];
@@ -254,7 +255,10 @@ export class ControlDesigner extends HTMLElement {
     this.addEventListener('keydown', event => this.keys(event));
   }
   configure(options: DesignerOptions): void {
-    if (this.options?.key !== options.key) {
+    const same = this.options?.key === options.key;
+    // A host re-render must not throw away a draft that is not saved yet.
+    const draft = same && this.dirty ? structuredClone(this.remote!.layout ?? null) : undefined;
+    if (!same) {
       this.history = [];
       this.future = [];
       this.selected = [];
@@ -264,6 +268,58 @@ export class ControlDesigner extends HTMLElement {
     }
     this.options = options;
     this.remote = structuredClone(options.remote);
+    this.saved = structuredClone(options.remote.layout ?? null);
+    if (draft !== undefined) this.remote.layout = draft;
+    this.render();
+  }
+  /** True while the draft differs from what is saved. */
+  get dirty(): boolean {
+    return !!this.remote && JSON.stringify(this.remote.layout ?? null) !== JSON.stringify(this.saved ?? null);
+  }
+  /** Before the host closes the editor: with changes, asks to keep editing, discard or save. */
+  async confirmLeave(): Promise<boolean> {
+    if (!this.dirty) return true;
+    const choice = await choiceDialog(this.root, {
+      title: t('¿Guardar los cambios?'),
+      message: t('El control tiene cambios sin guardar.'),
+      choices: [
+        ['stay', t('Seguir editando')],
+        ['discard', t('Descartar')],
+        ['save', t('Guardar'), 'primary'],
+      ],
+    });
+    if (choice === 'save') return this.saveDraft();
+    if (choice === 'discard') {
+      this.discardDraft();
+      return true;
+    }
+    return false;
+  }
+  private async saveDraft(): Promise<boolean> {
+    if (!this.remote || !this.options || this.busy) return false;
+    const layout = structuredClone(this.remote.layout ?? null);
+    this.busy = true;
+    this.reflectBusy();
+    try {
+      await this.options.save(layout);
+      this.saved = structuredClone(layout);
+      this.error = '';
+      return true;
+    } catch (error) {
+      this.error = (error as Error).message;
+      return false;
+    } finally {
+      this.busy = false;
+      this.render();
+    }
+  }
+  private discardDraft(): void {
+    if (!this.remote) return;
+    this.remote.layout = structuredClone(this.saved);
+    this.history = [];
+    this.future = [];
+    this.selected = this.selected.filter(id => this.layout().some(item => item.id === id));
+    this.error = '';
     this.render();
   }
   refreshIndicators(): void {
@@ -313,26 +369,18 @@ export class ControlDesigner extends HTMLElement {
       this.render();
       return;
     }
+    // 0.14: a change only edits the draft; «Guardar» keeps it.
     const previous = structuredClone(this.remote.layout);
-    this.busy = true;
-    this.reflectBusy();
-    try {
-      await this.options.save(layout);
-      if (undo === 'undo') this.future.push(previous);
-      else {
-        this.history.push(previous);
-        if (this.history.length > 60) this.history.shift();
-        if (undo !== 'redo') this.future = [];
-      }
-      this.remote.layout = structuredClone(layout);
-      this.error = '';
-    } catch (error) {
-      this.error = (error as Error).message;
-    } finally {
-      this.busy = false;
-      this.selected = this.selected.filter(id => this.layout().some(item => item.id === id));
-      this.render();
+    if (undo === 'undo') this.future.push(previous);
+    else {
+      this.history.push(previous);
+      if (this.history.length > 60) this.history.shift();
+      if (undo !== 'redo') this.future = [];
     }
+    this.remote.layout = structuredClone(layout);
+    this.error = '';
+    this.selected = this.selected.filter(id => this.layout().some(item => item.id === id));
+    this.render();
   }
   /** Changes the chosen pieces (all of them when several are chosen). */
   private change(mutate: (piece: RfWidget) => void): void {
@@ -627,8 +675,10 @@ export class ControlDesigner extends HTMLElement {
   private render(): void {
     if (!this.remote || !this.options) return;
     const scroll = this.root.querySelector('.insp-body')?.scrollTop ?? 0;
-    const tools = `<div class="dbar"><div class="seg dmode" role="group"><button type="button" data-mode="design" aria-pressed="${!this.testing}" aria-label="${e(t('Diseñar'))}" title="${e(t('Diseñar'))}">${glyph('mdi:pencil-ruler')}<span>${e(t('Diseñar'))}</span></button><button type="button" data-mode="test" aria-pressed="${this.testing}" aria-label="${e(t('Probar'))}" title="${e(t('Probar'))}"${this.options.press ? '' : ' disabled'}>${glyph('mdi:play')}<span>${e(t('Probar'))}</span></button></div><span class="grow"></span>${iconButton(t('Deshacer') + ' · Ctrl+Z', 'mdi:undo', `data-undo${!this.history.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Rehacer') + ' · Ctrl+Shift+Z', 'mdi:redo', `data-redo${!this.future.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Diseño automático'), 'mdi:auto-fix', 'data-command="auto-layout"')}${this.options.duplicate ? iconButton(t('Duplicar este control para otro aparato'), 'mdi:content-duplicate', 'data-command="duplicate-remote"') : ''}</div>`;
-    this.root.innerHTML = `<div class="designer${this.testing ? ' testing' : ''}">${tools}<aside class="res" aria-label="${e(t('Recursos'))}">${this.resources()}</aside><div class="stage"><div class="canvas"></div><p class="error-text" role="status">${e(this.error)}</p></div><aside class="insp" aria-label="${e(t('Inspector'))}">${this.inspector()}</aside></div>${this.dupOpen ? this.dupDialog() : ''}`;
+    const tools = `<div class="dbar"><div class="seg dmode" role="group"><button type="button" data-mode="design" aria-pressed="${!this.testing}" aria-label="${e(t('Editar'))}" title="${e(t('Editar'))}">${glyph('mdi:pencil')}<span>${e(t('Editar'))}</span></button><button type="button" data-mode="test" aria-pressed="${this.testing}" aria-label="${e(t('Probar'))}" title="${e(t('Probar'))}"${this.options.press ? '' : ' disabled'}>${glyph('mdi:play')}<span>${e(t('Probar'))}</span></button></div><span class="grow"></span>${iconButton(t('Deshacer') + ' · Ctrl+Z', 'mdi:undo', `data-undo${!this.history.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Rehacer') + ' · Ctrl+Shift+Z', 'mdi:redo', `data-redo${!this.future.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Diseño automático'), 'mdi:auto-fix', 'data-command="auto-layout"')}${this.options.duplicate ? iconButton(t('Duplicar este control para otro aparato'), 'mdi:content-duplicate', 'data-command="duplicate-remote"') : ''}</div>`;
+    const dirty = this.dirty;
+    const strip = `<div class="dedit${dirty ? ' dirty' : ''}" role="group" aria-label="${e(t('Cambios'))}">${glyph('mdi:pencil')}<span class="dtitle">${e(t('Editando el control de {name}', { name: personName(this.options.name, t('Control')) }))}</span><span class="grow"></span><button type="button" class="dlink" data-undo${!this.history.length || this.busy ? ' disabled' : ''}>${e(t('Deshacer'))}</button><button type="button" class="dlink" data-draft="discard"${dirty && !this.busy ? '' : ' disabled'}>${e(t('Descartar cambios'))}</button><button type="button" class="dsave" data-draft="save"${dirty && !this.busy ? '' : ' disabled'}>${e(t('Guardar'))}</button></div>`;
+    this.root.innerHTML = `${strip}<div class="designer${this.testing ? ' testing' : ''}">${tools}<aside class="res" aria-label="${e(t('Recursos'))}">${this.resources()}</aside><div class="stage"><div class="canvas"></div><p class="error-text" role="status">${e(this.error)}</p></div><aside class="insp" aria-label="${e(t('Inspector'))}">${this.inspector()}</aside></div>${this.dupOpen ? this.dupDialog() : ''}`;
     this.canvas.estimated = this.options.estimated;
     this.canvas.preview = !this.testing;
     this.canvas.onPress = this.testing ? this.options.press : undefined;
@@ -1268,6 +1318,17 @@ export class ControlDesigner extends HTMLElement {
     on('[data-redo]', () => {
       const layout = this.future.pop();
       if (layout !== undefined) void this.commit(layout, 'redo');
+    });
+    on('[data-draft=save]', () => void this.saveDraft());
+    on('[data-draft=discard]', async () => {
+      if (
+        await confirmDialog(this.root, {
+          title: t('¿Descartar los cambios?'),
+          message: t('El control vuelve a como estaba guardado.'),
+          confirm: t('Descartar'),
+        })
+      )
+        this.discardDraft();
     });
     on('[data-command=auto-layout]', async () => {
       if (
@@ -1933,8 +1994,13 @@ const swatches = (key: string, value: string | undefined, label: string) =>
     )}<label class="swc" title="${e(t('Otro color'))}"><input type="color" data-color-input="${key}" value="${value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#4F7A5A'}" aria-label="${e(`${label} · ${t('Otro color')}`)}"><ha-icon icon="mdi:eyedropper-variant" aria-hidden="true"></ha-icon></label></div>`;
 
 const designerStyles = `
-:host{display:block;min-width:0;height:100%;container-type:inline-size}
-.designer{display:grid;grid-template-columns:232px minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:560px;background:var(--hm-bg)}
+:host{display:flex;flex-direction:column;min-width:0;height:100%;container-type:inline-size}
+.dedit{display:flex;align-items:center;gap:10px;padding:7px 12px;background:color-mix(in srgb,var(--hm-warn,#d98b1f) 14%,var(--hm-surface));border-bottom:1px solid var(--hm-line);min-width:0;font-size:13px}
+.dedit>ha-icon{--mdc-icon-size:16px;color:var(--hm-warn,#d98b1f);flex:none}
+.dedit .dtitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}.dedit .grow{flex:1}
+.dedit .dlink{border:0;background:transparent;color:var(--hm-ink);font-size:13px;padding:6px 4px;white-space:nowrap}.dedit .dlink:disabled{color:var(--hm-muted);opacity:.6}
+.dedit .dsave{border:0;border-radius:9px;padding:7px 14px;background:var(--hm-warn,#d98b1f);color:#fff;font-weight:600;font-size:13px;white-space:nowrap}.dedit .dsave:disabled{background:var(--hm-surface-2);color:var(--hm-muted)}
+.designer{flex:1;display:grid;grid-template-columns:232px minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:560px;background:var(--hm-bg)}
 .dbar{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);min-width:0}
 .dbar .grow{flex:1}
 .seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--hm-surface-2);flex-wrap:wrap}

@@ -63,3 +63,51 @@ export function confirmDialog(
     dialog.showModal();
   });
 }
+
+/** A modal with several answers (for example «Seguir editando», «Descartar», «Guardar»).
+ * Resolves with the chosen id, or null when it is dismissed (Esc). The first answer is focused. */
+export function choiceDialog(
+  host: ShadowRoot,
+  options: { title: string; message: string; choices: [string, string, string?][]; trigger?: HTMLElement },
+): Promise<string | null> {
+  if (activeConfirmation?.isConnected && activeConfirmation.open) return Promise.resolve(null);
+  const trigger = options.trigger ?? (host.activeElement as HTMLElement | undefined);
+  const dialog = document.createElement('dialog');
+  installDialogComponents(host);
+  const markup = panelDialog(
+    options.title,
+    `<p id="hm-confirm-message">${e(options.message)}</p>`,
+    options.choices
+      .map(([id, label, kind]) => uiButton(label, `choice-${id}`, kind === 'primary' ? 'primary' : 'secondary'))
+      .join(''),
+    { descriptionId: 'hm-confirm-message' },
+  );
+  const template = document.createElement('template');
+  template.innerHTML = markup;
+  dialog.className = 'k-dialog';
+  dialog.innerHTML = template.content.querySelector('dialog')!.innerHTML;
+  dialog.setAttribute('aria-labelledby', 'hm-panel-title');
+  dialog.setAttribute('aria-describedby', 'hm-confirm-message');
+  const answers = [...dialog.querySelectorAll<HTMLButtonElement>('.k-dialog-foot button')];
+  answers.forEach((button, i) => {
+    const id = options.choices[i]?.[0];
+    if (id) button.onclick = () => dialog.close(id);
+  });
+  answers[0]?.setAttribute('autofocus', '');
+  return new Promise(resolve => {
+    dialog.addEventListener(
+      'close',
+      () => {
+        if (activeConfirmation === dialog) activeConfirmation = undefined;
+        const value = dialog.returnValue;
+        dialog.remove();
+        if (trigger?.isConnected) trigger.focus();
+        resolve(options.choices.some(([id]) => id === value) ? value : null);
+      },
+      { once: true },
+    );
+    host.append(dialog);
+    activeConfirmation = dialog;
+    dialog.showModal();
+  });
+}

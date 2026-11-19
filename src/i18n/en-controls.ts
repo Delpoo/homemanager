@@ -123,4 +123,13 @@ export const enControls: Record<string, string> = {
   Veneciana: 'Venetian blind',
   'Dos cortinas': 'Two curtains',
   'Una cortina': 'One curtain',
+  // 0.14 · stage 2: edit, draft and save
+  'Elegí un símbolo en el plano y abrí Control › Editar control.':
+    'Choose a symbol on the plan and open Control › Edit control.',
+  '¿Guardar los cambios?': 'Save the changes?',
+  'El control tiene cambios sin guardar.': 'This control has unsaved changes.',
+  'Seguir editando': 'Keep editing',
+  Cambios: 'Changes',
+  'Editando el control de {name}': 'Editing the {name} control',
+  'El control vuelve a como estaba guardado.': 'The control goes back to how it was saved.',
 };
