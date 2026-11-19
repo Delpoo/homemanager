@@ -97,8 +97,8 @@ for (const dark of [false, true])
     await readable(rf(page));
     await shot('list');
     await rf(page).getByRole('button', { name: 'Nuevo control', exact: true }).click();
-    await expect(rf(page).getByRole('textbox', { name: 'Nombre', exact: true })).toBeVisible();
-    // 0.13: names and kinds as symbols, nothing to explain.
+    // 0.14: the «Control nuevo» guide starts with the kinds of appliance, nothing to explain.
+    await expect(rf(page).locator('.gkinds')).toBeVisible();
     await expect(rf(page).locator('.k-field-title homemanager-help-tip')).toHaveCount(0);
     await readable(rf(page));
     await shot('new');
