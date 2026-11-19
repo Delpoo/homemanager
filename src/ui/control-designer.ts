@@ -109,6 +109,89 @@ const CATS: Record<Cat, [string, string]> = {
   info: ['Información', 'mdi:information-outline'],
   block: ['Bloques', 'mdi:view-grid-plus-outline'],
 };
+/** 0.14 · one catalogue, the same everywhere: five tabs, and each entry is a kind of
+ * button that is set up differently. Nivel and Opciones gather the old level and list
+ * kinds, which became their forms. */
+type CatalogTab = 'buttons' | 'groups' | 'levels' | 'info' | 'special';
+type Entry = 'press' | 'onoff' | 'sequence' | 'brand' | 'dpad' | 'numpad' | 'transport' | 'colors' | 'level' | 'options' | 'value' | 'graph' | 'title' | 'separator' | 'window' | 'control';
+const CATALOG: [CatalogTab, string, string, Entry[]][] = [
+  ['buttons', 'Botones', 'mdi:gesture-tap-button', ['press', 'onoff', 'sequence', 'brand']],
+  ['groups', 'Grupos', 'mdi:view-grid-plus-outline', ['dpad', 'numpad', 'transport', 'colors']],
+  ['levels', 'Niveles y listas', 'mdi:tune-variant', ['level', 'options']],
+  ['info', 'Información', 'mdi:information-outline', ['value', 'graph', 'title', 'separator']],
+  ['special', 'Especiales', 'mdi:star-four-points-outline', ['window']],
+];
+const ENTRY: Record<Entry, [string, string, string]> = {
+  press: ['Botón', 'mdi:gesture-tap', 'press'],
+  onoff: ['Prender / apagar', 'mdi:power', 'onoff'],
+  sequence: ['Secuencia', 'mdi:playlist-play', 'sequence'],
+  brand: ['Botón de app', 'mdi:play-box-outline', 'brand'],
+  dpad: ['Cruceta', 'mdi:gamepad-round-outline', 'dpad'],
+  numpad: ['Teclado numérico', 'mdi:dialpad', 'numpad'],
+  transport: ['Reproducción', 'mdi:play-pause', 'transport'],
+  colors: ['Colores', 'mdi:palette-outline', 'colors'],
+  level: ['Nivel', 'mdi:tune-vertical', 'updown'],
+  options: ['Opciones', 'mdi:format-list-bulleted', 'modes'],
+  value: ['Valor', 'mdi:gauge', 'value'],
+  graph: ['Gráfica', 'mdi:chart-line', 'graph'],
+  title: ['Título', 'mdi:format-title', 'title'],
+  separator: ['Separador', 'mdi:minus', 'separator'],
+  window: ['Ventana', 'mdi:window-shutter', 'bar'],
+  control: ['Control del aire', 'mdi:air-conditioner', 'control'],
+};
+/** Which catalogue entry a piece is. */
+function entryOf(piece: RfWidget): Entry {
+  if (piece.type === 'button') return piece.brand ? 'brand' : 'press';
+  if (piece.type === 'toggle') return 'onoff';
+  if (piece.type === 'preset') return 'sequence';
+  if (piece.type === 'slider' && piece.form === 'window') return 'window';
+  if (['updown', 'slider', 'steps', 'knob'].includes(piece.type)) return 'level';
+  if (piece.type === 'modes' || piece.type === 'cycle') return 'options';
+  if (piece.type === 'indicator') return 'value';
+  if (piece.type === 'graph') return 'graph';
+  if (['title', 'separator', 'dpad', 'numpad', 'transport', 'colors'].includes(piece.type)) return piece.type as Entry;
+  return 'control';
+}
+type StepId = 'what' | 'form' | 'look' | 'does' | 'gestures' | 'shows' | 'plan';
+/** What each step owns, so «Descartar» puts back only that step. «Qué hace» owns the rest. */
+const STEP_FIELDS: Record<Exclude<StepId, 'what' | 'does'>, string[]> = {
+  form: ['form', 'win', 'winSide', 'x', 'y', 'w', 'h'],
+  look: ['label', 'icon', 'hideIcon', 'hideLabel', 'style', 'symAnim', 'symWhen', 'fontSize', 'fontWeight', 'iconSize', 'bg', 'fg', 'border', 'active', 'radius', 'relief', 'anim'],
+  gestures: ['hold', 'holdButton'],
+  shows: ['display', 'valueSize', 'reading', 'attribute', 'chart'],
+  plan: [],
+};
+/** The piece with the fields of one step put back as they were in `snap`. */
+function restoreStep(piece: RfWidget, snap: RfWidget, step: StepId): RfWidget {
+  if (step === 'what') return structuredClone(snap);
+  const listed = Object.values(STEP_FIELDS).flat();
+  const keys =
+    step === 'does'
+      ? [...new Set([...Object.keys(piece), ...Object.keys(snap)])].filter(key => !listed.includes(key) && key !== 'id' && key !== 'type')
+      : STEP_FIELDS[step];
+  const out = structuredClone(piece) as unknown as Record<string, unknown>;
+  const from = snap as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    if (key in from) out[key] = structuredClone(from[key]);
+    else delete out[key];
+  }
+  return out as unknown as RfWidget;
+}
+/** Nivel and Opciones: the old kinds are now forms of one type. */
+const FAMILY: Partial<Record<Entry, string[]>> = {
+  level: ['updown', 'bar', 'steps', 'knob'],
+  window: ['updown', 'bar', 'steps', 'knob'],
+  options: ['modes', 'list', 'cycle'],
+};
+const FAMILY_FORMS: Partial<Record<Entry, PieceForm[]>> = {
+  level: ['thermo', 'bars', 'window'],
+  window: ['thermo', 'bars', 'window'],
+  options: ['segment', 'bars'],
+};
+/** The kind a form needs when the current one cannot take it. */
+const FORM_HOME: Partial<Record<PieceForm, string>> = { thermo: 'bar', window: 'bar', bars: 'steps', segment: 'modes' };
+/** The least room a form needs (columns × rows); a smaller button grows when it takes it. */
+const FORM_MIN: Partial<Record<PieceForm, [number, number]>> = { thermo: [2, 2], window: [2, 2], gauge: [2, 2], segment: [3, 1], bars: [2, 1], big: [2, 1] };
 const variantOf = (piece: RfWidget): Variant =>
   piece.type === 'button' && piece.brand
     ? VARIANTS[2]
@@ -222,7 +305,17 @@ export class ControlDesigner extends HTMLElement {
   private future: (RfWidget[] | null)[] = [];
   private selected: string[] = [];
   private testing = false;
-  private left: 'learned' | 'elements' | 'blocks' | 'brands' = 'elements';
+  /** Open modules of the «Editar control» panel. */
+  private mods = new Set(['learned', 'pieces']);
+  /** «Botón nuevo»: the catalogue is open for a piece that does not exist yet. */
+  private adding = false;
+  private catTab: CatalogTab = 'buttons';
+  /** The open step of the chosen button, and what each changed step was before. */
+  private openStep: StepId | null = null;
+  private stepSnaps = new Map<StepId, RfWidget>();
+  private stepPiece?: string;
+  private pieceBase?: RfWidget;
+  private nextStep: StepId | null = null;
   private tab: 'look' | 'function' | 'shows' = 'look';
   private brandQuery = '';
   private brandsFor = false;
@@ -231,7 +324,6 @@ export class ControlDesigner extends HTMLElement {
   private templatePreview?: RemoteTheme;
   private busy = false;
   private error = '';
-  private dragged: { kind: 'learned' | 'variant' | 'brand'; value: string } | null = null;
   private canvas = new HomeManagerRfRemote();
   constructor() {
     super();
@@ -298,6 +390,7 @@ export class ControlDesigner extends HTMLElement {
   private async saveDraft(): Promise<boolean> {
     if (!this.remote || !this.options || this.busy) return false;
     const layout = structuredClone(this.remote.layout ?? null);
+    this.stepSnaps.clear();
     this.busy = true;
     this.reflectBusy();
     try {
@@ -316,6 +409,8 @@ export class ControlDesigner extends HTMLElement {
   private discardDraft(): void {
     if (!this.remote) return;
     this.remote.layout = structuredClone(this.saved);
+    this.stepSnaps.clear();
+    this.stepPiece = undefined;
     this.history = [];
     this.future = [];
     this.selected = this.selected.filter(id => this.layout().some(item => item.id === id));
@@ -370,6 +465,7 @@ export class ControlDesigner extends HTMLElement {
       return;
     }
     // 0.14: a change only edits the draft; «Guardar» keeps it.
+    const before = this.selected.length === 1 ? this.layout().find(item => item.id === this.selected[0]) : undefined;
     const previous = structuredClone(this.remote.layout);
     if (undo === 'undo') this.future.push(previous);
     else {
@@ -379,6 +475,11 @@ export class ControlDesigner extends HTMLElement {
     }
     this.remote.layout = structuredClone(layout);
     this.error = '';
+    // The first change while a step is open remembers how the button was, for «Descartar».
+    if (before && !undo && this.openStep && this.stepPiece === before.id && !this.stepSnaps.has(this.openStep)) {
+      const after = this.layout().find(item => item.id === before.id);
+      if (JSON.stringify(after) !== JSON.stringify(before)) this.stepSnaps.set(this.openStep, structuredClone(before));
+    }
     this.selected = this.selected.filter(id => this.layout().some(item => item.id === id));
     this.render();
   }
@@ -427,10 +528,54 @@ export class ControlDesigner extends HTMLElement {
     return canvas;
   }
   private select(ids: string[]): void {
+    if (this.stepSnaps.size && this.stepPiece && !(ids.length === 1 && ids[0] === this.stepPiece)) {
+      void this.leavePiece(ids);
+      return;
+    }
+    if (this.adding && ids.length) this.adding = false;
     const was = this.selected.join();
     this.selected = ids;
     this.brandsFor = false;
     if (ids.join() !== was && ids.length === 1) this.tab = this.tab === 'shows' ? 'look' : this.tab;
+    this.render();
+  }
+
+  /** Leaving a button with steps not accepted: keep editing, discard them or accept them. */
+  private async leavePiece(ids: string[]): Promise<void> {
+    const choice = await choiceDialog(this.root, {
+      title: t('¿Aceptar los cambios de este botón?'),
+      message: t('Hay pasos con cambios sin aceptar.'),
+      choices: [
+        ['stay', t('Seguir editando')],
+        ['discard', t('Descartar')],
+        ['accept', t('Aceptar'), 'primary'],
+      ],
+    });
+    if (choice !== 'discard' && choice !== 'accept') return;
+    if (choice === 'discard') this.discardPiece();
+    this.stepSnaps.clear();
+    this.stepPiece = undefined;
+    this.select(ids);
+  }
+  /** «Descartar todo»: the button goes back to how it was when it was opened. */
+  private discardPiece(): void {
+    const base = this.pieceBase;
+    if (!base) return;
+    this.openStep = null;
+    const layout = structuredClone(this.layout()).map(item => (item.id === base.id ? structuredClone(base) : item));
+    this.stepSnaps.clear();
+    void this.commit(layout);
+  }
+  private discardStep(step: StepId): void {
+    const snap = this.stepSnaps.get(step);
+    const piece = this.pieces()[0];
+    if (!snap || !piece) return;
+    this.stepSnaps.delete(step);
+    const open = this.openStep;
+    this.openStep = null;
+    const restored = restoreStep(piece, snap, step);
+    void this.commit(structuredClone(this.layout()).map(item => (item.id === piece.id ? restored : item)));
+    this.openStep = open;
     this.render();
   }
 
@@ -564,6 +709,15 @@ export class ControlDesigner extends HTMLElement {
     void this.commit(next);
   }
 
+  /** «Botón nuevo»: adds the chosen entry where there is room and opens it. */
+  private addEntry(entry: Entry): void {
+    this.adding = false;
+    this.nextStep = 'form';
+    const variant = ENTRY[entry][2];
+    this.addPiece(variant);
+    if (entry === 'window' && this.selected.length === 1) this.change(piece => { if (formsFor(piece).includes('window')) piece.form = 'window'; });
+  }
+
   /** A learned button dropped on a piece: it becomes what that piece sends. */
   private assign(pieceId: string, ref: string): void {
     const layout = structuredClone(this.layout());
@@ -675,10 +829,10 @@ export class ControlDesigner extends HTMLElement {
   private render(): void {
     if (!this.remote || !this.options) return;
     const scroll = this.root.querySelector('.insp-body')?.scrollTop ?? 0;
-    const tools = `<div class="dbar"><div class="seg dmode" role="group"><button type="button" data-mode="design" aria-pressed="${!this.testing}" aria-label="${e(t('Editar'))}" title="${e(t('Editar'))}">${glyph('mdi:pencil')}<span>${e(t('Editar'))}</span></button><button type="button" data-mode="test" aria-pressed="${this.testing}" aria-label="${e(t('Probar'))}" title="${e(t('Probar'))}"${this.options.press ? '' : ' disabled'}>${glyph('mdi:play')}<span>${e(t('Probar'))}</span></button></div><span class="grow"></span>${iconButton(t('Deshacer') + ' · Ctrl+Z', 'mdi:undo', `data-undo${!this.history.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Rehacer') + ' · Ctrl+Shift+Z', 'mdi:redo', `data-redo${!this.future.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Diseño automático'), 'mdi:auto-fix', 'data-command="auto-layout"')}${this.options.duplicate ? iconButton(t('Duplicar este control para otro aparato'), 'mdi:content-duplicate', 'data-command="duplicate-remote"') : ''}</div>`;
+    const tools = `<div class="dbar"><div class="seg dmode" role="group"><button type="button" data-mode="design" aria-pressed="${!this.testing}" aria-label="${e(t('Editar'))}" title="${e(t('Editar'))}">${glyph('mdi:pencil')}<span>${e(t('Editar'))}</span></button><button type="button" data-mode="test" aria-pressed="${this.testing}" aria-label="${e(t('Probar'))}" title="${e(t('Probar'))}"${this.options.press ? '' : ' disabled'}>${glyph('mdi:play')}<span>${e(t('Probar'))}</span></button></div><span class="grow"></span>${iconButton(t('Deshacer') + ' · Ctrl+Z', 'mdi:undo', `data-undo${!this.history.length || this.busy ? ' disabled' : ''}`)}${iconButton(t('Rehacer') + ' · Ctrl+Shift+Z', 'mdi:redo', `data-redo${!this.future.length || this.busy ? ' disabled' : ''}`)}</div>`;
     const dirty = this.dirty;
     const strip = `<div class="dedit${dirty ? ' dirty' : ''}" role="group" aria-label="${e(t('Cambios'))}">${glyph('mdi:pencil')}<span class="dtitle">${e(t('Editando el control de {name}', { name: personName(this.options.name, t('Control')) }))}</span><span class="grow"></span><button type="button" class="dlink" data-undo${!this.history.length || this.busy ? ' disabled' : ''}>${e(t('Deshacer'))}</button><button type="button" class="dlink" data-draft="discard"${dirty && !this.busy ? '' : ' disabled'}>${e(t('Descartar cambios'))}</button><button type="button" class="dsave" data-draft="save"${dirty && !this.busy ? '' : ' disabled'}>${e(t('Guardar'))}</button></div>`;
-    this.root.innerHTML = `${strip}<div class="designer${this.testing ? ' testing' : ''}">${tools}<aside class="res" aria-label="${e(t('Recursos'))}">${this.resources()}</aside><div class="stage"><div class="canvas"></div><p class="error-text" role="status">${e(this.error)}</p></div><aside class="insp" aria-label="${e(t('Inspector'))}">${this.inspector()}</aside></div>${this.dupOpen ? this.dupDialog() : ''}`;
+    this.root.innerHTML = `${strip}<div class="designer${this.testing ? ' testing' : ''}">${tools}<div class="stage"><div class="canvas"></div><p class="error-text" role="status">${e(this.error)}</p></div><aside class="insp" aria-label="${e(t('Inspector'))}">${this.inspector()}</aside></div>${this.dupOpen ? this.dupDialog() : ''}`;
     this.canvas.estimated = this.options.estimated;
     this.canvas.preview = !this.testing;
     this.canvas.onPress = this.testing ? this.options.press : undefined;
@@ -699,49 +853,6 @@ export class ControlDesigner extends HTMLElement {
     if (body) body.scrollTop = scroll;
     this.bind();
     this.reflectBusy();
-  }
-
-  private resources(): string {
-    const tabs: [typeof this.left, string, string][] = [
-      ['learned', this.options?.trayTitle ?? t('Aprendidos'), 'mdi:access-point'],
-      ['elements', t('Elementos'), 'mdi:shape-outline'],
-      ['blocks', t('Bloques'), 'mdi:view-grid-plus-outline'],
-      ['brands', t('Marcas'), 'mdi:play-box-outline'],
-    ];
-    let body = '';
-    if (this.left === 'learned') {
-      const used = this.usage();
-      body = `<div class="lhead"><span>${this.learned().length}</span>${this.options?.learn ? iconButton(t('Aprender más botones'), 'mdi:plus', 'data-command="learn"', 'sm') : ''}</div><div class="learned">${this.learned()
-        .map(button => {
-          const count = used.get(button.id) ?? 0;
-          return `<button type="button" class="lchip${count ? '' : ' unused'}" draggable="true" data-drag="learned" data-value="${e(button.id)}" title="${e(count ? t('Usado en {count} elemento(s)', { count }) : t('Sin usar: arrastralo al control'))}">${glyph('mdi:drag-vertical')}<span>${e(personName(button.name))}</span><em>${count || '!'}</em></button>`;
-        })
-        .join('')}</div>`;
-    } else if (this.left === 'elements') {
-      body = (['button', 'level', 'mode', 'info'] as Cat[])
-        .map(
-          cat =>
-            `<div class="egrp"><span>${e(t(CATS[cat][0]))}</span><div class="etiles">${VARIANTS.filter(
-              v => v.cat === cat,
-            )
-              .map(
-                v =>
-                  `<button type="button" class="etile" draggable="true" data-drag="variant" data-value="${v.id}" title="${e(t(v.name))}">${glyph(v.icon)}<span>${e(t(v.name))}</span></button>`,
-              )
-              .join('')}</div></div>`,
-        )
-        .join('');
-      if (this.options?.absolute) body += `<div class="egrp"><span>${e(t('Estado absoluto'))}</span><div class="etiles">${this.options.controls?.map(control =>
-        `<button type="button" class="etile" data-absolute-piece="${e(control.id)}">${glyph('mdi:tune')}<span>${e(control.label)}</span></button>`).join('') ?? ''}</div></div>`;
-    } else if (this.left === 'blocks') {
-      body = `<div class="btiles">${VARIANTS.filter(v => v.cat === 'block')
-        .map(
-          v =>
-            `<button type="button" class="btile" draggable="true" data-drag="variant" data-value="${v.id}" title="${e(t(v.name))}"><span class="bprev">${blockPreview(v.type)}</span><span>${e(t(v.name))}</span></button>`,
-        )
-        .join('')}</div>`;
-    } else body = this.brandList('drag');
-    return `<div class="rtabs" role="tablist">${tabs.map(([key, label, icon]) => `<button type="button" role="tab" data-left="${key}" aria-selected="${this.left === key}" title="${e(label)}">${glyph(icon)}<span>${e(label)}</span></button>`).join('')}</div><div class="rbody">${body}</div>`;
   }
 
   /** About eighty brands and keys, grouped, with a search. */
@@ -774,45 +885,191 @@ export class ControlDesigner extends HTMLElement {
   private inspector(): string {
     if (this.testing)
       return `<div class="ihead"><span class="tile">${glyph('mdi:play')}</span><b>${e(t('Probar'))}</b></div>`;
+    if (this.adding) return this.newPiecePanel();
     const chosen = this.pieces();
-    if (!chosen.length) return this.canvasInspector();
+    if (!chosen.length) return this.editPanel();
     const headTools = `${iconButton(t('Duplicar') + ' · Ctrl+D', 'mdi:content-duplicate', 'data-command="duplicate"', 'sm')}${iconButton(t('Quitar') + ' · Supr', 'mdi:trash-can-outline', 'data-command="remove"', 'sm danger')}`;
     if (chosen.length > 1)
       return `<div class="ihead"><span class="tile">${glyph('mdi:selection-multiple')}</span><b>${e(t('{count} elementos', { count: chosen.length }))}</b>${headTools}</div><div class="insp-body">${this.lookRows(chosen[0], true)}</div>`;
-    const piece = chosen[0];
-    const variant = variantOf(piece);
-    const tabs = `<div class="itabs" role="tablist">${(
-      [
-        ['look', t('Aspecto')],
-        ['function', t('Función')],
-        ['shows', t('Muestra')],
-      ] as const
-    )
-      .map(
-        ([key, label]) =>
-          `<button type="button" role="tab" data-tab="${key}" aria-selected="${this.tab === key}">${e(label)}</button>`,
-      )
-      .join('')}</div>`;
-    const body =
-      this.tab === 'look'
-        ? this.lookRows(piece)
-        : this.tab === 'function'
-          ? this.functionRows(piece)
-          : this.showsRows(piece);
-    const title = piece.label ?? (piece.buttons[0] ? this.name(piece.buttons[0]) : t(variant.name));
-    return `<div class="ihead"><span class="tile">${glyph(variant.icon)}</span><b>${e(title)}<small>${e(t(CATS[variant.cat][0]))} · ${e(t(variant.name))}</small></b>${headTools}</div>${tabs}<div class="insp-body">${body}</div>`;
+    return this.piecePanel(chosen[0]);
   }
 
-  private canvasInspector(): string {
+  /** The steps of a button, each with its one-line summary and its rows (built only when open). */
+  private steps(piece: RfWidget): [StepId, string, string, () => string][] {
+    const entry = entryOf(piece);
+    const refs = [...new Set([...piece.buttons, ...Object.values(piece.slots ?? {})])].filter(Boolean);
+    const sent = refs.slice(0, 3).map(ref => this.name(ref)).join(' · ') + (refs.length > 3 ? ' …' : '');
+    const family = FAMILY[entry];
+    const formName = piece.form ? t(FORM_LOOK[piece.form][0]) : family ? t(variantOf(piece).name) : t('Como siempre');
+    const list: [StepId, string, string, () => string][] = [
+      ['what', t('Qué botón es'), `${t(ENTRY[entry][0])} · ${this.pieceTitle(piece)}`, () => `<div class="nowis">${glyph(ENTRY[entry][1])}<span>${e(t('Ahora es'))} <b>${e(t(ENTRY[entry][0]))}</b> <small>· ${e(this.pieceTitle(piece))}</small></span></div>${this.catalog(entry)}`],
+      ['form', t('Forma y tamaño'), `${formName} · ${piece.w} × ${piece.h}`, () => this.formRows(piece) + this.placeRows(piece)],
+      ['look', t('Aspecto'), piece.style ? t(STYLE_LOOK[piece.style]) : t('Como el control'), () => this.lookRows(piece, false, false) + this.showsRows(piece, 'tap')],
+    ];
+    if (this.functionRows(piece, 'does')) list.push(['does', t('Qué hace'), sent || '—', () => this.functionRows(piece, 'does')]);
+    if (this.functionRows(piece, 'gestures'))
+      list.push(['gestures', t('Gestos'), piece.hold === 'repeat' ? t('Mantener: repite') : piece.hold === 'other' ? t('Mantener: otro botón') : t('Mantener: nada'), () => this.functionRows(piece, 'gestures')]);
+    if (this.showsRows(piece, 'shows'))
+      list.push(['shows', t('Qué muestra'), piece.reading !== undefined ? t('Estado: un sensor') : LEVEL_TYPES.includes(piece.type) || ['toggle', 'modes', 'cycle'].includes(piece.type) ? t('Estado: lo enviado') : t('Gráfica y estado'), () => this.showsRows(piece, 'shows')]);
+    if (this.options?.pinTo && piece.type !== 'separator') list.push(['plan', t('En el plano'), t('Junto a su símbolo'), () => this.showsRows(piece, 'plan')]);
+    return list;
+  }
+
+  /** 0.14 · a button is edited by steps: Accept / Discard each, pending ones in yellow. */
+  private piecePanel(piece: RfWidget): string {
+    if (this.stepPiece !== piece.id) {
+      this.stepPiece = piece.id;
+      this.pieceBase = structuredClone(piece);
+      this.stepSnaps.clear();
+      this.openStep = this.nextStep;
+      this.nextStep = null;
+    }
+    const entry = ENTRY[entryOf(piece)];
+    const headTools = `${iconButton(t('Duplicar') + ' · Ctrl+D', 'mdi:content-duplicate', 'data-command="duplicate"', 'sm')}${iconButton(t('Quitar') + ' · Supr', 'mdi:trash-can-outline', 'data-command="remove"', 'sm danger')}`;
+    const steps = this.steps(piece)
+      .map(([id, title, summary, body], i) => {
+        const open = this.openStep === id;
+        const pending = this.stepSnaps.has(id);
+        const num = open || pending ? `<span class="snum">${i + 1}</span>` : `<span class="snum done">${glyph('mdi:check')}</span>`;
+        return `<section class="step${open ? ' open' : ''}${pending ? ' pending' : ''}"><button type="button" class="shead" data-step-open="${id}" aria-expanded="${open}">${num}<b>${e(title)}<small>${e(summary)}</small></b>${pending ? `<i class="sdot" title="${e(t('Cambios sin aceptar'))}"></i>` : ''}${glyph(open ? 'mdi:chevron-up' : 'mdi:chevron-down')}</button>${
+          open
+            ? `<div class="sbody">${body()}<div class="sacts"><button type="button" class="sbtn" data-step-discard="${id}"${pending ? '' : ' disabled'}>${e(t('Descartar'))}</button><button type="button" class="sbtn primary" data-step-accept="${id}">${glyph('mdi:check')}${e(t('Aceptar'))}</button></div></div>`
+            : ''
+        }</section>`;
+      })
+      .join('');
+    const all = this.stepSnaps.size
+      ? `<div class="allacts"><button type="button" class="sbtn" data-steps="discard">${e(t('Descartar todo'))}</button><button type="button" class="sbtn primary" data-steps="accept">${glyph('mdi:check-all')}${e(t('Aceptar todo'))}</button></div>`
+      : '';
+    return `<div class="ihead">${iconButton(t('Volver a Editar control'), 'mdi:chevron-left', 'data-command="piece-back"', 'sm')}<b>${e(this.pieceTitle(piece))}<small>${e(t(entry[0]))}</small></b>${headTools}</div><div class="insp-body">${steps}${all}</div>`;
+  }
+
+  /** The title of a piece in lists: its own text, the button it sends, or its kind. */
+  private pieceTitle(piece: RfWidget): string {
+    if (piece.label) return piece.label;
+    // Options read best by what they offer: «Frío · Seco · Calor».
+    const options = (piece.options ?? []).map(option => option?.label).filter((label): label is string => !!label);
+    if ((piece.type === 'modes' || piece.type === 'cycle') && options.length)
+      return options.slice(0, 3).join(' · ') + (options.length > 3 ? ' …' : '');
+    return piece.buttons[0] ? this.name(piece.buttons[0]) : t(ENTRY[entryOf(piece)][0]);
+  }
+  /** Pieces that use each learned button. */
+  private users(): Map<string, RfWidget[]> {
+    const users = new Map<string, RfWidget[]>();
+    for (const piece of this.layout()) {
+      if (piece.type === 'canvas') continue;
+      const refs = new Set([
+        ...piece.buttons,
+        ...Object.values(piece.slots ?? {}),
+        ...(piece.holdButton ? [piece.holdButton] : []),
+        ...(piece.sequence ?? []).flatMap(step => ('button' in step ? [step.button] : [])),
+      ]);
+      for (const ref of refs) if (ref) users.set(ref, [...(users.get(ref) ?? []), piece]);
+    }
+    return users;
+  }
+  private module(id: string, icon: string, title: string, sub: string, body: string): string {
+    const open = this.mods.has(id);
+    return `<section class="mod${open ? ' open' : ''}"><button type="button" class="mhead" data-mod="${id}" aria-expanded="${open}"><span class="mtile">${glyph(icon)}</span><b>${e(title)}<small>${e(sub)}</small></b>${glyph(open ? 'mdi:chevron-up' : 'mdi:chevron-down')}</button>${open ? `<div class="mbody">${body}</div>` : ''}</section>`;
+  }
+  /** 0.14 · «Editar control»: learned buttons, the buttons of this control, style and canvas, and more. */
+  private editPanel(): string {
+    const layout = this.layout();
+    const pieces = layout.filter(piece => piece.type !== 'canvas').sort((a, b) => a.y - b.y || a.x - b.x);
+    const users = this.users();
+    const learned = this.learned();
+    const unused = learned.filter(button => !users.has(button.id)).length;
+    const learnedRows =
+      learned
+        .map(button => {
+          const using = users.get(button.id) ?? [];
+          const name = personName(button.name);
+          return `<div class="mrow${using.length ? '' : ' unused'}"><span class="mic">${glyph('mdi:access-point')}</span><span class="mtx"><b>${e(name)}</b><small>${e(using.length ? [...new Set(using.map(piece => this.pieceTitle(piece)))].join(' · ') : t('Sin usar'))}</small></span>${
+            using.length
+              ? `<button type="button" class="mgo" data-open-piece="${e(using[0].id)}" aria-label="${e(t('Abrir {name}', { name: this.pieceTitle(using[0]) }))}" title="${e(t('Abrir {name}', { name: this.pieceTitle(using[0]) }))}">${glyph('mdi:chevron-right')}</button>`
+              : `<button type="button" class="madd" data-place="${e(button.id)}" aria-label="${e(t('Poner «{name}» en el control', { name }))}" title="${e(t('Poner «{name}» en el control', { name }))}">${glyph('mdi:plus')}</button>`
+          }</div>`;
+        })
+        .join('') || `<p class="muted">${e(t('Todavía no hay botones aprendidos.'))}</p>`;
+    const learnFoot = this.options?.learn
+      ? `<button type="button" class="mfoot" data-command="learn">${glyph('mdi:plus')}${e(t('Aprender un botón más'))}</button>`
+      : '';
+    const pieceRows = pieces
+      .map(piece => {
+        const entry = ENTRY[entryOf(piece)];
+        return `<button type="button" class="mrow" data-open-piece="${e(piece.id)}"><span class="mic">${glyph(piece.icon ?? entry[1])}</span><span class="mtx"><b>${e(this.pieceTitle(piece))}</b><small>${e(t(entry[0]))}</small></span>${glyph('mdi:chevron-right')}</button>`;
+      })
+      .join('');
+    const canvas = layout.find(piece => piece.type === 'canvas');
+    const grid = gridOf(layout);
+    const height = grid.rows ?? Math.max(2, rows(layout));
+    const look = canvas?.style ? t(STYLE_LOOK[canvas.style]) : t(THEMES.find(([key]) => key === (canvas?.theme ?? 'hm'))?.[1] ?? 'Automático');
+    const more = [
+      `<button type="button" class="mrow" data-command="auto-layout"><span class="mic">${glyph('mdi:auto-fix')}</span><span class="mtx"><b>${e(t('Volver al diseño automático'))}</b></span></button>`,
+      this.options?.duplicate
+        ? `<button type="button" class="mrow" data-command="duplicate-remote"><span class="mic">${glyph('mdi:content-duplicate')}</span><span class="mtx"><b>${e(t('Duplicar para otro aparato'))}</b></span></button>`
+        : '',
+      this.options?.duplicate?.targets?.length && this.options.duplicate.applyDesign
+        ? `<button type="button" class="mrow" data-command="copy-design"><span class="mic">${glyph('mdi:content-copy')}</span><span class="mtx"><b>${e(t('Copiar este diseño a otro control'))}</b></span></button>`
+        : '',
+    ].join('');
+    const title = this.options?.trayTitle ?? t('Botones aprendidos');
+    return `<div class="ihead"><span class="tile">${glyph('mdi:pencil')}</span><b>${e(t('Editar control'))}<small>${e(personName(this.options?.name, t('Control')))} · ${e(t('{count} botones', { count: pieces.length }))}</small></b></div><div class="insp-body">${this.module(
+      'learned',
+      'mdi:access-point',
+      title,
+      learned.length ? t('{count} · {unused} sin usar', { count: learned.length, unused }) : '—',
+      `<div class="mlist">${learnedRows}</div>${learnFoot}`,
+    )}${this.module(
+      'pieces',
+      'mdi:view-grid-outline',
+      t('Botones de este control'),
+      String(pieces.length),
+      `<div class="mlist">${pieceRows}</div><button type="button" class="mfoot" data-command="new-piece">${glyph('mdi:plus')}${e(t('Botón nuevo'))}</button>`,
+    )}${this.module('canvas', 'mdi:palette-swatch-outline', t('Estilo y lienzo'), `${look} · ${grid.columns} × ${height}`, this.canvasRows())}${this.module(
+      'more',
+      'mdi:dots-horizontal',
+      t('Más'),
+      t('copiar, duplicar, volver al inicio'),
+      `<div class="mlist">${more}</div>`,
+    )}</div>`;
+  }
+  /** The catalogue: five tabs, each entry with how many the control already has. */
+  private catalog(current?: Entry): string {
+    const counts = new Map<Entry, number>();
+    for (const piece of this.layout()) if (piece.type !== 'canvas') counts.set(entryOf(piece), (counts.get(entryOf(piece)) ?? 0) + 1);
+    const tabs = CATALOG.map(
+      ([key, label, icon]) =>
+        `<button type="button" role="tab" data-cat-tab="${key}" aria-selected="${this.catTab === key}" title="${e(t(label))}">${glyph(icon)}<span>${e(t(label))}</span></button>`,
+    ).join('');
+    const entries: string[] = (CATALOG.find(([key]) => key === this.catTab)?.[3] ?? []).map(entry => {
+      const [label, icon] = ENTRY[entry];
+      const count = counts.get(entry) ?? 0;
+      const preview = ['dpad', 'numpad', 'transport', 'colors'].includes(entry) ? `<span class="bprev">${blockPreview(entry as WidgetType)}</span>` : glyph(icon);
+      return `<button type="button" class="ctile" data-entry="${entry}" aria-pressed="${current === entry}" title="${e(t(label))}">${preview}<span>${e(t(label))}</span>${count ? `<em>${count}</em>` : ''}</button>`;
+    });
+    if (this.catTab === 'special' && this.options?.absolute)
+      for (const control of this.options.controls ?? [])
+        entries.push(
+          `<button type="button" class="ctile" data-absolute-piece="${e(control.id)}" title="${e(control.label)}">${glyph('mdi:air-conditioner')}<span>${e(control.label)}</span></button>`,
+        );
+    return `<div class="ctabs" role="tablist">${tabs}</div><div class="ctiles">${entries.join('')}</div>`;
+  }
+  /** «Botón nuevo», step 1: which button it is. Choosing one adds it where there is room. */
+  private newPiecePanel(): string {
+    return `<div class="ihead">${iconButton(t('Volver'), 'mdi:chevron-left', 'data-command="new-cancel"', 'sm')}<b>${e(t('Botón nuevo'))}<small>${e(t('Paso 1 de varios'))}</small></b></div><div class="insp-body"><section class="step open"><div class="shead"><span class="snum">1</span><b>${e(t('Qué botón es'))}</b></div><div class="sbody">${this.catalog()}<div class="sacts"><button type="button" class="sbtn" data-command="new-cancel">${e(t('Cancelar'))}</button></div></div></section></div>`;
+  }
+  /** Columns and rows, gap, corners, theme, templates, body colour, button style and accent. */
+  private canvasRows(): string {
     const layout = this.layout();
     const grid = gridOf(layout);
     const canvas = layout.find(piece => piece.type === 'canvas');
     const theme = canvas?.theme ?? 'hm';
     const height = grid.rows ?? Math.max(2, rows(layout));
-    return `<div class="ihead"><span class="tile">${glyph('mdi:remote')}</span><b>${e(personName(this.options?.name, t('Control')))}<small>${e(t('{count} elementos', { count: layout.filter(p => p.type !== 'canvas').length }))}</small></b></div><div class="insp-body"><div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div><div class="isec">${e(t('Plantillas'))}</div>${row('mdi:palette', t('Vista previa de plantilla'), `<select class="isel" data-template-preview aria-label="${e(t('Vista previa de plantilla'))}"><option value="">—</option>${TEMPLATES.map(([key, label]) => `<option value="${key}"${this.templatePreview === key ? ' selected' : ''}>${e(t(label))}</option>`).join('')}</select>`)}${this.templatePreview ? `<div class="chips"><button type="button" class="chip" data-template-apply>${e(t('Aplicar a {name}', {name: personName(this.options?.name, t('Control'))}))}</button><button type="button" class="chip" data-template-cancel>${e(t('Cancelar'))}</button></div>` : ''}${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}<div class="isec">${e(t('Estilo de los botones'))}</div><div class="cstyles">${(['', ...CONTROL_STYLES] as (ControlStyle | '')[]).map(key => `<button type="button" class="cstyle${key ? ` st-${key}` : ''}" data-cstyle="${key}" aria-pressed="${(canvas?.style ?? '') === key}" title="${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}"><span class="cprev"><i>${glyph('mdi:power')}</i><i></i></span><span>${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}</span></button>`).join('')}</div>${row('mdi:palette', t('Color de acento'), swatches('accent', canvas?.accent, t('Color de acento')))}</div>`;
+    return `<div class="isec">${e(t('Lienzo'))}</div>${row('mdi:view-grid-outline', t('Columnas y filas'), `<span class="sizes">${stepper('cols', grid.columns, 2, MAX_COLUMNS, t('Columnas'))}<span>×</span>${stepper('rows', height, 2, MAX_GRID_ROWS, t('Filas'))}</span>`)}${row('mdi:arrow-expand-all', t('Separación'), slider('gap', 2, 24, canvas?.gap ?? 10, 'px', t('Separación')))}${row('mdi:square-rounded-outline', t('Esquinas del control'), slider('body-radius', 0, 60, canvas?.radius ?? 28, 'px', t('Esquinas del control')))}<div class="isec">${e(t('Tema'))}</div><div class="themes">${THEMES.map(([key, label]) => `<button type="button" class="theme theme-${key}" data-theme="${key}" aria-pressed="${theme === key}"><span class="tbody"><i></i><i></i><i></i><i></i></span><span>${e(t(label))}</span></button>`).join('')}</div><div class="isec">${e(t('Plantillas'))}</div>${row('mdi:palette', t('Vista previa de plantilla'), `<select class="isel" data-template-preview aria-label="${e(t('Vista previa de plantilla'))}"><option value="">—</option>${TEMPLATES.map(([key, label]) => `<option value="${key}"${this.templatePreview === key ? ' selected' : ''}>${e(t(label))}</option>`).join('')}</select>`)}${this.templatePreview ? `<div class="chips"><button type="button" class="chip" data-template-apply>${e(t('Aplicar a {name}', {name: personName(this.options?.name, t('Control'))}))}</button><button type="button" class="chip" data-template-cancel>${e(t('Cancelar'))}</button></div>` : ''}${row('mdi:format-color-fill', t('Color del cuerpo'), swatches('body', canvas?.bg, t('Color del cuerpo')))}<div class="isec">${e(t('Estilo de los botones'))}</div><div class="cstyles">${(['', ...CONTROL_STYLES] as (ControlStyle | '')[]).map(key => `<button type="button" class="cstyle${key ? ` st-${key}` : ''}" data-cstyle="${key}" aria-pressed="${(canvas?.style ?? '') === key}" title="${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}"><span class="cprev"><i>${glyph('mdi:power')}</i><i></i></span><span>${e(t(key ? STYLE_LOOK[key] : 'Del tema'))}</span></button>`).join('')}</div>${row('mdi:palette', t('Color de acento'), swatches('accent', canvas?.accent, t('Color de acento')))}`;
   }
 
-  private lookRows(piece: RfWidget, many = false): string {
+  private lookRows(piece: RfWidget, many = false, place = true): string {
     const variant = variantOf(piece);
     const words = piece.type !== 'separator';
     const showsIcon = !piece.brand && !isBlock(piece.type) && !['separator', 'graph'].includes(piece.type);
@@ -869,23 +1126,35 @@ export class ControlDesigner extends HTMLElement {
         piece.relief ?? 'raised',
       ),
     )}`;
-    if (!many) {
-      const grid = gridOf(this.layout());
-      html += `<div class="isec">${e(t('Lugar'))}</div>${row('mdi:cursor-move', t('Columna, fila, ancho y alto'), `<div class="xywh">${stepper('x', piece.x + 1, 1, grid.columns, t('Columna'), 'X')}${stepper('y', piece.y + 1, 1, MAX_GRID_ROWS, t('Fila'), 'Y')}${stepper('w', piece.w, 1, grid.columns, t('Ancho'), '↔')}${stepper('h', piece.h, 1, 12, t('Alto'), '↕')}</div>`)}`;
-    }
+    if (!many && place) html += `<div class="isec">${e(t('Lugar'))}</div>${this.placeRows(piece)}`;
     return html;
   }
 
-  /** 0.14 · the form inside its type, the button style, how its symbol moves and, for a window, its kind and side. */
-  private styleRows(piece: RfWidget, many: boolean): string {
-    const forms = formsFor(piece);
-    let html = `<div class="isec">${e(t('Estilo'))}</div>`;
-    if (!many && forms.length)
-      html += row(
-        'mdi:shape-plus-outline',
-        t('Forma'),
-        seg('form', [['', t('Como siempre'), variantOf(piece).icon], ...forms.map(f => [f, t(FORM_LOOK[f][0]), FORM_LOOK[f][1]] as [string, string, string])], piece.form ?? '', true),
-      );
+  /** 0.14 · step 2: the form. A Nivel or Opciones lists its kinds and its forms together. */
+  private formRows(piece: RfWidget): string {
+    const entry = entryOf(piece);
+    const family = FAMILY[entry];
+    const choices: [string, string, string][] = family
+      ? [
+          ...family.map(id => {
+            const v = VARIANTS.find(item => item.id === id)!;
+            return [`v:${id}`, t(v.name), v.icon] as [string, string, string];
+          }),
+          ...(FAMILY_FORMS[entry] ?? []).map(f => [`f:${f}`, t(FORM_LOOK[f][0]), FORM_LOOK[f][1]] as [string, string, string]),
+        ]
+      : formsFor(piece).length
+        ? [['', t('Como siempre'), variantOf(piece).icon], ...formsFor(piece).map(f => [`f:${f}`, t(FORM_LOOK[f][0]), FORM_LOOK[f][1]] as [string, string, string])]
+        : [];
+    const current = piece.form ? `f:${piece.form}` : family ? `v:${variantOf(piece).id}` : '';
+    let html = choices.length
+      ? row(
+          'mdi:shape-plus-outline',
+          t('Forma'),
+          `<div class="seg icons" role="group" aria-label="${e(t('Forma'))}">${choices
+            .map(([value, label, icon]) => `<button type="button" data-shape="${value}" aria-pressed="${current === value}" title="${e(label)}" aria-label="${e(label)}">${glyph(icon)}</button>`)
+            .join('')}</div>`,
+        )
+      : '';
     if (piece.form === 'window') {
       html += row(
         'mdi:window-closed-variant',
@@ -899,6 +1168,17 @@ export class ControlDesigner extends HTMLElement {
           seg('winSide', [['', t('Izquierda'), 'mdi:format-horizontal-align-left'], ['r', t('Derecha'), 'mdi:format-horizontal-align-right']], piece.winSide === 'r' ? 'r' : '', true),
         );
     }
+    return html;
+  }
+  /** Column, row, width and height (dragging on the canvas does the same). */
+  private placeRows(piece: RfWidget): string {
+    const grid = gridOf(this.layout());
+    return row('mdi:cursor-move', t('Columna, fila, ancho y alto'), `<div class="xywh">${stepper('x', piece.x + 1, 1, grid.columns, t('Columna'), 'X')}${stepper('y', piece.y + 1, 1, MAX_GRID_ROWS, t('Fila'), 'Y')}${stepper('w', piece.w, 1, grid.columns, t('Ancho'), '↔')}${stepper('h', piece.h, 1, 12, t('Alto'), '↕')}</div>`);
+  }
+  /** 0.14 · the button style and how its symbol moves. */
+  private styleRows(piece: RfWidget, many: boolean): string {
+    let html = `<div class="isec">${e(t('Estilo'))}</div>`;
+    if (!many && this.selected.length > 1) html += this.formRows(piece);
     html += row(
       'mdi:palette-swatch-outline',
       t('Estilo del botón'),
@@ -937,11 +1217,12 @@ export class ControlDesigner extends HTMLElement {
     return `<div class="optx"><div class="seg icons" role="group">${ANIM_LOOK.map(([v, label, icon]) => `<button type="button" data-option-anim="${i}" data-value="${v}" aria-pressed="${(option?.anim ?? '') === v}" title="${e(t(label))}" aria-label="${e(t(label))}">${glyph(icon)}</button>`).join('')}</div><span class="ocolw"><label class="ocol${color ? ' set' : ''}" style="--c:${color || 'transparent'}" title="${e(t('Color al elegirla'))}"><input type="color" data-option-color="${i}" value="${color || '#4F7A5A'}" aria-label="${e(t('Color al elegirla'))}"></label>${color ? `<button type="button" class="oclr" data-option-color-clear="${i}" title="${e(t('Quitar color'))}" aria-label="${e(t('Quitar color'))}">${glyph('mdi:close')}</button>` : ''}</span></div>`;
   }
 
-  private functionRows(piece: RfWidget): string {
+  private functionRows(piece: RfWidget, part: 'does' | 'gestures' | 'all' = 'all'): string {
     const variant = variantOf(piece);
     const family = VARIANTS.filter(v => v.cat === variant.cat);
+    let gest = '';
     let html =
-      variant.id === 'control'
+      variant.id === 'control' || part !== 'all'
         ? ''
         : row(
             CATS[variant.cat][1],
@@ -957,9 +1238,9 @@ export class ControlDesigner extends HTMLElement {
         html +
         row(
           'mdi:remote',
-          t('Control existente'),
-          this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Control existente')),
-        ) + this.chartRows(piece)
+          t('Qué controla'),
+          this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Qué controla')),
+        ) + (part === 'all' ? this.chartRows(piece) : '')
       );
     if (variant.cat === 'button') {
       if (piece.brand)
@@ -994,7 +1275,7 @@ export class ControlDesigner extends HTMLElement {
           this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Envía')),
         );
       if (piece.type === 'button')
-        html +=
+        gest +=
           row(
             'mdi:gesture-tap-hold',
             t('Al mantener apretado'),
@@ -1019,6 +1300,8 @@ export class ControlDesigner extends HTMLElement {
       const count = levelCount(piece);
       const mode = sendByOf(piece);
       const named = !!piece.names;
+      // 0.14: «Sólo sube y baja» is a Nivel without numbers or names (it does not know where it is).
+      const plain = !piece.names && !piece.values && mode !== 'level';
       html += ['updown', 'slider', 'steps'].includes(piece.type)
         ? row(
             'mdi:swap-vertical',
@@ -1042,11 +1325,16 @@ export class ControlDesigner extends HTMLElement {
           [
             ['numbers', t('Números')],
             ['names', t('Nombres')],
+            ['plain', t('Sólo sube y baja')],
           ],
-          named ? 'names' : 'numbers',
+          plain ? 'plain' : named ? 'names' : 'numbers',
         ),
       );
-      html += named
+      if (plain)
+        html +=
+          row('mdi:chevron-up', t('Subir'), this.refSelect('ref-1', piece.buttons[1], undefined, '', t('Subir'))) +
+          row('mdi:chevron-down', t('Bajar'), this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Bajar')));
+      else html += named
         ? row(
             'mdi:format-list-bulleted',
             t('Niveles'),
@@ -1057,7 +1345,7 @@ export class ControlDesigner extends HTMLElement {
             t('Desde, hasta, paso y unidad'),
             `<div class="lvl4"><input type="number" aria-label="${e(t('Desde'))}" title="${e(t('Desde'))}" data-range="min" value="${piece.values?.min ?? 1}"><input type="number" aria-label="${e(t('Hasta'))}" title="${e(t('Hasta'))}" data-range="max" value="${piece.values?.max ?? Math.max(2, count)}"><input type="number" min="1" aria-label="${e(t('Paso'))}" title="${e(t('Paso'))}" data-range="step" value="${piece.values?.step ?? 1}"><input aria-label="${e(t('Unidad'))}" title="${e(t('Unidad'))}" data-range="unit" maxlength="6" value="${e(piece.values?.unit ?? '')}" placeholder="°"></div>`,
           );
-      html += row(
+      if (!plain) html += row(
         'mdi:repeat',
         t('Al llegar al final'),
         seg(
@@ -1070,7 +1358,7 @@ export class ControlDesigner extends HTMLElement {
         ),
       );
       const levelsFit = count > 0 && count <= MAX_LEVELS;
-      html += row(
+      if (!plain) html += row(
         'mdi:access-point',
         t('Cómo envía'),
         seg(
@@ -1083,7 +1371,9 @@ export class ControlDesigner extends HTMLElement {
           mode,
         ),
       );
-      if (mode === 'updown')
+      if (plain) {
+        // Subir and Bajar are already above.
+      } else if (mode === 'updown')
         html +=
           row('mdi:chevron-up', t('Subir'), this.refSelect('ref-1', piece.buttons[1], undefined, '', t('Subir'))) +
           row('mdi:chevron-down', t('Bajar'), this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Bajar')));
@@ -1099,7 +1389,7 @@ export class ControlDesigner extends HTMLElement {
           (_, i) =>
             `<div class="lvlsend"><span>${e(count ? levelText(piece, i) : String(i + 1))}</span>${this.refSelect(`ref-${i}`, piece.buttons[i], undefined, '', count ? levelText(piece, i) : String(i + 1))}${!piece.names && !piece.values && piece.buttons.length > 2 ? iconButton(t('Quitar'), 'mdi:close', `data-remove-ref="${i}"`, 'sm') : ''}</div>`,
         ).join('');
-      html += row(
+      gest += row(
         'mdi:gesture-tap-hold',
         t('Al mantener apretado'),
         seg(
@@ -1132,7 +1422,9 @@ export class ControlDesigner extends HTMLElement {
         )
         .join('')}`;
     }
-    return html + this.chartRows(piece);
+    if (part === 'gestures') return gest;
+    if (part === 'does') return html;
+    return html + gest + this.chartRows(piece);
   }
 
   private chartRows(piece: RfWidget): string {
@@ -1186,8 +1478,15 @@ export class ControlDesigner extends HTMLElement {
     return `${row('mdi:home-assistant', label, `<select class="isel" ${chart ? 'data-chart="reading"' : 'name="reading"'} aria-label="${e(label)}"><option value="">${e(t('Sin lectura'))}</option>${ids.map(id => `<option value="${e(id)}"${id === piece.reading ? ' selected' : ''}>${e(String(readings[id]?.attributes?.friendly_name ?? id))}</option>`).join('')}</select>`)}${piece.reading ? row('mdi:code-braces', t('Atributo (avanzado)'), `<input class="tin" ${chart ? 'data-chart="attribute"' : 'name="attribute"'} maxlength="80" value="${e(piece.attribute ?? '')}" aria-label="${e(t('Atributo (avanzado)'))}">`) : ''}`;
   }
 
-  private showsRows(piece: RfWidget): string {
+  private showsRows(piece: RfWidget, part: 'shows' | 'tap' | 'plan' | 'all' = 'all'): string {
     let html = '';
+    if (part === 'tap' || part === 'plan') {
+      if (part === 'plan')
+        return this.options?.pinTo && piece.type !== 'separator'
+          ? row('mdi:floor-plan', t('En el plano'), `<button type="button" class="chip" data-command="pin-to-plan">${glyph('mdi:pin-outline')}${e(t('Pegar junto a su símbolo'))}</button>`)
+          : '';
+      return `<div class="isec">${e(t('Al tocar'))}</div>${row('mdi:gesture-tap', t('Al tocar'), seg('anim', [['', t('Se hunde')], ['flash', t('Destello')], ['none', t('Nada')]], piece.anim ?? ''))}`;
+    }
     if (LEVEL_TYPES.includes(piece.type))
       html +=
         row(
@@ -1224,6 +1523,7 @@ export class ControlDesigner extends HTMLElement {
       );
       if (piece.reading !== undefined) html += this.readingRows(piece, t('Sensor'));
     }
+    if (part === 'shows') return html + this.chartRows(piece);
     if (this.options?.pinTo && piece.type !== 'separator')
       html += row(
         'mdi:floor-plan',
@@ -1342,11 +1642,26 @@ export class ControlDesigner extends HTMLElement {
         await this.commit(null);
       }
     });
-    on('[data-command=duplicate-remote]', () => {
+    // Copying works on what is saved: a draft is saved first.
+    const openDup = async (designOnly: boolean) => {
+      if (this.dirty) {
+        const choice = await choiceDialog(this.root, {
+          title: t('¿Guardar los cambios?'),
+          message: t('Para copiar o duplicar, primero se guardan los cambios.'),
+          choices: [
+            ['cancel', t('Cancelar')],
+            ['save', t('Guardar'), 'primary'],
+          ],
+        });
+        if (choice !== 'save' || !(await this.saveDraft())) return;
+      }
+      this.dupDesignOnly = designOnly;
       this.dupOpen = true;
       this.render();
-      root.querySelector<HTMLInputElement>('[name=dup-name]')?.select();
-    });
+      this.root.querySelector<HTMLInputElement>('[name=dup-name]')?.select();
+    };
+    on('[data-command=duplicate-remote]', () => void openDup(false));
+    on('[data-command=copy-design]', () => void openDup(true));
     on('[data-set="dup-what"]', element => {
       this.dupDesignOnly = element.dataset.value === 'design';
       this.render();
@@ -1417,10 +1732,6 @@ export class ControlDesigner extends HTMLElement {
       this.tab = 'function';
       void this.commit(next);
     });
-    on('[data-left]', element => {
-      this.left = element.dataset.left as typeof this.left;
-      this.render();
-    });
     on('[data-tab]', element => {
       this.tab = element.dataset.tab as typeof this.tab;
       this.render();
@@ -1437,42 +1748,99 @@ export class ControlDesigner extends HTMLElement {
       },
       'input',
     );
-    // A tap on a resource adds it where there is room; a drag drops it where it is let go.
-    on('[data-drag]', element => {
+    // 0.14 · the «Editar control» panel and the catalogue.
+    on('[data-mod]', element => {
+      const id = element.dataset.mod!;
+      if (this.mods.has(id)) this.mods.delete(id);
+      else this.mods.add(id);
+      this.render();
+    });
+    on('[data-open-piece]', element => this.select([element.dataset.openPiece!]));
+    on('[data-place]', element => {
+      if (!this.testing) this.addPiece('press', undefined, { ref: element.dataset.place! });
+    });
+    on('[data-command=new-piece]', () => {
+      this.adding = true;
+      this.selected = [];
+      this.render();
+    });
+    on('[data-command=new-cancel]', () => {
+      this.adding = false;
+      this.render();
+    });
+    on('[data-cat-tab]', element => {
+      this.catTab = element.dataset.catTab as CatalogTab;
+      this.render();
+    });
+    on('[data-entry]', element => {
       if (this.testing) return;
-      const kind = element.dataset.drag!;
-      const value = element.dataset.value!;
-      if (kind === 'variant') this.addPiece(value);
-      else if (kind === 'brand') this.addPiece('brand', undefined, { brand: value });
-      else this.addPiece('press', undefined, { ref: value });
+      const entry = element.dataset.entry as Entry;
+      if (this.adding) return this.addEntry(entry);
+      // Step 1 of a button: it becomes another kind and keeps what still makes sense.
+      const piece = this.pieces()[0];
+      const variant = VARIANTS.find(item => item.id === ENTRY[entry][2]);
+      if (!piece || !variant || entryOf(piece) === entry) return;
+      this.change(target => {
+        if (variantOf(target).id !== variant.id) this.convert(target, variant);
+        if (entry === 'window' && formsFor(target).includes('window')) target.form = 'window';
+        else if (target.form === 'window') {
+          delete target.form;
+          delete target.win;
+          delete target.winSide;
+        }
+      });
     });
-    on(
-      '[data-drag]',
-      (element, event) => {
-        this.dragged = { kind: element.dataset.drag as 'learned' | 'variant' | 'brand', value: element.dataset.value! };
-        (event as DragEvent).dataTransfer?.setData('text/plain', element.dataset.value!);
-        if ((event as DragEvent).dataTransfer) (event as DragEvent).dataTransfer!.effectAllowed = 'copy';
-      },
-      'dragstart',
-    );
-    const stage = root.querySelector<HTMLElement>('.stage');
-    stage?.addEventListener('dragover', event => {
-      if (this.dragged) event.preventDefault();
+    on('[data-shape]', element => {
+      const value = element.dataset.shape!;
+      this.change(piece => {
+        if (value.startsWith('v:')) {
+          const variant = VARIANTS.find(item => item.id === value.slice(2));
+          if (variant && variant.id !== variantOf(piece).id) this.convert(piece, variant);
+          delete piece.form;
+          delete piece.win;
+          delete piece.winSide;
+          return;
+        }
+        if (!value) {
+          delete piece.form;
+          delete piece.win;
+          delete piece.winSide;
+          return;
+        }
+        const form = value.slice(2) as PieceForm;
+        if (!formsFor(piece).includes(form)) {
+          const home = VARIANTS.find(item => item.id === FORM_HOME[form]);
+          if (home) this.convert(piece, home);
+        }
+        if (!formsFor(piece).includes(form)) return;
+        piece.form = form;
+        const [minW, minH] = FORM_MIN[form] ?? [1, 1];
+        piece.w = Math.min(gridOf(this.layout()).columns, Math.max(piece.w, minW));
+        piece.h = Math.max(piece.h, minH);
+        if (form !== 'window') {
+          delete piece.win;
+          delete piece.winSide;
+        }
+      });
     });
-    stage?.addEventListener('drop', event => {
-      event.preventDefault();
-      const dragged = this.dragged;
-      this.dragged = null;
-      if (!dragged || this.testing) return;
-      const over = this.canvas.shadowRoot
-        ?.elementsFromPoint?.(event.clientX, event.clientY)
-        .find(node => (node as HTMLElement).dataset?.widget) as HTMLElement | undefined;
-      if (dragged.kind === 'learned' && over) return this.assign(over.dataset.widget!, dragged.value);
-      const cell = this.canvas.cellAt(event.clientX, event.clientY) ?? undefined;
-      if (dragged.kind === 'variant') this.addPiece(dragged.value, cell);
-      else if (dragged.kind === 'brand') this.addPiece('brand', cell, { brand: dragged.value });
-      else this.addPiece('press', cell, { ref: dragged.value });
+    on('[data-step-open]', element => {
+      const id = element.dataset.stepOpen as StepId;
+      this.openStep = this.openStep === id ? null : id;
+      this.render();
     });
+    on('[data-step-accept]', element => {
+      this.stepSnaps.delete(element.dataset.stepAccept as StepId);
+      this.openStep = null;
+      this.render();
+    });
+    on('[data-step-discard]', element => this.discardStep(element.dataset.stepDiscard as StepId));
+    on('[data-steps=accept]', () => {
+      this.stepSnaps.clear();
+      this.openStep = null;
+      this.render();
+    });
+    on('[data-steps=discard]', () => this.discardPiece());
+    on('[data-command=piece-back]', () => this.select([]));
     this.bindCanvasInspector();
     if (this.pieces().length) this.bindPieceInspector();
   }
@@ -1636,6 +2004,17 @@ export class ControlDesigner extends HTMLElement {
           } else if (choice === 'numbers' && !p.values) {
             p.values = { min: 1, max: Math.max(2, levelCount(p) || 5), step: 1 };
             delete p.names;
+          } else if (choice === 'plain') {
+            delete p.values;
+            delete p.names;
+            p.sendBy = 'updown';
+            delete p.wrap;
+            // A plain up/down has no level to draw.
+            if (p.form && !formsFor(p).includes(p.form)) {
+              delete p.form;
+              delete p.win;
+              delete p.winSide;
+            }
           }
           fitRefs(p, this.pool());
         });
@@ -1741,8 +2120,16 @@ export class ControlDesigner extends HTMLElement {
         const index = Number(element.getAttribute('name')!.slice(4));
         const ref = value(element);
         this.change(p => {
+          const before = p.buttons[index];
           if (p.type === 'toggle' && index === 1 && !ref) p.buttons = p.buttons.slice(0, 1);
           else if (ref) p.buttons[index] = ref;
+          // 0.14 · «Envía»: a Botón takes the name and symbol of what it sends, unless it has its own.
+          if (p.type === 'button' && !p.brand && index === 0 && ref && before !== ref) {
+            const old = this.learned().find(button => button.id === before);
+            const next = this.learned().find(button => button.id === ref);
+            if (!p.label || p.label === old?.name) p.label = null;
+            if (!p.icon || p.icon === old?.icon) p.icon = next?.icon ?? null;
+          }
         });
       },
       'change',
@@ -2000,7 +2387,7 @@ const designerStyles = `
 .dedit .dtitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}.dedit .grow{flex:1}
 .dedit .dlink{border:0;background:transparent;color:var(--hm-ink);font-size:13px;padding:6px 4px;white-space:nowrap}.dedit .dlink:disabled{color:var(--hm-muted);opacity:.6}
 .dedit .dsave{border:0;border-radius:9px;padding:7px 14px;background:var(--hm-warn,#d98b1f);color:#fff;font-weight:600;font-size:13px;white-space:nowrap}.dedit .dsave:disabled{background:var(--hm-surface-2);color:var(--hm-muted)}
-.designer{flex:1;display:grid;grid-template-columns:232px minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:560px;background:var(--hm-bg)}
+.designer{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:560px;background:var(--hm-bg)}
 .dbar{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);min-width:0}
 .dbar .grow{flex:1}
 .seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--hm-surface-2);flex-wrap:wrap}
@@ -2008,25 +2395,6 @@ const designerStyles = `
 .seg button[aria-pressed=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
 .seg.icons button{padding:0 6px}.seg ha-icon{--mdc-icon-size:16px}
 .ib.sm{width:32px;height:32px;min-height:32px;border-radius:9px}.ib.sm ha-icon{--mdc-icon-size:18px}.ib.danger{color:var(--hm-alert)}
-.res{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--hm-line);background:var(--hm-surface)}
-.rtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-bottom:1px solid var(--hm-line)}
-.rtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:44px;padding:4px 2px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font-size:10.5px;min-width:0}
-.rtabs button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rtabs button[aria-selected=true]{background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand)}
-.rtabs ha-icon{--mdc-icon-size:18px}
-.rbody{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:12px}
-.lhead{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--hm-muted)}
-.learned{display:flex;flex-direction:column;gap:6px}
-.lchip{display:flex;align-items:center;gap:6px;min-height:34px;padding:4px 8px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);font-size:13px;cursor:grab;text-align:left;color:var(--hm-ink)}
-.lchip span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lchip ha-icon{--mdc-icon-size:16px;color:var(--hm-muted)}
-.lchip em{font-style:normal;font-size:11px;font-weight:700;min-width:18px;height:18px;display:grid;place-items:center;border-radius:9px;background:var(--hm-surface-2);color:var(--hm-muted)}
-.lchip.unused{border-style:dashed}.lchip.unused em{background:color-mix(in srgb,var(--hm-warn) 20%,transparent);color:var(--hm-warn)}
-.egrp{display:grid;gap:6px}.egrp>span{font-size:11px;color:var(--hm-muted);letter-spacing:.04em;text-transform:uppercase}
-.etiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-.etile{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:62px;padding:8px 4px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:11.5px;color:var(--hm-muted);line-height:1.15;text-align:center;cursor:grab}
-.etile ha-icon{--mdc-icon-size:22px;color:var(--hm-ink)}.etile:hover,.btile:hover,.brand:hover{border-color:var(--hm-brand)}
-.btiles{display:grid;gap:8px}
-.btile{display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:13px;color:var(--hm-ink);cursor:grab;text-align:left}
 .bprev{display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:linear-gradient(160deg,#323a35,#1b1f1c);flex:none}
 .bprev i{display:grid;gap:3px}.bprev b{display:block;background:#4a534d;border-radius:4px}
 .pv-dpad{width:34px;height:34px;border-radius:50%;background:#3b433e;place-items:center}.pv-dpad b{width:14px;height:14px;border-radius:50%;background:#59635c}
@@ -2048,6 +2416,48 @@ const designerStyles = `
 .itabs button{min-height:36px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--hm-muted);font-size:13px}
 .itabs button[aria-selected=true]{color:var(--hm-ink);border-bottom-color:var(--hm-brand)}
 .insp-body{flex:1;overflow:auto;padding:8px 12px 20px;display:flex;flex-direction:column;gap:6px}
+.mod{border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);overflow:hidden;flex:none}
+.mod.open{border-color:color-mix(in srgb,var(--hm-brand) 35%,var(--hm-line))}
+.mhead{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:var(--hm-ink);text-align:left}
+.mhead>ha-icon{--mdc-icon-size:18px;color:var(--hm-muted);flex:none}
+.mtile{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand);flex:none}.mtile ha-icon{--mdc-icon-size:18px}
+.mhead b{flex:1;min-width:0;display:grid;font-weight:500;font-size:14px}.mhead b small{font-weight:400;font-size:11.5px;color:var(--hm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbody{display:flex;flex-direction:column;gap:6px;padding:0 10px 10px}
+.mlist{display:flex;flex-direction:column;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:6px 8px 6px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);text-align:left;font:inherit}
+.mrow:last-child{border-bottom:0}button.mrow:hover{background:var(--hm-surface-2)}
+.mrow>ha-icon{--mdc-icon-size:18px;color:var(--hm-muted);flex:none}
+.mic{display:grid;place-items:center;width:24px;flex:none;color:var(--hm-muted)}.mic ha-icon{--mdc-icon-size:18px}
+.mtx{flex:1;min-width:0;display:grid}.mtx b{font-weight:500;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mtx small{font-size:11.5px;color:var(--hm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow.unused .mtx small{color:var(--hm-warn,#b86e10)}
+.mgo,.madd{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);flex:none}.mgo ha-icon,.madd ha-icon{--mdc-icon-size:18px}
+.madd{background:color-mix(in srgb,var(--hm-brand) 12%,transparent);color:var(--hm-brand)}
+.mfoot{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px dashed var(--hm-line);border-radius:12px;background:transparent;color:var(--hm-brand);font:inherit;font-size:13px;font-weight:500}.mfoot ha-icon{--mdc-icon-size:18px}
+.ctabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}
+.ctabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:46px;padding:4px 2px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font-size:10.5px;min-width:0}
+.ctabs button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ctabs ha-icon{--mdc-icon-size:18px}
+.ctabs button[aria-selected=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
+.ctiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:8px}
+.ctile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:66px;padding:8px 4px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:12px;text-align:center}
+.ctile span{max-width:100%;overflow:hidden;text-overflow:ellipsis}.ctile>ha-icon{--mdc-icon-size:20px}
+.ctile:hover{border-color:var(--hm-brand)}.ctile[aria-pressed=true]{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 10%,var(--hm-surface))}
+.ctile em{position:absolute;top:5px;right:5px;min-width:18px;height:18px;display:grid;place-items:center;border-radius:9px;background:var(--hm-brand);color:var(--hm-on-accent,#fff);font-style:normal;font-size:10.5px;font-weight:700}
+.ctile .bprev{transform:scale(.8)}
+.step{border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface);flex:none}
+.step.open{border-color:var(--hm-brand)}.step.pending{border-color:var(--hm-warn,#d98b1f);background:color-mix(in srgb,var(--hm-warn,#d98b1f) 7%,var(--hm-surface))}
+.shead{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:var(--hm-ink);text-align:left;font:inherit}
+.shead>ha-icon{--mdc-icon-size:18px;color:var(--hm-muted);flex:none}
+.snum{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--hm-brand);color:var(--hm-on-accent,#fff);font-size:12px;font-weight:600;flex:none}
+.snum.done{background:color-mix(in srgb,var(--hm-brand) 14%,transparent);color:var(--hm-brand)}.snum.done ha-icon{--mdc-icon-size:16px}
+.step.pending .snum{background:var(--hm-warn,#d98b1f);color:#fff}
+.shead b{flex:1;min-width:0;display:grid;font-weight:500;font-size:14px}.shead b small{font-weight:400;font-size:11.5px;color:var(--hm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--hm-warn,#d98b1f);flex:none}
+.sbody{display:flex;flex-direction:column;gap:6px;padding:2px 12px 12px;border-top:1px solid var(--hm-line)}
+.sacts{display:flex;justify-content:flex-end;gap:8px;padding-top:10px;margin-top:4px;border-top:1px dashed var(--hm-line)}
+.sbtn{min-height:36px;padding:0 14px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13px}
+.sbtn.primary{display:inline-flex;align-items:center;gap:6px;border-color:var(--hm-brand);background:var(--hm-brand);color:var(--hm-on-accent,#fff)}.sbtn.primary ha-icon{--mdc-icon-size:16px}
+.allacts{position:sticky;bottom:0;display:flex;gap:8px;justify-content:flex-end;padding:10px 0 2px;background:linear-gradient(transparent,var(--hm-surface) 30%)}
+.nowis{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--hm-surface-2);font-size:13px}.nowis small{color:var(--hm-muted)}.nowis ha-icon{--mdc-icon-size:18px;color:var(--hm-brand)}
 .isec{margin-top:8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--hm-muted)}
 .irow{display:flex;align-items:center;gap:8px;min-height:36px;color:var(--hm-muted)}
 .irow>ha-icon{--mdc-icon-size:18px;flex:none;width:20px}
@@ -2114,10 +2524,10 @@ const designerStyles = `
 .acts{display:flex;justify-content:flex-end;gap:8px}
 .acts button{min-height:38px;padding:0 14px;border-radius:10px}.acts .primary{background:var(--hm-brand);color:var(--hm-on-accent);border-color:transparent}
 .muted{color:var(--hm-muted);font-size:12px}
-@container (max-width:980px){.designer{grid-template-columns:200px minmax(0,1fr) 270px}}
+@container (max-width:980px){.designer{grid-template-columns:minmax(0,1fr) 320px}}
 @container (max-width:760px){
-  .designer{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(360px,1fr) auto;min-height:0;height:auto}
-  .res{border-right:0;border-bottom:1px solid var(--hm-line);max-height:220px}
+  .designer{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(360px,1fr) auto;min-height:0;height:auto}
+  .dedit{flex-wrap:wrap;row-gap:4px}.dedit .dtitle{flex:1 1 100%}
   .insp{border-left:0;border-top:1px solid var(--hm-line)}.insp-body{overflow:visible}
   .dmode span{display:none}
 }
