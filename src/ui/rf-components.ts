@@ -237,6 +237,7 @@ export const remotePieceStyles = `
 
 /** 0.14 · «Control nuevo»: numbered steps, designs with a small live preview, the buttons to learn. */
 export const rfGuideStyles = `
+.gbring{grid-template-columns:24px minmax(0,1fr) auto;margin:0 0 10px}.gbring select{min-width:0}.gbring .chip{white-space:nowrap;justify-self:start}@media(max-width:560px){.gbring .chip{grid-column:2/-1}}
 .gtitle{display:grid;min-width:0}.gtitle small{font-size:12px;font-weight:400;color:var(--hm-muted)}
 .gdots{display:flex;align-items:center;justify-content:center;gap:0;margin:0 0 6px;padding:0;list-style:none}
 .gdots li:not(.bar){display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--hm-surface-2);color:var(--hm-muted);font-size:12px;font-weight:600;flex:none}

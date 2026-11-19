@@ -437,7 +437,7 @@ export const keyStyles =
 @media(prefers-reduced-motion:reduce){.k.press,.k.flash{animation:none}}
 .widget.waiting>.content{opacity:.42;filter:grayscale(.7)}
 :host{position:relative}
-.khelp{position:absolute;top:8px;right:8px;z-index:4;width:28px;height:28px;border-radius:50%;border:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font-weight:700;font-size:14px;display:grid;place-items:center;cursor:pointer}.khelp[aria-pressed=true]{background:var(--hm-brand);color:var(--hm-on-accent,#fff);border-color:var(--hm-brand)}
+.khelp{position:relative;margin:10px auto 0;z-index:4;width:28px;height:28px;border-radius:50%;border:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font-weight:700;font-size:14px;display:grid;place-items:center;cursor:pointer}.khelp[aria-pressed=true]{background:var(--hm-brand);color:var(--hm-on-accent,#fff);border-color:var(--hm-brand)}
 .knum-help{position:absolute;top:4px;left:4px;z-index:3;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--hm-brand);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;pointer-events:none}
 .khelp-list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--hm-ink)}.khelp-list li{display:flex;gap:8px;align-items:baseline}.khelp-list b{min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--hm-brand);color:#fff;font-size:11px;display:inline-grid;place-items:center;flex:none}
 .kwant{position:absolute;top:5px;right:5px;z-index:3;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700;line-height:1;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}
