@@ -273,7 +273,10 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await editor.getByLabel('Al tocar', { exact: true }).selectOption({ label: 'Ciclo' });
   // With an RF remote chosen for the device, its buttons are suggested too.
   await editor.getByText('Más opciones', { exact: true }).click();
-  await editor.getByRole('combobox', { name: 'Control RF en el panel' }).selectOption('techo');
+  // 0.14: «Agregar un control» opens a picker with the learned remotes.
+  await editor.locator('[data-command=control-pick]').click();
+  await editor.locator('dialog.ctl-picker [data-pick=techo]').click();
+  await expect(editor.locator('.ctl-list .ctl-row')).toContainText('Techo');
   await editor.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await editor.getByLabel('Nombre del control (Pulsador)', { exact: true }).last().fill('1H');
   // Labels follow the control's name the next time the section is drawn.

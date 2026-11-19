@@ -94,6 +94,7 @@ import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
+import { installDialogComponents } from '../ui/panel-components.js';
 import type { ControlHost } from '../ui/control-view.js';
 import { RulesEditor } from '../ui/rules-editor.js';
 import { AutomationsEditor } from '../ui/automations-editor.js';
@@ -179,8 +180,17 @@ const cssBase = `${tokens}${helpStyles}${attachedEditorStyles}${pickerStyles}${i
 .quick{margin:12px 0 4px;padding:12px;border-radius:14px;background:var(--hm-surface)}.quick .note{margin:6px 0 0}.plans{display:grid;gap:6px;margin-top:10px}.plans .plan{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--hm-line);border-radius:10px}
 .palette{display:flex;flex-wrap:wrap;gap:4px}.palette button{padding:0 8px}.symbol-color>summary{min-height:44px;line-height:44px;cursor:pointer}.symbol-color small{font-size:12px;color:var(--hm-muted)}
 :host{display:block;font:14px var(--hm-font);color:var(--hm-text)}*{box-sizing:border-box}[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:9px;padding:9px 12px;min-height:44px}button:hover{background:var(--hm-surface-2)}button:disabled{opacity:.5;cursor:default}input,select,textarea{width:100%;min-height:44px;border:1px solid var(--hm-line);border-radius:8px;background:var(--hm-bg);padding:8px}input[type=checkbox]{width:20px;min-height:20px}textarea{font:12px ui-monospace,monospace;min-height:85px;resize:vertical}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--hm-accent);outline-offset:2px}.editor{padding:14px;max-width:980px;margin:auto}h2{font-size:18px;margin:0 0 15px}h3{font-size:14px;margin:0}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.toolbar select{flex:1;min-width:160px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px}.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.primary{background:var(--hm-accent);color:var(--hm-on-accent);border-color:var(--hm-accent)}.danger{color:var(--hm-error)}.section{margin-top:15px;border:1px solid var(--hm-line);border-radius:10px;padding:12px}.section>summary{cursor:pointer;font-weight:600;min-height:30px;line-height:30px}.section-body{margin-top:10px}.note{font-size:12px;line-height:1.6;color:var(--hm-muted)}.pending{color:var(--hm-estimated)}.plan-conflicts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid color-mix(in srgb,var(--hm-estimated) 45%,var(--hm-line));border-radius:10px}.status{font-size:12px;line-height:1.6;padding:10px;margin-top:10px;background:color-mix(in srgb,var(--hm-estimated) 14%,var(--hm-bg));border-radius:9px}.status:empty{display:none}.check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6;margin-top:10px}.controls{display:flex;flex-direction:column;gap:9px;margin-top:10px}.control-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px}.room-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:end;padding:9px;background:var(--hm-surface);border-radius:8px;margin-bottom:6px}.room-row .note{align-self:center}fieldset.mode{border:1px solid var(--hm-line);border-radius:8px;margin:10px 0;padding:8px 12px}.control-row button{padding:8px}.preview{padding:12px;margin-top:12px;border:1px solid var(--hm-line);border-radius:9px;background:var(--hm-surface)}.preview ul{padding-left:20px;font-size:12px;line-height:1.7}.file{font-size:12px}.readonly{font-size:11px;color:var(--hm-muted)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:580px){.editor{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.control-row{grid-template-columns:1fr 1fr}.room-row{grid-template-columns:1fr auto auto auto}.room-row .note{grid-column:1/-1}.control-row label:nth-child(3){grid-column:1/-1}.control-row button{grid-column:2;justify-self:end}.toolbar button{flex:1}.actions button{flex:1}.section{padding:10px}}`;
+/** 0.14 · the controls of a symbol and «Agregar un control». */
+const controlPickerStyles = `.ctl-list{display:grid;gap:6px}.ctl-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 10px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;text-align:left}
+.ctl-row>ha-icon{--mdc-icon-size:20px;color:var(--hm-brand);flex:none}.ctl-name{flex:1;min-width:0;display:grid}.ctl-name b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ctl-name small{font-size:12px;color:var(--hm-muted)}
+.ctl-row.on{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 8%,var(--hm-surface))}
+.ctl-add{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px dashed var(--hm-line);border-radius:12px;background:transparent;color:var(--hm-brand);font:inherit;font-weight:500}.ctl-add ha-icon{--mdc-icon-size:18px}
+.ctl-picker{width:460px}.ctl-search{width:100%;min-height:40px;padding:0 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit}
+.ctl-tabs{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}.ctl-tabs button{flex:1;min-height:34px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font:inherit}.ctl-tabs button[aria-selected=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
+.ctl-results{display:grid;gap:6px;max-height:min(420px,55vh);overflow:auto}.ctl-group{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--hm-muted);padding-top:6px}`;
 const css =
   cssBase +
+  controlPickerStyles +
   symbolSheetStyles +
   indicatorsEditorStyles +
   editorSheetStyles +
@@ -1593,14 +1603,24 @@ export class HomeManagerEditor extends HTMLElement {
     const help = (label: string, text: string) =>
       `<span class="field-title">${esc(label)}${helpTip(label, text)}</span>`;
     const icon = device?.display.icon ?? 'mdi:lightbulb-outline';
-    const remotes = this.remotes.length
-      ? `<div class="field">${help(t('Control RF en el panel'), t('El control diseñado en Controles RF que se dibuja en el panel de este dispositivo. Automático usa el de su entidad.'))}<select form="device-form" name="remoteId" aria-label="${esc(t('Control RF en el panel'))}">${option('', t('Automático'), remoteId)}${this.remotes.map(remote => option(remote.id, remote.name, remoteId)).join('')}</select></div>`
-      : '';
+    // 0.14 · the controls of this symbol, each removable, and one door to add another.
     const infrared = this.irRemotes ?? [];
-    const irField =
-      infrared.length || irRemoteId
-        ? `<label class="field">${esc(t('Control IR en el panel'))}<select form="device-form" name="irRemoteId" aria-label="${esc(t('Control IR en el panel'))}">${option('', t('Automático'), irRemoteId)}${irRemoteId && !infrared.some(item => item.id === irRemoteId) ? option(irRemoteId, irRemoteId, irRemoteId) : ''}${infrared.map(item => option(item.id, item.name, irRemoteId)).join('')}</select></label>`
-        : '';
+    const rf = this.remotes.find(remote => remote.id === remoteId);
+    const ir = infrared.find(remote => remote.id === irRemoteId);
+    const controlRow = (field: 'remoteId' | 'irRemoteId', name: string, icon: string, count: number, tag: string) =>
+      `<div class="ctl-row"><ha-icon icon="${esc(icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(name)}</b><small>${esc(t('{count} botones', { count }))} · ${tag}</small></span><button type="button" class="hm-icon-button small" data-command="control-unlink" data-field="${field}" aria-label="${esc(t('Quitar {name} de este símbolo', { name }))}" title="${esc(t('Quitar {name} de este símbolo', { name }))}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`;
+    const remotes = `<div class="field ctl-list"><span class="field-title">${esc(t('Controles de este símbolo'))}</span><input type="hidden" form="device-form" name="remoteId" value="${esc(remoteId)}"><input type="hidden" form="device-form" name="irRemoteId" value="${esc(irRemoteId)}">${
+      rf
+        ? controlRow('remoteId', rf.name, rf.icon ?? 'mdi:remote', rf.buttons.length, 'RF')
+        : remoteId
+          ? controlRow('remoteId', remoteId, 'mdi:remote', 0, 'RF')
+          : ''
+    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}${
+      !remoteId && !irRemoteId
+        ? `<p class="note">${esc(t('Ninguno elegido: se usa el de su entidad, si tiene.'))}</p>`
+        : ''
+    }<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button></div>`;
+    const irField = '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
         [
@@ -2231,6 +2251,114 @@ export class HomeManagerEditor extends HTMLElement {
       }),
     );
   }
+  /** 0.14 · «Agregar un control al símbolo», like the app's picker: a search, «Todos» and «Controles
+   * aprendidos», with icon, name and how many buttons; what the symbol already has is marked. */
+  private controlPickerTab: 'all' | 'learned' = 'all';
+  private openControlPicker(): void {
+    this.root.querySelector('dialog.ctl-picker')?.remove();
+    const dialog = document.createElement('dialog');
+    dialog.className = 'k-dialog ctl-picker';
+    dialog.setAttribute('aria-label', t('Agregar un control'));
+    this.root.append(dialog);
+    const current = {
+      rf: this.root.querySelector<HTMLInputElement>('[name=remoteId]')?.value ?? '',
+      ir: this.root.querySelector<HTMLInputElement>('[name=irRemoteId]')?.value ?? '',
+    };
+    const rows = [
+      ...this.remotes.map(remote => ({
+        field: 'remoteId' as const,
+        id: remote.id,
+        name: remote.name,
+        icon: remote.icon ?? 'mdi:remote',
+        count: remote.buttons.length,
+        tag: 'RF',
+        group: t('Controles por radio'),
+      })),
+      ...(this.irRemotes ?? []).map(remote => ({
+        field: 'irRemoteId' as const,
+        id: remote.id,
+        name: remote.name,
+        icon: remote.icon ?? 'mdi:remote-tv',
+        count: remote.buttons.length,
+        tag: 'IR',
+        group: t('Controles por infrarrojo'),
+      })),
+    ];
+    const device = this.device();
+    const draw = (query = '') => {
+      const needle = query.trim().toLowerCase();
+      const shown = rows.filter(
+        row => !needle || row.name.toLowerCase().includes(needle) || row.tag.toLowerCase() === needle,
+      );
+      const groups = [...new Set(shown.map(row => row.group))];
+      const ha =
+        this.controlPickerTab === 'all' &&
+        device?.bindings.entityId &&
+        (!needle || device.display.label.toLowerCase().includes(needle))
+          ? `<div class="ctl-group">${esc(t('Home Assistant'))}</div><div class="ctl-row on"><ha-icon icon="${esc(device.display.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(device.display.label)}</b><small>${esc(t('El aparato de este símbolo'))}</small></span><ha-icon icon="mdi:check" aria-label="${esc(t('Ya está en el símbolo'))}"></ha-icon></div>`
+          : '';
+      const list = groups
+        .map(
+          group =>
+            `<div class="ctl-group">${esc(group)}</div>${shown
+              .filter(row => row.group === group)
+              .map(row => {
+                const on = (row.field === 'remoteId' ? current.rf : current.ir) === row.id;
+                return `<button type="button" class="ctl-row${on ? ' on' : ''}" data-pick-field="${row.field}" data-pick="${esc(row.id)}"${on ? ' aria-pressed="true"' : ''}><ha-icon icon="${esc(row.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(row.name)}</b><small>${esc(t('{count} botones', { count: row.count }))} · ${row.tag}</small></span>${on ? `<ha-icon icon="mdi:check" aria-label="${esc(t('Ya está en el símbolo'))}"></ha-icon>` : ''}</button>`;
+              })
+              .join('')}`,
+        )
+        .join('');
+      dialog.innerHTML = `<header class="k-dialog-head"><h2 id="hm-panel-title">${esc(t('Agregar un control'))}</h2></header><div class="k-dialog-body"><input type="search" class="ctl-search" placeholder="${esc(t('Buscar'))}" aria-label="${esc(t('Buscar'))}" value="${esc(query)}"><div class="ctl-tabs" role="tablist">${(
+        [
+          ['all', t('Todos')],
+          ['learned', t('Controles aprendidos')],
+        ] as const
+      )
+        .map(
+          ([key, label]) =>
+            `<button type="button" role="tab" data-ctl-tab="${key}" aria-selected="${this.controlPickerTab === key}">${esc(label)}</button>`,
+        )
+        .join(
+          '',
+        )}</div><div class="ctl-results">${ha}${list || (ha ? '' : `<p class="note">${esc(rows.length ? t('Nada coincide con la búsqueda.') : t('Todavía no hay controles aprendidos.'))}</p>`)}</div></div><footer class="k-dialog-foot"><button type="button" class="k-btn secondary" data-ctl-close>${esc(t('Cerrar'))}</button></footer>`;
+      const search = dialog.querySelector<HTMLInputElement>('.ctl-search')!;
+      search.addEventListener('input', () => {
+        const at = search.selectionStart;
+        draw(search.value);
+        const again = dialog.querySelector<HTMLInputElement>('.ctl-search')!;
+        again.focus();
+        again.setSelectionRange(at, at);
+      });
+      dialog.querySelectorAll<HTMLButtonElement>('[data-ctl-tab]').forEach(tab =>
+        tab.addEventListener('click', () => {
+          this.controlPickerTab = tab.dataset.ctlTab as 'all' | 'learned';
+          draw(search.value);
+        }),
+      );
+      dialog.querySelector('[data-ctl-close]')?.addEventListener('click', () => dialog.close());
+      dialog.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach(button =>
+        button.addEventListener('click', () => {
+          this.setControlField(button.dataset.pickField as 'remoteId' | 'irRemoteId', button.dataset.pick!);
+          dialog.close();
+        }),
+      );
+    };
+    draw();
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    installDialogComponents(this.root);
+    dialog.showModal();
+  }
+  /** Sets (or clears) the RF or IR control of the symbol in its form, as the old selects did. */
+  private setControlField(field: 'remoteId' | 'irRemoteId', value: string): void {
+    const input = this.root.querySelector<HTMLInputElement>(`[name=${field}]`);
+    if (!input) return;
+    input.value = value;
+    input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    this.flushDevice();
+    this.render();
+  }
+
   private onClick = (event: Event): void => {
     const fxButton = (event.target as Element).closest<HTMLElement>('.fx-host button');
     if (fxButton && this.fxEvent(fxButton)) return;
@@ -2309,6 +2437,12 @@ export class HomeManagerEditor extends HTMLElement {
         case 'action-new':
           this.actionId = button.dataset.action ?? '';
           this.openSettings('actions-section');
+          break;
+        case 'control-pick':
+          this.openControlPicker();
+          break;
+        case 'control-unlink':
+          this.setControlField(button.dataset.field as 'remoteId' | 'irRemoteId', '');
           break;
         case 'panel-to-designer': {
           const device = this.device();

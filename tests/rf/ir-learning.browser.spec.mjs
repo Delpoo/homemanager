@@ -244,7 +244,9 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   const controls = editor.locator('#device-controls-section');
   if (!(await controls.evaluate(node => node.open))) await controls.locator('summary').click();
   await editor.getByText('Más opciones', { exact: true }).click();
-  await editor.getByRole('combobox', { name: 'Control IR en el panel' }).selectOption('demo');
+  await editor.locator('[data-command=control-pick]').click();
+  await editor.locator('dialog.ctl-picker').getByRole('searchbox').fill('prueba');
+  await editor.locator('dialog.ctl-picker [data-pick=demo]').click();
   await editor.getByRole('button', { name: /^(Guardar dispositivo|Listo)$/, exact: true }).click();
   const save = card.getByRole('button', { name: 'Guardar cambios', exact: true });
   await save.click();
