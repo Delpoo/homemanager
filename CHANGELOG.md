@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0-beta.2 — beta
+
+Arreglo de la primera prueba con controles reales.
+
+- **Formas de nivel:** barras, termostato y ventana se ofrecen sólo a las piezas que tienen niveles (nombres, números o un botón por nivel). Una pieza que sólo sube y baja ya no queda vacía; si tenía guardada una de esas formas, se dibuja como antes.
+- **Barras en una pieza alta:** se apilan de abajo hacia arriba, como un medidor, en vez de quedar en fila sin lugar.
+
 ## 0.14.0-beta.1 — beta
 
 Primera parte de los controles nuevos (maqueta v14) y un filtro para el ruido de fondo de los receptores RF.
