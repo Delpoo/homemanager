@@ -263,4 +263,17 @@ export const enControls: Record<string, string> = {
   'Guardar en Mis bibliotecas': 'Keep in My libraries',
   Rutinas: 'Routines',
   'Todas las rutinas ya están en el control.': 'Every routine is already on the control.',
+  // 0.14 · stage 4: «Agregar un control»
+  'Quitar {name} de este símbolo': 'Remove {name} from this symbol',
+  'Controles de este símbolo': 'Controls of this symbol',
+  'Ninguno elegido: se usa el de su entidad, si tiene.': "None chosen: its entity's control is used, if it has one.",
+  'Agregar un control': 'Add a control',
+  'Controles por radio': 'Radio remotes',
+  'Controles por infrarrojo': 'Infrared remotes',
+  'El aparato de este símbolo': "This symbol's appliance",
+  'Ya está en el símbolo': 'Already on the symbol',
+  Todos: 'All',
+  'Controles aprendidos': 'Learned remotes',
+  'Nada coincide con la búsqueda.': 'Nothing matches the search.',
+  'Todavía no hay controles aprendidos.': 'No learned remotes yet.',
 };
