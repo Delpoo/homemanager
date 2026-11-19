@@ -107,7 +107,10 @@ test('the designer always says what it designs, and Settings never shows an empt
   const design = editor(page).locator('[data-command=design-open]');
   if (await design.count()) {
     await design.first().click();
-    await expect(editor(page).locator('.designer-title')).toContainText('Diseñando el control de');
+    // 0.14: the editor's own strip says which control it edits.
+    await expect(editor(page).locator('homemanager-control-designer').locator('.dedit')).toContainText(
+      'Editando el control de',
+    );
   }
   await expect(editor(page).locator('[data-settings="designer-section"]')).toHaveCount(0);
 });

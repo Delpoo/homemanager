@@ -98,6 +98,23 @@ Sale de la maqueta v14 (pantalla 4, «Editor del control», y las notas de las v
    - La validación se suma en los tres lugares (tarjeta, integración y esquema), con casos compartidos.
 10. **Verificación:** pruebas automáticas y recorrido en PC y teléfono, en HA claro y oscuro, con los seis estilos. No se pierde ninguna función del editor actual.
 
+### Estado de la etapa 2
+
+Hecha en la rama `claude/controles-etapa2`, sin publicar. Se publica junto con las etapas 3 y 4.
+
+- **Hecho:** los puntos 1 a 9.
+  - En el teléfono, el lienzo va arriba y el panel debajo.
+  - El catálogo de la izquierda se fue sin perder nada:
+    - Aprendidos → módulo «Botones aprendidos».
+    - Elementos y Bloques → «Botón nuevo».
+    - Marcas → «Botón de app», donde se elige la marca en «Qué hace».
+  - El diseño automático y duplicar pasaron a «Más».
+- **No entra en esta etapa:**
+  - «Fila de botones» y «Botón «más»» como tipos propios. Hoy existe «Detrás de un botón» como forma de los grupos.
+  - «Traer el diseño de otro control». Hoy se puede copiar el diseño de este control a otro.
+- La lista «Sin aprender» está en la página de los controles de radio y de los infrarrojos.
+- **Arreglo de paso:** «Ctrl+D» sobre el lienzo duplicaba dos veces una vez que se guarda al final.
+
 ## Próximas etapas
 
 1. **Catálogo y edición.**

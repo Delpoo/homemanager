@@ -229,15 +229,20 @@ test('native controls replace the plan and Back restores the trigger', async ({ 
   await expect(trigger).toBeFocused();
 });
 
-test('the RF designer applies each change at once and stays inside the screen (0.13)', async ({ page }) => {
+test('the RF editor keeps a change with «Guardar» and stays inside the screen (0.14)', async ({ page }) => {
   const rf = await setup(page, { remotes: [ceiling()] });
   await rf.locator('[data-open]').first().click();
   await rf.locator('[data-command=edit]').click();
   const designer = rf.locator('homemanager-control-designer');
-  await designer.getByRole('button', { name: 'Título', exact: true }).click();
+  await designer.locator('[data-command=new-piece]').click();
+  await designer.locator('[data-cat-tab=info]').click();
+  await designer.locator('[data-entry=title]').click();
+  await designer.locator('[data-step-open=look]').click();
   const label = designer.locator('[name=widget-label]');
   await label.fill('Etiqueta pendiente');
   await label.dispatchEvent('change');
+  await designer.locator('[data-steps=accept]').click();
+  await designer.locator('[data-draft=save]').click();
   await expect
     .poll(() => page.evaluate(() => window.rfServer.library[0].layout?.at(-1)?.label))
     .toBe('Etiqueta pendiente');
@@ -427,8 +432,15 @@ for (const dark of [false, true])
     }, dark);
     await rf.locator('[data-open]').first().click();
     await rf.locator('[data-command=edit]').click();
-    await rf.locator('homemanager-control-designer').getByRole('button', { name: 'Perilla', exact: true }).click();
+    const designer = rf.locator('homemanager-control-designer');
+    await designer.locator('[data-command=new-piece]').click();
+    await designer.locator('[data-cat-tab=levels]').click();
+    await designer.locator('[data-entry=level]').click();
+    await designer.locator('[data-shape="v:knob"]').click();
     await shot('rf-widget');
+    await designer.locator('[data-steps=accept]').click();
+    await designer.locator('[data-draft=save]').click();
+    await expect(designer.locator('[data-draft=save]')).toBeDisabled();
     await rf.locator('[data-command=edit]').click();
     await rf.locator('[data-command=learn]').click();
     await shot('rf-learn');

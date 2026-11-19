@@ -178,6 +178,7 @@ export const rfLearnRingStyles = `
 `;
 /** 0.13 IR learning and saved IR remotes, in the Controls panel. */
 export const irManagerStyles = `
+.wrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center}.wrow .t{display:grid}.wrow small{color:var(--hm-warn,#b86e10)}.wmark{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--hm-warn,#d98b1f);color:#fff;font-size:13px;font-weight:700}
 :host{display:block}
 section{display:grid;gap:14px;margin:0 0 16px}
 h4,p{margin:0}

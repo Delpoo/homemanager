@@ -319,7 +319,16 @@ export class HomeManagerRf extends HTMLElement {
       `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
     const items = [
       ...this.remotes.map(remote =>
-        row('rf', remote.id, remote.name, remote.icon, remote.buttons.length, remote.description, false, remote.layout?.find(piece => piece.type === 'canvas')?.wanted?.length ?? 0),
+        row(
+          'rf',
+          remote.id,
+          remote.name,
+          remote.icon,
+          remote.buttons.length,
+          remote.description,
+          false,
+          remote.layout?.find(piece => piece.type === 'canvas')?.wanted?.length ?? 0,
+        ),
       ),
       ...this.irRemotes.map(remote =>
         row(
