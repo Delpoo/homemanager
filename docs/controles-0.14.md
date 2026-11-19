@@ -167,6 +167,20 @@ Sale de la maqueta v14 (notas de las versiones 11, 12 y 14) y de lo que dejó la
    - «Agregar un control al símbolo» usa el mismo selector de dispositivos que el resto de la app.
 6. **Verificación:** pruebas automáticas y recorrido.
 
+### Estado de la etapa 4
+
+Hecha en la rama `claude/controles-etapa4`, sin publicar.
+
+- **Hecho:**
+  - **Programas del aire:** integración, pieza, panel, prueba y validación.
+  - **Mis bibliotecas:** almacén `homemanager.ir_libraries` con 8 bibliotecas como máximo, y comandos `libraries/list|add|remove|entries|match|bring`.
+  - **Reconocimiento:** al capturar una señal infrarroja, aparece «Marca · Modelo · coincide N % · «botón»».
+  - **«Traer de la biblioteca»** en la guía, con una tabla de nombres equivalentes (`libraryNames`).
+  - **«Rutinas»** en Especiales, para los botones de Home Assistant del aparato del símbolo.
+  - **Arreglo:** la integración ahora acepta la «Pantalla del aire» en el diseño.
+- **No hecho:** «Agregar un control al símbolo» con el selector de dispositivos de la app. Hoy siguen las dos listas, una de radio y otra de infrarrojo, en el módulo Controles del símbolo.
+- **Sin cambios:** la Luz por Home Assistant ya se maneja desde el editor del símbolo, con sus acciones de Home Assistant.
+
 ## Próximas etapas
 
 1. **Catálogo y edición.**
