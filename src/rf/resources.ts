@@ -31,6 +31,7 @@ const titles: Record<string, string> = {
   schedules: 'Programación',
   send: 'Reenviar estado',
   screen: 'Pantalla del aire',
+  programs: 'Programas del aire',
   'power-on': 'Encender',
   'power-off': 'Apagar',
 };
@@ -76,6 +77,7 @@ const ICONS: Record<string, string> = {
   design: 'mdi:pencil',
   send: 'mdi:send',
   screen: 'mdi:monitor-dashboard',
+  programs: 'mdi:playlist-star',
   preset: 'mdi:content-save-outline',
   recall: 'mdi:backup-restore',
   powerful: 'mdi:snowflake-alert',
@@ -127,6 +129,7 @@ const titleFor = (key: string) => t(titles[key] ?? key);
 const optionFor = (key: string) => t(choices[key] ?? key);
 
 const styles = `
+.prog-list{display:grid;gap:4px}.prog-row{display:flex;align-items:center;gap:8px}.prog-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.programs-card .row input{flex:1;min-width:0}
 :host{display:block;min-width:0}.resources{display:grid;gap:12px;min-width:0}
 .resource-card{border:1px solid var(--hm-line);border-radius:14px;padding:12px;display:grid;gap:10px;min-width:0}
 h3,p{margin:0}h3{font-size:15px;font-weight:600}
@@ -172,6 +175,7 @@ input[type=checkbox]:checked{background:var(--hm-brand)}input[type=checkbox]:che
 `;
 
 const pieceStyles = `
+.programs{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;min-width:0}.prog{display:grid;justify-items:center;gap:3px;padding:6px 4px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:12px;min-width:0}.prog span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prog.on{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 14%,var(--hm-surface));color:var(--hm-brand)}.prog-empty{margin:0;font-size:12px;color:var(--hm-muted);text-align:center}
 .ib.resend{box-shadow:0 0 0 2px var(--hm-brand),0 0 0 5px color-mix(in srgb,var(--hm-brand) 22%,transparent);color:var(--hm-brand)}
 .air-screen{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;border-radius:12px;background:#11201a;color:#bff3d7;font-variant-numeric:tabular-nums;min-width:0}
 .air-screen.off{opacity:.55}.as-mode,.as-fan{font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -485,7 +489,9 @@ export class HomeManagerRemoteResources extends HTMLElement {
         : '';
     return (
       navigation +
-      (this.tab === 'timers' ? this.timers(control) : '<div data-player-slot></div>' + actions) +
+      (this.tab === 'timers'
+        ? this.timers(control)
+        : '<div data-player-slot></div>' + actions + this.programsCard(control)) +
       summary +
       '<details><summary>' +
       e(t('Ajustes del control')) +
@@ -713,6 +719,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
       'schedules',
       'send',
       'screen',
+      'programs',
     ].map(id => ({ id, label: titleFor(id) }));
   }
 
@@ -791,20 +798,102 @@ export class HomeManagerRemoteResources extends HTMLElement {
           ? action('send', 'Reenviar estado', 'resend')
           : key === 'screen'
             ? this.screen(control)
-            : control.capabilities[key]
-              ? this.capability(key, control)
-              : '');
+            : key === 'programs'
+              ? this.programButtons(control)
+              : control.capabilities[key]
+                ? this.capability(key, control)
+                : '');
     if (node.childElementCount < 2) return null;
     if (interactive) {
       this.bindCapabilities(node);
-      const button = node.querySelector<HTMLButtonElement>('button[data-act]');
-      if (button && design) button.disabled = true;
-      else button?.addEventListener('click', () => void this.handleAction(key === 'send' ? 'send' : 'timers'));
+      if (key === 'programs')
+        node.querySelectorAll<HTMLButtonElement>('button[data-act]').forEach(button => {
+          if (design) button.disabled = true;
+          else button.addEventListener('click', () => void this.handleAction(button.dataset.act!));
+        });
+      else {
+        const button = node.querySelector<HTMLButtonElement>('button[data-act]');
+        if (button && design) button.disabled = true;
+        else button?.addEventListener('click', () => void this.handleAction(key === 'send' ? 'send' : 'timers'));
+      }
     } else
       node.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input,select,button').forEach(field => {
         field.disabled = true;
       });
     return node;
+  }
+
+  /** 0.14 · the program that matches what the air was asked to do, if any. */
+  private programNow(control: AbsoluteControl): string {
+    const state = JSON.stringify(Object.entries(control.state ?? {}).sort());
+    return control.programs?.find(program => JSON.stringify(Object.entries(program.state).sort()) === state)?.id ?? '';
+  }
+  /** 0.14 · «Programas del aire»: one tap leaves the air as it was saved; empty, it says where they are added. */
+  private programButtons(control: AbsoluteControl): string {
+    const programs = control.programs ?? [];
+    if (!programs.length)
+      return '<p class="prog-empty">' + e(t('Sin programas: se guardan en el panel del aire.')) + '</p>';
+    const now = this.programNow(control);
+    return (
+      '<div class="programs" role="group" aria-label="' +
+      e(t('Programas del aire')) +
+      '">' +
+      programs
+        .map(
+          program =>
+            '<button type="button" class="prog' +
+            (program.id === now ? ' on' : '') +
+            '" data-act="program-run-' +
+            e(program.id) +
+            '" aria-pressed="' +
+            (program.id === now) +
+            '" title="' +
+            e(program.name) +
+            '">' +
+            glyph(program.icon ?? 'mdi:star-outline') +
+            '<span>' +
+            e(program.name) +
+            '</span></button>',
+        )
+        .join('') +
+      '</div>'
+    );
+  }
+  /** The card in the panel: save what the control has now as a program, run one, remove one. */
+  private programsCard(control: AbsoluteControl): string {
+    const programs = control.programs ?? [];
+    return (
+      '<section class="resource-card programs-card"><h3>' +
+      e(t('Programas del aire')) +
+      '</h3>' +
+      (programs.length
+        ? '<div class="prog-list">' +
+          programs
+            .map(
+              program =>
+                '<div class="prog-row">' +
+                glyph(program.icon ?? 'mdi:star-outline') +
+                '<span>' +
+                e(program.name) +
+                '</span>' +
+                action('program-run-' + program.id, 'Correr', '', 'mdi:play') +
+                action('program-del-' + program.id, 'Quitar', 'danger', 'mdi:close') +
+                '</div>',
+            )
+            .join('') +
+          '</div>'
+        : '') +
+      (programs.length < 6
+        ? '<div class="row"><input name="program-name" maxlength="40" placeholder="' +
+          e(t('Nombre del programa')) +
+          '" aria-label="' +
+          e(t('Nombre del programa')) +
+          '">' +
+          action('program-save', 'Guardar lo que tiene el control ahora', '', 'mdi:content-save-outline') +
+          '</div>'
+        : '') +
+      '</section>'
+    );
   }
 
   /** 0.14 · «Pantalla del aire»: what it was asked to do, as the remote's own screen shows it. */
@@ -1063,6 +1152,24 @@ export class HomeManagerRemoteResources extends HTMLElement {
       )
         return;
       return this.run(() => this.update(command, { state: { ...this.draft } }));
+    } else if (command === 'program-save') {
+      const name = this.root.querySelector<HTMLInputElement>('input[name=program-name]')?.value.trim() ?? '';
+      if (!name) return void this.root.querySelector<HTMLInputElement>('input[name=program-name]')?.focus();
+      return this.run(() => this.update('program', { name, icon: null, state: { ...this.draft } }));
+    } else if (command.startsWith('program-run-')) {
+      return this.run(() => this.update('run-program', { program_id: command.slice(12) }));
+    } else if (command.startsWith('program-del-')) {
+      const id = command.slice(12);
+      const name = this.control?.programs?.find(program => program.id === id)?.name ?? '';
+      if (
+        await confirmDialog(this.root, {
+          title: t('¿Quitar el programa «{name}»?', { name }),
+          message: t('El aire no cambia; sólo se borra este programa.'),
+          confirm: t('Quitar'),
+        })
+      )
+        return this.run(() => this.update('program', { program_id: id, remove: true }));
+      return;
     } else if (command === 'recall') {
       this.draft = { ...this.control?.preset };
     } else if (command === 'powerful') {

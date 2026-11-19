@@ -25,7 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 MAX_CONTROLS = 64
 MAX_SCHEDULES = 32
 _TIME = re.compile(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]\Z")
-_EXTRA_REFERENCES = ("schedules", "send", "power-on", "power-off")
+_EXTRA_REFERENCES = ("schedules", "send", "power-on", "power-off", "screen", "programs")
+# 0.14 · programs of the air: saved whole states, run with one tap.
+MAX_PROGRAMS = 6
+PROGRAM_ICON = re.compile(r"mdi:[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 
 def _zone(name: Any) -> ZoneInfo:
@@ -73,6 +76,16 @@ def next_occurrence(schedule: dict[str, Any], now: datetime) -> str | None:
     return None
 
 
+
+def _program(program: Any) -> None:
+    """A program is an id, a short name, an optional mdi icon and a whole state."""
+    if (not isinstance(program, dict) or set(program) != {"id", "name", "icon", "state"}
+            or not isinstance(program["id"], str) or not 0 < len(program["id"]) <= 64
+            or not isinstance(program["name"], str) or not 0 < len(program["name"].strip()) <= 40
+            or not (program["icon"] is None or isinstance(program["icon"], str) and PROGRAM_ICON.fullmatch(program["icon"]))
+            or not isinstance(program["state"], dict)):
+        raise ModelError("invalid_program", "a program has a name, an icon and a state")
+
 class AbsoluteRemotes:
     def __init__(self, hass: HomeAssistant, library: RemotesLibrary, ir: IrManager) -> None:
         self.hass, self.library, self.ir = hass, library, ir
@@ -99,6 +112,12 @@ class AbsoluteRemotes:
                     for schedule_id, schedule in item["schedules"].items():
                         schedule_input(schedule, schedule_id)
                         profile[3](bytes.fromhex(item["seed"]), schedule["state"])
+                    programs = item.setdefault("programs", {})
+                    if not isinstance(programs, dict) or len(programs) > MAX_PROGRAMS:
+                        raise ValueError("invalid program store")
+                    for program in programs.values():
+                        _program(program)
+                        profile[3](bytes.fromhex(item["seed"]), program["state"])
                     self.items[ident] = item
         except (HomeAssistantError, ValueError, TypeError, KeyError, ModelError, NotImplementedError, OSError):
             self.items.clear()
@@ -123,6 +142,7 @@ class AbsoluteRemotes:
     def public(self, item: dict[str, Any]) -> dict[str, Any]:
         result = {key: deepcopy(item[key]) for key in
                   ("id", "name", "profile", "brand", "model", "emitter", "state", "requested", "preset", "powerful", "layout") if key in item}
+        result["programs"] = [deepcopy(program) for program in item.get("programs", {}).values()]
         result["capabilities"] = PROFILES[item["profile"]][0]
         result["powerful_configured"] = bool(item.get("powerful_signal"))
         result["schedules"] = [{**schedule, "next": next_occurrence(schedule, datetime.now(UTC))}
@@ -210,6 +230,33 @@ class AbsoluteRemotes:
                     now = datetime.now(UTC)
                     item["requested"] = {"state": state, "at": now.isoformat(), "status": "sent"}
                     item["powerful"] = (now + timedelta(minutes=15)).isoformat()
+                elif command == "program":
+                    programs = item.setdefault("programs", {})
+                    program_id = fields.get("program_id")
+                    if program_id is not None and program_id not in programs:
+                        raise ModelError("invalid_program", "unknown program")
+                    if fields.get("remove") is True and program_id:
+                        del programs[program_id]
+                    else:
+                        if not program_id and len(programs) >= MAX_PROGRAMS:
+                            raise ModelError("invalid_program", "at most six programs")
+                        target = fields.get("state")
+                        if not isinstance(target, dict):
+                            raise ModelError("invalid_program", "select an absolute state")
+                        codec[3](seed, target)
+                        program_id = program_id or uuid4().hex
+                        program = {"id": program_id, "name": _text(fields.get("name"), "name"),
+                                   "icon": fields.get("icon"), "state": target}
+                        _program(program)
+                        programs[program_id] = program
+                elif command == "run-program":
+                    program = item.get("programs", {}).get(fields.get("program_id"))
+                    if program is None:
+                        raise ModelError("invalid_program", "unknown program")
+                    target = deepcopy(program["state"])
+                    codec[3](seed, target)
+                    item["state"] = target
+                    self._transmit(item, target)
                 elif command == "design":
                     item["layout"] = validate_layout(fields.get("layout"), set(codec[0]) | set(_EXTRA_REFERENCES))
                 elif command == "schedule":

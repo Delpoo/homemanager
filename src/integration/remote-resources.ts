@@ -39,6 +39,8 @@ export interface AbsoluteControl {
   layout?: RfWidget[] | null;
   powerful?: string;
   powerful_configured?: boolean;
+  /** 0.14 · whole states saved to run with one tap (up to six). */
+  programs?: { id: string; name: string; icon: string | null; state: AbsoluteState }[];
 }
 export interface Resources {
   controls: AbsoluteControl[];
@@ -62,7 +64,9 @@ type Command =
   | 'remove'
   | 'design'
   | 'link-powerful'
-  | 'powerful';
+  | 'powerful'
+  | 'program'
+  | 'run-program';
 
 function ws<T>(hass: Hass, path: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!hass.callWS) return Promise.reject(new Error('not connected'));
