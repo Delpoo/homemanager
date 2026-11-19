@@ -392,6 +392,7 @@ export class HomeManagerIr extends HTMLElement {
       ? `<div class="shelf">${this.saved.length > 1 ? `<label>${e(t('Control remoto'))}<select name="selected-remote">${this.saved.map(item => option(item.id, item.name, this.selected)).join('')}</select></label>` : ''}
       <div class="title">${glyph(remote.icon ?? 'mdi:remote-tv')}<h4>${e(remote.name)}</h4><span class="cap ir">IR</span><span class="grow"></span>${iconButton(this.editing === 'buttons' ? t('Listo') : t('Editar control'), this.editing === 'buttons' ? 'mdi:check' : 'mdi:tune', `data-edit aria-pressed="${this.editing === 'buttons'}"`)}${iconButton(this.editing === 'layout' ? t('Listo') : t('Editar diseño'), this.editing === 'layout' ? 'mdi:check' : 'mdi:pencil', `data-design aria-pressed="${this.editing === 'layout'}"`)}</div>
       ${this.editing === 'buttons' ? this.renderEdit(remote) : `<div class="controls" data-player></div>`}
+      ${!this.editing ? this.renderWaiting(remote) : ''}
       ${
         !this.editing && remote.buttons.length
           ? `<details><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons
@@ -449,6 +450,18 @@ export class HomeManagerIr extends HTMLElement {
           return `<form data-edit-button="${e(button.id)}" class="item"><div class="fields"><label>${e(t('Nombre del botón'))}<input name="name" required maxlength="80" value="${e(button.name)}"></label><label>${e(t('Icono'))}<input name="icon" maxlength="72" placeholder="mdi:power" value="${e(button.icon ?? '')}"></label>${settings ? `<label>${e(t('Emisor IR'))}<select name="emitter">${options(settings.emitter ?? '', true)}</select></label><label>${e(t('Portadora (Hz)'))}<input name="carrier" type="number" min="0" max="1000000" step="1" value="${e(String(settings.carrier_hz ?? ''))}"></label><label>${e(t('Origen de la portadora'))}<select name="carrier-source"><option value="estimated">${e(t('Estimada'))}</option><option value="known"${settings.carrier_source === 'known' ? ' selected' : ''}>${e(t('Conocida'))}</option></select></label>` : ''}</div><div class="actions"><button type="submit"${disabled}>${e(t('Guardar'))}</button><button type="button" data-relearn="${e(button.id)}">${e(t('Volver a aprender'))}</button><button type="button" data-signal="${e(button.id)}">${e(t('Ficha técnica'))}</button><button type="button" class="danger" data-remove-button="${e(button.id)}">${e(t('Eliminar botón'))}</button></div></form>`;
         })
         .join('')}</div>`;
+  }
+
+  /** 0.14 · buttons the control waits for, each learned from here with its name. */
+  private renderWaiting(remote: IrRemote): string {
+    const wanted = remote.layout?.find(piece => piece.type === 'canvas')?.wanted ?? [];
+    if (!wanted.length) return '';
+    return `<div class="list waiting" aria-label="${e(t('Sin aprender'))}">${wanted
+      .map(
+        item =>
+          `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(item.name)}</b><small>${e(t('Sin aprender'))}</small></span>${iconButton(t('Aprender «{name}»', { name: item.name }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}</div>`,
+      )
+      .join('')}</div>`;
   }
 
   private mountPlayer(remote: IrRemote): void {
@@ -655,6 +668,16 @@ export class HomeManagerIr extends HTMLElement {
             { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! },
             this.editing ? undefined : 'tests',
           );
+      }),
+    );
+    this.root.querySelectorAll<HTMLButtonElement>('[data-learn-name]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.remoteId = remote.id;
+        this.replaceButton = '';
+        this.buttonName = button.dataset.learnName!;
+        this.editing = '';
+        this.render();
+        void this.learn();
       }),
     );
     this.root.querySelectorAll<HTMLButtonElement>('[data-relearn]').forEach(button =>
