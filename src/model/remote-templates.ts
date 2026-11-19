@@ -200,6 +200,8 @@ class Draw {
     extra: Partial<ControlPiece> = {},
     type: ControlPiece['type'] = 'updown',
   ): this {
+    // The guide asks «+» before «−», as on the remote; the piece keeps [down, up].
+    this.want([up, down]);
     return this.put(type, at, [down, up], { sendBy: 'updown', ...extra }, 'level');
   }
   block(

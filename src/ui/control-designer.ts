@@ -43,7 +43,14 @@ import {
   type PieceForm,
 } from '../model/control-layout.js';
 import { BRAND_COUNT, BRAND_GROUPS } from './brands.js';
-import { resolveWanted } from '../model/remote-templates.js';
+import {
+  DESIGNS,
+  applyTemplate,
+  learnOrder,
+  resolveWanted,
+  type ApplianceKind,
+  type StartDesign,
+} from '../model/remote-templates.js';
 import { brandMark, keyStyles, radiusOf } from './remote-keys.js';
 import { personName } from '../model/names.js';
 
@@ -61,6 +68,8 @@ export interface DesignerOptions {
   save(layout: RfWidget[] | null): Promise<void> | void;
   /** Test mode: a tap sends for real. Without it the designer never sends. */
   press?: (buttonId: string) => Promise<unknown>;
+  /** 0.14 · the appliance of this remote: «Diseño» swaps its starting designs. */
+  appliance?: ApplianceKind | null;
   /** "Learn more buttons" from the tray; with a name, the button the control waits for. */
   learn?: (name?: string) => void;
   /** What the tray lists: learned buttons (remotes) or actions (a plan symbol). */
@@ -318,6 +327,13 @@ export class ControlDesigner extends HTMLElement {
   private pieceBase?: RfWidget;
   private nextStep: StepId | null = null;
   private addingWanted = false;
+  private readonly designPreviews = DESIGNS.map(() => {
+    const preview = new HomeManagerRfRemote();
+    preview.setAttribute('data-template', '');
+    preview.preview = true;
+    preview.inert = true;
+    return preview;
+  });
   private tab: 'look' | 'function' | 'shows' = 'look';
   private brandQuery = '';
   private brandsFor = false;
@@ -861,6 +877,7 @@ export class ControlDesigner extends HTMLElement {
     const body = this.root.querySelector('.insp-body');
     if (body) body.scrollTop = scroll;
     this.bind();
+    this.mountDesignPreviews();
     this.reflectBusy();
   }
 
@@ -1055,13 +1072,58 @@ export class ControlDesigner extends HTMLElement {
       t('Botones de este control'),
       String(pieces.length),
       `<div class="mlist">${pieceRows}</div><button type="button" class="mfoot" data-command="new-piece">${glyph('mdi:plus')}${e(t('Botón nuevo'))}</button>`,
-    )}${this.module('canvas', 'mdi:palette-swatch-outline', t('Estilo y lienzo'), `${look} · ${grid.columns} × ${height}`, this.canvasRows())}${this.module(
+    )}${this.designModule()}${this.module('canvas', 'mdi:palette-swatch-outline', t('Estilo y lienzo'), `${look} · ${grid.columns} × ${height}`, this.canvasRows())}${this.module(
       'more',
       'mdi:dots-horizontal',
       t('Más'),
       t('copiar, duplicar, volver al inicio'),
       `<div class="mlist">${more}</div>`,
     )}</div>`;
+  }
+  /** 0.14 · «Diseño»: the three starting designs of the appliance; the learned buttons go with any of them. */
+  private designModule(): string {
+    const kind = this.options?.appliance;
+    if (!kind) return '';
+    const cards = DESIGNS.map(
+      ([design, label, about, icon], i) =>
+        `<div class="ddesign"><span class="dprev" data-dprev="${i}"></span><span class="dtx"><b>${glyph(icon)}${e(t(label))}</b><small>${e(t(about))}</small><button type="button" class="sbtn" data-use-design="${design}">${e(t('Usar este diseño'))}</button></span></div>`,
+    ).join('');
+    return this.module('design', 'mdi:view-dashboard-outline', t('Diseño'), t('Clásico, Moderno o Avanzado'), `<div class="ddesigns">${cards}</div>`);
+  }
+  private mountDesignPreviews(): void {
+    const kind = this.options?.appliance;
+    if (!kind || !this.mods.has('design') || this.selected.length || this.adding) return;
+    DESIGNS.forEach(([design], i) => {
+      const slot = this.root.querySelector(`[data-dprev="${i}"]`);
+      if (!slot) return;
+      this.designPreviews[i].remote = {
+        id: `design-${design}`,
+        buttons: this.learned().map(button => ({ ...button, fingerprint: '' })),
+        parts: [],
+        layout: applyTemplate(kind, design, this.learned()),
+      };
+      slot.append(this.designPreviews[i]);
+    });
+  }
+  /** Swaps the arrangement for a starting design; asks first, and it can be undone. */
+  private async useDesign(design: StartDesign): Promise<void> {
+    const kind = this.options?.appliance;
+    if (!kind) return;
+    const label = t(DESIGNS.find(([id]) => id === design)?.[1] ?? '');
+    const names = new Set(this.learned().map(button => button.name.trim().toLowerCase()));
+    const missing = learnOrder(kind, design).filter(item => !names.has(item.name.trim().toLowerCase())).length;
+    if (
+      !(await confirmDialog(this.root, {
+        title: t('¿Usar el diseño {name}?', { name: label }),
+        message:
+          t('Reemplaza el acomodo de este control. Los botones aprendidos se conservan; se puede deshacer.') +
+          (missing ? ' ' + t('{count} botones del diseño quedan sin aprender, con «!».', { count: missing }) : ''),
+        confirm: t('Usar'),
+      }))
+    )
+      return;
+    this.selected = [];
+    void this.commit(applyTemplate(kind, design, this.learned()));
   }
   /** The catalogue: five tabs, each entry with how many the control already has. */
   private catalog(current?: Entry): string {
@@ -1871,6 +1933,7 @@ export class ControlDesigner extends HTMLElement {
     });
     on('[data-steps=discard]', () => this.discardPiece());
     on('[data-command=piece-back]', () => this.select([]));
+    on('[data-use-design]', element => void this.useDesign(element.dataset.useDesign as StartDesign));
     on('[data-learn-wanted]', element => {
       const item = this.wanted().find(entry => entry.id === element.dataset.learnWanted);
       if (item) this.options?.learn?.(item.name);
@@ -2505,6 +2568,11 @@ const designerStyles = `
 .mrow.waiting .mtx small{color:var(--hm-warn,#b86e10)}
 .mwant{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700}
 .mwadd{display:flex;align-items:center;gap:6px}.mwadd .tin{flex:1;min-width:0}
+.ddesigns{display:grid;gap:8px}
+.ddesign{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface)}
+.dprev{position:relative;width:96px;height:124px;flex:none;overflow:hidden;border-radius:9px;background:var(--hm-surface-2)}
+.dprev homemanager-rf-remote{position:absolute;left:0;top:0;width:328px;transform:scale(.29);transform-origin:top left;pointer-events:none}
+.dtx{flex:1;min-width:0;display:grid;gap:4px;justify-items:start}.dtx b{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px}.dtx b ha-icon{--mdc-icon-size:16px}.dtx small{font-size:12px;color:var(--hm-muted)}
 .mfoot.quiet{color:var(--hm-muted);border-style:dotted}
 .mfoot{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px dashed var(--hm-line);border-radius:12px;background:transparent;color:var(--hm-brand);font:inherit;font-size:13px;font-weight:500}.mfoot ha-icon{--mdc-icon-size:18px}
 .ctabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}

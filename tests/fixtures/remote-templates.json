@@ -17,14 +17,14 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-temperatura-menos",
-          "name": "Temperatura −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-temperatura-mas",
           "name": "Temperatura +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-eco",
@@ -127,14 +127,14 @@
           "icon": "mdi:star-outline"
         },
         {
-          "id": "w-hora-menos",
-          "name": "Hora −",
-          "icon": "mdi:clock-minus-outline"
-        },
-        {
           "id": "w-hora-mas",
           "name": "Hora +",
           "icon": "mdi:clock-plus-outline"
+        },
+        {
+          "id": "w-hora-menos",
+          "name": "Hora −",
+          "icon": "mdi:clock-minus-outline"
         }
       ]
     },
@@ -413,14 +413,14 @@
           "icon": "mdi:timer-outline"
         },
         {
-          "id": "w-temperatura-menos",
-          "name": "Temperatura −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-temperatura-mas",
           "name": "Temperatura +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-frio",
@@ -731,14 +731,14 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-temperatura-menos",
-          "name": "Temperatura −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-temperatura-mas",
           "name": "Temperatura +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-temperatura-menos",
+          "name": "Temperatura −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-frio",
@@ -1212,24 +1212,24 @@
           "name": "Azul"
         },
         {
-          "id": "w-volumen-menos",
-          "name": "Volumen −",
-          "icon": "mdi:volume-minus"
-        },
-        {
           "id": "w-volumen-mas",
           "name": "Volumen +",
           "icon": "mdi:volume-plus"
         },
         {
-          "id": "w-canal-menos",
-          "name": "Canal −",
-          "icon": "mdi:chevron-down"
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
         },
         {
           "id": "w-canal-mas",
           "name": "Canal +",
           "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
         },
         {
           "id": "w-audiodescripcion",
@@ -1740,14 +1740,14 @@
           "icon": "mdi:menu"
         },
         {
-          "id": "w-volumen-menos",
-          "name": "Volumen −",
-          "icon": "mdi:volume-minus"
-        },
-        {
           "id": "w-volumen-mas",
           "name": "Volumen +",
           "icon": "mdi:volume-plus"
+        },
+        {
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
         },
         {
           "id": "w-retroceder",
@@ -1767,14 +1767,14 @@
           "icon": "mdi:pause"
         },
         {
-          "id": "w-canal-menos",
-          "name": "Canal −",
-          "icon": "mdi:chevron-down"
-        },
-        {
           "id": "w-canal-mas",
           "name": "Canal +",
           "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
         },
         {
           "id": "w-silencio",
@@ -2328,14 +2328,14 @@
           "icon": "mdi:import"
         },
         {
-          "id": "w-volumen-menos",
-          "name": "Volumen −",
-          "icon": "mdi:volume-minus"
-        },
-        {
           "id": "w-volumen-mas",
           "name": "Volumen +",
           "icon": "mdi:volume-plus"
+        },
+        {
+          "id": "w-volumen-menos",
+          "name": "Volumen −",
+          "icon": "mdi:volume-minus"
         },
         {
           "id": "w-silencio",
@@ -2343,14 +2343,14 @@
           "icon": "mdi:volume-off"
         },
         {
-          "id": "w-canal-menos",
-          "name": "Canal −",
-          "icon": "mdi:chevron-down"
-        },
-        {
           "id": "w-canal-mas",
           "name": "Canal +",
           "icon": "mdi:chevron-up"
+        },
+        {
+          "id": "w-canal-menos",
+          "name": "Canal −",
+          "icon": "mdi:chevron-down"
         },
         {
           "id": "w-numero-0",
@@ -2879,24 +2879,24 @@
           "icon": "mdi:timer-outline"
         },
         {
-          "id": "w-brillo-menos",
-          "name": "Brillo −",
-          "icon": "mdi:brightness-5"
-        },
-        {
           "id": "w-brillo-mas",
           "name": "Brillo +",
           "icon": "mdi:brightness-7"
         },
         {
-          "id": "w-mas-frio",
-          "name": "Más frío",
-          "icon": "mdi:white-balance-sunny"
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
         },
         {
           "id": "w-mas-calido",
           "name": "Más cálido",
           "icon": "mdi:white-balance-incandescent"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
         }
       ]
     },
@@ -2998,24 +2998,24 @@
           "icon": "mdi:timer-outline"
         },
         {
-          "id": "w-brillo-menos",
-          "name": "Brillo −",
-          "icon": "mdi:brightness-5"
-        },
-        {
           "id": "w-brillo-mas",
           "name": "Brillo +",
           "icon": "mdi:brightness-7"
         },
         {
-          "id": "w-mas-frio",
-          "name": "Más frío",
-          "icon": "mdi:white-balance-sunny"
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
         },
         {
           "id": "w-mas-calido",
           "name": "Más cálido",
           "icon": "mdi:white-balance-incandescent"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
         }
       ]
     },
@@ -3111,24 +3111,24 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-brillo-menos",
-          "name": "Brillo −",
-          "icon": "mdi:brightness-5"
-        },
-        {
           "id": "w-brillo-mas",
           "name": "Brillo +",
           "icon": "mdi:brightness-7"
         },
         {
-          "id": "w-mas-frio",
-          "name": "Más frío",
-          "icon": "mdi:white-balance-sunny"
+          "id": "w-brillo-menos",
+          "name": "Brillo −",
+          "icon": "mdi:brightness-5"
         },
         {
           "id": "w-mas-calido",
           "name": "Más cálido",
           "icon": "mdi:white-balance-incandescent"
+        },
+        {
+          "id": "w-mas-frio",
+          "name": "Más frío",
+          "icon": "mdi:white-balance-sunny"
         },
         {
           "id": "w-noche",
@@ -3255,14 +3255,14 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-velocidad-menos",
-          "name": "Velocidad −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-velocidad-mas",
           "name": "Velocidad +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-modo",
@@ -3386,14 +3386,14 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-velocidad-menos",
-          "name": "Velocidad −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-velocidad-mas",
           "name": "Velocidad +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-girar",
@@ -3519,14 +3519,14 @@
           "icon": "mdi:power"
         },
         {
-          "id": "w-velocidad-menos",
-          "name": "Velocidad −",
-          "icon": "mdi:minus"
-        },
-        {
           "id": "w-velocidad-mas",
           "name": "Velocidad +",
           "icon": "mdi:plus"
+        },
+        {
+          "id": "w-velocidad-menos",
+          "name": "Velocidad −",
+          "icon": "mdi:minus"
         },
         {
           "id": "w-girar",
@@ -3691,14 +3691,14 @@
           "icon": "mdi:star-outline"
         },
         {
-          "id": "w-inclinar-menos",
-          "name": "Inclinar −",
-          "icon": "mdi:angle-obtuse"
-        },
-        {
           "id": "w-inclinar-mas",
           "name": "Inclinar +",
           "icon": "mdi:angle-acute"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
         }
       ]
     },
@@ -3803,14 +3803,14 @@
           "icon": "mdi:stop"
         },
         {
-          "id": "w-inclinar-menos",
-          "name": "Inclinar −",
-          "icon": "mdi:angle-obtuse"
-        },
-        {
           "id": "w-inclinar-mas",
           "name": "Inclinar +",
           "icon": "mdi:angle-acute"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
         }
       ]
     },
@@ -3940,14 +3940,14 @@
           "icon": "mdi:star-outline"
         },
         {
-          "id": "w-inclinar-menos",
-          "name": "Inclinar −",
-          "icon": "mdi:angle-obtuse"
-        },
-        {
           "id": "w-inclinar-mas",
           "name": "Inclinar +",
           "icon": "mdi:angle-acute"
+        },
+        {
+          "id": "w-inclinar-menos",
+          "name": "Inclinar −",
+          "icon": "mdi:angle-obtuse"
         }
       ]
     },

@@ -10,11 +10,11 @@ import { setup, ceiling, calls } from '../browser/rf-helpers.mjs';
 test('a new remote is a name and an icon; any button is learned, tried and saved', async ({ page }) => {
   const rf = await setup(page);
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
-  await rf.getByLabel('Nombre', { exact: true }).fill('Ventilador estudio');
-  // 0.13: the kind of appliance chooses the icon.
-  await rf.getByRole('button', { name: 'Ventilador', exact: true }).click();
+  // 0.14: the guide starts with the appliance; without a template the buttons are learned freely.
+  await rf.locator('[data-gkind=""]').click();
+  await expect(rf.locator('[data-source=rf]')).toHaveAttribute('aria-pressed', 'true');
   expect(await calls(page, 'homemanager/rf/remote/save')).toEqual([]);
-  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  await rf.locator('[data-guide=next]').click();
   await expect(rf.getByText('Pulsá un botón del control')).toBeVisible();
   await expect(rf.getByText('Todavía no está guardado')).toBeHidden();
 
@@ -51,8 +51,8 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
     ['tx_b', 400, 5],
   ]);
   expect((await calls(page, 'homemanager/rf/remote/save'))[0].remote).toEqual({
-    name: 'Ventilador estudio',
-    icon: 'mdi:ceiling-fan',
+    name: 'Control',
+    icon: 'mdi:remote',
     description: null,
     transmitter: 'tx_b',
     protocol: 1,
@@ -63,22 +63,92 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
     measured_pulse_us: 400,
   });
   expect((await calls(page, 'homemanager/rf/button/save'))[0]).toMatchObject({
-    remote_id: 'ventilador-estudio',
+    remote_id: 'control',
     button: { name: 'Velocidad 1', icon: 'mdi:numeric-1' },
     candidate_id: 'c1',
   });
   expect(JSON.stringify(await page.evaluate(() => window.rfServer.calls))).not.toMatch(/"code"/);
 
-  // 0.13: a new remote goes from Learn to Test; it can be kept without designing.
-  await rf.getByRole('button', { name: 'Listo', exact: true }).click();
-  await expect(rf.getByRole('button', { name: 'Enviar Velocidad 1', exact: true })).toBeVisible();
-  await rf.getByRole('button', { name: 'Guardar sin diseñar', exact: true }).click();
+  // Step 5: the name; «Crear y editar» renames it and opens the editor.
+  await rf.locator('[data-guide=next]').click();
+  await rf.locator('[name=guide-name]').fill('Ventilador estudio');
+  await rf.locator('[data-guide=finish]').click();
+  await expect(rf.locator('homemanager-control-designer')).toBeVisible();
+  expect((await calls(page, 'homemanager/rf/remote/save')).at(-1).remote.name).toBe('Ventilador estudio');
+  await rf.locator('.dfoot [data-command=edit]').click();
   // The learned button is already on the drawn remote, and sends.
   await rf.locator('homemanager-rf-remote').getByRole('button', { name: 'Velocidad 1' }).click();
   await expect(rf.getByText('Enviado: Velocidad 1')).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => window.rfServer.calls.at(-1)))
-    .toEqual({ type: 'homemanager/rf/press', remote_id: 'ventilador-estudio', button_id: 'velocidad-1' });
+    .toEqual({ type: 'homemanager/rf/press', remote_id: 'control', button_id: 'velocidad-1' });
+});
+
+test('a new fan from a template: design, buttons one by one with skip, the waited ones keep «!» (0.14)', async ({
+  page,
+}) => {
+  const rf = await setup(page);
+  await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
+  await rf.locator('[data-gkind=fan]').click();
+  await rf.locator('[data-guide=next]').click();
+  // Three starting designs with how many buttons each has and how many to learn.
+  await expect(rf.locator('.gdesign')).toHaveCount(3);
+  await expect(rf.locator('[data-gdesign=modern] .gcount')).toHaveText('6 botones · 7 para aprender');
+  await rf.locator('[data-gdesign=modern]').click();
+  await rf.locator('[data-guide=next]').click();
+  // One by one: «+» before «−», as on the remote.
+  await expect(rf.locator('.gnow b')).toHaveText('Encender / apagar');
+  const learn = rf.locator('homemanager-rf-learn');
+  const learnOne = async () => {
+    await learn.locator('[data-command=guided-start]').click();
+    await page.evaluate(() =>
+      window.rfServer.heard({ frames: 3, burst_frames: 3, confirmed: true, confirmed_by: 'frames' }),
+    );
+    await learn
+      .getByRole('button', { name: /^Guardar/ })
+      .first()
+      .click();
+  };
+  await learnOne();
+  await expect(rf.locator('.gprog')).toHaveText('1 / 7');
+  await expect(rf.locator('.gnow b')).toHaveText('Velocidad +');
+  await rf.locator('[data-guide=skip]').click();
+  await expect(rf.locator('.gnow b')).toHaveText('Velocidad −');
+  await expect(rf.locator('.gitem.skip')).toHaveCount(1);
+  await learnOne();
+  await expect(rf.locator('.gprog')).toHaveText('2 / 7');
+  await rf.locator('[data-guide=next]').click();
+  await rf.locator('[data-guide=next]').click();
+  await expect(rf.locator('.dbody')).toContainText('5 sin aprender');
+  await rf.locator('[data-guide=finish]').click();
+  await expect(rf.locator('homemanager-control-designer')).toBeVisible();
+  const remote = await page.evaluate(() => window.rfServer.library[0]);
+  expect(remote.icon).toBe('mdi:ceiling-fan');
+  expect(remote.buttons.map(button => button.name)).toEqual(['Encender / apagar', 'Velocidad −']);
+  const canvas = remote.layout.find(piece => piece.type === 'canvas');
+  expect(canvas.wanted.map(item => item.name)).toEqual([
+    'Velocidad +',
+    'Girar',
+    'Invierno / verano',
+    'Temporizador',
+    'Modo',
+  ]);
+  // The editor offers the three designs of a fan; the learned buttons go with any of them.
+  const designer = rf.locator('homemanager-control-designer');
+  await designer.locator('[data-mod=design]').click();
+  await expect(designer.locator('.ddesign')).toHaveCount(3);
+  await designer.locator('[data-use-design=classic]').click();
+  await designer.locator('dialog[open]').getByRole('button', { name: 'Usar', exact: true }).click();
+  await expect(designer.locator('[data-draft=save]')).toBeEnabled();
+  const draft = await designer.evaluate(element => element.remote.layout);
+  expect(draft.flatMap(piece => piece.buttons)).toContain(remote.buttons[0].id);
+  // «?» numbers the pieces and says what each does.
+  await designer.locator('[data-draft=save]').click();
+  await rf.locator('.dfoot [data-command=edit]').click();
+  const player = rf.locator('homemanager-rf-remote');
+  await player.locator('[data-help]').click();
+  await expect(player.locator('.khelp-list li').first()).toContainText('Manda «Encender / apagar».');
+  await expect(player.locator('.knum-help').first()).toHaveText('1');
 });
 
 test('learning says when a signal is not recognised and listens with the chosen receiver', async ({ page }) => {
@@ -150,7 +220,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await rf.locator('[data-open=techo]').click();
   const remote = rf.locator('homemanager-rf-remote');
   // Until designed, every button is drawn.
-  await expect(remote.getByRole('button')).toHaveCount(6);
+  await expect(remote.locator('.grid').getByRole('button')).toHaveCount(6);
   await rf.getByRole('button', { name: 'Editar', exact: true }).click();
   const editor = rf.locator('homemanager-control-designer');
   const inspector = editor.getByRole('complementary', { name: 'Inspector' });

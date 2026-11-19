@@ -15,6 +15,7 @@ import { installPanelComponents, keepPanelFocus } from '../ui/panel-components.j
 import { iconButton, miniWave, sidePanelStyles } from '../ui/side-panel.js';
 import { rfLearnRingStyles, irManagerStyles } from '../ui/rf-components.js';
 import { ControlDesigner } from '../ui/control-designer.js';
+import { kindOfIcon } from '../model/remote-templates.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { SignalPreview, openSignal } from '../ui/signal-workbench.js';
 import { HomeManagerRfRemote } from './remote-view.js';
@@ -119,7 +120,13 @@ export class HomeManagerIr extends HTMLElement {
   /** A new IR remote from Controls › New: its name and receiver are already chosen. */
   /** 0.14 · the «Control nuevo» guide: learn one named button into this remote (or a new one). */
   guided?: { onSaved: (remoteId: string) => void };
-  guide(button: string, remoteName: string, remoteId: string, receiver: string, onSaved: (remoteId: string) => void): void {
+  guide(
+    button: string,
+    remoteName: string,
+    remoteId: string,
+    receiver: string,
+    onSaved: (remoteId: string) => void,
+  ): void {
     this.guided = { onSaved };
     this.remoteId = remoteId;
     this.remoteName = remoteName;
@@ -491,6 +498,7 @@ export class HomeManagerIr extends HTMLElement {
         key: `ir:${remote.id}`,
         remote: drawIr(remote),
         name: remote.name,
+        appliance: kindOfIcon(remote.icon),
         estimated: false,
         pinTo: pieceId =>
           this.dispatchEvent(

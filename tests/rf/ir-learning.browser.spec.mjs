@@ -128,9 +128,10 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   expect(await page.evaluate(() => window.irFixture.calls)).toEqual([]);
   // 0.13: IR is chosen when creating a remote; its capture page opens in the same panel.
   await rf.getByRole('button', { name: 'Nuevo control', exact: true }).click();
-  await rf.getByRole('button', { name: 'IR', exact: true }).click();
-  await rf.getByLabel('Nombre', { exact: true }).fill('Demo');
-  await rf.getByRole('button', { name: 'Aprender botones', exact: true }).click();
+  // 0.14: the «Control nuevo» guide; without a template, IR learns freely in the same panel.
+  await rf.locator('[data-gkind=""]').click();
+  await rf.locator('[data-source=ir]').click();
+  await rf.locator('[data-guide=next]').click();
   const ir = rf.locator('homemanager-ir-manager');
   await expect(ir.getByText('RF only')).toHaveCount(0);
   const capture = ir.getByRole('button', { name: 'Capturar botón IR' });
@@ -163,6 +164,10 @@ test('IR learning, design, plan replay and camera diagnostics coexist with the R
   // Saving stays available after testing without a physical observation.
   await ir.getByRole('button', { name: 'Guardar señal', exact: true }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Guardado en Home Assistant');
+  // Step 5: the name; «Crear y editar» opens the IR remote with its buttons.
+  await rf.locator('[data-guide=next]').click();
+  await rf.locator('[name=guide-name]').fill('Control de prueba');
+  await rf.locator('[data-guide=finish]').click();
   await ir.getByRole('button', { name: 'Encendido demo' }).click();
   await expect(ir.locator('[data-ir-status]')).toContainText('Solicitud IR enviada');
   const writes = await page.evaluate(() =>
