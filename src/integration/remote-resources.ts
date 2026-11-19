@@ -72,7 +72,35 @@ function ws<T>(hass: Hass, path: string, args: Record<string, unknown> = {}): Pr
   if (!hass.callWS) return Promise.reject(new Error('not connected'));
   return hass.callWS({ type: 'homemanager/remotes/' + path, ...args });
 }
+/** 0.14 · a kept infrared catalog file. */
+export interface IrLibrary {
+  id: string;
+  name: string;
+  source: string;
+  brand: string;
+  model: string;
+  count: number;
+}
+/** A library button a captured signal probably is. */
+export interface LibraryMatch {
+  library_id: string;
+  library: string;
+  brand: string;
+  model: string;
+  index: number;
+  entry: string;
+  score: number;
+}
 export const remoteResources = {
+  libraries: (hass: Hass) => ws<IrLibrary[]>(hass, 'libraries/list'),
+  addLibrary: (hass: Hass, fields: Record<string, unknown>) => ws<IrLibrary>(hass, 'libraries/add', fields),
+  removeLibrary: (hass: Hass, library_id: string) =>
+    ws<Record<string, never>>(hass, 'libraries/remove', { library_id }),
+  libraryEntries: (hass: Hass, library_id: string) =>
+    ws<{ index: number; name: string }[]>(hass, 'libraries/entries', { library_id }),
+  matchLibrary: (hass: Hass, candidate_id: string) => ws<LibraryMatch[]>(hass, 'libraries/match', { candidate_id }),
+  bringLibrary: (hass: Hass, fields: Record<string, unknown>) =>
+    ws<{ id: string; added: number; duplicates: number }>(hass, 'libraries/bring', fields),
   list: (hass: Hass) => ws<Resources>(hass, 'resources'),
   command: (hass: Hass, command: Command, fields: Record<string, unknown> = {}, control_id?: string) =>
     ws<AbsoluteControl>(hass, 'absolute', { command, fields, ...(control_id ? { control_id } : {}) }),

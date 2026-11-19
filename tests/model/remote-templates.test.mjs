@@ -9,6 +9,7 @@ import {
   DESIGNS,
   applyTemplate,
   learnOrder,
+  libraryNames,
   template,
   wantedId,
 } from '../../.work/model/remote-templates.js';
@@ -84,4 +85,30 @@ test('the Home Assistant check uses the same templates (tests/fixtures/remote-te
     APPLIANCES.flatMap(([kind]) => DESIGNS.map(([design]) => [`${kind}/${design}`, template(kind, design)])),
   );
   assert.deepEqual(fixture, now, 'run: node scripts/remote-templates-fixture.mjs');
+});
+
+test('library buttons are recognised by their usual names, each used once', () => {
+  const wanted = learnOrder('tv', 'modern');
+  const entries = ['POWER', 'Vol_up', 'VOL-', 'Mute', 'OK', 'Netflix', '5', 'Unknown thing'].map((name, index) => ({
+    index,
+    name,
+  }));
+  assert.deepEqual(libraryNames(wanted, entries), {
+    0: 'Encender / apagar',
+    1: 'Volumen +',
+    2: 'Volumen −',
+    3: 'Silencio',
+    4: 'OK',
+    5: 'Netflix',
+    6: 'Número 5',
+  });
+  assert.deepEqual(
+    libraryNames(learnOrder('fan', 'classic'), [
+      { index: 0, name: 'power' },
+      { index: 1, name: 'Power' },
+    ]),
+    {
+      0: 'Encender / apagar',
+    },
+  );
 });

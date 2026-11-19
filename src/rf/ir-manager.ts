@@ -15,6 +15,7 @@ import { installPanelComponents, keepPanelFocus } from '../ui/panel-components.j
 import { iconButton, miniWave, sidePanelStyles } from '../ui/side-panel.js';
 import { rfLearnRingStyles, irManagerStyles } from '../ui/rf-components.js';
 import { ControlDesigner } from '../ui/control-designer.js';
+import { remoteResources, type LibraryMatch } from '../integration/remote-resources.js';
 import { kindOfIcon } from '../model/remote-templates.js';
 import { confirmDialog } from '../ui/confirm-dialog.js';
 import { SignalPreview, openSignal } from '../ui/signal-workbench.js';
@@ -118,6 +119,22 @@ export class HomeManagerIr extends HTMLElement {
   }
 
   /** A new IR remote from Controls › New: its name and receiver are already chosen. */
+  /** 0.14 · what a capture probably is, from «Mis bibliotecas». */
+  private libraryMatches: LibraryMatch[] = [];
+  private matchedFor = '';
+  private recognise(candidateId: string): void {
+    if (!this._hass || this.matchedFor === candidateId) return;
+    this.matchedFor = candidateId;
+    this.libraryMatches = [];
+    void remoteResources
+      .matchLibrary(this._hass, candidateId)
+      .then(found => {
+        if (this.candidate?.candidate_id !== candidateId) return;
+        this.libraryMatches = found;
+        this.render();
+      })
+      .catch(() => undefined);
+  }
   /** 0.14 · the «Control nuevo» guide: learn one named button into this remote (or a new one). */
   guided?: { onSaved: (remoteId: string) => void };
   guide(
@@ -398,7 +415,16 @@ export class HomeManagerIr extends HTMLElement {
       : '';
     const action = `<div class="row"><button type="button" class="next" data-test disabled>${glyph('mdi:play')}${e(t('Probar'))}</button><span class="grow"></span>${iconButton(t(this.tried ? 'Guardar señal' : 'Guardar sin probar'), 'mdi:content-save-outline', 'data-save disabled')}</div>${observation}`;
     const learn = candidate
-      ? `<div class="code"><div class="cap-head"><span class="dot ok"></span>${miniWave(candidate.candidate_id, 72)}<span class="muted">${e(t('Señal capturada · {ms} ms', { ms: Math.round(candidate.duration_us / 1000) }))}</span></div><div data-preview></div>
+      ? `<div class="code"><div class="cap-head"><span class="dot ok"></span>${miniWave(candidate.candidate_id, 72)}<span class="muted">${e(t('Señal capturada · {ms} ms', { ms: Math.round(candidate.duration_us / 1000) }))}</span></div>${
+          this.libraryMatches.length
+            ? `<div class="chips" role="group" aria-label="${e(t('Coincide con una biblioteca'))}">${this.libraryMatches
+                .map(
+                  match =>
+                    `<button type="button" class="chip" data-match-name="${e(match.entry)}" title="${e(t('Usar el nombre de la biblioteca'))}">${glyph('mdi:bookshelf')}${e(`${match.brand} · ${match.model} · ${t('coincide {n} %', { n: Math.round(match.score * 100) })} · «${match.entry}»`)}</button>`,
+                )
+                .join('')}</div>`
+            : ''
+        }<div data-preview></div>
       ${this.batch.length ? `<div class="fields"><label>${e(t('Capturas pendientes'))}<select name="batch">${this.batch.map((item, index) => option(item.candidate_id, t('Captura {count} · {ms} ms', { count: index + 1, ms: Math.round(item.duration_us / 1000) }), candidate.candidate_id)).join('')}</select></label>${iconButton(t('Descartar captura'), 'mdi:close', 'data-discard')}</div>` : ''}
       ${this.replaceButton ? `<p class="muted">${e(t('Se reemplazará la señal del botón guardado.'))}</p>` : ''}
       <input class="title-in" name="button-name" maxlength="80" value="${e(this.buttonName)}" placeholder="${e(this.defaultButtonName())}" aria-label="${e(t('Nombre del botón'))}"${disabled}>
@@ -456,6 +482,14 @@ export class HomeManagerIr extends HTMLElement {
       this.preview.configure(this._hass, { source: 'ir', candidate_id: candidate.candidate_id });
     }
     if (remote && this.editing !== 'buttons' && !this.guided) this.mountPlayer(remote);
+    if (candidate) this.recognise(candidate.candidate_id);
+    this.root.querySelectorAll<HTMLButtonElement>('[data-match-name]').forEach(button =>
+      button.addEventListener('click', () => {
+        if (this.guided) return;
+        this.buttonName = button.dataset.matchName!;
+        this.render();
+      }),
+    );
     this.updateActions();
     restoreFocus();
   }

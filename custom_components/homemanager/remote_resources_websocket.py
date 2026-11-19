@@ -12,6 +12,7 @@ from .absolute_profiles import MITSUBISHI, decode_signal
 from .absolute_remotes import DATA_ABSOLUTE, AbsoluteRemotes
 from .errors import ModelError
 from .ir import DATA_IR
+from .ir_libraries import DATA_IR_LIBRARIES, IrLibraries
 from .remote_catalog import MAX_DOCUMENT, MAX_ENTRIES, SOURCES, parse_catalog
 
 TEXT = vol.All(str, vol.Length(min=1, max=120))
@@ -28,7 +29,8 @@ def _manager(hass: HomeAssistant) -> AbsoluteRemotes:
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for action in (ws_resources, ws_absolute, ws_catalog, ws_import):
+    for action in (ws_resources, ws_absolute, ws_catalog, ws_import, ws_libraries, ws_library_add, ws_library_remove,
+                   ws_library_entries, ws_library_match, ws_library_bring):
         websocket_api.async_register_command(hass, action)
 
 
@@ -118,6 +120,113 @@ async def ws_import(hass: HomeAssistant, connection: websocket_api.ActiveConnect
                           "partial": len(indexes) != len(rows)}
             signals.append((name, signal, provenance))
         result = await manager.async_import(msg["name"], msg["emitter"], signals, msg.get("remote_id"))
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    else:
+        connection.send_result(msg["id"], result)
+
+
+def _libraries(hass: HomeAssistant) -> IrLibraries:
+    if (libraries := hass.data.get(DATA_IR_LIBRARIES)) is None:
+        raise ModelError("not_loaded", "the infrared libraries are unavailable")
+    return libraries
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/libraries/list"})
+@callback
+def ws_libraries(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        connection.send_result(msg["id"], _libraries(hass).list())
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemanager/remotes/libraries/add", **CATALOG,
+    vol.Required("name"): TEXT, vol.Required("brand"): TEXT, vol.Required("model"): TEXT,
+})
+@websocket_api.async_response
+async def ws_library_add(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        result = await _libraries(hass).async_add(msg["source"], msg["document"], msg["name"], msg["brand"], msg["model"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    else:
+        connection.send_result(msg["id"], result)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/libraries/remove", vol.Required("library_id"): ID})
+@websocket_api.async_response
+async def ws_library_remove(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        await _libraries(hass).async_remove(msg["library_id"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    else:
+        connection.send_result(msg["id"], {})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/libraries/entries", vol.Required("library_id"): ID})
+@callback
+def ws_library_entries(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    try:
+        connection.send_result(msg["id"], _libraries(hass).entries(msg["library_id"]))
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/libraries/match", vol.Required("candidate_id"): ID})
+@callback
+def ws_library_match(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Which library button a captured signal probably is (the capture of this same connection)."""
+    try:
+        manager = hass.data.get(DATA_IR)
+        if manager is None:
+            raise ModelError("not_loaded", "the infrared library is unavailable")
+        candidate = manager._candidate(connection, msg["candidate_id"])
+        connection.send_result(msg["id"], _libraries(hass).match(candidate.timings))
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemanager/remotes/libraries/bring",
+    vol.Required("library_id"): ID,
+    vol.Required("indexes"): vol.All([vol.All(int, vol.Range(min=0, max=MAX_ENTRIES - 1))], vol.Length(min=1, max=MAX_ENTRIES)),
+    vol.Optional("names", default=dict): {str: TEXT},
+    vol.Required("emitter"): TARGET,
+    vol.Optional("remote_id"): ID,
+    vol.Optional("remote_name"): TEXT,
+})
+@websocket_api.async_response
+async def ws_library_bring(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Brings chosen library buttons into an infrared remote (a new one without remote_id),
+    named as the app asks (for example as a template names them)."""
+    try:
+        manager = hass.data.get(DATA_IR)
+        if manager is None:
+            raise ModelError("not_loaded", "the infrared library is unavailable")
+        libraries = _libraries(hass)
+        library = libraries._item(msg["library_id"])
+        signals = []
+        for index, entry, signal in libraries.signals(msg["library_id"], sorted(set(msg["indexes"]))):
+            try:
+                decode_signal(signal)
+            except ModelError:
+                protocol = "ir_raw"
+            else:
+                protocol = MITSUBISHI
+            provenance = {"source": library["source"], "brand": library["brand"], "model": library["model"],
+                          "entry": library["name"], "revision": "Mis bibliotecas", "index": index, "function": entry,
+                          "protocol": protocol, "partial": True}
+            signals.append((msg["names"].get(str(index), entry), signal, provenance))
+        result = await manager.async_import(msg.get("remote_name") or library["name"], msg["emitter"], signals, msg.get("remote_id"))
     except ModelError as error:
         connection.send_error(msg["id"], error.code, str(error))
     else:
