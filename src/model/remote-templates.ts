@@ -33,6 +33,12 @@ export const DESIGNS: [StartDesign, string, string, string][] = [
   ],
 ];
 
+/** How the screens name a template's buttons and pieces (their language); ids stay the Spanish ones. */
+let localName: (name: string) => string = name => name;
+export function setTemplateNames(translate: (name: string) => string): void {
+  localName = translate;
+}
+
 /** The id of a waited button: the same name gives the same id in every design. */
 export function wantedId(name: string): string {
   const slug = name
@@ -572,6 +578,7 @@ const SYNONYMS: Record<string, string[]> = {
     ]),
   ),
 };
+const SYNONYMS_BY_ID = new Map(Object.entries(SYNONYMS).map(([name, words]) => [wantedId(name), [name, ...words]]));
 const looseName = (name: string) =>
   name
     .toLowerCase()
@@ -585,7 +592,7 @@ export function libraryNames(wanted: Wanted[], entries: { index: number; name: s
   const out: Record<string, string> = {};
   const used = new Set<number>();
   for (const item of wanted) {
-    const keys = [looseName(item.name), ...(SYNONYMS[item.name] ?? []).map(looseName)];
+    const keys = [looseName(item.name), ...(SYNONYMS_BY_ID.get(item.id) ?? []).map(looseName)];
     const hit = entries.find(entry => !used.has(entry.index) && keys.includes(looseName(entry.name)));
     if (!hit) continue;
     out[String(hit.index)] = item.name;
@@ -596,7 +603,14 @@ export function libraryNames(wanted: Wanted[], entries: { index: number; name: s
 
 /** One starting design, as a layout that waits for every button it uses. */
 export function template(kind: ApplianceKind, design: StartDesign): ControlPiece[] {
-  return { ac, tv, light, fan, cover }[kind](design);
+  return { ac, tv, light, fan, cover }[kind](design).map(piece => {
+    const next = { ...piece };
+    if (next.label && !next.brand) next.label = localName(next.label);
+    if (next.options)
+      next.options = next.options.map(option => ({ ...option, label: option.label && localName(option.label) }));
+    if (next.wanted) next.wanted = next.wanted.map(item => ({ ...item, name: localName(item.name) }));
+    return next;
+  });
 }
 /** The buttons a design asks for, in the order the guide asks for them. */
 export function learnOrder(kind: ApplianceKind, design: StartDesign): Wanted[] {
@@ -619,9 +633,10 @@ export function resolveWanted(
   const canvas = layout?.find(piece => piece.type === 'canvas');
   if (!layout || !canvas?.wanted?.length) return null;
   const byName = new Map(learned.map(button => [button.name.trim().toLowerCase(), button.id]));
+  const byKey = new Map(learned.map(button => [wantedId(button.name), button.id]));
   const swap = new Map<string, string>();
   for (const item of canvas.wanted) {
-    const id = byName.get(item.name.trim().toLowerCase());
+    const id = byName.get(item.name.trim().toLowerCase()) ?? byKey.get(item.id);
     if (id) swap.set(item.id, id);
   }
   if (!swap.size) return null;

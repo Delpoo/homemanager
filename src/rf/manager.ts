@@ -42,6 +42,7 @@ import {
   libraryNames,
   pieceCount,
   template,
+  setTemplateNames,
   type ApplianceKind,
   type StartDesign,
 } from '../model/remote-templates.js';
@@ -52,6 +53,8 @@ import type { HomeManagerRfRemote } from './remote-view.js';
 import type { HomeManagerRfLearn } from './learn.js';
 import type { HomeManagerRfDevices } from './devices.js';
 import type { HomeManagerIr } from './ir-manager.js';
+// Templates name their buttons and pieces in the screen's language.
+setTemplateNames(name => t(name));
 
 /** Controls (0.13): one panel beside the plan for RF and IR remotes, administrators only
  * (the integration enforces it). The list shows the ESPHome devices that send and
@@ -1279,6 +1282,8 @@ export class HomeManagerRf extends HTMLElement {
 
   /** ✕ goes back to the plan; ← one level up. */
   private leave(to: 'plan' | 'settings' = 'plan'): void {
+    // A guide left before learning anything is dropped: Controls opens on the list again.
+    if (this.view === 'new' && this.guide.step <= 2) this.view = 'list';
     this.learn.stop();
     this.infrared.stopCapture();
     this.fromSettings = false;
