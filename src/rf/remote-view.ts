@@ -229,7 +229,26 @@ export class HomeManagerRfRemote extends HTMLElement {
     const empty = layout.length ? '' : `<p class="empty">${e(t('Este control todavía no tiene botones.'))}</p>`;
     const look = bodyVars(all.find(piece => piece.type === 'canvas'));
     const gap = columns <= 6 ? 10 : columns <= 12 ? 6 : 3;
-    this.root.innerHTML = remoteShell(look, this._editing, columns, gap, `${cells}${widgets}${empty}`);
+    // 0.14 · «?»: each piece gets its number and a line below says what it does.
+    const helpable = !this._editing && !this.hasAttribute('data-template') && layout.length > 0;
+    const numbered = helpable ? this.helpPieces(layout) : [];
+    const help = helpable
+      ? `<button type="button" class="khelp" data-help aria-pressed="${this.helping}" aria-label="${e(t('Qué hace cada botón'))}" title="${e(t('Qué hace cada botón'))}">?</button>${
+          this.helping
+            ? `<ol class="khelp-list">${numbered.map(([piece, n]) => `<li><b>${n}</b><span>${e(this.helpLine(piece, ctx))}</span></li>`).join('')}</ol>`
+            : ''
+        }`
+      : '';
+    this.root.innerHTML = remoteShell(look, this._editing, columns, gap, `${cells}${widgets}${empty}`) + help;
+    if (this.helping)
+      for (const [piece, n] of numbered)
+        this.root
+          .querySelector(`[data-widget="${CSS.escape(piece.id)}"]`)
+          ?.insertAdjacentHTML('beforeend', `<span class="knum-help" aria-hidden="true">${n}</span>`);
+    this.root.querySelector('[data-help]')?.addEventListener('click', () => {
+      this.helping = !this.helping;
+      this.render();
+    });
     for (const widget of layout) {
       if (widget.type !== 'control') continue;
       const content = this.renderContent?.(widget);
@@ -238,6 +257,38 @@ export class HomeManagerRfRemote extends HTMLElement {
     this.bind();
     this.markSelection();
     this.onState?.();
+  }
+
+  private helping = false;
+  /** Pieces worth explaining, in reading order, with their number. */
+  private helpPieces(layout: RfWidget[]): [RfWidget, number][] {
+    return layout
+      .filter(piece => !['canvas', 'title', 'separator'].includes(piece.type))
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .map((piece, i) => [piece, i + 1]);
+  }
+  /** One plain line: what this piece does. */
+  private helpLine(piece: RfWidget, ctx: KeyContext): string {
+    const remote = this._remote;
+    const refs = [...piece.buttons, ...Object.values(piece.slots ?? {})];
+    const names = refs.map(ref => ctx.name(ref));
+    const label = piece.label ?? names[0] ?? '';
+    const options = (piece.options ?? []).map((option, i) => option?.label ?? names[i]).filter(Boolean);
+    let line: string;
+    if (piece.type === 'button') line = piece.hold === 'repeat' ? t('Manda «{name}»; mantenelo apretado para repetir.', { name: label }) : t('Manda «{name}».', { name: label });
+    else if (piece.type === 'toggle') line = t('Prende y apaga {name}.', { name: label });
+    else if (piece.type === 'preset') line = t('{name}: manda {count} pasos seguidos.', { name: label, count: piece.sequence?.length ?? names.length });
+    else if (piece.type === 'modes' || piece.type === 'cycle') line = t('{name}: elegí entre {options}.', { name: label, options: options.slice(0, 5).join(', ') });
+    else if (['updown', 'slider', 'steps', 'knob'].includes(piece.type))
+      line = piece.values
+        ? t('{name}: de {min} a {max}{unit}; subí y bajá o tocá el valor.', { name: label, min: piece.values.min, max: piece.values.max, unit: piece.values.unit ?? '' })
+        : t('{name}: sube y baja.', { name: label });
+    else if (piece.type === 'indicator') line = t('Muestra {name}.', { name: label || t('un valor') });
+    else if (piece.type === 'graph') line = t('Gráfica de {name}.', { name: label || t('un valor') });
+    else if (piece.type === 'control') line = t('Parte del aire: {name}.', { name: label });
+    else line = t('Grupo de botones: {names}.', { names: names.slice(0, 5).join(', ') });
+    const waiting = !!remote && refs.some(ref => !buttonById(remote, ref) && !!wantedById(remote, ref));
+    return waiting ? `${line} ${t('Todavía tiene botones sin aprender.')}` : line;
   }
 
   /** Told after every redraw, so whoever shows the state elsewhere (a ring on the plan) follows. */

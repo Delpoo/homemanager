@@ -29,7 +29,8 @@ const titles: Record<string, string> = {
   start_time: 'Hora de encendido',
   stop_time: 'Hora de apagado',
   schedules: 'Programación',
-  send: 'Enviar estado',
+  send: 'Reenviar estado',
+  screen: 'Pantalla del aire',
   'power-on': 'Encender',
   'power-off': 'Apagar',
 };
@@ -74,6 +75,7 @@ const ICONS: Record<string, string> = {
   timers: 'mdi:timer-outline',
   design: 'mdi:pencil',
   send: 'mdi:send',
+  screen: 'mdi:monitor-dashboard',
   preset: 'mdi:content-save-outline',
   recall: 'mdi:backup-restore',
   powerful: 'mdi:snowflake-alert',
@@ -92,7 +94,7 @@ const action = (name: string, title: string, style = '', icon = iconOf(name), hi
   '<button type="button" data-act="' +
   name +
   '" class="ib' +
-  (style === 'primary-action' ? ' primary' : style === 'danger' ? ' danger' : '') +
+  (style === 'primary-action' ? ' primary' : style === 'danger' ? ' danger' : style === 'resend' ? ' resend' : '') +
   '" aria-label="' +
   e(t(title)) +
   '" title="' +
@@ -169,7 +171,12 @@ input[type=checkbox]:checked{background:var(--hm-brand)}input[type=checkbox]:che
 .schedule.paused .when{opacity:.55}
 `;
 
-const pieceStyles = `.absolute-widget label{display:grid;gap:4px;font-size:12px;color:var(--hm-muted);min-width:0}
+const pieceStyles = `
+.ib.resend{box-shadow:0 0 0 2px var(--hm-brand),0 0 0 5px color-mix(in srgb,var(--hm-brand) 22%,transparent);color:var(--hm-brand)}
+.air-screen{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;border-radius:12px;background:#11201a;color:#bff3d7;font-variant-numeric:tabular-nums;min-width:0}
+.air-screen.off{opacity:.55}.as-mode,.as-fan{font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.as-temp{font-size:26px;font-weight:600;line-height:1}.as-temp small{font-size:12px;margin-left:2px}
+.absolute-widget label{display:grid;gap:4px;font-size:12px;color:var(--hm-muted);min-width:0}
 .absolute-widget :is(select,input[type=number],input[type=time]){min-height:36px;padding:2px 8px;border:1px solid var(--hm-line);border-radius:10px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:14px;min-width:0}
 .absolute-widget label{justify-items:start}.absolute-widget input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;flex:none;width:42px!important;min-width:42px!important;height:24px!important;min-height:24px!important;padding:0;border:0;margin:0;border-radius:12px;background:var(--hm-line);position:relative;cursor:pointer}
 .absolute-widget input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--hm-surface);box-shadow:var(--hm-shadow);transition:left .15s}
@@ -705,12 +712,13 @@ export class HomeManagerRemoteResources extends HTMLElement {
       ),
       'schedules',
       'send',
+      'screen',
     ].map(id => ({ id, label: titleFor(id) }));
   }
 
   private drawable(control: AbsoluteControl) {
     const defaultLayout = this.controls(control)
-      .filter(item => item.id in control.capabilities)
+      .filter(item => item.id in control.capabilities || item.id === 'send')
       .map(
         (item, index): RfWidget => ({
           id: 'control-' + item.id,
@@ -724,13 +732,26 @@ export class HomeManagerRemoteResources extends HTMLElement {
           h: 1,
         }),
       );
+    // 0.14: the screen of the air goes on top, across the control.
+    for (const piece of defaultLayout) piece.y += 1;
+    defaultLayout.unshift({
+      id: 'control-screen',
+      type: 'control',
+      buttons: ['screen'],
+      label: null,
+      icon: null,
+      x: 0,
+      y: 0,
+      w: 4,
+      h: 1,
+    });
     defaultLayout.unshift({
       id: 'canvas',
       type: 'canvas',
       x: 0,
       y: 0,
       w: 4,
-      h: Math.max(2, Math.ceil(defaultLayout.length / 2)),
+      h: Math.max(2, Math.max(...defaultLayout.map(piece => piece.y + piece.h))),
       buttons: [],
       label: null,
       icon: null,
@@ -767,10 +788,12 @@ export class HomeManagerRemoteResources extends HTMLElement {
       (key === 'schedules'
         ? action('timers', 'Programación')
         : key === 'send'
-          ? action('send', 'Enviar estado')
-          : control.capabilities[key]
-            ? this.capability(key, control)
-            : '');
+          ? action('send', 'Reenviar estado', 'resend')
+          : key === 'screen'
+            ? this.screen(control)
+            : control.capabilities[key]
+              ? this.capability(key, control)
+              : '');
     if (node.childElementCount < 2) return null;
     if (interactive) {
       this.bindCapabilities(node);
@@ -782,6 +805,31 @@ export class HomeManagerRemoteResources extends HTMLElement {
         field.disabled = true;
       });
     return node;
+  }
+
+  /** 0.14 · «Pantalla del aire»: what it was asked to do, as the remote's own screen shows it. */
+  private screen(control: AbsoluteControl): string {
+    const state = { ...control.state, ...this.draft } as Record<string, unknown>;
+    const on = state.power !== false;
+    const mode = state.mode !== undefined ? optionFor(String(state.mode)) : '';
+    const fan = state.fan !== undefined ? optionFor(String(state.fan)) : '';
+    const temperature = state.temperature !== undefined ? String(state.temperature) : '–';
+    return (
+      '<div class="air-screen' +
+      (on ? '' : ' off') +
+      '" role="group" aria-label="' +
+      e(t('Pantalla del aire')) +
+      '">' +
+      '<span class="as-mode">' +
+      e(on ? mode : t('Apagado')) +
+      '</span>' +
+      '<b class="as-temp">' +
+      e(on ? temperature : '–') +
+      '<small>°C</small></b>' +
+      '<span class="as-fan">' +
+      e(on && fan ? fan : '') +
+      '</span></div>'
+    );
   }
 
   private mountPlayer(control: AbsoluteControl): void {
