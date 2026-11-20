@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { t, tc } from '../i18n/index.js';
 import { escapeHTML as esc } from '../card/types.js';
 import type { RfWidget } from '../integration/rf.js';
 import { MAX_ATTACHED, type AttachedPiece } from '../model/control-layout.js';
@@ -28,12 +28,36 @@ export function attachedBody(ctx: AttachedContext): string {
   const byId = new Map(ctx.pieces.map(piece => [piece.id, piece]));
   if (!ctx.pieces.length) return '';
   const full = ctx.attached.length >= MAX_ATTACHED;
-  const rows = ctx.attached
-    .map(item => {
-      const piece = byId.get(item.piece);
-      const on = item.id === ctx.chosen;
-      return `<div class="att-row${on ? ' on' : ''}${piece ? '' : ' gone'}"><button type="button" class="att-name" data-command="attached-pick" data-att="${esc(item.id)}" aria-pressed="${on}">${glyph(piece?.icon ?? 'mdi:gesture-tap-button')}<span>${esc(piece ? pieceName(piece, ctx.buttons) : t('Ya no está en el control'))}</span></button>${iconBtn(item.locked ? t('Soltar') : t('Fijar en su lugar'), item.locked ? 'mdi:lock-outline' : 'mdi:lock-open-variant-outline', `data-command="attached-lock" data-att="${esc(item.id)}" aria-pressed="${!!item.locked}"`)}${iconBtn(t('Quitar del plano'), 'mdi:trash-can-outline', `data-command="attached-remove" data-att="${esc(item.id)}"`, 'danger')}</div>`;
+  // 0.14 · N, as in the mockup: every piece of the control with a switch «On the plan»; the one on the
+  // plan has its pencil, and the chosen one its look below. «+» still pins a piece once more.
+  const kinds: Record<string, string> = {
+    button: 'Botón',
+    toggle: 'Prender / apagar',
+    updown: 'Nivel',
+    slider: 'Nivel',
+    steps: 'Nivel',
+    knob: 'Nivel',
+    modes: 'Opciones',
+    cycle: 'Opciones',
+    indicator: 'Valor',
+    graph: 'Gráfica',
+    preset: 'Secuencia',
+  };
+  const rows = ctx.pieces
+    .map(piece => {
+      const mine = ctx.attached.filter(item => item.piece === piece.id);
+      const on = mine.length > 0;
+      const chosen = mine.find(item => item.id === ctx.chosen);
+      const name = pieceName(piece, ctx.buttons);
+      return `<div class="att-row${chosen ? ' on' : ''}"><span class="att-name">${glyph(piece.icon ?? 'mdi:gesture-tap-button')}<span><b>${esc(name)}</b>${kinds[piece.type] ? `<small>${esc(t(kinds[piece.type]))}</small>` : ''}</span></span><input type="checkbox" role="switch" class="att-sw-on" data-attached-toggle="${esc(piece.id)}" aria-label="${esc(t('En el plano: {name}', { name }))}" title="${esc(tc('control', 'En el plano'))}"${on ? ' checked' : ''}${!on && full ? ' disabled' : ''}>${on ? iconBtn(t('Editar en el plano: {name}', { name }), 'mdi:pencil', `data-command="attached-pick" data-att="${esc((chosen ?? mine[0]).id)}" aria-pressed="${!!chosen}"`) : '<span class="att-gap"></span>'}</div>`;
     })
+    .join('');
+  const gone = ctx.attached
+    .filter(item => !byId.has(item.piece))
+    .map(
+      item =>
+        `<div class="att-row gone"><span class="att-name">${glyph('mdi:help-circle-outline')}<span><b>${esc(t('Ya no está en el control'))}</b></span></span>${iconBtn(t('Quitar del plano'), 'mdi:close', `data-command="attached-remove" data-att="${esc(item.id)}"`, 'danger')}</div>`,
+    )
     .join('');
   const picker = ctx.adding
     ? `<div class="att-pick" role="group" aria-label="${esc(t('Elementos del control'))}">${ctx.pieces
@@ -44,7 +68,11 @@ export function attachedBody(ctx: AttachedContext): string {
         .join('')}</div>`
     : '';
   const chosen = ctx.attached.find(item => item.id === ctx.chosen);
-  return `<div class="att-block"><div class="att-head"><h4>${esc(t('En el plano'))}</h4>${iconBtn(t('Pegar un elemento del control'), 'mdi:plus', `data-command="attached-add-open" aria-expanded="${ctx.adding}"${full ? ' disabled' : ''}`)}</div>${picker}<div class="att-list">${rows}</div>${chosen ? attachedProps(chosen) : ''}</div>`;
+  const chosenPiece = chosen && byId.get(chosen.piece);
+  const props = chosen
+    ? `<div class="att-chosen"><div class="att-ch-head">${glyph('mdi:pencil')}<b>${esc(chosenPiece ? pieceName(chosenPiece, ctx.buttons) : t('Elemento'))}</b><span class="grow"></span>${iconBtn(chosen.locked ? t('Soltar') : t('Fijar en su lugar'), chosen.locked ? 'mdi:lock-outline' : 'mdi:lock-open-variant-outline', `data-command="attached-lock" data-att="${esc(chosen.id)}" aria-pressed="${!!chosen.locked}"`)}${iconBtn(t('Quitar del plano'), 'mdi:close', `data-command="attached-remove" data-att="${esc(chosen.id)}"`, 'danger')}</div>${attachedProps(chosen)}</div>`
+    : '';
+  return `<div class="att-block"><div class="att-head"><h4>${esc(tc('control', 'En el plano'))} · ${ctx.attached.length} / ${MAX_ATTACHED}</h4>${iconBtn(t('Pegar un elemento del control'), 'mdi:plus', `data-command="attached-add-open" aria-expanded="${ctx.adding}"${full ? ' disabled' : ''}`)}</div>${picker}<div class="att-list">${rows}${gone}</div>${props}</div>`;
 }
 
 const row = (icon: string, label: string, control: string) =>
@@ -139,8 +167,8 @@ export function newAttached(list: AttachedPiece[], piece: RfWidget): AttachedPie
 }
 
 export const attachedEditorStyles = `
-.att-block{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hm-line)}
-.att-head{display:flex;align-items:center;justify-content:space-between}.att-head h4,.att-block>h4{margin:0}
+.att-block{display:grid;gap:8px;margin-top:12px}
+.att-head{display:flex;align-items:center;justify-content:space-between}.att-head h4,.att-block>h4{margin:0;font-size:11.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--hm-muted)}
 .att-ib{display:grid;place-items:center;width:34px;height:34px;min-height:34px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--hm-ink)}
 .att-ib:hover:not(:disabled){background:var(--hm-surface-2)}.att-ib.danger{color:var(--hm-alert)}.att-ib[aria-pressed=true]{color:var(--hm-brand)}
 .att-ib ha-icon{--mdc-icon-size:19px}
@@ -148,7 +176,10 @@ export const attachedEditorStyles = `
 .att-row{display:flex;align-items:center;gap:4px;border-radius:10px}.att-row.on{background:color-mix(in srgb,var(--hm-brand) 10%,transparent)}
 .att-row.gone .att-name{color:var(--hm-alert)}
 .att-name{flex:1;display:flex;align-items:center;gap:8px;min-width:0;min-height:38px;padding:0 8px;border:0;background:transparent;color:inherit;text-align:left}
-.att-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.att-name ha-icon{--mdc-icon-size:18px;color:var(--hm-brand)}
+.att-name>span{display:grid;min-width:0}.att-name b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.att-name small{justify-self:start;padding:0 6px;border-radius:6px;background:var(--hm-surface-2);font-size:11px;color:var(--hm-muted)}.att-name ha-icon{--mdc-icon-size:18px;color:var(--hm-brand)}
+.att-row{min-height:48px;padding-right:2px;border:1px solid var(--hm-line);background:var(--hm-surface)}.att-gap{width:34px;flex:none}
+.att-sw-on{appearance:none;-webkit-appearance:none;flex:none;width:42px;min-width:42px;height:24px;min-height:24px;margin:0 4px;padding:0;border:0;border-radius:12px;background:var(--hm-line);position:relative;cursor:pointer;transition:background .15s}.att-sw-on::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--hm-surface);box-shadow:var(--hm-shadow);transition:left .15s}.att-sw-on:checked{background:var(--hm-brand)}.att-sw-on:checked::after{left:21px}.att-sw-on:disabled{opacity:.4;cursor:default}
+.att-chosen{display:grid;gap:4px;padding:8px 10px;border:1px solid var(--hm-brand);border-radius:12px}.att-ch-head{display:flex;align-items:center;gap:8px}.att-ch-head>ha-icon{--mdc-icon-size:16px;color:var(--hm-brand)}.att-ch-head .grow{flex:1}
 .att-pick{display:grid;gap:2px;padding:6px;border:1px solid var(--hm-line);border-radius:12px;max-height:240px;overflow:auto}
 .att-pick button{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:inherit;text-align:left}
 .att-pick button:hover{background:var(--hm-surface-2)}.att-pick ha-icon{--mdc-icon-size:18px;color:var(--hm-brand)}

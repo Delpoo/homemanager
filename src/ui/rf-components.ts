@@ -116,6 +116,15 @@ pre .add{display:inline-block;min-width:100%;margin:0 -12px;padding:0 12px;backg
 `;
 /** The pieces only this panel has: devices row, new-remote kinds, steps, preview. */
 export const rfControlsStyles = `
+.dh .htx{display:grid;min-width:0;line-height:1.2}.dh .htx b{font-weight:500;font-size:17px}.dh .htx small{font-size:12px;font-weight:400;color:var(--hm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dh h2 .ico-tile{width:36px;height:36px}@media(max-width:480px){.dh .htx small{display:none}}
+.next.wide{width:100%;justify-content:center;height:48px;min-height:48px;font-size:15px}
+.lbl .lnk{border:0;background:transparent;padding:0;min-height:0;font:inherit;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--hm-brand);cursor:pointer}.lbl .lnk:hover{text-decoration:underline}
+.list.rlist{border:1px solid var(--hm-line);border-radius:14px;padding:0 6px;background:var(--hm-surface)}
+.li .chev{flex:none;display:grid;place-items:center;color:var(--hm-muted)}.li .chev ha-icon{--mdc-icon-size:20px}
+.gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:58px;padding:8px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13px;text-align:center;cursor:pointer}
+.gtile:hover{border-color:var(--hm-brand)}.gtile ha-icon{--mdc-icon-size:22px;color:var(--hm-ink)}
+.gstyle{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 4px;font-size:14px}.gstyle>ha-icon{--mdc-icon-size:20px;color:var(--hm-muted)}.gstyle>span{flex:1;min-width:0}.gstyle>b{font-weight:500;font-size:13px;color:var(--hm-muted)}
 :host{display:block;height:100%;min-height:0}
 .nodes{display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:2px}
 .node{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;padding:10px 26px 10px 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);text-align:left}
@@ -254,7 +263,7 @@ export const rfGuideStyles = `
 .gtx small{font-size:12.5px;color:var(--hm-muted)}.gtx .gcount{color:var(--hm-ink)}
 .gradio{width:18px;height:18px;border-radius:50%;border:2px solid var(--hm-line);flex:none}
 .gdesign[aria-checked=true] .gradio{border-color:var(--hm-brand);box-shadow:inset 0 0 0 4px var(--hm-surface);background:var(--hm-brand)}
-.glive{position:relative;height:210px;overflow:hidden;border-radius:14px;background:var(--hm-surface-2);display:flex;justify-content:center}
+.glive{position:relative;height:210px;overflow:hidden;border-radius:14px;background:var(--hm-surface-2)}.gscroll{height:100%;overflow:hidden;display:flex;justify-content:center}
 .glive homemanager-rf-remote{width:328px;transform:scale(.6);transform-origin:top center;margin-top:8px;pointer-events:none}
 .gprog{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:10px;background:var(--hm-surface);font-size:12px;font-weight:600;box-shadow:var(--hm-shadow)}
 .gnow{display:grid;justify-items:center;gap:2px;text-align:center}.gnow small{color:var(--hm-muted);font-size:12px}.gnow b{font-size:18px;font-weight:600}
@@ -262,7 +271,7 @@ export const rfGuideStyles = `
 .gtabs{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;margin:0 0 10px;border-radius:12px;background:var(--hm-surface-2)}.gtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:48px;padding:4px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font-size:12px}.gtabs button[aria-selected=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}.gtabs ha-icon{--mdc-icon-size:18px}
 .gbringbox{display:grid;gap:10px;justify-items:stretch;padding:12px;border:1px solid var(--hm-line);border-radius:14px}.gbringbox .gbring{margin:0}.gbringbox .next{justify-self:center}.gbringbox.empty{justify-items:center;text-align:center;color:var(--hm-muted)}.gbringbox.empty>ha-icon{--mdc-icon-size:28px}
 .glist{display:flex;flex-direction:column;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto}
-.gitem{display:flex;align-items:center;gap:10px;min-height:38px;padding:4px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13.5px;text-align:left;width:100%}
+.gitem{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:38px;padding:4px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13.5px;text-align:left;width:100%}
 .gitem:last-child{border-bottom:0}.gitem.cur{background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}
 .gn{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--hm-surface-2);font-size:11.5px;color:var(--hm-muted);flex:none}.gn ha-icon{--mdc-icon-size:14px}
 .gitem.ok .gn{background:color-mix(in srgb,var(--hm-brand) 16%,transparent);color:var(--hm-brand)}

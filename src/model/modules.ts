@@ -20,7 +20,13 @@ export function modulesOf(device: ModelDevice, hass?: ModelHass): ModuleId[] {
   const sections = sectionsOf(categoryOf(device, hass));
   const found = new Set<ModuleId>(['device', 'gestures', 'rules']);
   if (sections.show || device.display.show === 'value' || device.display.show === 'both') found.add('indicators');
-  if (sections.controls || device.bindings.controls?.length || device.bindings.remoteId || device.bindings.irRemoteId)
+  if (
+    sections.controls ||
+    device.bindings.controls?.length ||
+    device.bindings.remoteId ||
+    device.bindings.irRemoteId ||
+    device.display.attached?.length
+  )
     found.add('control');
   if (device.display.pinned?.length) found.add('pinned');
   if (device.bindings.advancedPopupId) found.add('native');

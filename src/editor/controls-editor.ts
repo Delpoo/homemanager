@@ -178,6 +178,9 @@ export function renderControlsEditor(
   model: SheetModel,
   suggestions: Suggestion[],
   actionOptions: { id: string; label: string }[],
+  // 0.14 · N: inside «Sends via › Home Assistant» the card above already edits the control, and the
+  // title is not «Controls» a second time.
+  inside = false,
 ): string {
   const tapChoices = model.controls.filter(control => control.type === 'button' || control.type === 'cycle');
   const option = (value: string, text: string, selected: string) =>
@@ -221,8 +224,8 @@ export function renderControlsEditor(
   ).join('');
   return `<section class="ctl-section" id="device-controls" aria-labelledby="ctl-title">
 
-<button type="button" data-command="design-open">${esc(t('Editar control'))}</button>
-<h3 id="ctl-title" class="field-title">${esc(t('Controles'))}${helpTip(t('Controles'), t('Se eligen por cómo se usan, no por lo que controlan: lo que hace cada paso es una acción. Aparecen en el panel; con el alfiler, hasta 3 quedan también junto al símbolo en el plano.'))}</h3>
+${inside ? '' : `<button type="button" data-command="design-open">${esc(t('Editar control'))}</button>`}
+<h3 id="ctl-title" class="field-title">${esc(t(inside ? 'Botones de Home Assistant' : 'Controles'))}${helpTip(t('Controles'), t('Se eligen por cómo se usan, no por lo que controlan: lo que hace cada paso es una acción. Aparecen en el panel; con el alfiler, hasta 3 quedan también junto al símbolo en el plano.'))}</h3>
 ${cards || `<p class="note">${esc(t('Sin controles. Agregá uno por cómo se usa:'))}</p>`}
 <div class="ctl-add" role="group" aria-label="${esc(t('Agregar control'))}">${add}</div></section>`;
 }

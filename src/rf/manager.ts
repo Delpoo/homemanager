@@ -1,5 +1,6 @@
 import { historySeries } from '../integration/history.js';
 import { iconPicker } from '../ui/icon-picker.js';
+import { globalControlStyle, STYLE_NAMES } from '../ui/control-style.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { learningWorkspaceStyles } from '../ui/learning-components.js';
 import { t, tc } from '../i18n/index.js';
@@ -139,6 +140,8 @@ export class HomeManagerRf extends HTMLElement {
     () => document.createElement('homemanager-rf-remote') as HomeManagerRfRemote,
   );
   private readonly guideLive = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+  /** Where the step 3 preview was scrolled, so a redraw does not jump back to the top. */
+  private guideScroll = 0;
   /** 0.14 · kept infrared libraries, to bring a template's buttons from one. */
   private guideLibraries: IrLibrary[] = [];
   /** 0.14 · step 3 by infrared, as in the mockup: «Aprender con el control» or «Traer de la biblioteca». */
@@ -206,10 +209,10 @@ export class HomeManagerRf extends HTMLElement {
     this.infrared.stopCapture();
   }
 
-  openIrRemote(remoteId: string): void {
+  openIrRemote(remoteId: string, design = false): void {
     this.irTitle = this.irRemotes.find(remote => remote.id === remoteId)?.name ?? '';
     this.show('ir');
-    this.infrared.openRemote(remoteId);
+    this.infrared.openRemote(remoteId, design);
   }
 
   private async load(): Promise<void> {
@@ -296,7 +299,7 @@ export class HomeManagerRf extends HTMLElement {
       );
     else if (this.view === 'absolute' || this.view === 'catalog')
       page = this.panel(
-        panelHead(e(t(this.view === 'absolute' ? 'Controles de estado absoluto' : 'Biblioteca IR/RF')), {
+        panelHead(e(t(this.view === 'absolute' ? 'Aire con estado completo' : 'Biblioteca IR / RF')), {
           back: t('Volver'),
           close: t('Cerrar'),
         }),
@@ -350,16 +353,19 @@ export class HomeManagerRf extends HTMLElement {
           `<button type="button" class="node" data-view="devices" title="${e(t('Equipos'))}"><span class="dot ok"></span><b>${e(rfText(item.name))}</b><span class="caps">${item.rfReady ? sourceTag('rf') : ''}${item.irReceiver || item.irEmitter ? sourceTag('ir') : ''}</span></button>`,
       )
       .join('');
-    return `<div class="nodes" role="group" aria-label="${e(t('Equipos'))}">${chips}${iconButton(t('Equipos'), 'mdi:chip', 'data-view="devices"')}</div>`;
+    return `<div class="nodes" role="group" aria-label="${e(t('Equipos'))}">${chips}</div>`;
   }
 
   private renderList(status: string): string {
     const canCreate = this.transmitters.length > 0 || this.irReceivers.length > 0;
-    const head = panelHead(e(t('Controles')), {
-      ...(this.fromSettings ? { back: t('Volver') } : {}),
-      extra: iconButton(t('Nuevo control'), 'mdi:plus', `data-command="new"${canCreate ? '' : ' disabled'}`),
-      close: t('Cerrar'),
-    });
+    const head = panelHead(
+      `<span class="ico-tile">${icon('mdi:remote')}</span><span class="htx"><b>${e(t('Controles'))}</b><small aria-hidden="true">${e(t('Controles aprendidos, emisores y recursos'))}</small></span>`,
+      {
+        ...(this.fromSettings ? { back: t('Volver') } : {}),
+        extra: iconButton(t('Nuevo control'), 'mdi:plus', `data-command="new"${canCreate ? '' : ' disabled'}`),
+        close: t('Cerrar'),
+      },
+    );
     const row = (
       source: Source,
       id: string,
@@ -370,7 +376,7 @@ export class HomeManagerRf extends HTMLElement {
       partial = false,
       waiting = 0,
     ) =>
-      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : count === 1 ? t('1 botón') : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}<span class="acts">${source === 'rf' ? iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) + iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) : ''}</span>${sourceTag(source)}</div>`;
+      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : count === 1 ? t('1 botón') : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}<span class="acts">${source === 'rf' ? iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) + iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) : ''}</span>${sourceTag(source)}<span class="chev" aria-hidden="true">${icon('mdi:chevron-right')}</span></div>`;
     const items = [
       ...this.remotes.map(remote =>
         row(
@@ -399,11 +405,18 @@ export class HomeManagerRf extends HTMLElement {
     const empty = canCreate
       ? `<div class="empty-state">${icon('mdi:remote')}</div>`
       : `<div class="empty-state">${icon('mdi:chip')}<span>${e(t('Ningún equipo envía ni escucha controles todavía.'))}</span><button type="button" class="next" data-view="devices">${icon('mdi:chip')}${e(t('Equipos'))}</button></div>`;
+    // 0.14 · M, as in the mockup: a big «create», the emitters with «Equipment ›», the learned remotes,
+    // four resources with their symbol and the general style of the controls.
+    const tile = (glyph: string, label: string, attrs: string) =>
+      `<button type="button" class="gtile" ${attrs}>${icon(glyph)}<span>${e(label)}</span></button>`;
+    const general = globalControlStyle();
     return this.panel(
       head,
-      `${this.renderNodes()}${items ? `<div class="list">${items}</div>` : empty}
-      ${panelLabel(t('Recursos'))}<div class="chips"><button type="button" class="chip" data-view="absolute">${e(t('Controles de estado absoluto'))}</button>
-      <button type="button" class="chip" data-view="catalog">${e(t('Biblioteca IR/RF'))}</button></div>${status}`,
+      `<button type="button" class="next wide" data-command="new"${canCreate ? '' : ' disabled'}>${icon('mdi:plus')}${e(t('Crear un control nuevo'))}</button>
+      <div class="lbl">${e(t('Emisores'))}<span class="grow"></span><button type="button" class="lnk" data-view="devices">${e(t('Equipos'))} ›</button></div>${this.renderNodes()}
+      ${panelLabel(t('Controles aprendidos'))}${items ? `<div class="list rlist">${items}</div>` : empty}
+      ${panelLabel(t('Recursos'))}<div class="gtiles">${tile('mdi:air-conditioner', t('Aire con estado completo'), 'data-view="absolute"')}${tile('mdi:database-outline', t('Biblioteca IR / RF'), 'data-view="catalog"')}${tile('mdi:clock-outline', t('Temporizadores y horarios'), 'data-command="timers"')}${tile('mdi:router-wireless', t('Equipos'), 'data-view="devices"')}</div>
+      <div class="gstyle">${icon('mdi:palette-outline')}<span>${e(t('Estilo general de los controles'))}</span><b>${e(t(STYLE_NAMES[general]))}</b><button type="button" class="ib sm" data-command="general-style" aria-label="${e(t('Cambiar en Ajustes'))}" title="${e(t('Cambiar en Ajustes'))}">${icon('mdi:chevron-right')}</button></div>${status}`,
     );
   }
 
@@ -546,7 +559,7 @@ export class HomeManagerRf extends HTMLElement {
                 '',
               )}</select></div><button type="button" class="next" data-guide="bring">${icon('mdi:download')}${e(t('Traer los botones que faltan'))}</button></div>`
           : `<div class="gbringbox empty">${icon('mdi:bookshelf')}<span>${e(t('Todavía no guardaste bibliotecas.'))}</span><button type="button" class="chip" data-guide="libraries">${icon('mdi:plus')}${e(t('Agregar una biblioteca'))}</button></div>`;
-      body = `${tabs}<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
+      body = `${tabs}<div class="glive"><div class="gscroll"><div data-slot="glive"></div></div><span class="gprog">${done} / ${order.length}</span></div>${
         bringing
           ? bring
           : current
@@ -622,6 +635,25 @@ export class HomeManagerRf extends HTMLElement {
         parts: [],
         layout: applyTemplate(g.kind, g.design, buttons),
       };
+      // 0.14 · K: the button being learned lights up and the preview moves to it, as in the mockup.
+      const current = this.guideOrder()[g.index];
+      const learned =
+        current && buttons.find(button => button.name.trim().toLowerCase() === current.name.toLowerCase());
+      this.guideLive.lit = current ? [current.id, learned?.id ?? ''] : [];
+      requestAnimationFrame(() => {
+        const box = this.root.querySelector<HTMLElement>('.gscroll');
+        const piece = this.guideLive.litPiece;
+        if (!box || !piece) return;
+        const top = piece.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+        const target = Math.max(0, top - (box.clientHeight - piece.getBoundingClientRect().height) / 2);
+        // The preview is drawn anew each time: it starts where it was and glides to the next button.
+        box.scrollTop = this.guideScroll;
+        box.scrollTo({
+          top: target,
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+        this.guideScroll = target;
+      });
     }
   }
 
@@ -1325,8 +1357,10 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   /** Opens one remote's page, for example from a symbol that uses it (#73). */
-  openRemote(remoteId: string): void {
+  openRemote(remoteId: string, design = false): void {
     this.open(remoteId);
+    // 0.14 · N: «Edit» in a symbol's Control opens the remote straight in its editor.
+    if (design) void this.command('edit');
   }
   private open(remoteId: string): void {
     if (this.selected !== remoteId) this.closeLearn(false);
@@ -1456,6 +1490,24 @@ export class HomeManagerRf extends HTMLElement {
           this.selected = null;
           this.draft = null;
           this.show('new');
+          break;
+        case 'timers':
+          // The timers live in each full-state air: the first one opens on its «Timers» tab.
+          this.show('absolute');
+          this.resources.openTimers();
+          break;
+        case 'general-style':
+          this.libraryFromGuide = false;
+          this.learn.stop();
+          this.infrared.stopCapture();
+          this.fromSettings = false;
+          this.dispatchEvent(
+            new CustomEvent('homemanager-shell-command', {
+              detail: { command: 'settings', section: 'appearance-section' },
+              bubbles: true,
+              composed: true,
+            }),
+          );
           break;
         case 'list':
           this.wizard = false;

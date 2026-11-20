@@ -74,7 +74,16 @@ test('in edit mode it is dragged, resized with the same numbers as the panel, an
   const editor = card.locator('homemanager-editor');
   const width = editor.locator('[data-att-num=w]');
   await expect(width).toHaveValue('120');
-  // Dragging moves it; the offset is saved.
+  // Dragging moves it; the offset is saved. Choosing it moves the plan to its symbol first: wait until it is still.
+  let last = null;
+  await expect
+    .poll(async () => {
+      const now = await box.boundingBox();
+      const still = !!last && Math.abs(now.x - last.x) < 0.5 && Math.abs(now.y - last.y) < 0.5;
+      last = now;
+      return still;
+    })
+    .toBe(true);
   let at = await box.boundingBox();
   await page.mouse.move(at.x + 20, at.y + 20);
   await page.mouse.down();
@@ -128,8 +137,9 @@ test('the panel pins another piece of the control and removes it', async ({ page
   await editor.getByRole('group', { name: 'Elementos del control' }).getByRole('button', { name: 'Vel' }).click();
   await expect.poll(async () => (await attached(page)).map(item => item.id)).toEqual(['w1', 'w2']);
   await expect(card.locator('.attached[data-att=w2] homemanager-rf-remote')).toContainText('Vel');
+  // 0.14 · N: the piece just pinned is the chosen one; «Quitar del plano» removes it.
   await editor.getByRole('button', { name: 'Quitar del plano', exact: true }).first().click();
-  await expect.poll(async () => (await attached(page)).map(item => item.id)).toEqual(['w2']);
+  await expect.poll(async () => (await attached(page)).map(item => item.id)).toEqual(['w1']);
 });
 
 test('a ring around the symbol shows how far up its pinned level is', async ({ page }) => {

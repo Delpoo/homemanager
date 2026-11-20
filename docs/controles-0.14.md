@@ -229,3 +229,17 @@ La tercera revisión encontró 10 errores, 4 diferencias más con la maqueta (K 
 - **Desplegables:** `foldStyles()` en `src/ui/side-panel.ts`.
 - **Editor:** se sale con ← o ✕; el ✓ flotante ya no está.
 - **Pendiente de decidir:** K (iluminar el botón en el paso 3), L (lista del paso 3), M (página «Controls») y N (ficha › «Control»). Las mejoras grandes P2, P3, P4 y P6 van primero en maqueta.
+
+## Diferencias K a N (0.14.0-beta.8)
+
+El propietario eligió las cuatro como la maqueta:
+
+| | Diferencia | Cómo quedó |
+|---|---|---|
+| K | Paso 3: el botón que se aprende | Se ilumina en la vista previa (`lit` en `remote-view.ts`) y la vista previa baja hasta él. |
+| L | Lista del paso 3 | Numerada, alineada a la izquierda. |
+| M | Página «Controls» | Como la maqueta; estilo general nuevo en Apariencia (`src/ui/control-style.ts`, guardado en este navegador). |
+| N | Ficha › «Control» | `controlModule()` en `src/editor/index.ts`: «Envía por», control aprendido, tarjeta con vista previa, «En el plano» con interruptores (`attached-editor.ts`). |
+
+Queda distinto de la maqueta: dentro de «En el plano», cada pieza conserva sus ajustes de antes (ancho, alto, letra, colores, relieve); la maqueta propone otros (forma, tamaño S–XL, lugar en 9 puntos, opacidad) y el plano chiquito con el símbolo. Eso va con P2–P6, primero en maqueta.
+

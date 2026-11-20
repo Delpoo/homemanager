@@ -120,19 +120,36 @@ export class HomeManagerRfRemote extends HTMLElement {
     // even at the same width.
     this.fitWidth = 0;
     this.resizer.observe(this);
+    document.addEventListener('homemanager-control-style-change', this.onGeneralLook);
   }
   disconnectedCallback(): void {
     this.resizer?.disconnect();
+    document.removeEventListener('homemanager-control-style-change', this.onGeneralLook);
   }
+  /** The general style changed in Appearance: drawn again with it. */
+  private onGeneralLook = () => this.render();
   /** A row of modes whose names do not fit shows only the symbols, all alike, with the name on hover;
    * a name cut to «Fa…» says nothing. */
   private fitSegments(): void {
     for (const group of this.root.querySelectorAll<HTMLElement>('.fseg, .kmodes')) {
-      group.classList.remove('tight');
+      group.classList.remove('tight', 'wrap', 'small');
       const buttons = [...group.querySelectorAll<HTMLElement>('button')];
-      if (!buttons.length || !buttons.every(button => button.querySelector('ha-icon'))) continue;
       const names = [...group.querySelectorAll<HTMLElement>('button > .kt, button > span:not(.sa)')];
-      if (names.some(name => name.scrollWidth > name.clientWidth + 1)) group.classList.add('tight');
+      for (const name of names) if (name.dataset.full !== undefined) name.textContent = name.dataset.full;
+      const cut = () => names.some(name => name.scrollWidth > name.clientWidth || name.scrollHeight > name.clientHeight + 1);
+      if (!buttons.length || !names.length || !cut()) continue;
+      if (buttons.every(button => button.querySelector('ha-icon'))) {
+        group.classList.add('tight');
+        continue;
+      }
+      // 0.14 · words only («Off · On · Temperature Up»): two lines, then what tells them apart; the
+      // whole name stays on hover.
+      group.classList.add('wrap');
+      if (!cut()) continue;
+      group.classList.add('small');
+      if (!cut()) continue;
+      const full = names.map(name => (name.dataset.full ??= name.textContent ?? ''));
+      distinctNames(full).forEach((short, i) => (names[i].textContent = short));
     }
   }
   /** 0.14 · a key's name is never cut to «Spe…»: seven keys that all say «Spe…» say nothing. When the
@@ -188,6 +205,18 @@ export class HomeManagerRfRemote extends HTMLElement {
         name.classList.add('wrap');
         name.title = name.textContent ?? '';
       }
+    });
+    this.fitCharts();
+  }
+  /** A small chart drops its dates and limits, then its title, before anything is cut. */
+  private fitCharts(): void {
+    this.root.querySelectorAll<HTMLElement>('.kgraph:not(.inset-chart)').forEach(chart => {
+      chart.classList.remove('tight', 'tighter');
+      if (!chart.clientHeight) return;
+      const spark = chart.querySelector<HTMLElement>('[data-spark]');
+      const over = () => chart.scrollHeight > chart.clientHeight + 1 || (!!spark && spark.scrollHeight > spark.clientHeight + 1);
+      if (over()) chart.classList.add('tight');
+      if (over()) chart.classList.add('tighter');
     });
   }
   private fits(face: HTMLElement, name: HTMLElement): boolean {
@@ -380,6 +409,7 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     this.bind();
     this.markSelection();
+    this.markLit();
     this.fitSegments();
     this.fitKeys();
     this.onState?.();
@@ -398,7 +428,13 @@ export class HomeManagerRfRemote extends HTMLElement {
     const remote = this._remote;
     const refs = [...piece.buttons, ...Object.values(piece.slots ?? {})];
     const names = refs.map(ref => ctx.name(ref));
-    const label = piece.label ? pieceLabel(piece.label) : (names[0] ?? '');
+    // A level or a list without a name of its own is a level or a list, not its first button («On/Off: goes up and down»).
+    const unnamed = ['updown', 'slider', 'steps', 'knob'].includes(piece.type)
+      ? t('Nivel')
+      : ['modes', 'cycle'].includes(piece.type)
+        ? t('Opciones')
+        : (names[0] ?? '');
+    const label = piece.label ? pieceLabel(piece.label) : unnamed;
     // Each button of a list is one option; without its own label, the option is the button's name.
     const options = piece.buttons.map((_, i) => piece.options?.[i]?.label ?? names[i]).filter(Boolean);
     let line: string;
@@ -486,6 +522,7 @@ export class HomeManagerRfRemote extends HTMLElement {
   private updateChart(piece: RfWidget): void {
     const target = this.root.querySelector<HTMLElement>(`[data-spark="${CSS.escape(piece.id)}"]`);
     if (target) target.innerHTML = historyChart(piece, this.chart(piece));
+    this.fitCharts();
   }
 
   private renderWidget(widget: RfWidget, ctx: KeyContext): string {
@@ -517,6 +554,33 @@ export class HomeManagerRfRemote extends HTMLElement {
       content + (withChart ? chartFace(widget, ctx, true) : '') + mark, tools, this._editing);
   }
 
+  /** 0.14 · the guide's step 3 lights the piece of the button being learned (as in the mockup). */
+  private litRefs: string[] = [];
+  set lit(refs: string[]) {
+    this.litRefs = refs.filter(Boolean);
+    this.markLit();
+  }
+  /** The lit piece, to bring it into view. */
+  get litPiece(): HTMLElement | null {
+    return this.root.querySelector<HTMLElement>('.widget.lit');
+  }
+  private markLit(): void {
+    const refs = new Set(this.litRefs);
+    this.root.querySelectorAll<HTMLElement>('.widget').forEach(node => {
+      const piece = this.piece(node.dataset.widget!);
+      const uses = !!piece && [...piece.buttons, ...Object.values(piece.slots ?? {})].some(ref => refs.has(ref));
+      node.classList.toggle('lit', uses);
+      node.querySelectorAll('.lit').forEach(part => part.classList.remove('lit'));
+      if (!uses || !piece) return;
+      // The very option of a row, or the very arrow of a level, as on the remote in the mockup.
+      piece.buttons.forEach((ref, j) => {
+        if (!refs.has(ref)) return;
+        node.querySelector(`[data-op=mode][data-v="${j}"], [data-op=set][data-v="${j}"]`)?.classList.add('lit');
+        if (piece.sendBy === 'updown' || ['updown', 'slider', 'steps', 'knob'].includes(piece.type))
+          node.querySelector(`[data-op=${j === 0 ? 'dec' : 'inc'}]`)?.classList.add('lit');
+      });
+    });
+  }
   /** The chosen pieces are outlined; one alone gets its handles and mini bar. */
   private markSelection(): void {
     const chosen = new Set(this._selected);

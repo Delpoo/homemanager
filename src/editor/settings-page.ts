@@ -1,4 +1,5 @@
 import { t, getLanguage } from '../i18n/index.js';
+import '../ui/control-style.js';
 import '../shell/layer-choice.js';
 import '../ui/theme-choice.js';
 import { showLink } from '../shell/show-link.js';
@@ -179,7 +180,7 @@ export function appearanceBody(grid?: number): string {
     .map(([value, label]) => `<option value="${value}"${value === link ? ' selected' : ''}>${esc(label)}</option>`)
     .join('')}</select></label>`;
   // 0.13: the hover-help switch lives in Help.
-  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
+  return `<homemanager-theme-choice></homemanager-theme-choice><homemanager-style-choice></homemanager-style-choice><homemanager-layer-choice></homemanager-layer-choice>${linkField}${gridField}`;
 }
 
 /** A space's place in the plan, for its row: on the plan, drawn here, a kept copy, or nothing. */

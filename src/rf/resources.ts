@@ -293,8 +293,28 @@ export class HomeManagerRemoteResources extends HTMLElement {
     this.busy = false;
     void this.run(async () => {
       const data = await remoteResources.list(hass);
-      if (generation === this.generation) this.data = data;
+      if (generation !== this.generation) return;
+      this.data = data;
+      // 0.14 · M: «Timers and schedules» opens the first full-state air on its timers.
+      const first = this.timersNext ? data.controls[0] : undefined;
+      this.timersNext = false;
+      if (first) {
+        this.control = first;
+        this.draft = { ...first.state };
+        this.tab = 'timers';
+      }
     });
+  }
+  private timersNext = false;
+  /** Opened from «Timers and schedules»: once loaded, the first air shows its timers. */
+  openTimers(): void {
+    this.timersNext = true;
+    if (!this.data?.controls[0]) return;
+    this.timersNext = false;
+    this.control = this.data.controls[0];
+    this.draft = { ...this.control.state };
+    this.tab = 'timers';
+    this.render();
   }
 
   private async run(work: () => Promise<void>): Promise<void> {
