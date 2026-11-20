@@ -111,6 +111,11 @@ export const enControls: Record<string, string> = {
   'Número grande': 'Big number',
   'Detrás de un botón': 'Behind a button',
   Colorido: 'Colourful',
+  // On a remote «Arriba» and «Abajo» are arrows (the plan's «Top» and «Bottom» are places).
+  'control|Arriba': 'Up',
+  'control|Abajo': 'Down',
+  'Números del 0 al 9.': 'Numbers 0 to 9.',
+  'y {count} más': 'and {count} more',
   Cristal: 'Glass',
   Quieto: 'Still',
   Gira: 'Spins',

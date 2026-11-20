@@ -2,7 +2,7 @@ import { historySeries } from '../integration/history.js';
 import { iconPicker } from '../ui/icon-picker.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { learningWorkspaceStyles } from '../ui/learning-components.js';
-import { t } from '../i18n/index.js';
+import { t, tc } from '../i18n/index.js';
 import { escapeHTML as e, type Hass } from '../card/types.js';
 import { installPanelComponents, panelField, keepPanelFocus } from '../ui/panel-components.js';
 import {
@@ -54,7 +54,7 @@ import type { HomeManagerRfLearn } from './learn.js';
 import type { HomeManagerRfDevices } from './devices.js';
 import type { HomeManagerIr } from './ir-manager.js';
 // Templates name their buttons and pieces in the screen's language.
-setTemplateNames(name => t(name));
+setTemplateNames(name => tc('control', name));
 
 /** Controls (0.13): one panel beside the plan for RF and IR remotes, administrators only
  * (the integration enforces it). The list shows the ESPHome devices that send and

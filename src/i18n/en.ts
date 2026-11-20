@@ -757,7 +757,7 @@ Object.assign(en, {
   'Detectado / abierto': 'Detected / open',
   'Sin detectar / cerrado': 'Not detected / closed',
   'Entonces se ve': 'Then show',
-  Color: 'Color',
+  Color: 'Colour',
   'Se muestra en estos símbolos': 'Shown on these symbols',
   'Sin símbolos también puede aparecer en la barra y en Ahora.':
     'Without symbols it can still appear in the activity bar and Now.',
@@ -792,7 +792,7 @@ Object.assign(en, {
   '{shown} de {total} iconos': '{shown} of {total} icons',
   'Color libre': 'Custom color',
   'Paleta sugerida': 'Suggested palette',
-  'Color {n}': 'Color {n}',
+  'Color {n}': 'Colour {n}',
   'El tono se ajusta en pantalla para que sea legible. El rojo se reserva por defecto para alertas.':
     'The displayed tone adjusts for readability. Red is reserved for alerts by default.',
 });

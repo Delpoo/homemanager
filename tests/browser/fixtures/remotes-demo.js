@@ -91,7 +91,7 @@ const widget = (id, type, x, y, w, h, attributes) => ({
 const layout = [
   widget('canvas', 'canvas', 0, 0, 6, 3),
   widget('vertical', 'slider', 0, 0, 2, 3, {
-    label: 'Severity',
+    label: 'Intensidad',
     buttons: ['v1', 'v2', 'v3'],
     orientation: 'vertical',
     values: { min: 1, max: 3, step: 1 },

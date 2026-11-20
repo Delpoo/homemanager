@@ -55,7 +55,7 @@ import {
 import { brandMark, keyStyles, radiusOf } from './remote-keys.js';
 import { personName } from '../model/names.js';
 // Templates name their buttons and pieces in the screen's language.
-setTemplateNames(name => t(name));
+setTemplateNames(name => tc('control', name));
 
 export interface DesignerOptions {
   key: string;
@@ -1577,7 +1577,7 @@ export class ControlDesigner extends HTMLElement {
       html += `<div class="isec">${e(t('Botones aprendidos'))}</div>${BLOCK_SLOTS[piece.type]
         .map(
           ([slot, name, icon]) =>
-            `<div class="slotr">${icon ? glyph(icon) : piece.type === 'colors' ? `<i class="cdot" style="--cc:${{ red: '#d0453a', green: '#3f8f5f', yellow: '#d9b21f', blue: '#3f7fbf' }[slot]}"></i>` : `<b class="sk">${e(slot === 'ok' ? 'OK' : t(name))}</b>`}<span>${e(t(name))}</span>${this.refSelect('', piece.slots?.[slot], '—', `data-slot="${slot}"`, t(name))}</div>`,
+            `<div class="slotr">${icon ? glyph(icon) : piece.type === 'colors' ? `<i class="cdot" style="--cc:${{ red: '#d0453a', green: '#3f8f5f', yellow: '#d9b21f', blue: '#3f7fbf' }[slot]}"></i>` : `<b class="sk">${e(slot === 'ok' ? 'OK' : tc('control', name))}</b>`}<span>${e(tc('control', name))}</span>${this.refSelect('', piece.slots?.[slot], '—', `data-slot="${slot}"`, tc('control', name))}</div>`,
         )
         .join('')}`;
     }
@@ -2679,12 +2679,12 @@ const designerStyles = `
 .islider output{min-width:38px;font-size:12px;text-align:right;color:var(--hm-ink);font-variant-numeric:tabular-nums}
 .stp{display:inline-flex;align-items:center;border:1px solid var(--hm-line);border-radius:9px;overflow:hidden;background:var(--hm-bg)}
 .stp em{font-style:normal;font-size:11px;padding:0 0 0 6px;color:var(--hm-muted)}
-.stp button{width:26px;min-height:28px;padding:0;border:0;border-radius:0;background:transparent;color:var(--hm-ink)}
+.stp button{width:26px;min-height:28px;padding:0;border:0;border-radius:0;background:transparent;color:var(--hm-ink)}@media(pointer:coarse){.stp button{width:36px;min-height:36px}}
 .stp output{min-width:22px;text-align:center;font-size:12.5px;color:var(--hm-ink);font-variant-numeric:tabular-nums}
 .sizes{display:flex;align-items:center;gap:6px}
 .xywh{display:grid;grid-template-columns:repeat(2,auto);gap:6px}
 .sw{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.sw button{width:19px;height:19px;min-height:19px;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--hm-ink) 18%,transparent);background:var(--c)}
+.sw button{width:19px;height:19px;min-height:19px;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--hm-ink) 18%,transparent);background:var(--c)}@media(pointer:coarse){.sw button{width:28px;height:28px;min-height:28px}}
 .sw button.auto{background:conic-gradient(var(--hm-surface-2) 0 25%,var(--hm-surface) 0 50%,var(--hm-surface-2) 0 75%,var(--hm-surface) 0);}
 .sw button[aria-pressed=true]{box-shadow:0 0 0 2px var(--hm-surface),0 0 0 4px var(--hm-brand)}
 .swc{position:relative;display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:var(--hm-surface-2);cursor:pointer}.swc ha-icon{--mdc-icon-size:14px}

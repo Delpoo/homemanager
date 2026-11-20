@@ -96,7 +96,10 @@ export async function mountRfFixture(initial, version = '0.0.0-test', { mount = 
         let button = remote.buttons.find(item => item.id === message.button_id);
         if (button) Object.assign(button, message.button);
         else {
-          button = { id: slug(message.button.name), icon: null, ...message.button, fingerprint: 'abcd1234' };
+          // As the integration does: a name that slugs like another («Speed +», «Speed −») gets «-2».
+          let id = slug(message.button.name);
+          for (let n = 2; remote.buttons.some(item => item.id === id); n++) id = `${slug(message.button.name)}-${n}`;
+          button = { id, icon: null, ...message.button, fingerprint: 'abcd1234' };
           remote.buttons.push(button);
         }
         if (message.role) remote.parts.find(part => part.id === message.role.part).roles[message.role.role] = button.id;

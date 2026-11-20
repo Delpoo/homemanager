@@ -86,7 +86,7 @@ test('a template previews on the named control, and a partial catalog import rea
   await expect(player.locator('[data-op=track]')).toHaveAttribute('aria-orientation', 'vertical');
   await expect(player.locator('[data-reading=graph]')).toContainText('W');
   await shot(page, info, 'grafica-severity');
-  const slider = player.getByRole('slider', { name: 'Severity' });
+  const slider = player.getByRole('slider', { name: 'Intensidad' });
   expect((await slider.boundingBox()).width).toBeGreaterThanOrEqual(24);
   await slider.press('ArrowUp');
   await expect(slider).toBeFocused();
