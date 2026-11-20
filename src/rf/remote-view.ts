@@ -28,6 +28,7 @@ import {
   chartFace,
   type KeyContext,
   keyWidget,
+  helpNumber,
   remoteShell,
   remoteViewStyles,
 } from '../ui/remote-keys.js';
@@ -96,6 +97,33 @@ export class HomeManagerRfRemote extends HTMLElement {
       remoteViewStyles(ROW, GAP) + keyStyles + controlViewStyles,
       false,
     );
+  }
+  private resizer?: ResizeObserver;
+  private fitWidth = 0;
+  connectedCallback(): void {
+    // Segments re-check their names when the control changes width (panel opened, phone turned).
+    if (typeof ResizeObserver === 'undefined') return;
+    this.resizer ??= new ResizeObserver(entries => {
+      const width = Math.round(entries[0]?.contentRect.width ?? 0);
+      if (width === this.fitWidth) return;
+      this.fitWidth = width;
+      this.fitSegments();
+    });
+    this.resizer.observe(this);
+  }
+  disconnectedCallback(): void {
+    this.resizer?.disconnect();
+  }
+  /** A row of modes whose names do not fit shows only the symbols, all alike, with the name on hover;
+   * a name cut to «Fa…» says nothing. */
+  private fitSegments(): void {
+    for (const group of this.root.querySelectorAll<HTMLElement>('.fseg, .kmodes')) {
+      group.classList.remove('tight');
+      const buttons = [...group.querySelectorAll<HTMLElement>('button')];
+      if (!buttons.length || !buttons.every(button => button.querySelector('ha-icon'))) continue;
+      const names = [...group.querySelectorAll<HTMLElement>('button > .kt, button > span:not(.sa)')];
+      if (names.some(name => name.scrollWidth > name.clientWidth + 1)) group.classList.add('tight');
+    }
   }
 
   set remote(remote: DrawableRemote | null) {
@@ -219,9 +247,16 @@ export class HomeManagerRfRemote extends HTMLElement {
     const columns = this.columns();
     const grid = gridOf(all);
     const height = Math.max(1, grid.rows ?? rows(all) + (this._editing ? 1 : 0));
+    // The dotted cells mark free room only: under a value or a chart (see-through by design) they made
+    // the piece look split into cells.
+    const taken = new Set<number>();
+    if (this._editing)
+      for (const piece of layout)
+        for (let y = piece.y; y < piece.y + piece.h; y++)
+          for (let x = piece.x; x < Math.min(columns, piece.x + piece.w); x++) taken.add(y * columns + x);
     const cells = this._editing
       ? Array.from({ length: height * columns }, (_, index) =>
-          remoteCell((index % columns) + 1, Math.floor(index / columns) + 1),
+          taken.has(index) ? '' : remoteCell((index % columns) + 1, Math.floor(index / columns) + 1),
         ).join('')
       : '';
     const ctx = this.context(remote);
@@ -241,11 +276,14 @@ export class HomeManagerRfRemote extends HTMLElement {
         }`
       : '';
     this.root.innerHTML = remoteShell(look, this._editing, columns, gap, `${cells}${widgets}${empty}`) + help;
+    // The numbers sit on each piece's outer corner, as in the mockup: inside the piece they covered its name.
     if (this.helping && helpable)
-      for (const [piece, n] of numbered)
-        this.root
-          .querySelector(`[data-widget="${CSS.escape(piece.id)}"]`)
-          ?.insertAdjacentHTML('beforeend', `<span class="knum-help" aria-hidden="true">${n}</span>`);
+      this.root
+        .querySelector('.grid')
+        ?.insertAdjacentHTML(
+          'beforeend',
+          numbered.map(([piece, n]) => helpNumber(piece, n)).join(''),
+        );
     this.root.querySelector('[data-help]')?.addEventListener('click', () => {
       this.helping = !this.helping;
       this.render();
@@ -257,6 +295,7 @@ export class HomeManagerRfRemote extends HTMLElement {
     }
     this.bind();
     this.markSelection();
+    this.fitSegments();
     this.onState?.();
   }
 

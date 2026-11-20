@@ -33,3 +33,12 @@ export function t(source: string, vars?: Record<string, string | number>): strin
     ? template.replace(/\{(\w+)\}/g, (match: string, name: string) => (name in vars ? String(vars[name]) : match))
     : template;
 }
+/** A Spanish word with two meanings in English: «Más» is the + key of a remote and also a «More» menu;
+ * «Nivel» is a button's level and also an alert's severity. The context picks the English: the key
+ * «context|source» wins when it exists, otherwise the plain word. Spanish shows the word as it is. */
+export function tc(context: string, source: string, vars?: Record<string, string | number>): string {
+  const key = `${context}|${source}`;
+  if (getLanguage() !== 'es' && (key in en || key in enRf || key in enControls || key in enShell || key in enPlan012))
+    return t(key, vars);
+  return t(source, vars);
+}

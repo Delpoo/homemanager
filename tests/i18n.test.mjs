@@ -53,3 +53,31 @@ test('language follows Home Assistant and falls back to readable text', async ()
   assert.equal(i18n.t('Sin traducción'), 'Sin traducción');
   globalThis.__homemanagerLanguage = undefined;
 });
+
+test('a Spanish word with two meanings keeps both in English (0.14)', async () => {
+  const { buildSync } = await import('esbuild');
+  const [bundle] = buildSync({
+    entryPoints: [path.join(root, 'src/i18n/index.ts')],
+    bundle: true,
+    format: 'esm',
+    write: false,
+    platform: 'neutral',
+  }).outputFiles;
+  const i18n = await import(`data:text/javascript;base64,${Buffer.from(bundle.text).toString('base64')}`);
+  const before = globalThis.__homemanagerLanguage;
+  i18n.setLanguage('en');
+  // «Más» is the + key of a remote and the «More» menu; «Nivel» a button's level and an alert's severity.
+  assert.equal(i18n.t('Más'), 'Up');
+  assert.equal(i18n.tc('menú', 'Más'), 'More');
+  assert.equal(i18n.t('Nivel'), 'Level');
+  assert.equal(i18n.tc('alerta', 'Nivel'), 'Severity');
+  assert.equal(i18n.tc('pestaña', 'Información'), 'Info');
+  assert.equal(i18n.tc('pestaña', 'Botones'), i18n.t('Botones'), 'without its own context it is the plain word');
+  // Every literal context in the code has its English.
+  for (const file of sources(path.join(root, 'src')))
+    for (const [, context, source] of readFileSync(file, 'utf8').matchAll(/\btc\(\s*'([^']+)',\s*'([^']+)'/g))
+      assert.notEqual(i18n.tc(context, source), source, `No English for ${context}|${source}`);
+  i18n.setLanguage('es');
+  assert.equal(i18n.tc('menú', 'Más'), 'Más');
+  globalThis.__homemanagerLanguage = before;
+});

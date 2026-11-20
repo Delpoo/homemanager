@@ -52,6 +52,9 @@ export class HomeManagerRfLearn extends HTMLElement {
   receiverOnline?: (id: string) => boolean;
   private guided = true;
   private target = '';
+  /** Inside the «Control nuevo» guide, which already names the button and has its own «Saltar» and
+   * «Siguiente»: only the ring is left, and tapping it starts listening (as in the mockup). */
+  inGuide = false;
 
   /** An always-visible panel is idle until the user starts a capture. */
   prepare(receiver: string, name = ''): void {
@@ -244,7 +247,7 @@ export class HomeManagerRfLearn extends HTMLElement {
     // guided mode, any button is taken in free mode. Words live in tooltips.
     const idle = !this.listening && !this.candidate;
     const target =
-      this.guided && idle
+      this.guided && idle && !this.inGuide
         ? `<label class="target">${e(t('Botón que querés aprender'))}<input name="target" maxlength="80" value="${e(this.target)}" placeholder="${e(this.nextName())}"></label><button type="button" class="next" data-command="guided-start"${!available ? ' disabled' : ''}>${icon('mdi:access-point')}${e(t('Empezar'))}</button>`
         : '';
     const evidence =
@@ -276,8 +279,10 @@ export class HomeManagerRfLearn extends HTMLElement {
           `<button type="button" class="chip" data-listen="${e(item.id)}" aria-pressed="${item.id === this.listen}">${icon('mdi:chip')}${e(rfText(item.name))}</button>`,
       )
       .join('');
-    this.root.innerHTML = `<section class="sheet learn" aria-label="${e(t('Aprender botones'))}">${modes}${help}
-${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group" aria-label="${e(t('Escucha'))}">${icon('mdi:ear-hearing')}<div class="chips">${listeners}</div></div>` : ''}${evidence}${queue}${this.candidate ? this.renderCandidate() : this.unclassified ? '<div data-signal-preview></div>' : ''}${status}<div class="learn-foot"><span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="close"', 'primary')}</div></section>`;
+    // In the guide, a choice of receiver only matters when there is more than one.
+    const chooseReceiver = listeners && (!this.inGuide || receivers.length > 1);
+    this.root.innerHTML = `<section class="sheet learn${this.inGuide ? ' in-guide' : ''}" aria-label="${e(t('Aprender botones'))}">${this.inGuide ? '' : modes}${help}
+${this.renderListen(available)}${target}${chooseReceiver ? `<div class="row-icon" role="group" aria-label="${e(t('Escucha'))}">${icon('mdi:ear-hearing')}<div class="chips">${listeners}</div></div>` : ''}${evidence}${queue}${this.candidate ? this.renderCandidate() : this.unclassified ? '<div data-signal-preview></div>' : ''}${status}${this.inGuide ? '' : `<div class="learn-foot"><span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="close"', 'primary')}</div>`}</section>`;
     this.bind();
     const signalId = this.candidate?.candidate_id ?? this.unclassified;
     if (signalId && this.hass) {
@@ -297,7 +302,7 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
     return buttonSuggestions().find(([label]) => !used.has(label))?.[0] ?? t('Botón');
   }
 
-  private renderListen(): string {
+  private renderListen(available = true): string {
     const c = this.candidate;
     const receiver = this.transmitterName(this.listen);
     // Guided mode always names the chosen button; free mode accepts any (#64).
@@ -306,7 +311,12 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
       title: string,
       detail: string;
     if (!this.listening) {
-      title = this.guided && !this.until ? t('Elegí qué botón vas a aprender.') : t('El receptor dejó de escuchar.');
+      title =
+        this.guided && !this.until
+          ? this.inGuide
+            ? t('Tocá para escuchar')
+            : t('Elegí qué botón vas a aprender.')
+          : t('El receptor dejó de escuchar.');
       detail = '';
     } else if (c?.confirmed) {
       dot = 'ok';
@@ -340,7 +350,14 @@ ${this.renderListen()}${target}${listeners ? `<div class="row-icon" role="group"
       title = t('Pulsá un botón del control');
       detail = t('Cualquiera, en el orden que quieras. Escucha {receiver}.', { receiver });
     }
-    const tap = this.listening ? '' : this.guided && !this.until ? '' : ' data-command="listen"';
+    const tap =
+      this.listening || !available
+        ? ''
+        : this.guided && !this.until
+          ? this.inGuide
+            ? ' data-command="guided-start"'
+            : ''
+          : ' data-command="listen"';
     const glyph = dot === 'ok' ? 'mdi:check' : dot === 'warn' ? 'mdi:alert-outline' : 'mdi:access-point';
     return `<div class="listen ${dot}"><button type="button" class="ring${this.listening ? ' on' : ''}"${tap} aria-label="${e(this.listening ? title : t('Escuchar'))}"${tap ? '' : ' tabindex="-1"'}><span class="waves" aria-hidden="true"><i></i><i></i><i></i></span><span class="core">${icon(glyph)}</span></button><div class="text"><strong>${e(title)}</strong>${this.listening && Date.now() - this.staticAt < STATIC_MS ? `<span class="hiss" role="img" title="${e(t('Ruido de fondo en el receptor: se ignora'))}" aria-label="${e(t('Ruido de fondo en el receptor: se ignora'))}">${icon('mdi:waveform')}</span>` : ''}${detail ? `<span class="muted">${e(detail)}</span>` : ''}</div></div>`;
   }

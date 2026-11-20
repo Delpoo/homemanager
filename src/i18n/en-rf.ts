@@ -152,6 +152,7 @@ export const enRf: Record<string, string> = {
   'No se pudo enviar {name}: {message}': 'Could not send {name}: {message}',
   Encender: 'Turn on',
   Más: 'Up',
+  'menú|Más': 'More',
   Menos: 'Down',
   Tono: 'Tone',
   'Modo noche': 'Night mode',

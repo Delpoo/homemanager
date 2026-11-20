@@ -626,12 +626,13 @@ export class HomeManagerRf extends HTMLElement {
       };
     learn.hass = this._hass;
     learn.inline = true;
+    learn.inGuide = true;
     learn.transmitters = this.transmitters;
     learn.remote = this.remote() ?? null;
     learn.draft = learn.remote ? null : this.draft;
     this.learnOwner = this.selected;
     this.learning = true;
-    // A named button waits for «Empezar»; free learning (extras, no template) listens at once.
+    // A named button waits for a tap on the ring; free learning (extras, no template) listens at once.
     if (name) learn.prepare(this.receiver(), name);
     else learn.start(this.receiver());
   }
@@ -1417,6 +1418,7 @@ export class HomeManagerRf extends HTMLElement {
    * name the button they will press (guided); a new one starts listening at once. */
   private startLearn(name = ''): void {
     const learn = this.learn;
+    learn.inGuide = false;
     this.view = 'learn';
     this.say('');
     if (this.learnSuspended && this.learnOwner === this.selected) {

@@ -165,6 +165,7 @@ export const enControls: Record<string, string> = {
   'Aprender un botón más': 'Learn one more button',
   'Agregar uno para aprender después': 'Add one to learn later',
   'Volver al diseño automático': 'Back to the automatic layout',
+  'Usar diseño automático': 'Use automatic layout',
   'Duplicar para otro aparato': 'Duplicate for another appliance',
   'Copiar este diseño a otro control': 'Copy this layout to another control',
   '{count} · {unused} sin usar': '{count} · {unused} unused',
@@ -337,6 +338,8 @@ export const enControls: Record<string, string> = {
   // 0.14 · catalogue of «Editar control».
   Grupos: 'Groups',
   'Niveles y listas': 'Levels and lists',
+  'pestaña|Niveles y listas': 'Levels',
+  'pestaña|Información': 'Info',
   Especiales: 'Special',
   'Prender / apagar': 'On / off',
   'Botón de app': 'App button',

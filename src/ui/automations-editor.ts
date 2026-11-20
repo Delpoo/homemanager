@@ -1,7 +1,7 @@
 import { checkList, checkListStyles } from './check-list.js';
 import { iconPicker } from './icon-picker.js';
 import { confirmDialog } from './confirm-dialog.js';
-import { t, getLanguage } from '../i18n/index.js';
+import { t, tc, getLanguage } from '../i18n/index.js';
 import { escapeHTML as e, type Configuration, type Hass } from '../card/types.js';
 import { personName, readingName } from '../model/names.js';
 import { serviceLabel } from '../card/device-controls.js';
@@ -315,7 +315,7 @@ export class AutomationsEditor extends HTMLElement {
       ? `<div class="ln">${glyph('mdi:bell-outline')}<span>${e(t('Alerta'))}</span><input class="wide" data-fail-message value="${e(fail.message)}" maxlength="120" placeholder="${e(t('Sigue prendido'))}" aria-label="${e(t('Mensaje de la alerta'))}"><span class="muted">${e(t('en el símbolo y en Ahora'))}</span></div>`
       : '';
     const more = (step: 'check' | 'fail') =>
-      `${ib(t('Más'), 'mdi:dots-horizontal', `data-menu="${step}" aria-expanded="${this.menu === step}"`, 'small')}${this.menu === step ? `<div class="pop menu right" role="menu"><button type="button" role="menuitem" data-drop="${step}">${glyph('mdi:trash-can-outline')}<span>${e(t('Quitar paso'))}</span></button></div>` : ''}`;
+      `${ib(tc('menú', 'Más'), 'mdi:dots-horizontal', `data-menu="${step}" aria-expanded="${this.menu === step}"`, 'small')}${this.menu === step ? `<div class="pop menu right" role="menu"><button type="button" role="menuitem" data-drop="${step}">${glyph('mdi:trash-can-outline')}<span>${e(t('Quitar paso'))}</span></button></div>` : ''}`;
     const conn = `<div class="conn" aria-hidden="true"></div>`;
     const runs = this.runs
       ? `<div class="lbl"><span>${e(t('Últimas ejecuciones'))}</span></div><div class="runs">${
