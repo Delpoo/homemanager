@@ -1,3 +1,4 @@
+import type { SettingsSection } from '../editor/settings-page.js';
 import { installTips } from '../ui/tips.js';
 import { subscribeFailures } from '../integration/automations.js';
 import { navMenuStyles } from '../shell/nav-menu.js';
@@ -73,8 +74,8 @@ export class HomeManagerCard extends HTMLElement {
   }
   updateShell = updateShell.bind(this);
   /** ⚙ menu (0.13 notebook): the list of sections. */
-  openSettingsMenu(): Promise<void> {
-    return openConfiguration(this);
+  openSettingsMenu(section?: SettingsSection): Promise<void> {
+    return openConfiguration(this, section);
   }
   /** 0.13: pins a piece of a remote next to the symbol that uses it, in edit mode. */
   pinPiece(source: { remoteId?: string; irRemoteId?: string }, pieceId: string): Promise<void> {

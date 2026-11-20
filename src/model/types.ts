@@ -65,6 +65,8 @@ export interface ModelDevice {
     modules?: import('./modules.js').ModuleId[];
     layer?: SymbolLayer;
     pinned?: string[];
+    /** 0.14 · pieces of the control drawn next to the symbol (only counted here). */
+    attached?: unknown[];
     alerts?: AlertRuleConfig[];
     highlight?: boolean;
     color?: string;

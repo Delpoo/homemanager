@@ -299,7 +299,8 @@ test('HA uses the same editor, keeps the layout with «Guardar» and opens the d
   const editor = card.locator('homemanager-editor');
   const control = editor.locator('#device-controls-section');
   if (!(await control.evaluate(n => n.open))) await control.locator('summary').click();
-  await editor.getByRole('button', { name: 'Editar control', exact: true }).click();
+  // 0.14 · N: «Editar» on the control's card (Sends via › Home Assistant).
+  await control.locator('.cm-info [data-command=design-open]').click();
   const designer = editor.locator('homemanager-control-designer');
   await expect(designer).toBeVisible();
   await newPiece(designer, 'info', 'title');

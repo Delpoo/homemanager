@@ -36,6 +36,10 @@ import {
 } from '../card/types.js';
 import { rf, type RfRemote } from '../integration/rf.js';
 import { remotes as remoteLibrary, drawIr, type IrRemote } from '../integration/remotes.js';
+import '../rf/remote-view.js';
+import type { HomeManagerRfRemote } from '../rf/remote-view.js';
+import { globalControlStyle, STYLE_NAMES } from '../ui/control-style.js';
+import { MAX_ATTACHED } from '../model/control-layout.js';
 import { layoutOf } from '../rf/layout.js';
 import { attachedBody, attachedEditorStyles, changeAttached, newAttached } from './attached-editor.js';
 import type { AttachedPiece } from '../model/control-layout.js';
@@ -373,6 +377,11 @@ export class HomeManagerEditor extends HTMLElement {
       const target = event.target as HTMLInputElement;
       if (target.dataset.attNum || target.dataset.attColor || target.hasAttribute('data-att-grow'))
         this.attachedInput(target, true);
+      // 0.14 · N: «On the plan» per piece of the control.
+      if (target.dataset.attachedToggle) this.toggleAttached(target.dataset.attachedToggle, target.checked);
+      // 0.14 · N: «Learned remote» for the chosen way of sending.
+      if (target.dataset.controlRemote)
+        this.setControlField(target.dataset.controlRemote === 'ir' ? 'irRemoteId' : 'remoteId', target.value);
     });
     this.root.addEventListener('change', this.onChange);
     this.root.addEventListener('submit', this.onSubmit);
@@ -693,14 +702,14 @@ export class HomeManagerEditor extends HTMLElement {
   private attachedAdding = false;
   /** The card chose a piece on the plan: its numbers show here. */
   chooseAttached(id: string): void {
-    const open = this.root.querySelector<HTMLDetailsElement>('details#module-pinned')?.open;
+    const open = this.root.querySelector<HTMLDetailsElement>('details#device-controls-section')?.open;
     if (this.attachedChosen === id && open) return;
     this.attachedChosen = id;
     this.attachedAdding = false;
-    // Its numbers are in "Next to the symbol": that page opens.
-    this.openSections.add('module-pinned');
+    // 0.14 · N: its numbers are in Control › «On the plan»: that module opens.
+    this.openSections.add('device-controls-section');
     this.render();
-    requestAnimationFrame(() => this.openSection('module-pinned'));
+    requestAnimationFrame(() => this.openSection('device-controls-section'));
   }
   /** While a piece is dragged on the plan, the same numbers move here. */
   showAttachedNumbers(item: AttachedPiece): void {
@@ -731,6 +740,36 @@ export class HomeManagerEditor extends HTMLElement {
     const attached = device.display.attached ?? [];
     if (!attached.some(item => item.id === this.attachedChosen)) this.attachedChosen = attached[0]?.id;
     return attachedBody({ attached, pieces, buttons, chosen: this.attachedChosen, adding: this.attachedAdding });
+  }
+  /** A piece of the control goes on the plan next to the symbol, or leaves it. */
+  private toggleAttached(pieceId: string, on: boolean): void {
+    const device = this.device();
+    const piece = device && this.attachable(device).pieces.find(item => item.id === pieceId);
+    if (!piece) return;
+    if (!on) {
+      this.editAttached(list => list.filter(item => item.piece !== pieceId));
+      this.keepInView(pieceId);
+      return;
+    }
+    this.editAttached(list => {
+      if (list.length >= MAX_ATTACHED) return list;
+      const item = newAttached(list, piece);
+      this.attachedChosen = item.id;
+      return [...list, item];
+    });
+    this.dispatchEvent(
+      new CustomEvent('homemanager-attached-choose', { bubbles: true, composed: true, detail: this.attachedChosen }),
+    );
+    this.keepInView(pieceId);
+  }
+  /** After a redraw, the row just switched stays where the finger was (the phone sheet went back up). */
+  private keepInView(pieceId: string): void {
+    const show = () =>
+      this.root
+        .querySelector(`[data-attached-toggle="${CSS.escape(pieceId)}"]`)
+        ?.closest('.att-row')
+        ?.scrollIntoView({ block: 'center' });
+    requestAnimationFrame(() => requestAnimationFrame(show));
   }
   /** One change of a pinned piece, saved in the draft (one undo step). */
   private editAttached(change: (list: AttachedPiece[]) => AttachedPiece[]): void {
@@ -1443,6 +1482,7 @@ export class HomeManagerEditor extends HTMLElement {
       enhanceEntityInput(field, () => this._hass);
     this.wirePickers();
     this.mountControlPicker();
+    this.mountControlPreview();
     const designHost = this.root.querySelector('.designer-host');
     const designDevice = this.device();
     if (designHost && designDevice) {
@@ -1639,17 +1679,11 @@ export class HomeManagerEditor extends HTMLElement {
     const ir = infrared.find(remote => remote.id === irRemoteId);
     const controlRow = (field: 'remoteId' | 'irRemoteId', name: string, icon: string, count: number, tag: string) =>
       `<div class="ctl-row"><ha-icon icon="${esc(icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(name)}</b><small>${esc(t('{count} botones', { count }))} · ${tag}</small></span><button type="button" class="hm-icon-button small" data-command="control-unlink" data-field="${field}" aria-label="${esc(t('Quitar {name} de este símbolo', { name }))}" title="${esc(t('Quitar {name} de este símbolo', { name }))}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div>`;
-    const remotes = `<div class="field ctl-list"><span class="field-title">${esc(t('Controles de este símbolo'))}</span><input type="hidden" form="device-form" name="remoteId" value="${esc(remoteId)}"><input type="hidden" form="device-form" name="irRemoteId" value="${esc(irRemoteId)}">${
-      rf
-        ? controlRow('remoteId', rf.name, rf.icon ?? 'mdi:remote', rf.buttons.length, 'RF')
-        : remoteId
-          ? controlRow('remoteId', remoteId, 'mdi:remote', 0, 'RF')
-          : ''
-    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}${
-      this.controlPicking && this.controlPicking === device?.id
-        ? '<div class="ctl-pick" data-ctl-pick></div>'
-        : `<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button>`
-    }</div>`;
+    // 0.14 · N: the rows of before became «Sends via», «Learned remote» and the card (controlModule).
+    void rf;
+    void ir;
+    void controlRow;
+    const remotes = `<input type="hidden" form="device-form" name="remoteId" value="${esc(remoteId)}"><input type="hidden" form="device-form" name="irRemoteId" value="${esc(irRemoteId)}">`;
     const irField = '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
@@ -1686,7 +1720,7 @@ export class HomeManagerEditor extends HTMLElement {
       <label class="switch-row" title="${esc(t('Se oculta con el filtro de infraestructura'))}"><ha-icon icon="mdi:lan" aria-hidden="true"></ha-icon><span>${esc(t('Infraestructura'))}</span><input type="checkbox" role="switch" data-infra${infra ? ' checked' : ''} aria-label="${esc(t('Infraestructura'))}"><input type="hidden" name="layer" value="${esc(device?.display.layer ?? '')}" data-other-layer="${otherLayer}"></label>
       <div class="lbl">${esc(t('Aspecto'))}<span class="grow"></span></div>${this.lookFields(device)}${this.colorFields(device)}</div>
       ${this.moduleBlock('device', binding, device)}${this.moduleBlock('indicators', `<div class="fx-host">${indicatorsEditor(this.fxDraft ?? { list: [], selected: 0 }, device, this.valueCandidates(device), this._hass)}</div><div class="lbl">${esc(t('Valores'))}<span class="grow"></span></div>${show}<div class="values-host">${valuesEditor(this.valuesDraft ?? { values: [], place: 'inside' }, this.valueCandidates(device), this._hass)}</div>`, device)}${this.moduleBlock('rules', this.symbolRules(device), device)}${this.moduleBlock('gestures', `<div class="gestures-host">${this.gesturesForm()}</div>`, device)}</form>
-      ${this.moduleBlock('control', `${remotes}${irField}<div class="ctl-host">${this.controlsSection()}</div>${this.symbolActions(device)}`, device)}${this.moduleBlock('pinned', this.shortcutsBody(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label>${panelId && panels.includes(panelId) ? `<button type="button" class="hm-icon-button small" data-command="panel-to-designer" aria-label="${esc(t('Pasar al diseñador'))}" title="${esc(t('Pasar el panel al diseño del control'))}"><ha-icon icon="mdi:pencil-ruler" aria-hidden="true"></ha-icon></button>` : ''}</div>`, device)}${this.moduleMenu(device)}
+      ${this.moduleBlock('control', this.controlModule(device, remotes + irField), device)}${this.moduleBlock('pinned', this.shortcutsList(device), device)}${this.moduleBlock('native', `<div class="field"><label>${esc(t('Panel avanzado'))}<select form="device-form" name="panelId" aria-label="${esc(t('Panel avanzado'))}">${option('', t('Sin panel'), panelId)}${panelId && !panels.includes(panelId) ? option(panelId, panelId, panelId) : ''}${panels.map(key => option(key, key, panelId)).join('')}</select></label>${panelId && panels.includes(panelId) ? `<button type="button" class="hm-icon-button small" data-command="panel-to-designer" aria-label="${esc(t('Pasar al diseñador'))}" title="${esc(t('Pasar el panel al diseño del control'))}"><ha-icon icon="mdi:pencil-ruler" aria-hidden="true"></ha-icon></button>` : ''}</div>`, device)}${this.moduleMenu(device)}
       <details class="advanced" id="device-options"${this.openSections.has('device-options') ? ' open' : ''}><summary>${esc(t('Más opciones'))}</summary><div class="grid">${advanced}</div>${fixed ? `<button type="button" data-command="correct-fixed">${esc(t('Corregir ubicación fija'))}</button>` : ''}${device ? this.section('state-section', t('Fuente de estado'), this.stateForm(device)) : ''}${iconButton('reset', t('Restablecer valores sugeridos'), 'reset')}</details>`;
   }
   /** The category the sheet starts with: stored, else suggested by the device and its entity. */
@@ -1838,6 +1872,105 @@ export class HomeManagerEditor extends HTMLElement {
   }
   /** 0.13 (was Advanced › Logical actions): the actions this symbol's controls send,
    * each edited from here; ＋ makes a new one. */
+  /** 0.14 · N, as in the mockup: how the symbol sends, the chosen control with its preview, «Edit» and
+   * «Open in Controls», one door to add another, and which of its pieces go on the plan. Nothing of
+   * before is lost: Home Assistant's own buttons and actions are under «Home Assistant». */
+  private controlVia?: { device: string; via: 'ha' | 'ir' | 'rf' };
+  private controlModule(device: Device | undefined, hidden: string): string {
+    const remoteId = device?.bindings.remoteId ?? '';
+    const irRemoteId = device?.bindings.irRemoteId ?? '';
+    const via =
+      this.controlVia && this.controlVia.device === (device?.id ?? '')
+        ? this.controlVia.via
+        : remoteId
+          ? 'rf'
+          : irRemoteId
+            ? 'ir'
+            : 'ha';
+    const ways = [
+      ['ha', 'mdi:home-assistant', t('Home Assistant')],
+      ['ir', 'mdi:remote', t('Infrarrojo (IR)')],
+      ['rf', 'mdi:access-point', t('Radio (RF)')],
+    ] as const;
+    const row = (glyph: string, label: string, control: string) =>
+      `<div class="cm-row"><ha-icon icon="${glyph}" aria-hidden="true"></ha-icon><span class="cm-lbl">${esc(label)}</span><div class="cm-ctl">${control}</div></div>`;
+    let html = row(
+      'mdi:send-outline',
+      t('Envía por'),
+      `<div class="cm-via" role="group" aria-label="${esc(t('Envía por'))}">${ways
+        .map(
+          ([id, glyph, label]) =>
+            `<button type="button" data-command="control-via" data-via="${id}" aria-pressed="${via === id}" aria-label="${esc(label)}" title="${esc(label)}"><ha-icon icon="${glyph}" aria-hidden="true"></ha-icon></button>`,
+        )
+        .join('')}</div>`,
+    );
+    const infrared = this.irRemotes ?? [];
+    const list: { id: string; name: string }[] = via === 'rf' ? this.remotes : via === 'ir' ? infrared : [];
+    const chosenId = via === 'rf' ? remoteId : via === 'ir' ? irRemoteId : '';
+    if (via !== 'ha')
+      html += row(
+        'mdi:access-point',
+        t('Control aprendido'),
+        `<select data-control-remote="${via}" aria-label="${esc(t('Control aprendido'))}"><option value="">—</option>${list
+          .map(
+            remote =>
+              `<option value="${esc(remote.id)}"${remote.id === chosenId ? ' selected' : ''}>${esc(remote.name)}</option>`,
+          )
+          .join('')}${
+          chosenId && !list.some(remote => remote.id === chosenId)
+            ? `<option value="${esc(chosenId)}" selected>${esc(chosenId)}</option>`
+            : ''
+        }</select>`,
+      );
+    html +=
+      this.controlPicking && this.controlPicking === device?.id
+        ? '<div class="ctl-pick" data-ctl-pick></div>'
+        : `<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar otro control a este símbolo'))}</button>`;
+    // The chosen control, as a card with its preview.
+    const rfRemote = via === 'rf' ? this.remotes.find(item => item.id === remoteId) : undefined;
+    const irRemote = via === 'ir' ? infrared.find(item => item.id === irRemoteId) : undefined;
+    const drawn =
+      rfRemote ??
+      (irRemote
+        ? drawIr(irRemote)
+        : via === 'ha' && device
+          ? designRemote(device, this.configuration, this.sheet?.controls ?? device.bindings.controls ?? [])
+          : undefined);
+    if (drawn) {
+      const canvas = layoutOf(drawn).find(piece => piece.type === 'canvas');
+      const style = t(STYLE_NAMES[canvas?.style ?? globalControlStyle()]);
+      const pieces = layoutOf(drawn).filter(piece => piece.type !== 'canvas').length;
+      const learned = rfRemote ?? irRemote;
+      const name = learned ? learned.name : t('Control completo');
+      const count = learned
+        ? learned.buttons.length === 1
+          ? t('1 botón')
+          : t('{count} botones', { count: learned.buttons.length })
+        : pieces === 1
+          ? t('1 pieza')
+          : t('{count} piezas', { count: pieces });
+      this.controlPreview = drawn;
+      html += `<div class="cm-card"><div class="cm-prev" data-cm-preview aria-hidden="true"></div><div class="cm-info"><b>${esc(name)}</b><small>${esc(count)} · ${esc(style)}</small><button type="button" class="primary" data-command="${learned ? 'control-edit' : 'design-open'}" data-via="${via}"><ha-icon icon="mdi:pencil" aria-hidden="true"></ha-icon>${esc(t('Editar'))}</button>${
+        learned
+          ? `<button type="button" data-command="control-open" data-via="${via}"><ha-icon icon="mdi:remote" aria-hidden="true"></ha-icon>${esc(t('Abrir en Controles'))}</button>`
+          : ''
+      }</div></div>`;
+    } else this.controlPreview = undefined;
+    if (via === 'ha') html += `<div class="ctl-host">${this.controlsSection(true)}</div>${this.symbolActions(device)}`;
+    return hidden + html + (device ? this.attachedBlock(device) : '');
+  }
+  /** The control drawn small in its card; mounted after each render. */
+  private controlPreview?: Parameters<typeof layoutOf>[0];
+  private mountControlPreview(): void {
+    const host = this.root.querySelector<HTMLElement>('[data-cm-preview]');
+    if (!host || !this.controlPreview) return;
+    const view = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
+    view.setAttribute('data-template', '');
+    view.preview = true;
+    view.inert = true;
+    host.append(view);
+    view.remote = this.controlPreview as never;
+  }
   private symbolActions(device?: Device): string {
     if (!device) return '';
     const text = JSON.stringify({ device, sheet: this.sheet });
@@ -1846,8 +1979,8 @@ export class HomeManagerEditor extends HTMLElement {
       `<div class="symbol-action"><ha-icon icon="mdi:flash-outline" aria-hidden="true"></ha-icon><span class="txt"><b>${esc(choice.label)}</b></span><button type="button" class="hm-icon-button small" data-command="action-edit" data-action="${esc(choice.id)}" aria-label="${esc(t('Editar acción {name}', { name: choice.label }))}" title="${esc(t('Editar acción'))}"><ha-icon icon="mdi:pencil-outline" aria-hidden="true"></ha-icon></button></div>`;
     return `<div class="lbl">${esc(t('Acciones'))}<span class="grow"></span><button type="button" class="hm-icon-button small" data-command="action-new" aria-label="${esc(t('Nueva acción'))}" title="${esc(t('Nueva acción'))}"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon></button></div><div class="symbol-actions">${choices.map(row).join('')}</div>`;
   }
-  private controlsSection(): string {
-    return renderControlsEditor(this.sheet!, this.suggestions(), this.actionChoices());
+  private controlsSection(inside = false): string {
+    return renderControlsEditor(this.sheet!, this.suggestions(), this.actionChoices(), inside);
   }
   /** New suggestions for the action selects, without replacing anything else:
    * this runs on a field's change, often in the middle of a click elsewhere. */
@@ -2484,6 +2617,30 @@ export class HomeManagerEditor extends HTMLElement {
           this.render();
           this.root.querySelector<HTMLInputElement>('[data-ctl-pick] .ctl-search')?.focus();
           break;
+        case 'control-via':
+          this.controlVia = { device: this.device()?.id ?? '', via: button.dataset.via as 'ha' | 'ir' | 'rf' };
+          this.render();
+          break;
+        case 'control-edit':
+        case 'control-open': {
+          const device = this.device();
+          if (!device || !this.flushDevice() || !this.appContext) break;
+          const ir = button.dataset.via === 'ir';
+          const id = ir ? device.bindings.irRemoteId : device.bindings.remoteId;
+          if (!id) break;
+          this.dispatchEvent(
+            new CustomEvent('homemanager-shell-command', {
+              detail: {
+                command: 'rf',
+                ...(ir ? { irRemoteId: id } : { remoteId: id }),
+                design: button.dataset.command === 'control-edit',
+              },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+          break;
+        }
         case 'control-unlink':
           this.setControlField(button.dataset.field as 'remoteId' | 'irRemoteId', '');
           break;

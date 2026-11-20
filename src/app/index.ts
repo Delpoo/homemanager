@@ -1,3 +1,4 @@
+import type { SettingsSection } from '../editor/settings-page.js';
 import { installTips } from '../ui/tips.js';
 import { homeStart } from '../ui/home-start.js';
 import { TaskScreen } from '../ui/task-screen.js';
@@ -190,7 +191,7 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId, irRemoteId, from, pieceId } = (
+    const { command, homeId, remoteId, irRemoteId, from, pieceId, section, design } = (
       event as CustomEvent<{
         command: string;
         homeId?: string;
@@ -198,6 +199,8 @@ export class HomeManagerApp extends HTMLElement {
         irRemoteId?: string;
         from?: string;
         pieceId?: string;
+        section?: SettingsSection;
+        design?: boolean;
       }>
     ).detail;
     // 0.13: a piece of a remote goes next to the symbol that uses it.
@@ -213,7 +216,7 @@ export class HomeManagerApp extends HTMLElement {
       this.tab = 'plan';
       this.renderHeader();
       this.applyTab();
-      void this.card?.openSettingsMenu();
+      void this.card?.openSettingsMenu(section);
       return;
     }
     if (command === 'home' && homeId) {
@@ -242,8 +245,8 @@ export class HomeManagerApp extends HTMLElement {
       if (from === 'settings') void this.card?.leaveSettings();
     }
     // From a symbol's Control › Design: straight to that remote's design (#73).
-    if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId);
-    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId);
+    if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId, design);
+    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId, design);
     if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
   };
   /** The same menu remains usable while the RF manager or empty view is open. */

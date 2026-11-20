@@ -441,7 +441,11 @@ for (const dark of [false, true])
     await designer.locator('[data-steps=accept]').click();
     await designer.locator('[data-draft=save]').click();
     await expect(designer.locator('[data-draft=save]')).toBeDisabled();
-    await rf.locator('.dh [data-command=back]').click();
+    // Saving redraws the panel's head: ← is clicked again if the first click met the old one.
+    await expect(async () => {
+      if (await designer.count()) await rf.locator('.dh [data-command=back]').click({ timeout: 2000 });
+      await expect(designer).toHaveCount(0, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
     await rf.locator('[data-command=learn]').click();
     await shot('rf-learn');
   });

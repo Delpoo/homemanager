@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0-beta.8 — beta
+
+Las cuatro diferencias con la maqueta que el propietario eligió (K a N, todas como la maqueta) y tres detalles vistos en su cuenta.
+
+- **K · Paso 3 de la guía:** el botón que se está aprendiendo se ilumina en la vista previa (la opción exacta de una fila, o la flecha de un nivel) y la vista previa baja sola hasta él; el contador «3 / 22» queda fijo.
+- **L · Lista del paso 3:** numerada y alineada a la izquierda.
+- **M · Página «Controls»:** botón grande «Create a new control», «Emitters» con «Devices ›», «Learned remotes» en una tarjeta, cuatro recursos con su símbolo («Full-state air», «IR / RF library», «Timers and schedules», «Devices») y la fila «General style of the controls», que abre Ajustes › Apariencia. Ahí hay un estilo general nuevo: los controles sin estilo propio lo usan.
+- **N · Ficha del símbolo › «Control»:** un solo módulo. «Sends via» (Home Assistant, IR o RF), «Learned remote», el control elegido con su vista previa, «Edit» (abre su editor) y «Open in Controls», «Add another control to this symbol» y «On the plan · N / 6» con un interruptor por pieza. Los botones y acciones de Home Assistant siguen, dentro de «Sends via › Home Assistant». El resumen cuenta todos los controles y las piezas en el plano.
+- **Detalles:** las piezas sin nombre dicen «Level» u «Options» en la ayuda; una fila de opciones sólo con texto pasa a dos renglones y letra más chica antes de cortar («Temperature Up»); una gráfica chica deja las fechas antes de cortarlas; las opciones del aire («Quiet», «Swing», «Off»…) están en inglés.
+
 ## 0.14.0-beta.7 — beta
 
 Los diez errores de la tercera revisión de los controles y ocho mejoras chicas.

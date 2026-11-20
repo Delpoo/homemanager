@@ -78,14 +78,16 @@ export function moduleSummary(id: ModuleId, device: ModelDevice, context: Summar
         gestureName(b.hold, context, 'control completo'),
       ];
     case 'control': {
-      const count = b.controls?.length ?? 0;
-      if (b.remoteId && !count) return { key: 'Control RF' };
-      if (b.irRemoteId && !count) return { key: 'Control IR' };
-      return count === 1
-        ? { key: '1 control' }
-        : count
-          ? { key: '{count} controles', vars: { count } }
-          : { key: 'Sin controles' };
+      // 0.14 · N: the learned remotes and Home Assistant's own buttons all count, and the pieces on the plan.
+      const count = (b.controls?.length ?? 0) + (b.remoteId ? 1 : 0) + (b.irRemoteId ? 1 : 0);
+      const pinned = device.display.attached?.length ?? 0;
+      const first: Summary =
+        count === 1
+          ? { key: '1 control' }
+          : count
+            ? { key: '{count} controles', vars: { count } }
+            : { key: 'Sin controles' };
+      return pinned ? [first, { key: '· {count} en el plano', vars: { count: pinned } }] : first;
     }
     case 'pinned': {
       const count = device.display.pinned?.length ?? 0;

@@ -11,6 +11,7 @@ import {
 } from '../model/control-layout.js';
 import { brandInitials, brandOf } from './brands.js';
 import { formContent, formStyles, moving, pieceLabel } from './control-forms.js';
+import { globalControlStyle } from './control-style.js';
 import type { HistorySeries } from '../integration/history.js';
 
 /** One element of a designed control, drawn the same way everywhere (0.13): in the
@@ -369,7 +370,9 @@ export function bodyVars(canvas: ControlPiece | undefined): { theme: RemoteTheme
   if (canvas?.gap) style.push(`--gap:${canvas.gap}px`);
   // 0.14: the control's style (or the one of its old theme) and one accent colour for all its keys.
   if (canvas && color(canvas.accent)) style.push(`--racc:${canvas.accent}`);
-  const cls = canvas?.style ? `st-${canvas.style}` : '';
+  // 0.14 · M: a control with no style or theme of its own follows the general style (Settings › Appearance).
+  const general = canvas?.theme ? 'normal' : globalControlStyle();
+  const cls = canvas?.style ? `st-${canvas.style}` : general !== 'normal' ? `st-${general}` : '';
   return { theme: canvas?.theme ?? 'hm', style: style.join(';'), cls };
 }
 
@@ -425,8 +428,9 @@ export const keyStyles =
 .kbar.v .kbarv{top:50%;left:12%;transform:translateY(-50%);font-size:clamp(10px,var(--vsz,16px),22px);font-weight:700;color:var(--kfg);background:var(--kbg);border-radius:5px;padding:1px 2px}
 .ktrack:focus-visible{outline:2px solid var(--racc);outline-offset:-2px}
 .kgraph{min-width:0;gap:2px}
-.kread.kgraph{display:flex;flex-direction:column;justify-content:center}.kgraph>small,.kgraph>b{flex:none}
+.kread.kgraph{display:flex;flex-direction:column;justify-content:center;min-height:0;overflow:hidden}.kgraph>small,.kgraph>b{flex:none}
 .kgraph [data-spark]{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}.kgraph .spark{flex:0 1 28px;min-height:6px}
+.kgraph .chart-axis,.kgraph .chart-scale{flex:none}.kgraph.tight .chart-axis,.kgraph.tight .chart-scale{display:none}.kgraph.tighter>small{display:none}
 .chart-axis{display:flex;flex-flow:row-reverse wrap;justify-content:space-between;column-gap:6px;font-size:9px;line-height:1.15;height:1.15em;overflow:hidden}.chart-axis time{white-space:nowrap}
 .chart-status{display:block}
 .key-with-chart{flex-direction:column}.inset-chart{flex:0 1 auto;width:100%;padding:2px 5px;pointer-events:none}
@@ -447,6 +451,7 @@ export const keyStyles =
 .kmodes{flex:1;display:flex;gap:4px;padding:5px;min-width:0}
 .kmodes button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:max(4px,calc(min(var(--rad,14px),20px) - 4px));font-size:var(--fs);min-width:0}
 .kmodes button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kmodes.tight button>span{display:none}
+.kmodes.wrap button>span,.fseg.wrap button>.kt{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.1;text-align:center;overflow-wrap:normal}.kmodes.small button>span,.fseg.small button>.kt{font-size:.85em}
 .kmodes button:hover{background:color-mix(in srgb,var(--kfg) 8%,transparent)}.kmodes button[aria-pressed=true]{background:var(--kon);color:#fff}
 .klist{flex:1;display:flex;align-items:center;gap:6px;padding:0 10px;min-width:0;cursor:pointer}.klist select{flex:1;appearance:none;-webkit-appearance:none;cursor:pointer;min-height:100%}
 .klist select option{color:#1f2a24}
@@ -543,5 +548,9 @@ export const remoteViewStyles = (row: number, gap: number) => `
 .mini button{display:grid;place-items:center;width:26px;height:26px;min-height:26px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--hm-ink)}@media(pointer:coarse){.mini{top:-44px}.mini button{width:36px;height:36px;min-height:36px}}
 .mini button:hover{background:var(--hm-surface-2)}.mini .danger{color:var(--hm-alert)}.mini ha-icon{--mdc-icon-size:18px}
 @keyframes hm-preset{to{box-shadow:0 0 0 4px color-mix(in srgb,var(--kon) 45%,transparent)}}
+.widget.lit{z-index:2;box-shadow:0 0 0 3px var(--hm-brand),0 0 22px color-mix(in srgb,var(--hm-brand) 60%,transparent);animation:hm-lit 1.1s ease-in-out infinite alternate}
+.widget.lit.k{--kbg:color-mix(in srgb,var(--hm-brand) 22%,var(--rkey))}.widget.lit.waiting>.content{opacity:1;filter:none}.widget.lit button.lit{background:var(--hm-brand)!important;color:var(--hm-on-accent,#fff)!important;border-radius:999px}
+@keyframes hm-lit{to{box-shadow:0 0 0 3px var(--hm-brand),0 0 6px color-mix(in srgb,var(--hm-brand) 30%,transparent)}}
+@media(prefers-reduced-motion:reduce){.widget.lit{animation:none}}
 @media(max-width:650px){.body{padding:18px 12px 12px}}
 `;

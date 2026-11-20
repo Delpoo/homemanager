@@ -278,7 +278,9 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   // As in the mockup, the list opens inside the symbol's panel, not as a window.
   await expect(editor.locator('dialog[open]')).toHaveCount(0);
   await editor.locator('[data-ctl-pick] [data-pick=techo]').click();
-  await expect(editor.locator('.ctl-list .ctl-row')).toContainText('Techo');
+  // 0.14 · N: the remote shows as a card under «Sends via › RF»; Home Assistant's buttons are one tab away.
+  await expect(editor.locator('#device-controls-section .cm-info')).toContainText('Techo');
+  await editor.locator('[data-command=control-via][data-via=ha]').click();
   await editor.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await editor.getByLabel('Nombre del control (Pulsador)', { exact: true }).last().fill('1H');
   // Labels follow the control's name the next time the section is drawn.

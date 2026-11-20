@@ -22,7 +22,7 @@ async function shot(page, info, name) {
 test('absolute setpoints, the remote clock, and independent persistent schedule actions', async ({ page }, info) => {
   const rf = await open(page);
   await shot(page, info, 'controles');
-  await rf.getByRole('button', { name: 'Controles de estado absoluto', exact: true }).click();
+  await rf.getByRole('button', { name: 'Aire con estado completo', exact: true }).click();
   const resources = rf.locator('homemanager-remote-resources');
   await shot(page, info, 'controles-absolutos');
   await resources.getByRole('button', { name: /Aire de prueba/ }).click();
@@ -111,7 +111,7 @@ test('a template previews on the named control, and a partial catalog import rea
     .toBe('arena');
   await rf.locator('.dh [data-command=back]').press('Enter');
   await rf.locator('.dh [data-command=back]').press('Enter');
-  await rf.getByRole('button', { name: 'Biblioteca IR/RF', exact: true }).click();
+  await rf.getByRole('button', { name: 'Biblioteca IR / RF', exact: true }).click();
   const resources = rf.locator('homemanager-remote-resources');
   await resources.locator('input[type=file]').setInputFiles({
     name: 'demo.ir',
