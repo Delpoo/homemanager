@@ -720,7 +720,7 @@ export class ControlDesigner extends HTMLElement {
           );
           if (match) slots[slot] = match.id;
         }
-        piece = { ...base, buttons: [...new Set(Object.values(slots))], slots, radius: 999 };
+        piece = { ...base, buttons: [...new Set(Object.values(slots))], slots, radius: type === 'numpad' ? 22 : 999 };
       }
     }
     [w, h] = [Math.min(piece.w, columnsOf(layout)), piece.h];
@@ -1280,7 +1280,7 @@ export class ControlDesigner extends HTMLElement {
         : ''
     }`;
     const radius = radiusOf(piece);
-    html += `<div class="isec">${e(t('Forma'))}</div>${row('mdi:square-rounded-outline', t('Esquinas'), `<div class="islider"><input type="range" min="0" max="40" value="${Math.min(40, radius)}" data-num="radius" aria-label="${e(t('Esquinas'))}"><output>${radius >= 999 ? '◯' : `${radius}px`}</output>${iconButton(t('Píldora'), 'mdi:circle-outline', `data-pill aria-pressed="${radius >= 999}"`, 'sm')}</div>`)}${row(
+    html += `<div class="isec">${e(t('Forma'))}</div>${row('mdi:square-rounded-outline', t('Esquinas'), `<div class="islider"><input type="range" min="0" max="${piece.type === 'numpad' ? 22 : 40}" value="${Math.min(40, radius)}" data-num="radius" aria-label="${e(t('Esquinas'))}"><output>${radius >= 999 ? '◯' : `${radius}px`}</output>${piece.type === 'numpad' ? '' : iconButton(t('Píldora'), 'mdi:circle-outline', `data-pill aria-pressed="${radius >= 999}"`, 'sm')}</div>`)}${row(
       'mdi:layers-outline',
       t('Relieve'),
       seg(
@@ -2692,7 +2692,7 @@ const designerStyles = `
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .cstyles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .cstyle{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);font-size:11px;color:var(--hm-ink);min-width:0}
-.cstyle>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cstyle>span:last-child{max-width:100%;overflow:hidden;text-align:center;line-height:1.2;text-wrap:balance;overflow-wrap:break-word}
 .cstyle[aria-pressed=true]{border-color:var(--hm-brand);box-shadow:inset 0 0 0 1px var(--hm-brand)}
 .cprev{display:flex;gap:3px;padding:5px 6px;border-radius:9px;background:var(--rbody,var(--hm-bg));border:1px solid var(--hm-line)}
 .cprev i{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--rkey,var(--hm-surface));color:var(--rfg,var(--hm-ink))}

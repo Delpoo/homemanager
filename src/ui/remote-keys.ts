@@ -38,6 +38,42 @@ const text = (value: unknown, fallback = '') => personName(value, fallback);
 export const glyph = (name: string | null | undefined): string =>
   name && /^mdi:[a-z0-9-]+$/.test(name) ? `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>` : '';
 
+/** 0.14 · a key without a symbol of its own takes one from its name («Speed 1» → fan speed,
+ * «Timer 4H» → timer); with nothing to go on it has none: the same hand on every key said nothing. */
+const NAME_ICONS: [RegExp, string][] = [
+  [/(^|[\s/])(power|on\/off|on|off|encender|apagar|encendido)(?=[\s/]|$)/, 'mdi:power'],
+  [/(^|\s)(\+|up|subir|más)$/, 'mdi:plus'],
+  [/(^|\s)(−|-|down|bajar|menos)$/, 'mdi:minus'],
+  [/(speed|velocidad|fan|ventila)/, 'mdi:fan'],
+  [/(timer|temporizador|sleep)/, 'mdi:timer-outline'],
+  [/(temp|°)/, 'mdi:thermometer'],
+  [/(^|\s)(mode|modo)(\s|$)/, 'mdi:format-list-bulleted'],
+  [/(swing|oscil|vane|lama)/, 'mdi:arrow-oscillating'],
+  [/(rotat|girar)/, 'mdi:rotate-3d-variant'],
+  [/(^|\s)(cool|fr[ií]o)(\s|$)/, 'mdi:snowflake'],
+  [/(^|\s)(heat|calor)(\s|$)/, 'mdi:fire'],
+  [/(^|\s)(dry|seco)(\s|$)/, 'mdi:water-percent'],
+  [/(^|\s)eco(\s|$)/, 'mdi:leaf'],
+  [/(turbo|boost|powerful)/, 'mdi:flash'],
+  [/(night|noche)/, 'mdi:weather-night'],
+  [/(bright|brillo|dimm)/, 'mdi:brightness-6'],
+  [/(light|luz|lamp)/, 'mdi:lightbulb-outline'],
+  [/(mute|silencio)/, 'mdi:volume-off'],
+  [/(^|\s)(vol|volume|volumen)(\s|$)/, 'mdi:volume-high'],
+  [/(^|\s)(open|abrir)(\s|$)/, 'mdi:arrow-up'],
+  [/(^|\s)(close|cerrar)(\s|$)/, 'mdi:arrow-down'],
+  [/(^|\s)(stop|parar)(\s|$)/, 'mdi:stop'],
+  [/(^|\s)(play)(\s|$)/, 'mdi:play'],
+  [/(^|\s)(pause|pausa)(\s|$)/, 'mdi:pause'],
+  [/(^|\s)(home|inicio)(\s|$)/, 'mdi:home-outline'],
+  [/(^|\s)(menu|menú)(\s|$)/, 'mdi:menu'],
+  [/(^|\s)(back|volver)(\s|$)/, 'mdi:arrow-u-left-top'],
+];
+export function iconFromName(name: string): string | null {
+  const words = name.trim().toLocaleLowerCase();
+  return NAME_ICONS.find(([pattern]) => pattern.test(words))?.[1] ?? null;
+}
+
 /** The mark of a brand key: its icon, or its initials on its colour. */
 export function brandMark(name: string, inKey = false): string {
   const brand = brandOf(name);
@@ -47,6 +83,8 @@ export function brandMark(name: string, inKey = false): string {
 
 /** Corner radius in pixels; old pieces said round or square. */
 export function radiusOf(piece: ControlPiece): number {
+  // 0.14 · a keypad is square with soft corners: round, it cut off the keys in its corners.
+  if (piece.type === 'numpad') return Math.min(22, typeof piece.radius === 'number' ? piece.radius : 22);
   if (typeof piece.radius === 'number') return piece.radius;
   // 0.14: a round, pill or lamp form is round unless its corners were set by hand.
   if (piece.form === 'round' || piece.form === 'pill' || piece.form === 'lamp') return 999;
@@ -125,7 +163,7 @@ export function keyContent(piece: ControlPiece, ctx: KeyContext): string {
     case 'control': {
       const mark = piece.brand
         ? brandMark(piece.brand, true)
-        : moving(piece, glyph(iconOf(refs[0]) ?? 'mdi:gesture-tap'), false);
+        : moving(piece, glyph(iconOf(refs[0]) ?? iconFromName(text(label))), false);
       return `<button type="button" class="kface" data-op="press" aria-label="${e(text(label))}">${face(piece, mark, label)}</button>`;
     }
     case 'toggle': {
@@ -311,7 +349,7 @@ export function historyChart(
       ? { month: 'short', day: 'numeric' }
       : piece.period === '1h'
         ? { hour: 'numeric', minute: '2-digit' }
-        : { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+        : { weekday: 'short', hour: 'numeric', minute: '2-digit' },
   );
   const start = e(time.format(from)),
     end = e(time.format(to));
@@ -321,7 +359,7 @@ export function historyChart(
     piece.h >= 2 && low !== high
       ? `<span class="chart-scale"><span>${e(limits.format(unscale(low)))}</span><span>${e(limits.format(unscale(high)))}</span></span>`
       : '';
-  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${e(t('Historial'))} · ${start} – ${end}">${paths}</svg>${range}<span class="chart-axis"><time>${start}</time><time>${end}</time></span>`;
+  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${e(t('Historial'))} · ${start} – ${end}">${paths}</svg>${range}<span class="chart-axis"><time>${end}</time><time>${start}</time></span>`;
 }
 
 /** The body of the control: theme, colour, corners and the space between keys. */
@@ -360,6 +398,8 @@ export const keyStyles =
 .kface{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px}
 .kface.col{flex-direction:column;gap:2px}
 .kt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.01em}
+.kface>ha-icon,.kface>.sa{min-width:var(--isz);min-height:var(--isz)}.kface.stack{flex-direction:column;gap:2px}.kface.bare>.kt{display:none}
+.kt.wrap{white-space:normal;text-align:center;line-height:1.1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:break-word}
 .live-keys .k button:not(:disabled):active,.live-keys .k:has(>.kface:active){transform:scale(.94)}
 .k.press{animation:hm-kpress .2s ease}.k.flash{animation:hm-kflash .55s ease}.k.failed{box-shadow:inset 0 0 0 2px var(--hm-alert)}
 @keyframes hm-kpress{50%{transform:scale(.93);filter:brightness(.9)}}
@@ -386,7 +426,7 @@ export const keyStyles =
 .kbar.v .kbarv{top:50%;left:12%;transform:translateY(-50%);font-size:clamp(10px,var(--vsz,16px),22px);font-weight:700;color:var(--kfg);background:var(--kbg);border-radius:5px;padding:1px 2px}
 .ktrack:focus-visible{outline:2px solid var(--racc);outline-offset:-2px}
 .kgraph{min-width:0;gap:2px}
-.chart-axis{display:flex;justify-content:space-between;gap:2px;font-size:9px;line-height:1.15}
+.chart-axis{display:flex;flex-flow:row-reverse wrap;justify-content:space-between;column-gap:6px;font-size:9px;line-height:1.15;height:1.15em;overflow:hidden}.chart-axis time{white-space:nowrap}
 .chart-status{display:block}
 .key-with-chart{flex-direction:column}.inset-chart{flex:0 1 auto;width:100%;padding:2px 5px;pointer-events:none}
 .inset-chart b{font-size:12px}.inset-chart .spark{height:12px}.inset-chart .chart-axis{display:none}
@@ -437,7 +477,7 @@ export const keyStyles =
 @media(prefers-reduced-motion:reduce){.k.press,.k.flash{animation:none}}
 .widget.waiting>.content{opacity:.42;filter:grayscale(.7)}
 :host{position:relative}
-.khelp{position:absolute;top:-12px;right:-12px;margin:0;z-index:4;width:28px;height:28px;box-shadow:0 1px 4px rgba(0,0,0,.18);min-height:0;padding:0;border-radius:50%;border:1.5px solid var(--hm-brand);background:var(--hm-surface);color:var(--hm-brand);font-weight:700;font-size:15px;display:grid;place-items:center;cursor:pointer}.khelp:hover:not(:disabled){background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}.khelp[aria-pressed=true]{background:var(--hm-brand);color:var(--hm-on-accent,#fff);border-color:var(--hm-brand)}
+.khelp{position:absolute;top:-12px;right:-12px;margin:0;z-index:4;width:28px;height:28px;box-shadow:0 1px 4px rgba(0,0,0,.18);min-height:0;padding:0;border-radius:50%;border:1.5px solid var(--hm-brand);background:var(--hm-surface);color:var(--hm-brand);font-weight:700;font-size:15px;display:grid;place-items:center;cursor:pointer}@media(hover:hover){.khelp:hover:not(:disabled){background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}}.khelp[aria-pressed=true],.khelp[aria-pressed=true]:hover:not(:disabled){background:var(--hm-brand);color:var(--hm-on-accent,#fff);border-color:var(--hm-brand)}@media(hover:hover){.khelp[aria-pressed=true]:hover:not(:disabled){background:color-mix(in srgb,var(--hm-brand) 85%,#000)}}
 .knum-help{position:relative;align-self:start;justify-self:start;margin:-8px 0 0 -8px;z-index:3;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--hm-brand);color:var(--hm-on-accent,#fff);font-size:11px;font-weight:700;display:grid;place-items:center;pointer-events:none;box-shadow:0 0 0 2px var(--hm-surface)}
 .khelp-list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--hm-ink)}.khelp-list li{display:flex;gap:8px;align-items:baseline}.khelp-list b{min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--hm-brand);color:var(--hm-on-accent,#fff);font-size:11px;display:inline-grid;place-items:center;flex:none}
 .kwant{position:absolute;top:5px;right:5px;z-index:3;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700;line-height:1;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}

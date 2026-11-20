@@ -18,6 +18,7 @@ import { commandFor, entityControls, humanize, type Command, type Control } from
 import type { DrawableRemote } from '../rf/layout.js';
 import '../rf/remote-view.js';
 import type { HomeManagerRfRemote } from '../rf/remote-view.js';
+import { foldStyles } from '../ui/side-panel.js';
 
 export interface PanelAvailability {
   available: boolean;
@@ -118,7 +119,7 @@ export function stateText(value: string): string {
   return STATE_WORDS()[value] ?? value;
 }
 
-const css = `${tokens}${controlViewStyles}
+const css = `${tokens}${controlViewStyles}${foldStyles('.additional-controls')}
 :host([data-dock=side]) .close{display:none}
 dialog{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:22px;padding:0;width:min(460px,calc(100vw - 24px));max-height:86dvh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.28)}
 dialog::backdrop{background:rgba(10,20,15,.42);backdrop-filter:blur(3px)}

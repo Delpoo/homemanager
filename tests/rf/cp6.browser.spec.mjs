@@ -141,7 +141,7 @@ for (const dark of [false, true])
     await shot('widget');
     await designer.locator('[data-draft=save]').click();
     await expect(designer.locator('[data-draft=save]')).toBeDisabled();
-    await rf(page).locator('.dfoot [data-command=edit]').click();
+    await rf(page).locator('.dh [data-command=back]').click();
     await rf(page).getByRole('button', { name: 'En Home Assistant', exact: true }).click();
     await rf(page).getByRole('button', { name: 'Agregar ventilador', exact: true }).click();
     await expect(rf(page).locator('.part')).toBeVisible();

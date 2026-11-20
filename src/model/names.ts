@@ -238,3 +238,25 @@ export function entityAreaId(entityId: string, hass?: ModelHass): string | null 
 export function areaName(areaId: string | null | undefined, hass?: ModelHass): string {
   return personName(areaId ? hass?.areas?.[areaId]?.name : undefined, nameWord('space', hass));
 }
+/** 0.14 · what tells apart key names that start alike, for keys too narrow for the whole name:
+ * «Speed 1», «Speed 2» → «1», «2»; «Timer 1H», «Timer 4H» → «1H», «4H». A name alone stays whole. */
+export function distinctNames(names: string[]): string[] {
+  const words = names.map(name => name.trim().split(/\s+/).filter(Boolean));
+  const same = (a: string, b: string) => a.toLocaleLowerCase() === b.toLocaleLowerCase();
+  return names.map((name, i) => {
+    const mine = words[i];
+    if (mine.length < 2) return name;
+    const alike = words.filter(
+      (other, j) => j !== i && other.length > 1 && same(other[0], mine[0]) && other.join(' ') !== mine.join(' '),
+    );
+    if (!alike.length) return name;
+    let shared = 1;
+    while (
+      shared < mine.length - 1 &&
+      alike.every(other => other.length > shared + 1 && same(other[shared], mine[shared]))
+    )
+      shared++;
+    const rest = mine.slice(shared).join(' ');
+    return rest.charAt(0).toLocaleUpperCase() + rest.slice(1);
+  });
+}

@@ -62,12 +62,12 @@ test('leaving with changes asks: keep editing, discard or save (0.14)', async ({
   const { rf, designer } = await openDesigner(page);
   await newPiece(designer, 'info', 'title');
   await backToPanel(designer);
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
   const ask = designer.locator('dialog[open]');
   await expect(ask).toContainText('¿Guardar los cambios?');
   await ask.getByRole('button', { name: 'Seguir editando', exact: true }).click();
   await expect(designer).toBeVisible();
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
   await designer.locator('dialog[open]').getByRole('button', { name: 'Descartar', exact: true }).click();
   await expect(rf.locator('homemanager-control-designer')).toHaveCount(0);
   expect(await pieces(page)).toEqual([]);
@@ -130,7 +130,7 @@ test('a new level: what it sends, its numbers, its look, steps to accept, undo, 
   const remote = designer.locator('homemanager-rf-remote');
   await remote.getByRole('button', { name: 'Subir Temperatura', exact: true }).click();
   await expect.poll(async () => (await calls(page, 'homemanager/rf/press')).at(-1)?.button_id).toBe('v1');
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
 });
 
 test('a level takes the form of a thermostat and grows to fit it; the panel lists learned buttons (0.14)', async ({

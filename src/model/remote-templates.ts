@@ -436,12 +436,11 @@ function light(design: StartDesign): ControlPiece[] {
   return d
     .put(
       'toggle',
-      [0, 0, 2, 1],
+      [0, 0, 4, 1],
       ['Encender / apagar'],
       { label: 'Luz', icon: 'mdi:lightbulb-outline', form: 'switch' },
       'power',
     )
-    .info('indicator', [2, 0, 2, 1], 'Consumo', { form: 'display' })
     .level('Brillo −', 'Brillo +', [0, 1, 4, 1], { label: 'Brillo', icon: 'mdi:brightness-6' })
     .level('Más frío', 'Más cálido', [0, 2, 4, 1], { label: 'Tono', icon: 'mdi:thermometer' })
     .key('Noche', [0, 3, 2, 1])
@@ -477,8 +476,7 @@ function fan(design: StartDesign): ControlPiece[] {
     .lamp('Invierno / verano', [1, 1, 1, 1])
     .key('Modo', [2, 1, 1, 1])
     .key('Temporizador', [3, 1, 1, 1])
-    .info('indicator', [0, 2, 4, 1], 'Consumo', { form: 'display' })
-    .info('graph', [0, 3, 4, 2], 'Consumo', { period: '7d' })
+    .info('graph', [0, 2, 4, 2], 'Consumo', { period: '7d' })
     .done();
 }
 

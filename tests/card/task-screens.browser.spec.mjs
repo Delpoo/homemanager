@@ -441,7 +441,7 @@ for (const dark of [false, true])
     await designer.locator('[data-steps=accept]').click();
     await designer.locator('[data-draft=save]').click();
     await expect(designer.locator('[data-draft=save]')).toBeDisabled();
-    await rf.locator('[data-command=edit]').click();
+    await rf.locator('.dh [data-command=back]').click();
     await rf.locator('[data-command=learn]').click();
     await shot('rf-learn');
   });

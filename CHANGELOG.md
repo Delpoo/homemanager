@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.14.0-beta.7 — beta
+
+Los diez errores de la tercera revisión de los controles y ocho mejoras chicas.
+
+- **Nombres que no entran:** un botón ya no dice «Spe…» ni «Tim…». Si el nombre no entra al lado del símbolo, el símbolo va arriba; si tampoco, el botón muestra lo que lo distingue de los demás («1», «4H») o sólo el símbolo, con el nombre al pasar el mouse. Un botón sin símbolo usa dos renglones.
+- **Botones redondos:** el nombre sólo se muestra si entra dentro del círculo; si no, queda el símbolo.
+- **Textos:** «1 button» en singular y «Temperature · °C» en inglés en el aire de estado completo.
+- **Guía:** el paso 4 arranca sin el aviso del último botón del paso 3.
+- **«?» prendido:** se sigue viendo con el mouse encima.
+- **Lista de controles:** las etiquetas RF e IR quedan en la misma columna; el lápiz de cada control de radio se ve siempre.
+- **«Style and canvas»:** «From the theme» usa dos renglones en vez de cortarse.
+- **Gráficas chicas:** las fechas no se parten; si no entran las dos, queda la más reciente.
+- **Estilos:** en «Colourful» las barras de nivel son blancas y en «Glass» las letras tienen una sombra suave.
+- **Mejoras chicas:** el lápiz de cada botón se ve siempre en la PC; el consumo ya no aparece dos veces en la luz y el ventilador Avanzados; «Auto, Low, Medium, High, Swing» con mayúscula; un botón sin símbolo propio toma uno de su nombre o queda sin símbolo (no la misma mano en todos); los desplegables («Tests and history», «Remote's settings», «Readings and more controls», «More options») tienen el estilo de los módulos; el editor se deja con ← o ✕ (sin el ✓ flotante); el teclado numérico es cuadrado con esquinas suaves; las barras se tocan en toda su altura y un toque entre dos barras elige la más cercana; la página de un control infrarrojo empieza con el control, como la de radio.
+
 ## 0.14.0-beta.6 — beta
 
 Las diez diferencias con la maqueta v14 que el propietario eligió, y dos frases de la ayuda.
