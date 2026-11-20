@@ -30,7 +30,7 @@ const css = `${tokens}
 @media(max-width:700px){.content.controls-open{display:block;position:relative}
  .content.controls-open .card-host{position:relative;isolation:isolate}
  .content.controls-open .rf-host{position:fixed;inset:auto 0 0;z-index:5;height:88dvh;border-left:0;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
- .content.controls-open:has(homemanager-rf[data-stage]) .rf-host{inset:0;height:100dvh;border-radius:0}}
+ .content.controls-open:has(homemanager-rf[data-stage]) .rf-host{inset:0;z-index:20;height:100dvh;border-radius:0}}
 homemanager-card{--hm-shell-height:max(100dvh,450px);--hm-viewport-height:100%}
 .error{color:var(--hm-error)}
 .maintenance{color:var(--hm-text);background:var(--hm-bg);border:1px solid var(--hm-line);border-radius:16px;max-width:520px;padding:24px}
