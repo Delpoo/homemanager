@@ -398,7 +398,7 @@ export const keyStyles =
 .kface{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px}
 .kface.col{flex-direction:column;gap:2px}
 .kt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.01em}
-.kface>ha-icon,.kface>.sa{min-width:var(--isz);min-height:var(--isz)}.kface.stack{flex-direction:column;gap:2px}.kface.bare>.kt{display:none}
+.kface>ha-icon,.kface>.sa{min-width:var(--isz);min-height:var(--isz)}.kface>.kt{max-width:100%}.kface.stack{flex-direction:column;gap:2px}.kface.bare>.kt{display:none}
 .kt.wrap{white-space:normal;text-align:center;line-height:1.1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:break-word}
 .live-keys .k button:not(:disabled):active,.live-keys .k:has(>.kface:active){transform:scale(.94)}
 .k.press{animation:hm-kpress .2s ease}.k.flash{animation:hm-kflash .55s ease}.k.failed{box-shadow:inset 0 0 0 2px var(--hm-alert)}
@@ -426,10 +426,12 @@ export const keyStyles =
 .kbar.v .kbarv{top:50%;left:12%;transform:translateY(-50%);font-size:clamp(10px,var(--vsz,16px),22px);font-weight:700;color:var(--kfg);background:var(--kbg);border-radius:5px;padding:1px 2px}
 .ktrack:focus-visible{outline:2px solid var(--racc);outline-offset:-2px}
 .kgraph{min-width:0;gap:2px}
+.kread.kgraph{display:flex;flex-direction:column;justify-content:center}.kgraph>small,.kgraph>b{flex:none}
+.kgraph [data-spark]{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}.kgraph .spark{flex:0 1 28px;min-height:6px}
 .chart-axis{display:flex;flex-flow:row-reverse wrap;justify-content:space-between;column-gap:6px;font-size:9px;line-height:1.15;height:1.15em;overflow:hidden}.chart-axis time{white-space:nowrap}
 .chart-status{display:block}
 .key-with-chart{flex-direction:column}.inset-chart{flex:0 1 auto;width:100%;padding:2px 5px;pointer-events:none}
-.inset-chart b{font-size:12px}.inset-chart .spark{height:12px}.inset-chart .chart-axis{display:none}
+.inset-chart b{font-size:12px}.inset-chart .spark{height:12px;flex-basis:12px}.inset-chart .chart-axis{display:none}
 .chart-scale{display:flex;justify-content:space-between;font-size:9px}
 .kgraph [data-spark]{min-width:0;width:100%}
 .chart-point{fill:var(--kon,var(--racc))}

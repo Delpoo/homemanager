@@ -13,6 +13,8 @@ Los diez errores de la tercera revisión de los controles y ocho mejoras chicas.
 - **«Style and canvas»:** «From the theme» usa dos renglones en vez de cortarse.
 - **Gráficas chicas:** las fechas no se parten; si no entran las dos, queda la más reciente.
 - **Estilos:** en «Colourful» las barras de nivel son blancas y en «Glass» las letras tienen una sombra suave.
+- **Editor en el teléfono:** la barra de arriba de la app tapaba ← y ✕; ahora el editor queda encima y las dos salidas se ven.
+- **Teléfono:** una gráfica chica achica la línea antes de cortar su título, y la lista de botones de un control deja lugar para el nombre (sin la onda de la señal).
 - **Mejoras chicas:** el lápiz de cada botón se ve siempre en la PC; el consumo ya no aparece dos veces en la luz y el ventilador Avanzados; «Auto, Low, Medium, High, Swing» con mayúscula; un botón sin símbolo propio toma uno de su nombre o queda sin símbolo (no la misma mano en todos); los desplegables («Tests and history», «Remote's settings», «Readings and more controls», «More options») tienen el estilo de los módulos; el editor se deja con ← o ✕ (sin el ✓ flotante); el teclado numérico es cuadrado con esquinas suaves; las barras se tocan en toda su altura y un toque entre dos barras elige la más cercana; la página de un control infrarrojo empieza con el control, como la de radio.
 
 ## 0.14.0-beta.6 — beta

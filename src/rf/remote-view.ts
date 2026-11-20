@@ -176,14 +176,14 @@ export class HomeManagerRfRemote extends HTMLElement {
     // The middle of a level piece («Temperature» between − and +) takes two lines before it is cut.
     this.root.querySelectorAll<HTMLElement>('.kmid > .kt').forEach(name => {
       name.classList.remove('wrap');
-      if (name.clientWidth && name.scrollWidth > name.clientWidth + 1) {
+      if (name.clientWidth && name.scrollWidth > name.clientWidth) {
         name.classList.add('wrap');
         name.title = name.textContent ?? '';
       }
     });
   }
   private fits(face: HTMLElement, name: HTMLElement): boolean {
-    if (name.scrollWidth > name.clientWidth + 1 || face.scrollHeight > face.clientHeight + 1) return false;
+    if (name.scrollWidth > name.clientWidth || face.scrollHeight > face.clientHeight) return false;
     const key = face.closest<HTMLElement>('.k');
     if (!key) return true;
     const width = key.clientWidth;
