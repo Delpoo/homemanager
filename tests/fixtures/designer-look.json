@@ -31,9 +31,15 @@
       { "id": "grid", "type": "canvas", "x": 0, "y": 0, "w": 3, "h": 6, "buttons": [], "label": null, "icon": null, "wanted": [{ "id": "w-temp-up", "name": "Temperatura +", "icon": "mdi:plus" }, { "id": "w-turbo", "name": "Turbo" }] },
       { "id": "up", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["w-temp-up"], "label": null, "icon": null },
       { "id": "turbo", "type": "button", "x": 1, "y": 0, "w": 1, "h": 1, "buttons": ["w-turbo"], "label": null, "icon": null }
+    ],
+    [
+      { "id": "mode", "type": "modes", "x": 0, "y": 0, "w": 2, "h": 1, "buttons": ["a-1", "a-2"], "label": "Modo", "icon": null, "hold": "other", "holdButton": "a-3" },
+      { "id": "eco", "type": "toggle", "x": 2, "y": 0, "w": 1, "h": 1, "buttons": ["a-4"], "label": "Eco", "icon": null, "hold": "other", "holdButton": "a-1" }
     ]
   ],
   "invalid": [
+    [{ "id": "p", "type": "updown", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "hold": "other", "holdButton": "a-3" }],
+    [{ "id": "p", "type": "modes", "x": 0, "y": 0, "w": 2, "h": 1, "buttons": ["a-1", "a-2"], "label": null, "icon": null, "hold": "repeat" }],
     [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "fontSize": 80 }],
     [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "fontWeight": 600 }],
     [{ "id": "p", "type": "button", "x": 0, "y": 0, "w": 1, "h": 1, "buttons": ["a-1"], "label": null, "icon": null, "radius": 61 }],

@@ -30,7 +30,7 @@ def _manager(hass: HomeAssistant) -> AbsoluteRemotes:
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for action in (ws_resources, ws_absolute, ws_catalog, ws_import, ws_libraries, ws_library_add, ws_library_remove,
-                   ws_library_entries, ws_library_match, ws_library_bring):
+                   ws_library_recognise, ws_library_entries, ws_library_match, ws_library_bring):
         websocket_api.async_register_command(hass, action)
 
 
@@ -167,6 +167,22 @@ async def ws_library_remove(hass: HomeAssistant, connection: websocket_api.Activ
         connection.send_error(msg["id"], error.code, str(error))
     else:
         connection.send_result(msg["id"], {})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemanager/remotes/libraries/recognise", vol.Required("library_id"): ID,
+    vol.Required("enabled"): bool,
+})
+@websocket_api.async_response
+async def ws_library_recognise(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """0.14 · the switch of each library: whether a capture is compared with it."""
+    try:
+        result = await _libraries(hass).async_recognise(msg["library_id"], msg["enabled"])
+    except ModelError as error:
+        connection.send_error(msg["id"], error.code, str(error))
+    else:
+        connection.send_result(msg["id"], result)
 
 
 @websocket_api.require_admin

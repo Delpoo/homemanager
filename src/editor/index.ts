@@ -94,7 +94,6 @@ import { snapToGrid } from '../model/room-shapes.js';
 import { alertSettingsDraft, alertSettingsDisplay, type AlertSettingsDraft } from '../model/alert-settings.js';
 import { ControlDesigner } from '../ui/control-designer.js';
 import { designRemote, renderDesignPiece } from '../ui/control-design-adapter.js';
-import { installDialogComponents } from '../ui/panel-components.js';
 import type { ControlHost } from '../ui/control-view.js';
 import { RulesEditor } from '../ui/rules-editor.js';
 import { AutomationsEditor } from '../ui/automations-editor.js';
@@ -185,7 +184,7 @@ const controlPickerStyles = `.ctl-list{display:grid;gap:6px}.ctl-row{display:fle
 .ctl-row>ha-icon{--mdc-icon-size:20px;color:var(--hm-brand);flex:none}.ctl-name{flex:1;min-width:0;display:grid}.ctl-name b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ctl-name small{font-size:12px;color:var(--hm-muted)}
 .ctl-row.on{border-color:var(--hm-brand);background:color-mix(in srgb,var(--hm-brand) 8%,var(--hm-surface))}
 .ctl-add{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px dashed var(--hm-line);border-radius:12px;background:transparent;color:var(--hm-brand);font:inherit;font-weight:500}.ctl-add ha-icon{--mdc-icon-size:18px}
-.ctl-picker{width:460px}.ctl-search{width:100%;min-height:40px;padding:0 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit}
+.ctl-pick{display:grid;gap:8px;padding:10px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface-2)}.ctl-pick-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.ctl-pick-head b{font-weight:500}.ctl-mark{--mdc-icon-size:18px;color:var(--hm-brand);flex:none}.ctl-row:not(.on) .ctl-mark{color:var(--hm-muted)}.ctl-search{width:100%;min-height:40px;padding:0 12px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface);color:var(--hm-ink);font:inherit}
 .ctl-tabs{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2)}.ctl-tabs button{flex:1;min-height:34px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font:inherit}.ctl-tabs button[aria-selected=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}
 .ctl-results{display:grid;gap:6px;max-height:min(420px,55vh);overflow:auto}.ctl-group{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--hm-muted);padding-top:6px}`;
 const css =
@@ -1442,6 +1441,7 @@ export class HomeManagerEditor extends HTMLElement {
     for (const field of this.root.querySelectorAll<HTMLInputElement>('input[data-entity-picker]'))
       enhanceEntityInput(field, () => this._hass);
     this.wirePickers();
+    this.mountControlPicker();
     const designHost = this.root.querySelector('.designer-host');
     const designDevice = this.device();
     if (designHost && designDevice) {
@@ -1644,7 +1644,11 @@ export class HomeManagerEditor extends HTMLElement {
         : remoteId
           ? controlRow('remoteId', remoteId, 'mdi:remote', 0, 'RF')
           : ''
-    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button></div>`;
+    }${ir ? controlRow('irRemoteId', ir.name, ir.icon ?? 'mdi:remote-tv', ir.buttons.length, 'IR') : irRemoteId ? controlRow('irRemoteId', irRemoteId, 'mdi:remote-tv', 0, 'IR') : ''}${
+      this.controlPicking && this.controlPicking === device?.id
+        ? '<div class="ctl-pick" data-ctl-pick></div>'
+        : `<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar un control'))}</button>`
+    }</div>`;
     const irField = '';
     const advanced = `${input('id', t('ID del dispositivo'), device?.id ?? '', device ? 'readonly form="device-form"' : `form="device-form" placeholder="${esc(t('Automático si se deja vacío'))}"`)}
       <div class="field">${help(t('Movilidad del dispositivo'), t('Fijo bloquea la ubicación. Editable permite moverlo; portátil representa un equipo que cambia de lugar.'))}<select form="device-form" name="mobility" aria-label="${esc(t('Movilidad del dispositivo'))}">${(
@@ -2276,15 +2280,16 @@ export class HomeManagerEditor extends HTMLElement {
       }),
     );
   }
-  /** 0.14 · «Agregar un control al símbolo», like the app's picker: a search, «Todos» and «Controles
-   * aprendidos», with icon, name and how many buttons; what the symbol already has is marked. */
+  /** 0.14 · «Agregar un control al símbolo», as in the mockup: inside the symbol's panel, below the
+   * controls it has, a search, «Todos» and «Controles aprendidos», with icon, name and how many
+   * buttons; what the symbol already has is marked, the rest has its «+». */
   private controlPickerTab: 'all' | 'learned' = 'all';
-  private openControlPicker(): void {
-    this.root.querySelector('dialog.ctl-picker')?.remove();
-    const dialog = document.createElement('dialog');
-    dialog.className = 'k-dialog ctl-picker';
-    dialog.setAttribute('aria-label', t('Agregar un control'));
-    this.root.append(dialog);
+  /** The symbol whose «Agregar un control» list is open ('' = none). */
+  private controlPicking = '';
+  private controlPickQuery = '';
+  private mountControlPicker(): void {
+    const host = this.root.querySelector<HTMLElement>('[data-ctl-pick]');
+    if (!host || !this.controlPicking) return;
     const current = {
       rf: this.root.querySelector<HTMLInputElement>('[name=remoteId]')?.value ?? '',
       ir: this.root.querySelector<HTMLInputElement>('[name=irRemoteId]')?.value ?? '',
@@ -2310,7 +2315,8 @@ export class HomeManagerEditor extends HTMLElement {
       })),
     ];
     const device = this.device();
-    const draw = (query = '') => {
+    const draw = () => {
+      const query = this.controlPickQuery;
       const needle = query.trim().toLowerCase();
       const shown = rows.filter(
         row => !needle || row.name.toLowerCase().includes(needle) || row.tag.toLowerCase() === needle,
@@ -2320,7 +2326,7 @@ export class HomeManagerEditor extends HTMLElement {
         this.controlPickerTab === 'all' &&
         device?.bindings.entityId &&
         (!needle || device.display.label.toLowerCase().includes(needle))
-          ? `<div class="ctl-group">${esc(t('Home Assistant'))}</div><div class="ctl-row on"><ha-icon icon="${esc(device.display.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(device.display.label)}</b><small>${esc(t('El aparato de este símbolo'))}</small></span><ha-icon icon="mdi:check" aria-label="${esc(t('Ya está en el símbolo'))}"></ha-icon></div>`
+          ? `<div class="ctl-group">${esc(t('Home Assistant'))}</div><div class="ctl-row on"><ha-icon icon="${esc(device.display.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(device.display.label)}</b><small>${esc(t('El aparato de este símbolo'))}</small></span><ha-icon class="ctl-mark" icon="mdi:check" aria-label="${esc(t('Ya está en el símbolo'))}"></ha-icon></div>`
           : '';
       const list = groups
         .map(
@@ -2329,12 +2335,13 @@ export class HomeManagerEditor extends HTMLElement {
               .filter(row => row.group === group)
               .map(row => {
                 const on = (row.field === 'remoteId' ? current.rf : current.ir) === row.id;
-                return `<button type="button" class="ctl-row${on ? ' on' : ''}" data-pick-field="${row.field}" data-pick="${esc(row.id)}"${on ? ' aria-pressed="true"' : ''}><ha-icon icon="${esc(row.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(row.name)}</b><small>${esc(t('{count} botones', { count: row.count }))} · ${row.tag}</small></span>${on ? `<ha-icon icon="mdi:check" aria-label="${esc(t('Ya está en el símbolo'))}"></ha-icon>` : ''}</button>`;
+                const what = on ? t('Ya está en el símbolo') : t('Agregar «{name}»', { name: row.name });
+                return `<button type="button" class="ctl-row${on ? ' on' : ''}" data-pick-field="${row.field}" data-pick="${esc(row.id)}"${on ? ' aria-pressed="true"' : ''} title="${esc(what)}"><ha-icon icon="${esc(row.icon)}" aria-hidden="true"></ha-icon><span class="ctl-name"><b>${esc(row.name)}</b><small>${esc(t('{count} botones', { count: row.count }))} · ${row.tag}</small></span><ha-icon class="ctl-mark" icon="${on ? 'mdi:check' : 'mdi:plus'}" aria-hidden="true"></ha-icon></button>`;
               })
               .join('')}`,
         )
         .join('');
-      dialog.innerHTML = `<header class="k-dialog-head"><h2 id="hm-panel-title">${esc(t('Agregar un control'))}</h2></header><div class="k-dialog-body"><input type="search" class="ctl-search" placeholder="${esc(t('Buscar'))}" aria-label="${esc(t('Buscar'))}" value="${esc(query)}"><div class="ctl-tabs" role="tablist">${(
+      host.innerHTML = `<div class="ctl-pick-head"><b>${esc(t('Agregar un control'))}</b><button type="button" class="hm-icon-button small" data-ctl-close aria-label="${esc(t('Cerrar'))}" title="${esc(t('Cerrar'))}"><ha-icon icon="mdi:close" aria-hidden="true"></ha-icon></button></div><input type="search" class="ctl-search" placeholder="${esc(t('Buscar'))}" aria-label="${esc(t('Buscar'))}" value="${esc(query)}"><div class="ctl-tabs" role="tablist">${(
         [
           ['all', t('Todos')],
           ['learned', t('Controles aprendidos')],
@@ -2346,33 +2353,36 @@ export class HomeManagerEditor extends HTMLElement {
         )
         .join(
           '',
-        )}</div><div class="ctl-results">${ha}${list || (ha ? '' : `<p class="note">${esc(rows.length ? t('Nada coincide con la búsqueda.') : t('Todavía no hay controles aprendidos.'))}</p>`)}</div></div><footer class="k-dialog-foot"><button type="button" class="k-btn secondary" data-ctl-close>${esc(t('Cerrar'))}</button></footer>`;
-      const search = dialog.querySelector<HTMLInputElement>('.ctl-search')!;
+        )}</div><div class="ctl-results">${ha}${list || (ha ? '' : `<p class="note">${esc(rows.length ? t('Nada coincide con la búsqueda.') : t('Todavía no hay controles aprendidos.'))}</p>`)}</div>`;
+      const search = host.querySelector<HTMLInputElement>('.ctl-search')!;
       search.addEventListener('input', () => {
         const at = search.selectionStart;
-        draw(search.value);
-        const again = dialog.querySelector<HTMLInputElement>('.ctl-search')!;
+        this.controlPickQuery = search.value;
+        draw();
+        const again = host.querySelector<HTMLInputElement>('.ctl-search')!;
         again.focus();
         again.setSelectionRange(at, at);
       });
-      dialog.querySelectorAll<HTMLButtonElement>('[data-ctl-tab]').forEach(tab =>
+      host.querySelectorAll<HTMLButtonElement>('[data-ctl-tab]').forEach(tab =>
         tab.addEventListener('click', () => {
           this.controlPickerTab = tab.dataset.ctlTab as 'all' | 'learned';
-          draw(search.value);
+          draw();
         }),
       );
-      dialog.querySelector('[data-ctl-close]')?.addEventListener('click', () => dialog.close());
-      dialog.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach(button =>
+      host.querySelector('[data-ctl-close]')?.addEventListener('click', () => {
+        this.controlPicking = '';
+        this.render();
+        this.root.querySelector<HTMLElement>('[data-command=control-pick]')?.focus();
+      });
+      host.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach(button =>
         button.addEventListener('click', () => {
+          if (button.getAttribute('aria-pressed') === 'true') return;
+          this.controlPicking = '';
           this.setControlField(button.dataset.pickField as 'remoteId' | 'irRemoteId', button.dataset.pick!);
-          dialog.close();
         }),
       );
     };
     draw();
-    dialog.addEventListener('close', () => dialog.remove(), { once: true });
-    installDialogComponents(this.root);
-    dialog.showModal();
   }
   /** Sets (or clears) the RF or IR control of the symbol in its form, as the old selects did. */
   private setControlField(field: 'remoteId' | 'irRemoteId', value: string): void {
@@ -2468,7 +2478,10 @@ export class HomeManagerEditor extends HTMLElement {
           this.openSettings('actions-section');
           break;
         case 'control-pick':
-          this.openControlPicker();
+          this.controlPicking = this.device()?.id ?? '';
+          this.controlPickQuery = '';
+          this.render();
+          this.root.querySelector<HTMLInputElement>('[data-ctl-pick] .ctl-search')?.focus();
           break;
         case 'control-unlink':
           this.setControlField(button.dataset.field as 'remoteId' | 'irRemoteId', '');

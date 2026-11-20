@@ -390,6 +390,15 @@ export class ControlDesigner extends HTMLElement {
     if (resolved) this.remote.layout = resolved;
     this.render();
   }
+  /** 0.14 · the pencil of a button in Controls: the editor opens on the piece that uses it; a learned
+   * button that is not on the control yet is put on it (as a draft, until «Guardar»). */
+  focusButton(ref: string): void {
+    const using = this.users().get(ref) ?? [];
+    if (using.length) return this.select([using[0].id]);
+    if (this.learned().some(button => button.id === ref)) return this.addPiece('press', undefined, { ref });
+    this.mods.add('learned');
+    this.render();
+  }
   /** Buttons the control waits for (not learned yet). */
   private wanted(): { id: string; name: string; icon?: string | null }[] {
     return this.layout().find(piece => piece.type === 'canvas')?.wanted ?? [];
@@ -1093,11 +1102,39 @@ export class ControlDesigner extends HTMLElement {
   private designModule(): string {
     const kind = this.options?.appliance;
     if (!kind) return '';
-    const cards = DESIGNS.map(
-      ([design, label, about, icon], i) =>
-        `<div class="ddesign"><span class="dprev" data-dprev="${i}"></span><span class="dtx"><b>${glyph(icon)}${e(t(label))}</b><small>${e(t(about))}</small><button type="button" class="sbtn" data-use-design="${design}">${e(t('Usar este diseño'))}</button></span></div>`,
-    ).join('');
-    return this.module('design', 'mdi:view-dashboard-outline', t('Diseño'), t('Clásico, Moderno o Avanzado'), `<div class="ddesigns">${cards}</div>`);
+    // As in the mockup, the module says which design is in use.
+    const current = this.currentDesign();
+    const name = (design: StartDesign) => t(DESIGNS.find(([id]) => id === design)?.[1] ?? '');
+    const summary = !current
+      ? t('A medida')
+      : current.changed
+        ? t('{name} · con cambios', { name: name(current.design) })
+        : name(current.design);
+    const cards = DESIGNS.map(([design, label, about, icon], i) => {
+      const inUse = current?.design === design && !current.changed;
+      const action = inUse
+        ? `<span class="sbtn on" aria-current="true">${glyph('mdi:check')}${e(t('En uso'))}</span>`
+        : `<button type="button" class="sbtn" data-use-design="${design}">${e(t('Usar este diseño'))}</button>`;
+      return `<div class="ddesign${inUse ? ' on' : ''}"><span class="dprev" data-dprev="${i}"></span><span class="dtx"><b>${glyph(icon)}${e(t(label))}</b><small>${e(t(about))}</small>${action}</span></div>`;
+    }).join('');
+    return this.module('design', 'mdi:view-dashboard-outline', t('Diseño'), summary, `<div class="ddesigns">${cards}</div>`);
+  }
+  /** The starting design this control still is: the one whose pieces (kind, place and size) it keeps.
+   * Nothing is stored for it, so a control edited far from all three is «A medida». */
+  private currentDesign(): { design: StartDesign; changed: boolean } | null {
+    const kind = this.options?.appliance;
+    if (!kind) return null;
+    const shape = (pieces: RfWidget[]) =>
+      new Set(pieces.filter(piece => piece.type !== 'canvas').map(piece => `${piece.type}@${piece.x},${piece.y},${piece.w},${piece.h}`));
+    const now = shape(this.layout());
+    let best: { design: StartDesign; score: number } | null = null;
+    for (const [design] of DESIGNS) {
+      const start = shape(applyTemplate(kind, design, this.learned()));
+      const same = [...start].filter(key => now.has(key)).length;
+      const score = same / Math.max(start.size, now.size, 1);
+      if (!best || score > best.score) best = { design, score };
+    }
+    return best && best.score >= 0.5 ? { design: best.design, changed: best.score < 1 } : null;
   }
   private mountDesignPreviews(): void {
     const kind = this.options?.appliance;
@@ -1351,6 +1388,29 @@ export class ControlDesigner extends HTMLElement {
     const variant = variantOf(piece);
     const family = VARIANTS.filter(v => v.cat === variant.cat);
     let gest = '';
+    // 0.14 · «Gestos», as in the mockup: holding a button repeats it or sends another; holding a switch,
+    // a list or a shortcut can send another button.
+    const holdRows = (repeat: boolean, other: boolean) =>
+      row(
+        'mdi:gesture-tap-hold',
+        t('Al mantener apretado'),
+        seg(
+          'hold',
+          [
+            ['', t('Nada')],
+            ...(repeat ? [['repeat', t('Repite')] as [string, string]] : []),
+            ...(other ? [['other', t('Otro botón')] as [string, string]] : []),
+          ],
+          piece.hold ?? '',
+        ),
+      ) +
+      (other && piece.hold === 'other'
+        ? row(
+            'mdi:access-point',
+            t('Botón al mantener'),
+            this.refSelect('hold-button', piece.holdButton, undefined, '', t('Botón al mantener')),
+          )
+        : '');
     let html =
       variant.id === 'control' || part !== 'all'
         ? ''
@@ -1404,28 +1464,7 @@ export class ControlDesigner extends HTMLElement {
           t('Envía'),
           this.refSelect('ref-0', piece.buttons[0], undefined, '', t('Envía')),
         );
-      if (piece.type === 'button')
-        gest +=
-          row(
-            'mdi:gesture-tap-hold',
-            t('Al mantener apretado'),
-            seg(
-              'hold',
-              [
-                ['', t('Nada')],
-                ['repeat', t('Repite')],
-                ['other', t('Otro botón')],
-              ],
-              piece.hold ?? '',
-            ),
-          ) +
-          (piece.hold === 'other'
-            ? row(
-                'mdi:access-point',
-                t('Botón al mantener'),
-                this.refSelect('hold-button', piece.holdButton, undefined, '', t('Botón al mantener')),
-              )
-            : '');
+      gest += holdRows(piece.type === 'button', true);
     } else if (variant.cat === 'level') {
       const count = levelCount(piece);
       const mode = sendByOf(piece);
@@ -1519,18 +1558,7 @@ export class ControlDesigner extends HTMLElement {
           (_, i) =>
             `<div class="lvlsend"><span>${e(count ? levelText(piece, i) : String(i + 1))}</span>${this.refSelect(`ref-${i}`, piece.buttons[i], undefined, '', count ? levelText(piece, i) : String(i + 1))}${!piece.names && !piece.values && piece.buttons.length > 2 ? iconButton(t('Quitar'), 'mdi:close', `data-remove-ref="${i}"`, 'sm') : ''}</div>`,
         ).join('');
-      gest += row(
-        'mdi:gesture-tap-hold',
-        t('Al mantener apretado'),
-        seg(
-          'hold',
-          [
-            ['', t('Nada')],
-            ['repeat', t('Repite')],
-          ],
-          piece.hold ?? '',
-        ),
-      );
+      gest += holdRows(true, false);
     } else if (variant.cat === 'mode') {
       const max = piece.type === 'cycle' ? 4 : 8;
       html += `<div class="isec">${e(t('Opciones'))}</div><div class="opts">${piece.buttons
@@ -1541,6 +1569,7 @@ export class ControlDesigner extends HTMLElement {
         .join(
           '',
         )}</div>${piece.buttons.length < max ? `<button type="button" class="chip" data-command="option-add">${glyph('mdi:plus')}${e(t('Opción'))}</button>` : ''}`;
+      gest += holdRows(false, true);
     } else if (variant.cat === 'info') {
       if (piece.type === 'indicator' || piece.type === 'graph')
         html += this.readingRows(piece, t('Sensor de Home Assistant'));
@@ -2608,7 +2637,7 @@ const designerStyles = `
 .mrow.waiting .mtx small{color:var(--hm-warn,#b86e10)}
 .mwant{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--hm-warn,#d98b1f);color:#fff;font-size:12px;font-weight:700}
 .mwadd{display:flex;align-items:center;gap:6px}.mwadd .tin{flex:1;min-width:0}
-.ddesigns{display:grid;gap:8px}
+.ddesigns{display:grid;gap:8px}.ddesign.on{border-color:var(--hm-brand)}.sbtn.on{display:inline-flex;align-items:center;gap:4px;border-color:transparent;background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface));color:var(--hm-brand);font-weight:500}.sbtn.on ha-icon{--mdc-icon-size:16px}
 .ddesign{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--hm-line);border-radius:12px;background:var(--hm-surface)}
 .dprev{position:relative;width:96px;height:124px;flex:none;overflow:hidden;border-radius:9px;background:var(--hm-surface-2)}
 .dprev homemanager-rf-remote{position:absolute;left:0;top:0;width:328px;transform:scale(.29);transform-origin:top left;pointer-events:none}

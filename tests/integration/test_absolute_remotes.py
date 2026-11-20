@@ -159,6 +159,14 @@ async def test_programs_of_the_air_are_whole_states_run_with_one_tap(
         "profile": MITSUBISHI, "name": "Synthetic AC", "brand": "Mitsubishi Electric", "model": "144",
         "remote_id": imported["id"], "button_id": saved["buttons"][0]["id"], "emitter": TX,
     })
+    # It arrives with the four examples of the mockup, each a whole state the air accepts.
+    assert [(item["name"], item["icon"], item["state"]["mode"]) for item in created["programs"]] == [
+        ("Sleep", "mdi:weather-night", "cool"), ("Dry", "mdi:water-percent", "dry"),
+        ("Saving", "mdi:leaf", "cool"), ("Quick", "mdi:lightning-bolt", "cool")]
+    for example in created["programs"]:
+        control = await _call(admin, "absolute", command="program", control_id=created["id"],
+                              fields={"program_id": example["id"], "remove": True})
+    assert control["programs"] == []
     night = {**created["state"], "power": True, "temperature": 26}
     control = await _call(admin, "absolute", command="program", control_id=created["id"],
                           fields={"name": "Dormir", "icon": "mdi:weather-night", "state": night})
@@ -195,6 +203,13 @@ async def test_my_libraries_recognise_a_signal_and_bring_buttons_with_template_n
     found = hass.data[DATA_IR_LIBRARIES].match((510, -705, 495, -790))
     assert found[0]["entry"] == "Demo power" and found[0]["model"] == "T1" and found[0]["score"] >= 0.75
     # Off the event loop, with the same answer; a signal of another length is never compared.
+    assert await hass.data[DATA_IR_LIBRARIES].async_match((510, -705, 495, -790)) == found
+    # A library switched off is not compared; on again, it is.
+    assert added["recognise"] is True
+    off = await _call(admin, "libraries/recognise", library_id=added["id"], enabled=False)
+    assert off["recognise"] is False and (await _call(admin, "libraries/list"))[0]["recognise"] is False
+    assert await hass.data[DATA_IR_LIBRARIES].async_match((510, -705, 495, -790)) == []
+    await _call(admin, "libraries/recognise", library_id=added["id"], enabled=True)
     assert await hass.data[DATA_IR_LIBRARIES].async_match((510, -705, 495, -790)) == found
     assert _reachable(4, 4) and _reachable(100, 98) and not _reachable(4, 60) and not _reachable(200, 40)
     brought = await _call(admin, "libraries/bring", library_id=added["id"], indexes=[0],

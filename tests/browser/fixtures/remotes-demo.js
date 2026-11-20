@@ -128,6 +128,9 @@ const subscribe = hass.connection.subscribeMessage.bind(hass.connection);
 const calls = [];
 const history = [];
 let sequence = 0;
+// 0.14 · «Mis bibliotecas»: empty until a test adds one (window.demoLibraries), with invented data.
+const libraries = [];
+window.demoLibraries = libraries;
 hass.callWS = async message => {
   calls.push(structuredClone(message));
   switch (message.type) {
@@ -137,6 +140,16 @@ hass.callWS = async message => {
       return home;
     case 'homemanager/remotes/library':
       return { remotes: structuredClone(learned) };
+    case 'homemanager/remotes/libraries/list':
+      return structuredClone(libraries);
+    case 'homemanager/remotes/libraries/recognise': {
+      const library = libraries.find(item => item.id === message.library_id);
+      if (library) library.recognise = message.enabled;
+      return structuredClone(library);
+    }
+    case 'homemanager/remotes/libraries/entries':
+    case 'homemanager/remotes/libraries/match':
+      return [];
     case 'homemanager/remotes/ir/devices':
       return {
         emitters: [{ id: transmitter, name: 'Emisor IR de prueba' }],

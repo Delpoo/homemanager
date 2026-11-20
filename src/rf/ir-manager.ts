@@ -40,6 +40,8 @@ export class HomeManagerIr extends HTMLElement {
   private saved: IrRemote[] = [];
   private selected = '';
   private editing: 'buttons' | 'layout' | '' = '';
+  /** 0.14 · a button whose pencil was tapped: the editor opens on it. */
+  private focusRef = '';
   private settings?: IrSettings;
   private replaceButton = '';
   private readonly preview = new SignalPreview();
@@ -464,7 +466,7 @@ export class HomeManagerIr extends HTMLElement {
                         )}</span>`
                       : ''
                   }</span>
-        ${iconButton(t('Ficha técnica de {name}', { name: button.name }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}</div>`,
+        ${iconButton(t('Editar «{name}»', { name: button.name }), 'mdi:pencil', `data-edit-ref="${e(button.id)}"`)}${iconButton(t('Ficha técnica de {name}', { name: button.name }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}</div>`,
               )
               .join('')}</div></details>`
           : ''
@@ -519,7 +521,7 @@ export class HomeManagerIr extends HTMLElement {
     return `<div class="list waiting" aria-label="${e(t('Sin aprender'))}">${wanted
       .map(
         item =>
-          `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(item.name)}</b><small>${e(t('Sin aprender'))}</small></span>${iconButton(t('Aprender «{name}»', { name: item.name }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}</div>`,
+          `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(item.name)}</b><small>${e(t('Sin aprender'))}</small></span>${iconButton(t('Aprender «{name}»', { name: item.name }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}${iconButton(t('Editar «{name}»', { name: item.name }), 'mdi:pencil', `data-edit-ref="${e(item.id)}"`)}</div>`,
       )
       .join('')}</div>`;
   }
@@ -569,6 +571,10 @@ export class HomeManagerIr extends HTMLElement {
           if (updated) this.updateRemote(updated);
         },
       });
+      if (this.focusRef) {
+        this.designer.focusButton(this.focusRef);
+        this.focusRef = '';
+      }
     } else {
       host?.append(this.player);
       this.player.readValues = () => this._hass?.states ?? {};
@@ -729,6 +735,13 @@ export class HomeManagerIr extends HTMLElement {
             { source: 'ir', remote_id: remote.id, button_id: button.dataset.signal! },
             this.editing ? undefined : 'tests',
           );
+      }),
+    );
+    this.root.querySelectorAll<HTMLButtonElement>('[data-edit-ref]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.focusRef = button.dataset.editRef!;
+        this.editing = 'layout';
+        this.render();
       }),
     );
     this.root.querySelectorAll<HTMLButtonElement>('[data-learn-name]').forEach(button =>

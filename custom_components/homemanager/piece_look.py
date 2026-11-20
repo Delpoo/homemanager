@@ -16,6 +16,8 @@ COLOR = re.compile(r"#[0-9A-Fa-f]{6}\Z")
 ICON = re.compile(r"mdi:[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 # Pieces that step through levels, and pieces that pick one of several options.
 LEVELS = ("updown", "slider", "steps", "knob")
+# 0.14 · pieces whose long press can send another button (the «Gestos» step).
+HOLD_OTHER = ("button", "toggle", "modes", "cycle", "preset")
 MODES = ("modes", "cycle")
 # Ready-made blocks and the keys each one has.
 BLOCK_SLOTS = {
@@ -159,7 +161,7 @@ def check_piece(raw: dict[str, Any], kind: str, used: list[str], is_ref: Callabl
         elif key == "brand":
             _check(kind == "button" and _label(value, 40), key)
         elif key == "hold":
-            _check(value == "repeat" and kind in ("button", *LEVELS) or value == "other" and kind == "button", key)
+            _check(value == "repeat" and kind in ("button", *LEVELS) or value == "other" and kind in HOLD_OTHER, key)
         elif key == "holdButton":
             _check(raw.get("hold") == "other" and isinstance(value, str) and is_ref(value), key)
         elif key == "values":

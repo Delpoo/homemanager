@@ -80,6 +80,8 @@ export interface IrLibrary {
   brand: string;
   model: string;
   count: number;
+  /** 0.14 · whether a capture is compared with it (on unless switched off). */
+  recognise?: boolean;
 }
 /** A library button a captured signal probably is. */
 export interface LibraryMatch {
@@ -96,6 +98,8 @@ export const remoteResources = {
   addLibrary: (hass: Hass, fields: Record<string, unknown>) => ws<IrLibrary>(hass, 'libraries/add', fields),
   removeLibrary: (hass: Hass, library_id: string) =>
     ws<Record<string, never>>(hass, 'libraries/remove', { library_id }),
+  recogniseLibrary: (hass: Hass, library_id: string, enabled: boolean) =>
+    ws<IrLibrary>(hass, 'libraries/recognise', { library_id, enabled }),
   libraryEntries: (hass: Hass, library_id: string) =>
     ws<{ index: number; name: string }[]>(hass, 'libraries/entries', { library_id }),
   matchLibrary: (hass: Hass, candidate_id: string) => ws<LibraryMatch[]>(hass, 'libraries/match', { candidate_id }),

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.0-beta.6 — beta
+
+Las diez diferencias con la maqueta v14 que el propietario eligió, y dos frases de la ayuda.
+
+- **«?» arriba a la derecha:** la ayuda de un control completo está en su esquina, como en la maqueta; las vistas previas chicas no la muestran.
+- **«Add a control» en el panel:** la lista con buscador, «All» y «Learned remotes» se abre dentro del panel del símbolo, debajo de sus controles, y no en una ventana en el medio.
+- **Salir de la guía pregunta:** con botones ya aprendidos, la ✕ pregunta «Keep going», «Discard» (borra el control a medio hacer) o «Keep what was learned».
+- **Lápiz en cada botón:** en Controles, los botones aprendidos y los que esperan con «!» tienen un lápiz que abre ese botón en el editor; uno que no está en el control se agrega como borrador.
+- **«Bring from the library» siempre a la vista:** el paso 3 por infrarrojo tiene dos pestañas, «Learn with the remote» y «Bring from the library»; sin bibliotecas, lleva a agregar una y vuelve a la guía.
+- **Modos sólo con símbolo:** en los diseños Moderno y Avanzado, los modos nuevos muestran los símbolos y el nombre aparece al pasar el mouse; el Clásico conserva las palabras del control físico.
+- **Paso «Gestures»:** también en interruptores, modos, listas y atajos («Al mantener apretado»: nada u otro botón), además de botones y niveles.
+- **«Design» dice cuál está en uso:** por ejemplo «Advanced», «Advanced · edited» o «Custom»; la tarjeta del diseño en uso dice «In use».
+- **Elegir bibliotecas:** cada biblioteca de «My libraries» tiene un interruptor para reconocer con ella o no, y la línea «Recognise while learning» cuenta cuántas están prendidas.
+- **Cuatro programas de ejemplo:** un aire de estado completo trae Dormir, Humedad, Ahorro y Rápido (en el idioma de Home Assistant), que se pueden cambiar o borrar; uno que ya existía sin programas los recibe una vez.
+- **Ayuda «?»:** una lista de opciones sin nombres propios usa los de sus botones, y un atajo de un paso dice «sends one step».
+
 ## 0.14.0-beta.5 — beta
 
 Arreglos de la revisión de calidad de los controles 0.14 (plan, maqueta v14 y capturas en inglés).

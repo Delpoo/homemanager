@@ -27,7 +27,7 @@ import {
 } from '../integration/rf.js';
 import { remotes as irApi, type IrDevice, type IrRemote } from '../integration/remotes.js';
 import { icon, kindLabel, roleLabel } from './catalog.js';
-import { confirmDialog } from '../ui/confirm-dialog.js';
+import { choiceDialog, confirmDialog } from '../ui/confirm-dialog.js';
 import { diagnostics } from '../integration/diagnostics.js';
 import { openSignal, type SignalTab } from '../ui/signal-workbench.js';
 import { HomeManagerRemoteResources } from './resources.js';
@@ -108,6 +108,8 @@ export class HomeManagerRf extends HTMLElement {
   private wizard = false;
   private trials = new Map<string, Trial>();
   private editing = false;
+  /** 0.14 · a button whose pencil was tapped: the editor opens on it. */
+  private focusRef = '';
   private learning = false;
   private readonly designer = new ControlDesigner();
   private rfDevices: RfDevice[] = [];
@@ -139,6 +141,10 @@ export class HomeManagerRf extends HTMLElement {
   private readonly guideLive = document.createElement('homemanager-rf-remote') as HomeManagerRfRemote;
   /** 0.14 · kept infrared libraries, to bring a template's buttons from one. */
   private guideLibraries: IrLibrary[] = [];
+  /** 0.14 · step 3 by infrared, as in the mockup: «Aprender con el control» or «Traer de la biblioteca». */
+  private guideBringing = false;
+  /** The library page was opened from the guide: ← goes back to it. */
+  private libraryFromGuide = false;
 
   constructor() {
     super();
@@ -513,21 +519,39 @@ export class HomeManagerRf extends HTMLElement {
       const done = order.filter(item => known.has(item.name.toLowerCase())).length;
       const current = order[g.index];
       const learner = this.newSource === 'ir' ? '<div data-slot="infrared"></div>' : '<div data-slot="learn"></div>';
-      const bring =
-        this.newSource === 'ir' && this.guideLibraries.length
-          ? `<div class="row-icon gbring">${icon('mdi:bookshelf')}<select name="glibrary" aria-label="${e(t('Biblioteca'))}">${this.guideLibraries
+      const ir = this.newSource === 'ir';
+      const bringing = ir && this.guideBringing;
+      const tabs = ir
+        ? `<div class="gtabs" role="tablist">${(
+            [
+              [false, t('Aprender con el control'), 'mdi:remote'],
+              [true, t('Traer de la biblioteca'), 'mdi:bookshelf'],
+            ] as const
+          )
+            .map(
+              ([tab, label, glyph]) =>
+                `<button type="button" role="tab" data-gtab="${tab ? 'bring' : 'learn'}" aria-selected="${bringing === tab}">${icon(glyph)}<span>${e(label)}</span></button>`,
+            )
+            .join('')}</div>`
+        : '';
+      const bring = !bringing
+        ? ''
+        : this.guideLibraries.length
+          ? `<div class="gbringbox"><div class="row-icon gbring">${icon('mdi:bookshelf')}<select name="glibrary" aria-label="${e(t('Biblioteca'))}">${this.guideLibraries
               .map(
                 library =>
                   `<option value="${e(library.id)}">${e(`${library.name} · ${library.brand} ${library.model}`)}</option>`,
               )
               .join(
                 '',
-              )}</select><button type="button" class="chip" data-guide="bring">${e(t('Traer de la biblioteca'))}</button></div>`
-          : '';
-      body = `${bring}<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
-        current
-          ? `<div class="gnow"><small>${e(t('Botón {n} de {total}', { n: g.index + 1, total: order.length }))}</small><b>${e(current.name)}</b></div>${learner}<button type="button" class="chip gskip" data-guide="skip">${icon('mdi:debug-step-over')}${e(t('Saltar: mi control no lo tiene'))}</button>`
-          : `<p class="muted">${e(t('Ya pasaste por todos los botones.'))}</p>`
+              )}</select></div><button type="button" class="next" data-guide="bring">${icon('mdi:download')}${e(t('Traer los botones que faltan'))}</button></div>`
+          : `<div class="gbringbox empty">${icon('mdi:bookshelf')}<span>${e(t('Todavía no guardaste bibliotecas.'))}</span><button type="button" class="chip" data-guide="libraries">${icon('mdi:plus')}${e(t('Agregar una biblioteca'))}</button></div>`;
+      body = `${tabs}<div class="glive"><div data-slot="glive"></div><span class="gprog">${done} / ${order.length}</span></div>${
+        bringing
+          ? bring
+          : current
+            ? `<div class="gnow"><small>${e(t('Botón {n} de {total}', { n: g.index + 1, total: order.length }))}</small><b>${e(current.name)}</b></div>${learner}<button type="button" class="chip gskip" data-guide="skip">${icon('mdi:debug-step-over')}${e(t('Saltar: mi control no lo tiene'))}</button>`
+            : `<p class="muted">${e(t('Ya pasaste por todos los botones.'))}</p>`
       }<div class="glist">${order
         .map((item, i) => {
           const state = known.has(item.name.toLowerCase()) ? 'ok' : g.skipped.includes(item.id) ? 'skip' : '';
@@ -688,6 +712,7 @@ export class HomeManagerRf extends HTMLElement {
       this.guide.irRemote = brought.id;
       this.irRemotes = await irApi.library(hass);
       this.say(t('{count} botones traídos de la biblioteca.', { count: brought.added }));
+      this.guideBringing = false;
       this.guide.index = -1;
       this.guideAdvance();
     });
@@ -779,7 +804,7 @@ export class HomeManagerRf extends HTMLElement {
       ? `<div class="list">${remote.buttons
           .map(
             button =>
-              `<div class="li btn-row" data-button="${e(button.id)}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: rfText(button.name) }), 'name="button-icon" clearable')}<span class="t"><input class="name-in" name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${miniWave(button.fingerprint || button.id)}</span><span class="acts">${iconButton(t('Enviar {name}', { name: rfText(button.name) }), 'mdi:play', `data-press="${e(button.id)}"`, 'send')}${iconButton(t('Ficha técnica de {name}', { name: rfText(button.name) }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}${iconButton(t('Eliminar {name}', { name: rfText(button.name) }), 'mdi:close', `data-delete-button="${e(button.id)}"`)}</span></div>`,
+              `<div class="li btn-row" data-button="${e(button.id)}">${iconPicker(button.icon ?? '', t('Icono de {name}', { name: rfText(button.name) }), 'name="button-icon" clearable')}<span class="t"><input class="name-in" name="button-name" maxlength="80" value="${e(rfText(button.name))}" aria-label="${e(t('Nombre de {name}', { name: button.name }))}">${miniWave(button.fingerprint || button.id)}</span><span class="acts">${iconButton(t('Enviar {name}', { name: rfText(button.name) }), 'mdi:play', `data-press="${e(button.id)}"`, 'send')}${iconButton(t('Editar «{name}»', { name: rfText(button.name) }), 'mdi:pencil', `data-edit-ref="${e(button.id)}"`)}${iconButton(t('Ficha técnica de {name}', { name: rfText(button.name) }), 'mdi:waveform', `data-signal="${e(button.id)}"`)}${iconButton(t('Eliminar {name}', { name: rfText(button.name) }), 'mdi:close', `data-delete-button="${e(button.id)}"`)}</span></div>`,
           )
           .join('')}</div>`
       : `<p class="muted">${e(t('Todavía no hay botones.'))}</p>`;
@@ -789,7 +814,7 @@ export class HomeManagerRf extends HTMLElement {
       ? `${panelLabel(t('Sin aprender'))}<div class="list">${wanted
           .map(
             item =>
-              `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(rfText(item.name))}</b></span>${iconButton(t('Aprender «{name}»', { name: rfText(item.name) }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}</div>`,
+              `<div class="li wrow"><span class="wmark" aria-hidden="true">!</span><span class="t"><b>${e(rfText(item.name))}</b></span>${iconButton(t('Aprender «{name}»', { name: rfText(item.name) }), 'mdi:access-point', `data-learn-name="${e(item.name)}"`)}${iconButton(t('Editar «{name}»', { name: rfText(item.name) }), 'mdi:pencil', `data-edit-ref="${e(item.id)}"`)}</div>`,
           )
           .join('')}</div>`
       : '';
@@ -970,6 +995,16 @@ export class HomeManagerRf extends HTMLElement {
         this.render();
       }),
     );
+    // 0.14 · the pencil: the editor opens on that button.
+    root.querySelectorAll<HTMLButtonElement>('[data-edit-ref]').forEach(button =>
+      button.addEventListener('click', () => {
+        this.focusRef = button.dataset.editRef!;
+        this.editing = true;
+        this.closeLearn(false);
+        this.say('');
+        this.render();
+      }),
+    );
     root.querySelectorAll<HTMLButtonElement>('[data-signal]').forEach(button =>
       button.addEventListener('click', () => {
         if (remote && this._hass)
@@ -1032,6 +1067,10 @@ export class HomeManagerRf extends HTMLElement {
           this.render();
         },
       });
+      if (this.editing && this.focusRef) {
+        this.designer.focusButton(this.focusRef);
+        this.focusRef = '';
+      }
       this.remoteView.remote = remote;
       this.remoteView.editing = this.editing;
       this.bindEditSections(remote);
@@ -1164,6 +1203,7 @@ export class HomeManagerRf extends HTMLElement {
     on('[data-gitem]', element => {
       g.index = Number(element.dataset.gitem);
       const item = this.guideOrder()[g.index];
+      this.guideBringing = false;
       if (item) {
         g.skipped = g.skipped.filter(id => id !== item.id);
         this.guideLearn(item.name);
@@ -1186,6 +1226,25 @@ export class HomeManagerRf extends HTMLElement {
     });
     on('[data-guide=finish]', () => void this.guideFinish());
     on('[data-guide=bring]', () => void this.guideBring());
+    root.querySelectorAll<HTMLButtonElement>('[data-gtab]').forEach(tab =>
+      tab.addEventListener('click', () => {
+        const bring = tab.dataset.gtab === 'bring';
+        if (bring === this.guideBringing) return;
+        this.guideBringing = bring;
+        // The receiver listens only while learning with the remote.
+        if (bring) this.guideStopLearning();
+        else {
+          this.guide.index = -1;
+          this.guideAdvance();
+        }
+        this.render();
+      }),
+    );
+    on('[data-guide=libraries]', () => {
+      this.guideStopLearning();
+      this.libraryFromGuide = true;
+      this.show('catalog');
+    });
     root.querySelector<HTMLInputElement>('input[name=guide-name]')?.addEventListener('input', event => {
       g.name = (event.target as HTMLInputElement).value;
     });
@@ -1281,10 +1340,49 @@ export class HomeManagerRf extends HTMLElement {
     this.render();
   }
 
+  /** 0.14 · ✕ in the middle of the guide, with buttons already learned, asks as the plan says: keep
+   * going, discard what was learned (the half-made control is removed), or keep it as a control. */
+  private async leaveGuide(): Promise<boolean> {
+    if (this.view !== 'new' || this.guide.step <= 2) return true;
+    const remote = this.guideRemote();
+    if (!remote?.buttons.length || !this._hass) return true;
+    const choice = await choiceDialog(this.root, {
+      title: t('¿Salir de la guía?'),
+      message: t('Ya hay {count} botones aprendidos para este control.', { count: remote.buttons.length }),
+      choices: [
+        ['stay', t('Seguir')],
+        ['discard', t('Descartar')],
+        ['save', t('Guardar lo aprendido'), 'primary'],
+      ],
+    });
+    if (choice === 'save') {
+      await this.guideFinish();
+      this.editing = false;
+      return true;
+    }
+    if (choice !== 'discard') return false;
+    const hass = this._hass;
+    this.guideStopLearning();
+    await this.run(async () => {
+      if (this.newSource === 'ir') {
+        await irApi.editRemote(hass, remote.id, null);
+        this.irRemotes = await irApi.library(hass);
+      } else {
+        await rf.deleteRemote(hass, remote.id);
+        await this.reload();
+      }
+    });
+    this.selected = null;
+    this.draft = null;
+    this.guide = { step: 1, kind: 'ac', design: 'modern', index: 0, skipped: [], name: '', irRemote: '' };
+    this.view = 'list';
+    return true;
+  }
   /** ✕ goes back to the plan; ← one level up. */
   private leave(to: 'plan' | 'settings' = 'plan'): void {
     // A guide left before learning anything is dropped: Controls opens on the list again.
     if (this.view === 'new' && this.guide.step <= 2) this.view = 'list';
+    this.libraryFromGuide = false;
     this.learn.stop();
     this.infrared.stopCapture();
     this.fromSettings = false;
@@ -1314,11 +1412,19 @@ export class HomeManagerRf extends HTMLElement {
       !(await this.designer.confirmLeave())
     )
       return;
-    if (name === 'close') return this.leave();
+    if (name === 'close') {
+      if (!(await this.leaveGuide())) return;
+      return this.leave();
+    }
     if (name === 'back' && this.view === 'list') return this.leave('settings');
     if (name === 'back' && this.view === 'new' && this.guideSteps().indexOf(this.guide.step) > 0) {
       const steps = this.guideSteps();
       return this.guideGo(steps[steps.indexOf(this.guide.step) - 1]);
+    }
+    if (name === 'back' && this.view === 'catalog' && this.libraryFromGuide) {
+      this.libraryFromGuide = false;
+      this.view = 'new';
+      return this.guideGo(3);
     }
     if (name === 'back') {
       if (this.view === 'remote' && this.editing) return void this.command('edit');
@@ -1342,6 +1448,7 @@ export class HomeManagerRf extends HTMLElement {
           this.newSource = this.irReceivers.length ? 'ir' : 'rf';
           this.newReceiver = '';
           this.guide = { step: 1, kind: 'ac', design: 'modern', index: 0, skipped: [], name: '', irRemote: '' };
+          this.guideBringing = false;
           this.selected = null;
           this.draft = null;
           this.show('new');
