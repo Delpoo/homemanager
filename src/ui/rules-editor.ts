@@ -1,5 +1,5 @@
 import { checkList, checkListStyles } from './check-list.js';
-import { t } from '../i18n/index.js';
+import { t, tc } from '../i18n/index.js';
 import { escapeHTML as e, type Configuration } from '../card/types.js';
 import { readingName } from '../model/names.js';
 import { evaluateVisualRules, promoteLegacyRule, type VisualRule } from '../model/visual-rules.js';
@@ -407,7 +407,7 @@ export class RulesEditor extends HTMLElement {
         <span class="pill" id="g-dur" title="${e(t('Durante'))}">${glyph('mdi:timer-outline')}<input type="number" min="0" step="1" name="forMinutes" value="${rule.forMinutes ?? ''}" placeholder="0" aria-label="${e(t('Durante (minutos)'))}"><span class="u">min</span></span></div>
       ${readingPicker}
       <div class="lbl">${glyph('mdi:bell-outline')}<span>${e(t('Entonces'))}</span></div>
-      <div id="g-sev" class="then"><div class="sev" role="radiogroup" aria-label="${e(t('Nivel'))}">${LEVELS.map(([value, icon, label]) => `<button type="button" role="radio" data-level="${value}" aria-checked="${rule.level === value}">${glyph(icon)}<span>${e(t(label))}</span></button>`).join('')}</div>
+      <div id="g-sev" class="then"><div class="sev" role="radiogroup" aria-label="${e(tc('alerta', 'Nivel'))}">${LEVELS.map(([value, icon, label]) => `<button type="button" role="radio" data-level="${value}" aria-checked="${rule.level === value}">${glyph(icon)}<span>${e(t(label))}</span></button>`).join('')}</div>
         <div class="row"><div class="seg">${opts.map(([key, icon, label, on]) => `<button type="button" data-opt="${key}" aria-pressed="${on}" aria-label="${e(t(label))}" title="${e(t(label))}">${glyph(icon)}</button>`).join('')}</div><span class="grow"></span><label class="swc" title="${e(t('Color'))}"><input type="color" name="color" value="${e(rule.color ?? '#4f7d60')}" aria-label="${e(t('Color'))}"></label></div></div>
       <div class="lbl">${glyph('mdi:map-marker-outline')}<span>${e(t('En'))}</span></div>
       <div class="chips" id="g-where">${rule.symbols

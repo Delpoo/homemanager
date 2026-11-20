@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { t, tc } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import type { RfWidget, WidgetType } from '../integration/rf.js';
 import {
@@ -1084,7 +1084,7 @@ export class ControlDesigner extends HTMLElement {
     )}${this.designModule()}${this.module('canvas', 'mdi:palette-swatch-outline', t('Estilo y lienzo'), `${look} · ${grid.columns} × ${height}`, this.canvasRows())}${this.module(
       'more',
       'mdi:dots-horizontal',
-      t('Más'),
+      tc('menú', 'Más'),
       t('copiar, duplicar, volver al inicio'),
       `<div class="mlist">${more}</div>`,
     )}</div>`;
@@ -1166,7 +1166,7 @@ export class ControlDesigner extends HTMLElement {
     for (const piece of this.layout()) if (piece.type !== 'canvas') counts.set(entryOf(piece), (counts.get(entryOf(piece)) ?? 0) + 1);
     const tabs = CATALOG.map(
       ([key, label, icon]) =>
-        `<button type="button" role="tab" data-cat-tab="${key}" aria-selected="${this.catTab === key}" title="${e(t(label))}">${glyph(icon)}<span>${e(t(label))}</span></button>`,
+        `<button type="button" role="tab" data-cat-tab="${key}" aria-selected="${this.catTab === key}" title="${e(t(label))}">${glyph(icon)}<span>${e(tc('pestaña', label))}</span></button>`,
     ).join('');
     const entries: string[] = (CATALOG.find(([key]) => key === this.catTab)?.[3] ?? []).map(entry => {
       const [label, icon] = ENTRY[entry];
@@ -1766,7 +1766,7 @@ export class ControlDesigner extends HTMLElement {
         await confirmDialog(this.root, {
           title: t('¿Volver al diseño automático?'),
           message: t('Se reemplaza sólo la disposición; los botones y acciones se conservan.'),
-          confirm: t('Volver'),
+          confirm: t('Usar diseño automático'),
         })
       ) {
         this.selected = [];

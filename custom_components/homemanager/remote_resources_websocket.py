@@ -181,15 +181,15 @@ def ws_library_entries(hass: HomeAssistant, connection: websocket_api.ActiveConn
 
 @websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "homemanager/remotes/libraries/match", vol.Required("candidate_id"): ID})
-@callback
-def ws_library_match(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+@websocket_api.async_response
+async def ws_library_match(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Which library button a captured signal probably is (the capture of this same connection)."""
     try:
         manager = hass.data.get(DATA_IR)
         if manager is None:
             raise ModelError("not_loaded", "the infrared library is unavailable")
         candidate = manager._candidate(connection, msg["candidate_id"])
-        connection.send_result(msg["id"], _libraries(hass).match(candidate.timings))
+        connection.send_result(msg["id"], await _libraries(hass).async_match(candidate.timings))
     except ModelError as error:
         connection.send_error(msg["id"], error.code, str(error))
 

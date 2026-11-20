@@ -78,6 +78,11 @@ function over(event: PointerEvent): void {
   if (!element.hasAttribute('aria-label') && !element.textContent?.trim()) element.setAttribute('aria-label', title);
   if (tipsOn()) timer = setTimeout(() => held?.element === element && show(element, title), 450);
 }
+/** A control redrawn under the pointer (the «?» of a remote) is never told the pointer left: any move
+ * outside the named control lets the bubble go. */
+function moved(event: PointerEvent): void {
+  if (held && event.pointerType !== 'touch' && !event.composedPath().includes(held.element)) hide();
+}
 function out(event: PointerEvent): void {
   if (!held) return;
   const to = event.relatedTarget as Node | null;
@@ -92,6 +97,7 @@ export function installTips(): void {
   installed = true;
   document.addEventListener('pointerover', over, true);
   document.addEventListener('pointerout', out, true);
+  document.addEventListener('pointermove', moved, true);
   document.addEventListener('pointerdown', hide, true);
   document.addEventListener('scroll', hide, true);
   document.addEventListener('keydown', hide, true);

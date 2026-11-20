@@ -182,7 +182,7 @@ async def test_my_libraries_recognise_a_signal_and_bring_buttons_with_template_n
     hass, setup_integration, hass_ws_client, monkeypatch,
 ):
     """0.14: a kept library says which button a capture probably is, and its buttons come in named as asked."""
-    from custom_components.homemanager.ir_libraries import DATA_IR_LIBRARIES, similarity
+    from custom_components.homemanager.ir_libraries import DATA_IR_LIBRARIES, _reachable, similarity
 
     monkeypatch.setattr(IrProxy, "devices", lambda self: {"receivers": [], "emitters": [{"id": TX, "name": "Synthetic"}]})
     admin = await hass_ws_client(hass)
@@ -194,6 +194,9 @@ async def test_my_libraries_recognise_a_signal_and_bring_buttons_with_template_n
     assert similarity([500, -700, 500, -800], [2000, -3000, 2000, -3000]) < 0.5
     found = hass.data[DATA_IR_LIBRARIES].match((510, -705, 495, -790))
     assert found[0]["entry"] == "Demo power" and found[0]["model"] == "T1" and found[0]["score"] >= 0.75
+    # Off the event loop, with the same answer; a signal of another length is never compared.
+    assert await hass.data[DATA_IR_LIBRARIES].async_match((510, -705, 495, -790)) == found
+    assert _reachable(4, 4) and _reachable(100, 98) and not _reachable(4, 60) and not _reachable(200, 40)
     brought = await _call(admin, "libraries/bring", library_id=added["id"], indexes=[0],
                           names={"0": "Encender / apagar"}, emitter=TX, remote_name="Tele")
     learned = (await _call(admin, "resources"))["learned"]

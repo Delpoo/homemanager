@@ -428,7 +428,12 @@ export class HomeManagerEditor extends HTMLElement {
           // The same Esc would otherwise close the question it opens.
           event.preventDefault();
           setTimeout(() => void this.cancelNew());
-        } else this.closeSurface();
+        } else
+          void this.leaveDesigner().then(leave => {
+            if (!leave) return;
+            this.designerFromSymbol = false;
+            this.closeSurface();
+          });
       }
     });
     this.root.addEventListener(
@@ -1234,6 +1239,20 @@ export class HomeManagerEditor extends HTMLElement {
       return;
     if (this.adding) this.discardNew();
   }
+  /** 0.14: the control editor keeps a draft until «Guardar»; ←, ✕ and Esc ask before leaving it with
+   * changes (one question at a time: Esc inside that question must not open another). */
+  private leavingDesigner = false;
+  private async leaveDesigner(): Promise<boolean> {
+    if (this.surface !== 'settings' || this.settingsView !== 'section' || this.settingsSection !== 'designer-section')
+      return true;
+    if (this.leavingDesigner) return false;
+    this.leavingDesigner = true;
+    try {
+      return await this.controlDesigner.confirmLeave();
+    } finally {
+      this.leavingDesigner = false;
+    }
+  }
   closeSurface(commit = true): void {
     if (commit && !this.flushDevice()) return;
     this.surface = null;
@@ -1527,8 +1546,8 @@ export class HomeManagerEditor extends HTMLElement {
           : 'settings:menu';
       // ← in a section goes back to the menu; in the menu it leaves Settings.
       dialog.onBack = async () => {
+        if (!(await this.leaveDesigner())) return;
         if (this.settingsView === 'section' && this.settingsSection === 'designer-section' && this.designerFromSymbol) {
-          if (!(await this.controlDesigner.confirmLeave())) return;
           this.designerFromSymbol = false;
           this.surface = 'device';
           this.render();
@@ -2421,7 +2440,11 @@ export class HomeManagerEditor extends HTMLElement {
           );
           break;
         case 'settings-close':
-          this.closeSurface();
+          void this.leaveDesigner().then(leave => {
+            if (!leave) return;
+            this.designerFromSymbol = false;
+            this.closeSurface();
+          });
           break;
         case 'settings-list':
           this.settingsView = 'list';

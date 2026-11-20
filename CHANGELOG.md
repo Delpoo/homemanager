@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.14.0-beta.5 — beta
+
+Arreglos de la revisión de calidad de los controles 0.14 (plan, maqueta v14 y capturas en inglés).
+
+- **«More» y «Level» en inglés:** el último módulo de «Edit remote» y el menú «⋯» de Automatizaciones decían «Up»; el tipo de botón «Nivel» decía «Severity» en el catálogo, en los botones aprendidos y en la ayuda. Las palabras con dos sentidos ahora se traducen según dónde están.
+- **Ayuda «?»:** los números van en la esquina de afuera de cada pieza, como en la maqueta, y ya no tapan el nombre; el «?» se ve con el color de la app y el cartel que lo nombra se va al alejar el mouse.
+- **«Next» no se apaga:** en la guía por infrarrojo, pasar el mouse por «Next» ya no lo pone gris pálido.
+- **Modos sin cortes:** si los nombres de los modos no entran (por ejemplo «Fan only»), el segmento muestra sólo los símbolos y el nombre aparece al pasar el mouse.
+- **Guía por radio más limpia:** en el paso 3 queda el círculo «Tap to listen» y «Skip»; se fueron el selector de modo, la frase, el campo con el nombre y el «Start» aparte.
+- **Salir del editor pregunta:** la ✕ y la tecla Esc de «Edit remote», como ←, preguntan antes de salir con cambios sin guardar.
+- **Reconocer una señal no traba Home Assistant:** la comparación con las bibliotecas corre aparte y descarta enseguida las señales de otro largo.
+- **Pestañas del catálogo:** «Levels» e «Info» entran enteras.
+- **Valores y gráficas al editar:** la cuadrícula punteada ya no se ve a través de «Indoors», «Power use» y las gráficas.
+- **«Use automatic layout»:** el botón de la pregunta dice lo que hace, en vez de «Back».
+
 ## 0.14.0-beta.4 — beta
 
 Arreglos de la prueba de 0.14.0-beta.3 con la cuenta real, en inglés.

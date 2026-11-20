@@ -14,7 +14,8 @@ export const en: Record<string, string> = {
   'Menos de': 'Below',
   'Más de': 'Above',
   'Durante (minutos)': 'For (minutes)',
-  Nivel: 'Severity',
+  Nivel: 'Level',
+  'alerta|Nivel': 'Severity',
   Aviso: 'Warning',
   'Un aviso llama la atención; una alerta requiere atención inmediata.':
     'A warning draws attention; an alert needs immediate attention.',

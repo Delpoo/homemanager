@@ -45,6 +45,32 @@ def similarity(a: list[int] | tuple[int, ...], b: list[int] | tuple[int, ...]) -
     return round(best, 3)
 
 
+def _reachable(n: int, m: int) -> bool:
+    """Whether signals of these lengths could still reach MIN_SCORE. The share of agreeing durations
+    never beats the shorter over the longer, so another protocol is skipped without comparing a pulse."""
+    n, m = min(n, COMPARE), min(m, COMPARE)
+    return any(
+        a > 0 and b > 0 and min(a, b) >= MIN_SCORE * max(a, b)
+        for shift in (0, 1, 2)
+        for a, b in ((n - shift, m), (n, m - shift))
+    )
+
+
+def match_items(items: list[dict[str, Any]], timings: tuple[int, ...] | list[int], limit: int = 3) -> list[dict[str, Any]]:
+    """The library buttons closest to a captured signal, best first. Pure: it runs off the event loop."""
+    found = []
+    for item in items:
+        for index, entry in enumerate(item["entries"]):
+            if not _reachable(len(timings), len(entry["timings_us"])):
+                continue
+            score = similarity(timings, entry["timings_us"])
+            if score >= MIN_SCORE:
+                found.append({"library_id": item["id"], "library": item["name"], "brand": item["brand"],
+                              "model": item["model"], "index": index, "entry": entry["name"], "score": score})
+    found.sort(key=lambda row: -row["score"])
+    return found[:limit]
+
+
 class IrLibraries:
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
@@ -118,15 +144,12 @@ class IrLibraries:
 
     def match(self, timings: tuple[int, ...] | list[int], limit: int = 3) -> list[dict[str, Any]]:
         """The library buttons closest to a captured signal, best first."""
-        found = []
-        for item in self.items.values():
-            for index, entry in enumerate(item["entries"]):
-                score = similarity(timings, entry["timings_us"])
-                if score >= MIN_SCORE:
-                    found.append({"library_id": item["id"], "library": item["name"], "brand": item["brand"],
-                                  "model": item["model"], "index": index, "entry": entry["name"], "score": score})
-        found.sort(key=lambda row: -row["score"])
-        return found[:limit]
+        return match_items(list(self.items.values()), timings, limit)
+
+    async def async_match(self, timings: tuple[int, ...] | list[int], limit: int = 3) -> list[dict[str, Any]]:
+        """The same, in a worker thread: eight full libraries are millions of comparisons, and Home
+        Assistant must not wait for them. The list of libraries is taken here, on the event loop."""
+        return await self.hass.async_add_executor_job(match_items, list(self.items.values()), tuple(timings), limit)
 
 
 def _signal(entry: dict[str, Any]) -> IrSignal:

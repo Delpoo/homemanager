@@ -219,7 +219,7 @@ export const formStyles = `
 .sin{position:relative;flex:1;display:flex;align-self:stretch;min-width:0;border-radius:999px;background:color-mix(in srgb,var(--kfg) 8%,transparent)}
 .sind{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--kon);box-shadow:0 2px 6px rgba(0,0,0,.22);transition:left .38s cubic-bezier(.3,1.35,.5,1),background .3s}
 .fseg button{position:relative;z-index:1;flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;color:color-mix(in srgb,var(--kfg) 70%,transparent)}
-.fseg button[aria-pressed=true]{color:#fff}.fseg button .kt{max-width:100%}
+.fseg button[aria-pressed=true]{color:#fff}.fseg button .kt{max-width:100%}.fseg.tight button>.kt{display:none}
 .fwin{flex:1;position:relative;cursor:ns-resize;touch-action:none;min-width:0;min-height:0}
 .fwin .win{position:absolute;inset:8px;border-radius:calc(var(--rad,14px) - 6px);overflow:hidden}
 .fwin .sky{position:absolute;inset:0;background:linear-gradient(#8dbfea,#dcebf7)}
