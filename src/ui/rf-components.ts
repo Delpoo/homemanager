@@ -138,7 +138,7 @@ export const rfControlsStyles = `
 .rprev{padding:12px;border-radius:16px;background:var(--hm-bg)}
 .name-in{width:100%;min-height:30px;padding:2px 6px;margin-left:-6px;border:0;border-radius:8px;background:transparent;font-weight:500}
 .name-in:hover{background:var(--hm-surface-2)}.name-in:focus{background:var(--hm-surface);box-shadow:0 0 0 2px var(--hm-brand)}
-.btn-row .t{flex-direction:row;align-items:center;gap:8px}@media(max-width:480px){.btn-row .t>.wave{display:none}}
+.btn-row .t{flex-direction:row;align-items:center;gap:8px;container-type:inline-size}@container (max-width:250px){.btn-row .t>.wave{display:none}}
 .wrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center}.wmark{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--hm-warn,#d98b1f);color:#fff;font-size:13px;font-weight:700}em.waiting{font-style:normal;color:var(--hm-warn,#b86e10)}
 .part{display:grid;gap:12px;padding:12px;border:1px solid var(--hm-line);border-radius:14px}
 .form-foot{display:flex;align-items:center}

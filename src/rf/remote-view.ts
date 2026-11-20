@@ -34,7 +34,12 @@ import {
 } from '../ui/remote-keys.js';
 import { controlViewStyles } from '../ui/control-view.js';
 import { distinctNames } from '../model/names.js';
+import { pieceLabel } from '../ui/control-forms.js';
 import { PERIOD_HOURS, type ChartPeriod, type HistorySample, type HistorySeries } from '../integration/history.js';
+
+/** A list for a help line: whole when short, the first six and how many more when long. */
+const listOf = (items: string[]): string =>
+  items.length <= 8 ? items.join(', ') : `${items.slice(0, 6).join(', ')} ${t('y {count} más', { count: items.length - 6 })}`;
 
 /** A designed control drawn as a remote: its pieces on their grid (0.13).
  *
@@ -111,6 +116,9 @@ export class HomeManagerRfRemote extends HTMLElement {
       this.fitSegments();
       this.fitKeys();
     });
+    // Drawn while out of the page (the editor redraws its canvas that way), it fits again once back,
+    // even at the same width.
+    this.fitWidth = 0;
     this.resizer.observe(this);
   }
   disconnectedCallback(): void {
@@ -390,7 +398,7 @@ export class HomeManagerRfRemote extends HTMLElement {
     const remote = this._remote;
     const refs = [...piece.buttons, ...Object.values(piece.slots ?? {})];
     const names = refs.map(ref => ctx.name(ref));
-    const label = piece.label ?? names[0] ?? '';
+    const label = piece.label ? pieceLabel(piece.label) : (names[0] ?? '');
     // Each button of a list is one option; without its own label, the option is the button's name.
     const options = piece.buttons.map((_, i) => piece.options?.[i]?.label ?? names[i]).filter(Boolean);
     let line: string;
@@ -401,7 +409,7 @@ export class HomeManagerRfRemote extends HTMLElement {
       line = count === 1 ? t('{name}: manda un paso.', { name: label }) : t('{name}: manda {count} pasos seguidos.', { name: label, count });
     }
     else if ((piece.type === 'modes' || piece.type === 'cycle') && options.length)
-      line = t('{name}: elegí entre {options}.', { name: label, options: options.slice(0, 5).join(', ') });
+      line = t('{name}: elegí entre {options}.', { name: label, options: listOf(options) });
     else if (piece.type === 'modes' || piece.type === 'cycle') line = t('{name}: elegí una opción.', { name: label });
     else if (['updown', 'slider', 'steps', 'knob'].includes(piece.type))
       line = piece.values
@@ -410,7 +418,10 @@ export class HomeManagerRfRemote extends HTMLElement {
     else if (piece.type === 'indicator') line = t('Muestra {name}.', { name: label || t('un valor') });
     else if (piece.type === 'graph') line = t('Gráfica de {name}.', { name: label || t('un valor') });
     else if (piece.type === 'control') line = t('Parte del aire: {name}.', { name: label });
-    else line = t('Grupo de botones: {names}.', { names: names.slice(0, 5).join(', ') });
+    else if (piece.type === 'dpad') line = t('Arriba, abajo, izquierda, derecha y OK.');
+    else if (piece.type === 'numpad') line = t('Números del 0 al 9.');
+    // A group lists each of its buttons once (its slots name them again).
+    else line = t('Grupo de botones: {names}.', { names: listOf([...new Set(names)]) });
     const waiting = !!remote && refs.some(ref => !buttonById(remote, ref) && !!wantedById(remote, ref));
     return waiting ? `${line} ${t('Todavía tiene botones sin aprender.')}` : line;
   }

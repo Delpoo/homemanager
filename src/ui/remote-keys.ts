@@ -1,6 +1,5 @@
-import { t } from '../i18n/index.js';
+import { t, tc } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
-import { personName } from '../model/names.js';
 import {
   BLOCK_SLOTS,
   LEVEL_TYPES,
@@ -11,7 +10,7 @@ import {
   type RemoteTheme,
 } from '../model/control-layout.js';
 import { brandInitials, brandOf } from './brands.js';
-import { formContent, formStyles, moving } from './control-forms.js';
+import { formContent, formStyles, moving, pieceLabel } from './control-forms.js';
 import type { HistorySeries } from '../integration/history.js';
 
 /** One element of a designed control, drawn the same way everywhere (0.13): in the
@@ -34,7 +33,7 @@ export interface KeyContext {
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const color = (value: string | undefined) => (value && HEX.test(value) ? value : '');
-const text = (value: unknown, fallback = '') => personName(value, fallback);
+const text = pieceLabel;
 export const glyph = (name: string | null | undefined): string =>
   name && /^mdi:[a-z0-9-]+$/.test(name) ? `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>` : '';
 
@@ -248,8 +247,8 @@ export function keyContent(piece: ControlPiece, ctx: KeyContext): string {
       const slots = piece.slots ?? {};
       const key = (slot: string, name: string, icon: string, cls = '') => {
         const ref = slots[slot];
-        const said = ref ? `${t(name)} · ${ctx.name(ref)}` : t(name);
-        return `<button type="button" class="${cls}" data-op="slot" data-v="${slot}" aria-label="${e(said)}" title="${e(said)}"${ref ? '' : ' disabled'}${piece.type === 'colors' ? ` style="--cc:${KEY_COLORS[slot]}"` : ''}>${icon ? glyph(icon) : piece.type === 'colors' ? '' : e(slot === 'ok' ? 'OK' : t(name))}</button>`;
+        const said = ref ? `${tc('control', name)} · ${ctx.name(ref)}` : tc('control', name);
+        return `<button type="button" class="${cls}" data-op="slot" data-v="${slot}" aria-label="${e(said)}" title="${e(said)}"${ref ? '' : ' disabled'}${piece.type === 'colors' ? ` style="--cc:${KEY_COLORS[slot]}"` : ''}>${icon ? glyph(icon) : piece.type === 'colors' ? '' : e(slot === 'ok' ? 'OK' : tc('control', name))}</button>`;
       };
       const all = BLOCK_SLOTS[piece.type];
       if (piece.type === 'dpad')
@@ -541,7 +540,7 @@ export const remoteViewStyles = (row: number, gap: number) => `
 :host(:not([data-designer])) .resize.se{width:22px;height:22px;right:-6px;bottom:-6px;border-radius:7px;background:var(--hm-brand);border:0}
 :host([data-designer]) .widget:not(.alone) .resize{display:none}
 .mini{position:absolute;top:-36px;right:-6px;display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface);box-shadow:var(--hm-shadow);z-index:5}
-.mini button{display:grid;place-items:center;width:26px;height:26px;min-height:26px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--hm-ink)}
+.mini button{display:grid;place-items:center;width:26px;height:26px;min-height:26px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--hm-ink)}@media(pointer:coarse){.mini{top:-44px}.mini button{width:36px;height:36px;min-height:36px}}
 .mini button:hover{background:var(--hm-surface-2)}.mini .danger{color:var(--hm-alert)}.mini ha-icon{--mdc-icon-size:18px}
 @keyframes hm-preset{to{box-shadow:0 0 0 4px color-mix(in srgb,var(--kon) 45%,transparent)}}
 @media(max-width:650px){.body{padding:18px 12px 12px}}

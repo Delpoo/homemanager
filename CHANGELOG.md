@@ -15,6 +15,14 @@ Los diez errores de la tercera revisión de los controles y ocho mejoras chicas.
 - **Estilos:** en «Colourful» las barras de nivel son blancas y en «Glass» las letras tienen una sombra suave.
 - **Editor en el teléfono:** la barra de arriba de la app tapaba ← y ✕; ahora el editor queda encima y las dos salidas se ven.
 - **Teléfono:** una gráfica chica achica la línea antes de cortar su título, y la lista de botones de un control deja lugar para el nombre (sin la onda de la señal).
+- **Segunda ronda de revisión:**
+  - El lienzo del editor vuelve a acomodar los nombres cada vez que se redibuja: abrir un módulo dejaba «Winter / …» cortado.
+  - La ayuda «?» lista todas las opciones («Auto, 1, 2, 3, 4, 5, Swing»), no repite botones en los grupos y dice «Up, down, left, right and OK» y «Numbers 0 to 9».
+  - La cruz de la tele se llama «Up» y «Down» (decía «Top» y «Bottom», como los lugares del plano).
+  - Una pieza que en 0.14.0-beta.4 quedó guardada como «Severity» se lee «Level».
+  - En pantallas táctiles, las flechas de posición y tamaño, los colores y los botones de duplicar y quitar del editor son más grandes.
+  - La onda de la señal se esconde también en la PC cuando le quita lugar al nombre del botón.
+  - «Colour» en todos lados.
 - **Mejoras chicas:** el lápiz de cada botón se ve siempre en la PC; el consumo ya no aparece dos veces en la luz y el ventilador Avanzados; «Auto, Low, Medium, High, Swing» con mayúscula; un botón sin símbolo propio toma uno de su nombre o queda sin símbolo (no la misma mano en todos); los desplegables («Tests and history», «Remote's settings», «Readings and more controls», «More options») tienen el estilo de los módulos; el editor se deja con ← o ✕ (sin el ✓ flotante); el teclado numérico es cuadrado con esquinas suaves; las barras se tocan en toda su altura y un toque entre dos barras elige la más cercana; la página de un control infrarrojo empieza con el control, como la de radio.
 
 ## 0.14.0-beta.6 — beta

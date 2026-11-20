@@ -15,7 +15,13 @@ export interface FormContext {
   reading(piece: ControlPiece): { value: string; unit: string };
 }
 
-const text = (value: unknown, fallback = '') => personName(value, fallback);
+/** How a piece's name reads. 0.14.0-beta.4 saved a new level's «Nivel» as «Severity» (a wrong translation):
+ * it reads as a level again. */
+export const pieceLabel = (value: unknown, fallback = ''): string => {
+  const name = personName(value, fallback);
+  return name === 'Severity' ? t('Nivel') : name;
+};
+const text = pieceLabel;
 const icon = (name: string | null | undefined): string =>
   name && /^mdi:[a-z0-9-]+$/.test(name) ? `<ha-icon icon="${name}" aria-hidden="true"></ha-icon>` : '';
 const HEX = /^#[0-9a-fA-F]{6}$/;
