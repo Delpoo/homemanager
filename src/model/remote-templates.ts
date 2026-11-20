@@ -196,7 +196,10 @@ class Draw {
         ...(style ? { color: style[2], anim: style[3] as never } : {}),
       };
     });
-    return this.put('modes', at, names, { options, ...extra }, 'options');
+    // 0.14 · as in the mockup, segments show only their symbols (the name on hover); the classic design
+    // keeps the words of the physical remote.
+    const symbols = extra.form === 'segment' && options.every(option => option.icon) ? { hideLabel: true } : {};
+    return this.put('modes', at, names, { options, ...symbols, ...extra }, 'options');
   }
   /** Up and down with two buttons: «Sólo sube y baja», or numbers when the values are known. */
   level(

@@ -28,6 +28,18 @@ _TIME = re.compile(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]\Z")
 _EXTRA_REFERENCES = ("schedules", "send", "power-on", "power-off", "screen", "programs")
 # 0.14 · programs of the air: saved whole states, run with one tap.
 MAX_PROGRAMS = 6
+# 0.14 · as in the mockup, a full-state air arrives with four example programs, changeable and removable:
+# (id, Spanish and English name, icon, what changes from the current state).
+EXAMPLE_PROGRAMS = (
+    ("example-sleep", ("Dormir", "Sleep"), "mdi:weather-night",
+     {"mode": "cool", "temperature": 25, "fan": "low", "vane": "highest", "econo_cool": True}),
+    ("example-dry", ("Humedad", "Dry"), "mdi:water-percent",
+     {"mode": "dry", "temperature": 24, "fan": "auto", "vane": "auto", "econo_cool": False}),
+    ("example-saving", ("Ahorro", "Saving"), "mdi:leaf",
+     {"mode": "cool", "temperature": 26, "fan": "auto", "vane": "auto", "econo_cool": True}),
+    ("example-quick", ("Rápido", "Quick"), "mdi:lightning-bolt",
+     {"mode": "cool", "temperature": 20, "fan": "high", "vane": "swing", "econo_cool": False}),
+)
 PROGRAM_ICON = re.compile(r"mdi:[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 
@@ -77,6 +89,24 @@ def next_occurrence(schedule: dict[str, Any], now: datetime) -> str | None:
 
 
 
+def example_programs(codec: Any, seed: bytes, state: dict[str, Any], language: str | None) -> dict[str, dict[str, Any]]:
+    """The four examples, in the language of Home Assistant, each a whole state the profile accepts.
+    A profile without one of those settings keeps what it can; an example it cannot encode is left out."""
+    spanish = (language or "").lower().startswith("es")
+    programs: dict[str, dict[str, Any]] = {}
+    for ident, names, icon, changes in EXAMPLE_PROGRAMS:
+        target = {**deepcopy(state), "power": True,
+                  **{key: value for key, value in changes.items() if key in state}}
+        if "native_timer" in target:
+            target["native_timer"] = "none"
+        try:
+            codec[3](seed, target)
+        except (ModelError, KeyError, TypeError, ValueError):
+            continue
+        programs[ident] = {"id": ident, "name": names[0] if spanish else names[1], "icon": icon, "state": target}
+    return programs
+
+
 def _program(program: Any) -> None:
     """A program is an id, a short name, an optional mdi icon and a whole state."""
     if (not isinstance(program, dict) or set(program) != {"id", "name", "icon", "state"}
@@ -112,7 +142,10 @@ class AbsoluteRemotes:
                     for schedule_id, schedule in item["schedules"].items():
                         schedule_input(schedule, schedule_id)
                         profile[3](bytes.fromhex(item["seed"]), schedule["state"])
-                    programs = item.setdefault("programs", {})
+                    if "programs" not in item:
+                        item["programs"] = example_programs(profile, bytes.fromhex(item["seed"]), item["state"],
+                                                            self.hass.config.language)
+                    programs = item["programs"]
                     if not isinstance(programs, dict) or len(programs) > MAX_PROGRAMS:
                         raise ValueError("invalid program store")
                     for program in programs.values():
@@ -180,6 +213,7 @@ class AbsoluteRemotes:
                         "emitter": fields.get("emitter"), "carrier": button.signal.carrier_hz,
                         "carrier_source": button.signal.carrier_source, "state": codec[2](seed),
                         "requested": None, "preset": None, "schedules": {}}
+                item["programs"] = example_programs(codec, seed, item["state"], self.hass.config.language)
                 self._check_emitter(item["emitter"])
             else:
                 if ident not in self.items:

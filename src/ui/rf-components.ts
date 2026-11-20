@@ -259,6 +259,8 @@ export const rfGuideStyles = `
 .gprog{position:absolute;top:8px;right:10px;padding:2px 8px;border-radius:10px;background:var(--hm-surface);font-size:12px;font-weight:600;box-shadow:var(--hm-shadow)}
 .gnow{display:grid;justify-items:center;gap:2px;text-align:center}.gnow small{color:var(--hm-muted);font-size:12px}.gnow b{font-size:18px;font-weight:600}
 .gskip{justify-self:center;align-self:center}
+.gtabs{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;margin:0 0 10px;border-radius:12px;background:var(--hm-surface-2)}.gtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:48px;padding:4px;border:0;border-radius:9px;background:transparent;color:var(--hm-muted);font-size:12px}.gtabs button[aria-selected=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:var(--hm-shadow)}.gtabs ha-icon{--mdc-icon-size:18px}
+.gbringbox{display:grid;gap:10px;justify-items:stretch;padding:12px;border:1px solid var(--hm-line);border-radius:14px}.gbringbox .gbring{margin:0}.gbringbox .next{justify-self:center}.gbringbox.empty{justify-items:center;text-align:center;color:var(--hm-muted)}.gbringbox.empty>ha-icon{--mdc-icon-size:28px}
 .glist{display:flex;flex-direction:column;border:1px solid var(--hm-line);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto}
 .gitem{display:flex;align-items:center;gap:10px;min-height:38px;padding:4px 10px;border:0;border-bottom:1px solid var(--hm-line);background:var(--hm-surface);color:var(--hm-ink);font:inherit;font-size:13.5px;text-align:left;width:100%}
 .gitem:last-child{border-bottom:0}.gitem.cur{background:color-mix(in srgb,var(--hm-brand) 12%,var(--hm-surface))}

@@ -625,6 +625,7 @@
           "anim": "pulse"
         }
       ],
+      "hideLabel": true,
       "form": "segment"
     },
     {
@@ -928,6 +929,7 @@
           "anim": "pulse"
         }
       ],
+      "hideLabel": true,
       "form": "segment"
     },
     {

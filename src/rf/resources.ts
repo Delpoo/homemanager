@@ -130,7 +130,8 @@ const titleFor = (key: string) => t(titles[key] ?? key);
 const optionFor = (key: string) => t(choices[key] ?? key);
 
 const styles = `
-.prog-list{display:grid;gap:4px}.prog-row{display:flex;align-items:center;gap:8px}.prog-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.prog-name{display:grid}.prog-name b,.prog-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prog-name small{font-size:12px;color:var(--hm-muted)}.programs-card .row input{flex:1;min-width:0}
+.prog-list{display:grid;gap:4px}.prog-row.recognise{margin-top:8px;padding-top:8px;border-top:1px solid var(--hm-line);color:var(--hm-ink)}.prog-row.recognise b{font-weight:500;font-variant-numeric:tabular-nums}
+.resource-card input[role=switch]{appearance:none;-webkit-appearance:none;flex:none;width:42px;min-width:42px;height:24px;min-height:24px;margin:0;padding:0;border:0;border-radius:12px;background:var(--hm-line);position:relative;cursor:pointer;transition:background .15s}.resource-card input[role=switch]::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--hm-surface);box-shadow:var(--hm-shadow);transition:left .15s}.resource-card input[role=switch]:checked{background:var(--hm-brand)}.resource-card input[role=switch]:checked::after{left:21px}.prog-row{display:flex;align-items:center;gap:8px}.prog-row>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.prog-name{display:grid}.prog-name b,.prog-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prog-name small{font-size:12px;color:var(--hm-muted)}.programs-card .row input{flex:1;min-width:0}
 :host{display:block;min-width:0}.resources{display:grid;gap:12px;min-width:0}
 .resource-card{border:1px solid var(--hm-line);border-radius:14px;padding:12px;display:grid;gap:10px;min-width:0}
 h3,p{margin:0}h3{font-size:15px;font-weight:600}
@@ -238,6 +239,14 @@ export class HomeManagerRemoteResources extends HTMLElement {
       }
       if (field.name === 'remote_id' && field.closest('[data-form=create],[data-form=link-powerful]'))
         this.fillButtons(field.value, field.form!);
+      if (field.matches('[data-recognise]')) {
+        const id = field.dataset.recognise!;
+        void this.run(async () => {
+          await remoteResources.recogniseLibrary(this.hass!, id, field.checked);
+          this.libraries = await remoteResources.libraries(this.hass!);
+        });
+        return;
+      }
       if (field.matches('[data-catalog-choice]')) {
         if (field.checked && this.chosen.size >= 64) {
           field.checked = false;
@@ -987,16 +996,38 @@ export class HomeManagerRemoteResources extends HTMLElement {
             ].join(' · '),
           ) +
           '</small></span>' +
+          // 0.14 · as in the mockup: each library says whether a capture is compared with it.
+          '<input type="checkbox" role="switch" data-recognise="' +
+          e(library.id) +
+          '"' +
+          (library.recognise !== false ? ' checked' : '') +
+          ' aria-label="' +
+          e(t('Reconocer con «{name}»', { name: library.name })) +
+          '" title="' +
+          e(t('Reconocer con «{name}»', { name: library.name })) +
+          '">' +
           action('library-del-' + library.id, 'Quitar', 'danger', 'mdi:close') +
           '</div>',
       )
       .join('');
+    const on = this.libraries.filter(library => library.recognise !== false).length;
+    const recognise = this.libraries.length
+      ? '<div class="prog-row recognise">' +
+        glyph('mdi:target') +
+        '<span>' +
+        e(t('Reconocer al aprender')) +
+        '</span><b>' +
+        on +
+        ' / ' +
+        this.libraries.length +
+        '</b></div>'
+      : '';
     return (
       '<section class="resource-card"><h3>' +
       e(t('Mis bibliotecas')) +
       '</h3>' +
       (rows
-        ? '<div class="prog-list">' + rows + '</div>'
+        ? '<div class="prog-list">' + rows + '</div>' + recognise
         : '<p class="muted">' + e(t('Todavía no hay bibliotecas.')) + '</p>') +
       '</section>'
     );

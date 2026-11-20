@@ -266,16 +266,18 @@ export class HomeManagerRfRemote extends HTMLElement {
     const gap = columns <= 6 ? 10 : columns <= 12 ? 6 : 3;
     // 0.14 · «?»: each piece gets its number and a line below says what it does.
     // Only on a whole control: a single piece pinned to the plan has nothing to number.
-    const numbered = !this._editing && !this.hasAttribute('data-template') ? this.helpPieces(layout) : [];
+    const numbered = !this._editing && !this.preview && !this.hasAttribute('data-template') ? this.helpPieces(layout) : [];
     const helpable = numbered.length > 1;
-    const help = helpable
-      ? `<button type="button" class="khelp" data-help aria-pressed="${this.helping}" aria-label="${e(t('Qué hace cada botón'))}" title="${e(t('Qué hace cada botón'))}">?</button>${
-          this.helping
-            ? `<ol class="khelp-list">${numbered.map(([piece, n]) => `<li><b>${n}</b><span>${e(this.helpLine(piece, ctx))}</span></li>`).join('')}</ol>`
-            : ''
-        }`
+    // As in the mockup, the «?» sits on the control's top-right corner; the lines go below the control.
+    const helpButton = helpable
+      ? `<button type="button" class="khelp" data-help aria-pressed="${this.helping}" aria-label="${e(t('Qué hace cada botón'))}" title="${e(t('Qué hace cada botón'))}">?</button>`
       : '';
+    const help =
+      helpable && this.helping
+        ? `<ol class="khelp-list">${numbered.map(([piece, n]) => `<li><b>${n}</b><span>${e(this.helpLine(piece, ctx))}</span></li>`).join('')}</ol>`
+        : '';
     this.root.innerHTML = remoteShell(look, this._editing, columns, gap, `${cells}${widgets}${empty}`) + help;
+    if (helpButton) this.root.querySelector('.body')?.insertAdjacentHTML('afterbegin', helpButton);
     // The numbers sit on each piece's outer corner, as in the mockup: inside the piece they covered its name.
     if (this.helping && helpable)
       this.root
@@ -313,12 +315,18 @@ export class HomeManagerRfRemote extends HTMLElement {
     const refs = [...piece.buttons, ...Object.values(piece.slots ?? {})];
     const names = refs.map(ref => ctx.name(ref));
     const label = piece.label ?? names[0] ?? '';
-    const options = (piece.options ?? []).map((option, i) => option?.label ?? names[i]).filter(Boolean);
+    // Each button of a list is one option; without its own label, the option is the button's name.
+    const options = piece.buttons.map((_, i) => piece.options?.[i]?.label ?? names[i]).filter(Boolean);
     let line: string;
     if (piece.type === 'button') line = piece.hold === 'repeat' ? t('Manda «{name}»; mantenelo apretado para repetir.', { name: label }) : t('Manda «{name}».', { name: label });
     else if (piece.type === 'toggle') line = t('Prende y apaga {name}.', { name: label });
-    else if (piece.type === 'preset') line = t('{name}: manda {count} pasos seguidos.', { name: label, count: piece.sequence?.length ?? names.length });
-    else if (piece.type === 'modes' || piece.type === 'cycle') line = t('{name}: elegí entre {options}.', { name: label, options: options.slice(0, 5).join(', ') });
+    else if (piece.type === 'preset') {
+      const count = piece.sequence?.length ?? names.length;
+      line = count === 1 ? t('{name}: manda un paso.', { name: label }) : t('{name}: manda {count} pasos seguidos.', { name: label, count });
+    }
+    else if ((piece.type === 'modes' || piece.type === 'cycle') && options.length)
+      line = t('{name}: elegí entre {options}.', { name: label, options: options.slice(0, 5).join(', ') });
+    else if (piece.type === 'modes' || piece.type === 'cycle') line = t('{name}: elegí una opción.', { name: label });
     else if (['updown', 'slider', 'steps', 'knob'].includes(piece.type))
       line = piece.values
         ? t('{name}: de {min} a {max}{unit}; subí y bajá o tocá el valor.', { name: label, min: piece.values.min, max: piece.values.max, unit: piece.values.unit ?? '' })
@@ -553,7 +561,9 @@ export class HomeManagerRfRemote extends HTMLElement {
     const piece = this.piece(element.dataset.widget!);
     window.clearTimeout(this.holdTimer);
     this.held = false;
-    if (!target || !piece?.hold || !['press', 'inc', 'dec'].includes(target.dataset.op!)) return;
+    // A long press repeats a key or a level step; «other» works on any piece that sends (0.14 «Gestos»).
+    const ops = piece?.hold === 'other' ? ['press', 'inc', 'dec', 'toggle', 'mode', 'cycle', 'preset'] : ['press', 'inc', 'dec'];
+    if (!target || !piece?.hold || !ops.includes(target.dataset.op!)) return;
     const stop = () => {
       window.clearTimeout(this.holdTimer);
       target.removeEventListener('pointerup', stop);

@@ -275,7 +275,9 @@ test('the sheet builds controls from suggestions, by how they are used, and savi
   await editor.getByText('Más opciones', { exact: true }).click();
   // 0.14: «Agregar un control» opens a picker with the learned remotes.
   await editor.locator('[data-command=control-pick]').click();
-  await editor.locator('dialog.ctl-picker [data-pick=techo]').click();
+  // As in the mockup, the list opens inside the symbol's panel, not as a window.
+  await expect(editor.locator('dialog[open]')).toHaveCount(0);
+  await editor.locator('[data-ctl-pick] [data-pick=techo]').click();
   await expect(editor.locator('.ctl-list .ctl-row')).toContainText('Techo');
   await editor.getByRole('button', { name: 'Pulsador', exact: true }).click();
   await editor.getByLabel('Nombre del control (Pulsador)', { exact: true }).last().fill('1H');

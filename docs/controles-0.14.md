@@ -202,3 +202,20 @@ Hecha en la rama `claude/controles-etapa4`, sin publicar.
    - Subir bibliotecas y reconocer el modelo.
    - Rutinas del robot y programas del aire.
 4. **Auditoría completa** con la cuenta real, en PC y teléfono, en los seis estilos y con HA claro y oscuro.
+
+## Control de calidad y diferencias con la maqueta (0.14.0-beta.5 y beta.6)
+
+La revisión completa del plan, la maqueta v14 y los cambios #117 a #120 encontró 11 errores, arreglados en 0.14.0-beta.5, y 10 diferencias con la maqueta. El propietario eligió las diez como la maqueta (0.14.0-beta.6):
+
+| | Diferencia | Cómo quedó |
+|---|---|---|
+| A | «?» de la ayuda | En la esquina de arriba a la derecha del control; no en las vistas previas. |
+| B | «Agregar un control» | Lista con buscador dentro del panel del símbolo, no una ventana. |
+| C | Salir de la guía a la mitad | Con botones aprendidos, la ✕ pregunta: Seguir, Descartar o Guardar lo aprendido. |
+| D | Lápiz en los botones de Controles | Abre el botón en el editor; uno sin usar se agrega como borrador. |
+| E | «Traer de la biblioteca» | Pestaña fija en el paso 3 por infrarrojo; sin bibliotecas, lleva a agregar una. |
+| F | Modos sólo con símbolo | Así arrancan en Moderno y Avanzado; el Clásico conserva las palabras. |
+| G | Paso «Gestos» | También en interruptores, modos, listas y atajos (mantener: nada u otro botón). |
+| H | «Diseño» dice cuál | Reconoce el diseño en uso comparando las piezas; «con cambios» o «A medida». |
+| I | Interruptor por biblioteca | `recognise` en cada biblioteca; las apagadas no se comparan. |
+| J | Programas de ejemplo | Dormir, Humedad, Ahorro y Rápido al crear el aire, o una vez en un aire sin programas. |

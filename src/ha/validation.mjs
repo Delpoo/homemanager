@@ -1111,7 +1111,11 @@ function assertPieceLook(p, path, isRef) {
     else if (key === 'anim') check(drawn && ['flash', 'none'].includes(value), key);
     else if (key === 'brand') check(kind === 'button' && shortText(value, 40), key);
     else if (key === 'hold')
-      check((value === 'repeat' && (kind === 'button' || level)) || (value === 'other' && kind === 'button'), key);
+      check(
+        (value === 'repeat' && (kind === 'button' || level)) ||
+          (value === 'other' && ['button', 'toggle', 'modes', 'cycle', 'preset'].includes(kind)),
+        key,
+      );
     else if (key === 'holdButton') check(p.hold === 'other' && typeof value === 'string' && isRef(value), key);
     else if (key === 'values') {
       check(level && p.names === undefined && value && typeof value === 'object' && !Array.isArray(value), key);

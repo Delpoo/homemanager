@@ -60,6 +60,9 @@ def match_items(items: list[dict[str, Any]], timings: tuple[int, ...] | list[int
     """The library buttons closest to a captured signal, best first. Pure: it runs off the event loop."""
     found = []
     for item in items:
+        # 0.14 · «Reconocer al aprender»: a library switched off is never compared.
+        if item.get("recognise") is False:
+            continue
         for index, entry in enumerate(item["entries"]):
             if not _reachable(len(timings), len(entry["timings_us"])):
                 continue
@@ -92,7 +95,8 @@ class IrLibraries:
 
     @staticmethod
     def public(item: dict[str, Any]) -> dict[str, Any]:
-        return {key: item[key] for key in ("id", "name", "source", "brand", "model")} | {"count": len(item["entries"])}
+        return {key: item[key] for key in ("id", "name", "source", "brand", "model")} | {
+            "count": len(item["entries"]), "recognise": item.get("recognise") is not False}
 
     def list(self) -> list[dict[str, Any]]:
         return [self.public(item) for item in self.items.values()]
@@ -135,6 +139,15 @@ class IrLibraries:
             self.items = items
             return self.public(item)
 
+    async def async_recognise(self, library_id: str, enabled: bool) -> dict[str, Any]:
+        """Whether a capture is compared with this library (on by default)."""
+        async with self.lock:
+            item = {**self._item(library_id), "recognise": bool(enabled)}
+            items = {**self.items, library_id: item}
+            await self.store.async_save({"libraries": items})
+            self.items = items
+            return self.public(item)
+
     async def async_remove(self, library_id: str) -> None:
         async with self.lock:
             self._item(library_id)
@@ -163,6 +176,8 @@ def _check(item: dict[str, Any]) -> None:
     for key in ("id", "name", "brand", "model"):
         if not isinstance(item[key], str) or not item[key]:
             raise ModelError("invalid_library", "invalid library")
+    if not isinstance(item.get("recognise", True), bool):
+        raise ModelError("invalid_library", "invalid library")
     for entry in item["entries"]:
         if not isinstance(entry.get("name"), str):
             raise ModelError("invalid_library", "invalid library button")
