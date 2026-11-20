@@ -370,7 +370,7 @@ export class HomeManagerRf extends HTMLElement {
       partial = false,
       waiting = 0,
     ) =>
-      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}${sourceTag(source)}<span class="acts">${source === 'rf' ? iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span></div>`;
+      `<div class="li open"><span class="ico-tile">${icon(glyph ?? 'mdi:remote')}</span><button type="button" class="t" data-open${source === 'ir' ? '-ir' : ''}="${e(id)}"><b>${e(rfText(name))}</b><span>${e(description ? rfText(description) : count === 1 ? t('1 botón') : t('{count} botones', { count }))}${waiting ? ` · <em class="waiting">${e(t('{count} sin aprender', { count: waiting }))}</em>` : ''}</span></button>${partial ? `<small>${e(t('Importación parcial'))}</small>` : ''}<span class="acts">${source === 'rf' ? iconButton(t('Editar {name}', { name: rfText(name) }), 'mdi:pencil', `data-design="${e(id)}"`) + iconButton(t('Aprender más botones de {name}', { name: rfText(name) }), 'mdi:access-point', `data-learn-more="${e(id)}"`) : ''}</span>${sourceTag(source)}</div>`;
     const items = [
       ...this.remotes.map(remote =>
         row(
@@ -728,6 +728,9 @@ export class HomeManagerRf extends HTMLElement {
         })
         .catch(() => undefined);
     this.guide.step = step;
+    // Each step starts clean: step 4 used to open with step 3's last «“Turbo” saved».
+    this.learn.quiet();
+    this.infrared.quiet();
     if (step === 3) {
       this.guide.index = -1;
       this.guideAdvance();
@@ -793,11 +796,12 @@ export class HomeManagerRf extends HTMLElement {
         panelHead(e(rfText(about.name)), { back: t('Volver'), close: t('Cerrar') }),
         `<p class="muted">${e(t('Todavía no está guardado: se guarda con el primer botón que aprendas.'))}</p>${status}`,
       );
+    // 0.14 · the editor is left with ← or ✕ (both ask before losing changes) and kept with «Guardar»:
+    // a fourth exit, the floating ✓, covered the list on the phone.
     if (this.editing)
       return this.panel(
         panelHead(`${e(t('Editar'))} · ${e(rfText(remote.name))}`, { back: t('Volver'), close: t('Cerrar') }),
         `<div class="stage-host"><div data-slot="remote"></div></div>${status}`,
-        `<span class="grow"></span>${iconButton(t('Listo'), 'mdi:check', 'data-command="edit"', 'primary')}`,
       );
     const tools = `<div class="tools">${iconButton(t('Aprender botones'), 'mdi:access-point', 'data-command="learn"')}${iconButton(t('Probar botones'), 'mdi:play-circle-outline', 'data-command="test"')}${iconButton(t('Editar'), 'mdi:pencil', 'data-command="edit"')}${iconButton(t('En Home Assistant'), 'mdi:home-assistant', 'data-view="entities"')}${iconButton(t('Emisor y ajustes'), 'mdi:tune', 'data-view="settings"')}<span class="grow"></span>${iconButton(t('Eliminar control'), 'mdi:trash-can-outline', 'data-command="delete-remote"', 'danger')}</div>`;
     const buttons = remote.buttons.length

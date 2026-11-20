@@ -33,6 +33,7 @@ import {
   remoteViewStyles,
 } from '../ui/remote-keys.js';
 import { controlViewStyles } from '../ui/control-view.js';
+import { distinctNames } from '../model/names.js';
 import { PERIOD_HOURS, type ChartPeriod, type HistorySample, type HistorySeries } from '../integration/history.js';
 
 /** A designed control drawn as a remote: its pieces on their grid (0.13).
@@ -108,6 +109,7 @@ export class HomeManagerRfRemote extends HTMLElement {
       if (width === this.fitWidth) return;
       this.fitWidth = width;
       this.fitSegments();
+      this.fitKeys();
     });
     this.resizer.observe(this);
   }
@@ -124,6 +126,79 @@ export class HomeManagerRfRemote extends HTMLElement {
       const names = [...group.querySelectorAll<HTMLElement>('button > .kt, button > span:not(.sa)')];
       if (names.some(name => name.scrollWidth > name.clientWidth + 1)) group.classList.add('tight');
     }
+  }
+  /** 0.14 · a key's name is never cut to «Spe…»: seven keys that all say «Spe…» say nothing. When the
+   * name does not fit beside the symbol, the symbol goes on top; then only what tells the keys apart
+   * («Speed 1» → «1»); then only the symbol, with the whole name on hover. A round key only counts
+   * the square inside its circle. A name with no symbol takes two lines. */
+  private fitKeys(): void {
+    const faces = [...this.root.querySelectorAll<HTMLElement>('.kface')].filter(
+      face => !face.closest('.fseg, .kmodes') && !face.classList.contains('fsw') && face.querySelector(':scope > .kt'),
+    );
+    const names = faces.map(face => {
+      const name = face.querySelector<HTMLElement>(':scope > .kt')!;
+      name.dataset.full ??= name.textContent ?? '';
+      return name.dataset.full;
+    });
+    const short = distinctNames(names);
+    faces.forEach((face, i) => {
+      const name = face.querySelector<HTMLElement>(':scope > .kt')!;
+      face.classList.remove('stack', 'bare');
+      name.classList.remove('wrap');
+      name.textContent = names[i];
+      if (face.dataset.fitTitle !== undefined) {
+        face.removeAttribute('title');
+        delete face.dataset.fitTitle;
+      }
+      if (!face.clientWidth || this.fits(face, name)) return;
+      const named = () => {
+        if (face.hasAttribute('title')) return;
+        face.title = names[i];
+        face.dataset.fitTitle = '';
+      };
+      const symbol = face.querySelector(':scope > :not(.kt)');
+      if (symbol && !face.classList.contains('col')) {
+        face.classList.add('stack');
+        if (this.fits(face, name)) return;
+      }
+      if (short[i] !== names[i]) {
+        name.textContent = short[i];
+        if (this.fits(face, name)) return named();
+      }
+      named();
+      if (symbol) {
+        face.classList.add('bare');
+        return;
+      }
+      name.textContent = names[i];
+      name.classList.add('wrap');
+    });
+    // The middle of a level piece («Temperature» between − and +) takes two lines before it is cut.
+    this.root.querySelectorAll<HTMLElement>('.kmid > .kt').forEach(name => {
+      name.classList.remove('wrap');
+      if (name.clientWidth && name.scrollWidth > name.clientWidth + 1) {
+        name.classList.add('wrap');
+        name.title = name.textContent ?? '';
+      }
+    });
+  }
+  private fits(face: HTMLElement, name: HTMLElement): boolean {
+    if (name.scrollWidth > name.clientWidth + 1 || face.scrollHeight > face.clientHeight + 1) return false;
+    const key = face.closest<HTMLElement>('.k');
+    if (!key) return true;
+    const width = key.clientWidth;
+    const height = key.clientHeight;
+    const round = parseFloat(getComputedStyle(key).borderTopLeftRadius) >= Math.min(width, height) / 2 - 1;
+    if (!round || Math.abs(width - height) > 0.2 * Math.max(width, height)) return true;
+    // A circle: what the key shows must fit in the square inside it, or it spills over the edge.
+    const parts = [...face.children]
+      .map(child => child.getBoundingClientRect())
+      .filter(box => box.width || box.height);
+    if (!parts.length) return true;
+    const side = 0.74 * Math.min(width, height);
+    const across = Math.max(...parts.map(box => box.right)) - Math.min(...parts.map(box => box.left));
+    const down = Math.max(...parts.map(box => box.bottom)) - Math.min(...parts.map(box => box.top));
+    return across <= side + 1 && down <= side + 1;
   }
 
   set remote(remote: DrawableRemote | null) {
@@ -298,6 +373,7 @@ export class HomeManagerRfRemote extends HTMLElement {
     this.bind();
     this.markSelection();
     this.fitSegments();
+    this.fitKeys();
     this.onState?.();
   }
 
@@ -590,7 +666,17 @@ export class HomeManagerRfRemote extends HTMLElement {
   }
 
   private tap(event: MouseEvent, element: HTMLElement): void {
-    const target = (event.target as HTMLElement).closest<HTMLElement>('[data-op]');
+    let target = (event.target as HTMLElement).closest<HTMLElement>('[data-op]');
+    // 0.14 · bars: a finger between two bars takes the nearer one (each bar is only a few pixels wide).
+    const set = (event.target as HTMLElement).closest<HTMLElement>('.bset');
+    if (!target && set) {
+      const tall = !!set.closest('.fbars.tall');
+      const at = (box: DOMRect) => (tall ? box.top + box.height / 2 - event.clientY : box.left + box.width / 2 - event.clientX);
+      target =
+        [...set.querySelectorAll<HTMLElement>('[data-op]')].sort(
+          (a, b) => Math.abs(at(a.getBoundingClientRect())) - Math.abs(at(b.getBoundingClientRect())),
+        )[0] ?? null;
+    }
     const piece = this.piece(element.dataset.widget!);
     if (!target || !piece || target.dataset.op === 'pick') return;
     // 0.14: «123» and «more» open their keys over the control; another tap closes them.

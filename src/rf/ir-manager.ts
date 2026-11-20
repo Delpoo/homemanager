@@ -160,6 +160,11 @@ export class HomeManagerIr extends HTMLElement {
     this.guided = undefined;
     this.render();
   }
+  /** A new step of the guide starts without the last step's «“Turbo” saved». */
+  quiet(): void {
+    this.message = '';
+    this.failed = false;
+  }
 
   startNew(name: string, receiver = ''): void {
     this.remoteId = '';
@@ -449,7 +454,7 @@ export class HomeManagerIr extends HTMLElement {
       ${!this.editing ? this.renderWaiting(remote) : ''}
       ${
         !this.editing && remote.buttons.length
-          ? `<details><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons
+          ? `<details class="fold"><summary>${e(t('Pruebas e historial'))}</summary><div class="list">${remote.buttons
               .map(
                 button =>
                   `<div class="li"><span class="t"><b>${e(button.name)}</b>${
@@ -473,10 +478,11 @@ export class HomeManagerIr extends HTMLElement {
       }
       </div>`
       : '';
-    this.root.innerHTML = `<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
+    // 0.14 · as on a radio control's page, the control comes first and learning more goes below it.
+    this.root.innerHTML = `${library && !this.guided ? `<section aria-label="${e(t('Controles IR guardados'))}">${library}</section>` : ''}<section class="learn" aria-label="${e(t('Aprender un botón IR'))}">${ring}${tools}
       ${receivers ? `<div class="row-icon" role="group" aria-label="${e(t('Receptor IR'))}">${glyph('mdi:ear-hearing')}<div class="chips">${receivers}</div></div>` : ''}
       ${this.requested && !this.busy && !this.failed && !this.receivers.length ? `<p class="muted">${e(t('No hay un receptor IR disponible.'))}</p>` : ''}
-      ${learn}</section>${library && !this.guided ? `<section aria-label="${e(t('Controles IR guardados'))}">${library}</section>` : ''}
+      ${learn}</section>
       <p role="status" data-ir-status class="status${this.failed ? ' error' : ''}">${e(this.message || (this.busy ? t('Cargando…') : ''))}</p>`;
     this.bind();
     if (candidate && this._hass) {

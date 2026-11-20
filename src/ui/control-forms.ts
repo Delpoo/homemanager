@@ -80,7 +80,7 @@ function bars(piece: ControlPiece, ctx: FormContext): string {
   // Taller than wide: the levels stack upwards like a meter instead of standing side by side.
   const tall = piece.h > piece.w;
   const size = (j: number) => `${tall ? 'width' : 'height'}:${30 + ((j + 1) / Math.max(1, count)) * 70}%`;
-  return `<div class="fbars${tall ? ' tall' : ''}" role="group" aria-label="${e(name)}">${lead ? `<span class="blead">${lead}</span>` : ''}<div class="bset">${Array.from({ length: count }, (_, j) => `<button type="button" data-op="${op}" data-v="${j}" aria-pressed="${j === index}" aria-label="${e(text(label(j)))}" title="${e(text(label(j)))}" class="${j <= index ? 'on' : ''}" style="${size(j)}"></button>`).join('')}</div><b class="bval">${e(index >= 0 ? text(label(index)) : '–')}</b></div>`;
+  return `<div class="fbars${tall ? ' tall' : ''}" role="group" aria-label="${e(name)}">${lead ? `<span class="blead">${lead}</span>` : ''}<div class="bset">${Array.from({ length: count }, (_, j) => `<button type="button" data-op="${op}" data-v="${j}" aria-pressed="${j === index}" aria-label="${e(text(label(j)))}" title="${e(text(label(j)))}" class="${j <= index ? 'on' : ''}"><i style="${size(j)}"></i></button>`).join('')}</div><b class="bval">${e(index >= 0 ? text(label(index)) : '–')}</b></div>`;
 }
 
 function segment(piece: ControlPiece, ctx: FormContext): string {
@@ -180,8 +180,10 @@ export const formStyles = `
 :is(.st-color .k:not([class*=" st-"]),.k.st-color):not(.kinfo){--kfg:#fff;--rsub:rgba(255,255,255,.78)}
 :is(.st-color .k:not([class*=" st-"]),.k.st-color).raised{box-shadow:0 4px 10px color-mix(in srgb,var(--kbg) 40%,transparent)!important}
 :is(.st-color .k:not([class*=" st-"]),.k.st-color).on{--kbg:#1f2a24}
+:is(.st-color .k:not([class*=" st-"]),.k.st-color) :is(.ktrack i,.kdots i.on,.bset button.on>i){background:#fff}
 :is(.body,.k,.cstyle).st-glass{--rbody:linear-gradient(135deg,#7f9cf5,#b794f4 55%,#f6ad55);--rkey:rgba(255,255,255,.22);--rfg:#fff;--racc:rgba(255,255,255,.92);--rsub:rgba(255,255,255,.82)}
-:is(.st-glass .k:not([class*=" st-"]),.k.st-glass){backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 6px 16px rgba(20,30,60,.22)!important}
+:is(.st-glass .k:not([class*=" st-"]),.k.st-glass){backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 6px 16px rgba(20,30,60,.22)!important;text-shadow:0 1px 2px rgba(30,36,80,.45)}
+:is(.st-glass .k:not([class*=" st-"]),.k.st-glass).on{text-shadow:none}
 :is(.st-glass .k:not([class*=" st-"]),.k.st-glass).on{--kfg:#3a4a7a}
 :is(.body,.k,.cstyle).st-futurista{--rbody:radial-gradient(120% 90% at 20% 0%,#24305e,#0b0f22 70%);--rkey:linear-gradient(160deg,#1a2147,#121733);--rfg:#e8ecff;--racc:#7b8cff;--rsub:#9aa6dd}
 :is(.st-futurista .k:not([class*=" st-"]),.k.st-futurista){box-shadow:inset 0 0 0 1px rgba(123,140,255,.45),0 0 14px rgba(123,140,255,.18)!important}
@@ -207,13 +209,15 @@ export const formStyles = `
 .fthermo .tl{left:6px}.fthermo .tr{right:6px}
 .fbars{flex:1;display:flex;align-items:center;gap:8px;padding:6px 10px;min-width:0}
 .blead{display:grid;place-items:center;flex:none}
-.bset{flex:1;align-self:stretch;margin:4px 0;display:flex;align-items:flex-end;justify-content:center;gap:5px;min-width:0}
-.bset button{flex:1 1 0;max-width:24px;border-radius:4px!important;background:color-mix(in srgb,var(--kfg) 16%,transparent)!important;transition:height .2s,background .25s}
-.bset button.on{background:var(--kon)!important}.bset button[aria-pressed=true]{box-shadow:0 0 0 3px color-mix(in srgb,var(--kon) 30%,transparent)!important}
+.bset{flex:1;align-self:stretch;margin:4px 0;display:flex;align-items:stretch;justify-content:center;gap:5px;min-width:0}
+.bset button{flex:1 1 0;max-width:24px;display:flex;align-items:flex-end;justify-content:center;background:transparent!important;box-shadow:none!important}
+.bset button>i{width:100%;border-radius:4px;background:color-mix(in srgb,var(--kfg) 16%,transparent);transition:height .2s,width .2s,background .25s}
+.bset button.on>i{background:var(--kon)}.bset button[aria-pressed=true]>i{box-shadow:0 0 0 3px color-mix(in srgb,var(--kon) 30%,transparent)}
 .bval{flex:none;font-size:12px;white-space:nowrap}
 .fbars.tall{flex-direction:column;padding:8px 4px;gap:6px}
-.fbars.tall .bset{flex-direction:column-reverse;align-items:center;justify-content:flex-start;align-self:stretch;margin:0;gap:4px}
-.fbars.tall .bset button{flex:1 1 0;max-width:none;max-height:18px;min-height:4px}
+.fbars.tall .bset{flex-direction:column-reverse;align-items:stretch;justify-content:flex-start;align-self:stretch;margin:0;gap:4px}
+.fbars.tall .bset button{flex:1 1 0;max-width:none;max-height:18px;min-height:4px;align-items:center}
+.fbars.tall .bset button>i{height:100%;width:auto}
 .fbars.tall .bval{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .fseg{flex:1;display:flex;align-items:center;padding:4px;min-width:0}
 .sin{position:relative;flex:1;display:flex;align-self:stretch;min-width:0;border-radius:999px;background:color-mix(in srgb,var(--kfg) 8%,transparent)}

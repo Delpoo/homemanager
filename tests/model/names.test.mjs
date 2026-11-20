@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deviceName, readingName, entityAreaId, areaName, personName, stateName } from '../../.work/model/names.js';
+import {
+  deviceName,
+  readingName,
+  entityAreaId,
+  areaName,
+  personName,
+  stateName,
+  distinctNames,
+} from '../../.work/model/names.js';
 import { syntheticRegistry } from '../browser/fixtures/registry.js';
 test('device user names win; factory names and unnamed devices never expose identifiers', () => {
   assert.equal(deviceName({ name_by_user: 'Luz_del_estudio', name: 'Factory name' }), 'Luz del estudio');
@@ -58,4 +66,16 @@ test('manufacturer reading types and states follow HA language without rewriting
   assert.equal(stateName('heat', hass), 'Heat');
   hass.entities[id].name = 'My workshop load';
   assert.equal(readingName(id, hass), 'My workshop load');
+});
+test('narrow keys keep what tells them apart, never «Spe…» on all of them (0.14)', () => {
+  assert.deepEqual(distinctNames(['Speed 1', 'Speed 2', 'Timer 1H', 'Timer 4H', 'Power']), [
+    '1',
+    '2',
+    '1H',
+    '4H',
+    'Power',
+  ]);
+  assert.deepEqual(distinctNames(['Temp up', 'Temp down', 'Swing']), ['Up', 'Down', 'Swing']);
+  assert.deepEqual(distinctNames(['Fan speed low', 'Fan speed high', 'Fan']), ['Low', 'High', 'Fan']);
+  assert.deepEqual(distinctNames(['Mode', 'Mode']), ['Mode', 'Mode']);
 });

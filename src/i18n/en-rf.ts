@@ -7,6 +7,7 @@ export const enRf: Record<string, string> = {
     'First prepare an RF device: an ESPHome device with the HomeManager RF package.',
   'Ver equipos RF': 'Show RF devices',
   '{count} botones': '{count} buttons',
+  '1 botón': '1 button',
   'Todavía no hay controles. Creá uno y enseñale sus botones.': 'No remotes yet. Create one and teach it its buttons.',
   Icono: 'Icon',
   'p. ej. Ventilador del living': 'e.g. Living room fan',

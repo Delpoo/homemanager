@@ -219,3 +219,13 @@ La revisión completa del plan, la maqueta v14 y los cambios #117 a #120 encontr
 | H | «Diseño» dice cuál | Reconoce el diseño en uso comparando las piezas; «con cambios» o «A medida». |
 | I | Interruptor por biblioteca | `recognise` en cada biblioteca; las apagadas no se comparan. |
 | J | Programas de ejemplo | Dormir, Humedad, Ahorro y Rápido al crear el aire, o una vez en un aire sin programas. |
+
+## Tercera revisión (0.14.0-beta.7)
+
+La tercera revisión encontró 10 errores, 4 diferencias más con la maqueta (K a N) y 12 mejoras propias (P1 a P12). El propietario eligió arreglar primero los errores y las mejoras chicas:
+
+- **Nombres de los botones:** `fitKeys()` en `src/rf/remote-view.ts` prueba, en orden, el nombre al lado del símbolo, el símbolo arriba, lo que distingue al botón (`distinctNames()` en `src/model/names.ts`) y sólo el símbolo con el nombre en `title`. En un botón redondo cuenta el cuadrado dentro del círculo.
+- **Símbolo por el nombre:** `iconFromName()` en `src/ui/remote-keys.ts` reemplaza la mano que tenían todos los botones sin símbolo.
+- **Desplegables:** `foldStyles()` en `src/ui/side-panel.ts`.
+- **Editor:** se sale con ← o ✕; el ✓ flotante ya no está.
+- **Pendiente de decidir:** K (iluminar el botón en el paso 3), L (lista del paso 3), M (página «Controls») y N (ficha › «Control»). Las mejoras grandes P2, P3, P4 y P6 van primero en maqueta.

@@ -511,7 +511,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
         ? this.timers(control)
         : '<div data-player-slot></div>' + actions + this.programsCard(control)) +
       summary +
-      '<details><summary>' +
+      '<details class="fold"><summary>' +
       e(t('Ajustes del control')) +
       '</summary><form class="resource-card" data-form="settings"><div class="form-grid">' +
       label('Nombre', input('name', control.name, 'maxlength="80" required')) +
@@ -554,7 +554,7 @@ export class HomeManagerRemoteResources extends HTMLElement {
         '<input type="time"' + attrs + ' required step="' + (cap.step ?? 60) + '" value="' + e(value) + '">',
       );
     return label(
-      (key === 'temperature' ? 'Temperatura' : (titles[key] ?? key)) + (cap.unit ? ' · ' + cap.unit : ''),
+      (key === 'temperature' ? t('Temperatura') : t(titles[key] ?? key)) + (cap.unit ? ' · ' + cap.unit : ''),
       '<input type="number"' +
         attrs +
         ' aria-label="' +

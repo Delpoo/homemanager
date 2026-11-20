@@ -3149,7 +3149,7 @@
       "type": "toggle",
       "x": 0,
       "y": 0,
-      "w": 2,
+      "w": 4,
       "h": 1,
       "buttons": [
         "w-encender-apagar"
@@ -3157,18 +3157,6 @@
       "label": "Luz",
       "icon": "mdi:lightbulb-outline",
       "form": "switch"
-    },
-    {
-      "id": "indicator",
-      "type": "indicator",
-      "x": 2,
-      "y": 0,
-      "w": 2,
-      "h": 1,
-      "buttons": [],
-      "label": "Consumo",
-      "icon": null,
-      "form": "display"
     },
     {
       "id": "level",
@@ -3510,7 +3498,7 @@
       "x": 0,
       "y": 0,
       "w": 4,
-      "h": 5,
+      "h": 4,
       "buttons": [],
       "label": null,
       "icon": null,
@@ -3636,22 +3624,10 @@
       "icon": "mdi:timer-outline"
     },
     {
-      "id": "indicator",
-      "type": "indicator",
-      "x": 0,
-      "y": 2,
-      "w": 4,
-      "h": 1,
-      "buttons": [],
-      "label": "Consumo",
-      "icon": null,
-      "form": "display"
-    },
-    {
       "id": "graph",
       "type": "graph",
       "x": 0,
-      "y": 3,
+      "y": 2,
       "w": 4,
       "h": 2,
       "buttons": [],

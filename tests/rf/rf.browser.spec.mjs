@@ -75,7 +75,7 @@ test('a new remote is a name and an icon; any button is learned, tried and saved
   await rf.locator('[data-guide=finish]').click();
   await expect(rf.locator('homemanager-control-designer')).toBeVisible();
   expect((await calls(page, 'homemanager/rf/remote/save')).at(-1).remote.name).toBe('Ventilador estudio');
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
   // The learned button is already on the drawn remote, and sends.
   await rf.locator('homemanager-rf-remote').getByRole('button', { name: 'Velocidad 1' }).click();
   await expect(rf.getByText('Enviado: Velocidad 1')).toBeVisible();
@@ -151,7 +151,7 @@ test('a new fan from a template: design, buttons one by one with skip, the waite
   expect(draft.flatMap(piece => piece.buttons)).toContain(remote.buttons[0].id);
   // «?» numbers the pieces and says what each does.
   await designer.locator('[data-draft=save]').click();
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
   const player = rf.locator('homemanager-rf-remote');
   await player.locator('[data-help]').click();
   await expect(player.locator('.khelp-list li').first()).toContainText('Manda «Encender / apagar».');
@@ -296,7 +296,7 @@ test('the remote is designed on a grid: add, move, resize and remove elements', 
   await confirm.getByRole('button', { name: 'Quitar', exact: true }).click();
   layout = await save();
   expect(layout.some(widget => widget.id === 'b-off')).toBe(false);
-  await rf.locator('.dfoot [data-command=edit]').click();
+  await rf.locator('.dh [data-command=back]').click();
   await expect(remote.getByRole('button', { name: 'Apagar' })).toHaveCount(0);
   await expect(remote.getByRole('button', { name: 'Velocidad 2' })).toHaveCount(1);
   await expect(remote.getByRole('button', { name: '2', exact: true })).toHaveCount(1);

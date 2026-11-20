@@ -231,6 +231,11 @@ export class HomeManagerRfLearn extends HTMLElement {
     this.failed = false;
     this.message = message;
   }
+  /** A new step of the guide starts without the last step's «“Turbo” saved». */
+  quiet(): void {
+    this.failed = false;
+    this.message = '';
+  }
 
   // Rendering -------------------------------------------------------------
 

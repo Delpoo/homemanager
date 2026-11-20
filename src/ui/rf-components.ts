@@ -187,7 +187,7 @@ label{display:grid;gap:4px;min-width:0;font-size:13px;color:var(--hm-muted)}
 input,select{box-sizing:border-box;width:100%;min-width:0;color:var(--hm-ink)}
 .tools{display:flex;justify-content:center;gap:4px}
 .row{display:flex;align-items:center;gap:8px}
-.shelf{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--hm-line)}
+.shelf{display:grid;gap:10px}section+section.learn{padding-top:16px;border-top:1px solid var(--hm-line)}
 .title{display:flex;align-items:center;gap:8px;color:var(--hm-brand)}
 .title h4{color:var(--hm-ink);font-size:15px;font-weight:500}
 .item{border:1px solid var(--hm-line);border-radius:12px;padding:10px}

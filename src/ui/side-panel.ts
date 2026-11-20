@@ -44,7 +44,19 @@ export function miniWave(seed: string, width = 64, height = 18): string {
   return `<svg class="wave" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true"><path d="${path}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 }
 
-export const sidePanelStyles = `
+/** 0.14 · a fold («Tests and history», «More options»…) drawn like the modules: a card whose title row
+ * has its arrow on the right, instead of the browser's loose ▶. */
+export const foldStyles = (sel: string): string =>
+  `${sel}{display:block;margin:12px 0 0;padding:0 12px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface)}` +
+  `${sel}>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:48px;margin:0 -12px;padding:4px 14px;border-radius:14px;font-weight:500;line-height:1.3;color:inherit;cursor:pointer}` +
+  `${sel}>summary::-webkit-details-marker{display:none}` +
+  `${sel}>summary::after{content:'›';margin-left:auto;font-size:20px;line-height:1;color:var(--hm-muted);transition:transform .15s}` +
+  `${sel}[open]>summary::after{transform:rotate(90deg)}` +
+  `${sel}>summary:hover{background:var(--hm-surface-2,rgba(0,0,0,.04))}` +
+  `${sel}[open]{padding-bottom:12px}`;
+
+export const sidePanelStyles =
+  `
 .panel{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--hm-surface);color:var(--hm-ink)}
 .dh{flex:none;display:flex;align-items:center;gap:6px;min-height:60px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--hm-line)}
 .dh h2{flex:1;min-width:0;margin:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
@@ -72,8 +84,8 @@ export const sidePanelStyles = `
 .li .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
 .li .t b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .t span{font-size:12.5px;color:var(--hm-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li .acts{display:flex}.li .acts .ib{width:44px;height:44px;min-height:44px;border-radius:10px}
-@media(hover:hover){.li .acts{opacity:0;transition:opacity .15s}.li:hover .acts,.li:focus-within .acts{opacity:1}}
+.li .acts{display:flex}.li>.cap{min-width:34px;justify-content:center}.li .acts .ib{width:44px;height:44px;min-height:44px;border-radius:10px}
+@media(hover:hover){.li .acts>*{opacity:0;transition:opacity .15s}.li .acts>:is([data-edit-ref],[data-design]),.li:hover .acts>*,.li:focus-within .acts>*{opacity:1}}
 .li button.t{align-items:flex-start;justify-content:center;border:0;background:transparent;padding:0;min-height:40px;border-radius:0;text-align:left;cursor:pointer}.li button.t:hover{background:transparent}
 .ico-tile{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--hm-surface-2);color:var(--hm-brand)}
 .ico-tile ha-icon{--mdc-icon-size:22px}
@@ -96,4 +108,4 @@ export const sidePanelStyles = `
 .status{min-height:0;margin:0;font-size:13px;color:var(--hm-muted)}.status:empty{display:none}.status.error{color:var(--hm-alert)}
 .empty-state{display:grid;justify-items:center;gap:8px;padding:28px 12px;color:var(--hm-muted);text-align:center}
 .empty-state ha-icon{--mdc-icon-size:36px;color:var(--hm-brand)}
-`;
+` + foldStyles('details.fold');
