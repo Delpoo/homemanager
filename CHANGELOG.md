@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0-beta.9 — beta
+
+Dos detalles vistos en la cuenta del propietario después de instalar la beta.8.
+
+- **«On the plan»:** cada pieza lleva el símbolo de su botón, uno que sale de su nombre o el de su tipo (nivel, gráfica, opciones…), y no la misma mano en todas.
+- **Símbolo sin control:** en vez de una tarjeta «Full control · 0 pieces», dice «No control yet» con el botón «Create the control».
+
 ## 0.14.0-beta.8 — beta
 
 Las cuatro diferencias con la maqueta que el propietario eligió (K a N, todas como la maqueta) y tres detalles vistos en su cuenta.

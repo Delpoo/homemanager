@@ -2,6 +2,7 @@ import { t, tc } from '../i18n/index.js';
 import { escapeHTML as esc } from '../card/types.js';
 import type { RfWidget } from '../integration/rf.js';
 import { MAX_ATTACHED, type AttachedPiece } from '../model/control-layout.js';
+import { iconFromName } from '../ui/remote-keys.js';
 import { personName } from '../model/names.js';
 
 /** 0.13 "On the plan": which pieces of the device's control are drawn next to its
@@ -19,12 +20,38 @@ export const pieceName = (piece: RfWidget, buttons: { id: string; name: string }
 export interface AttachedContext {
   attached: AttachedPiece[];
   pieces: RfWidget[];
-  buttons: { id: string; name: string }[];
+  buttons: { id: string; name: string; icon?: string | null }[];
   chosen?: string;
   adding: boolean;
   /** 0.14 · N: the pencil opens the piece in its control's editor. */
   editable?: boolean;
 }
+
+/** 0.14 · a piece's symbol in the lists: its own, its button's, one from its name, or its kind's — not
+ * the same hand on every row. */
+const KIND_ICONS: Record<string, string> = {
+  toggle: 'mdi:power',
+  updown: 'mdi:tune-vertical-variant',
+  slider: 'mdi:tune-vertical-variant',
+  steps: 'mdi:stairs',
+  knob: 'mdi:knob',
+  modes: 'mdi:format-list-bulleted',
+  cycle: 'mdi:repeat',
+  indicator: 'mdi:gauge',
+  graph: 'mdi:chart-line',
+  preset: 'mdi:playlist-play',
+  dpad: 'mdi:gamepad',
+  numpad: 'mdi:dialpad',
+  transport: 'mdi:play-pause',
+  colors: 'mdi:palette-outline',
+  title: 'mdi:format-title',
+};
+export const pieceIcon = (piece: RfWidget, buttons: { id: string; name: string; icon?: string | null }[]): string =>
+  piece.icon ??
+  buttons.find(button => button.id === piece.buttons[0])?.icon ??
+  iconFromName(pieceName(piece, buttons)) ??
+  KIND_ICONS[piece.type] ??
+  'mdi:gesture-tap-button';
 
 export function attachedBody(ctx: AttachedContext): string {
   const byId = new Map(ctx.pieces.map(piece => [piece.id, piece]));
@@ -65,7 +92,7 @@ export function attachedBody(ctx: AttachedContext): string {
             `data-command="attached-edit" data-piece="${esc(piece.id)}"`,
           )
         : '';
-      return `<div class="att-row${chosen ? ' on' : ''}"><span class="att-name">${glyph(piece.icon ?? 'mdi:gesture-tap-button')}<span><b>${esc(name)}</b>${kinds[piece.type] ? `<small>${esc(t(kinds[piece.type]))}</small>` : ''}</span></span>${fold}<input type="checkbox" role="switch" class="att-sw-on" data-attached-toggle="${esc(piece.id)}" aria-label="${esc(t('En el plano: {name}', { name }))}" title="${esc(tc('control', 'En el plano'))}"${on ? ' checked' : ''}${!on && full ? ' disabled' : ''}>${edit}</div>`;
+      return `<div class="att-row${chosen ? ' on' : ''}"><span class="att-name">${glyph(pieceIcon(piece, ctx.buttons))}<span><b>${esc(name)}</b>${kinds[piece.type] ? `<small>${esc(t(kinds[piece.type]))}</small>` : ''}</span></span>${fold}<input type="checkbox" role="switch" class="att-sw-on" data-attached-toggle="${esc(piece.id)}" aria-label="${esc(t('En el plano: {name}', { name }))}" title="${esc(tc('control', 'En el plano'))}"${on ? ' checked' : ''}${!on && full ? ' disabled' : ''}>${edit}</div>`;
     })
     .join('');
   const gone = ctx.attached
@@ -79,7 +106,7 @@ export function attachedBody(ctx: AttachedContext): string {
     ? `<div class="att-pick" role="group" aria-label="${esc(t('Elementos del control'))}">${ctx.pieces
         .map(
           piece =>
-            `<button type="button" data-command="attached-add" data-piece="${esc(piece.id)}">${glyph(piece.icon ?? 'mdi:gesture-tap-button')}<span>${esc(pieceName(piece, ctx.buttons))}</span></button>`,
+            `<button type="button" data-command="attached-add" data-piece="${esc(piece.id)}">${glyph(pieceIcon(piece, ctx.buttons))}<span>${esc(pieceName(piece, ctx.buttons))}</span></button>`,
         )
         .join('')}</div>`
     : '';

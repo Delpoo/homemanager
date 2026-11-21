@@ -142,6 +142,8 @@ export const enControls: Record<string, string> = {
   'Agregar otro control a este símbolo': 'Add another control to this symbol',
   '{count} piezas': '{count} pieces',
   '1 pieza': '1 piece',
+  'Todavía no tiene un control': 'No control yet',
+  'Crear el control': 'Create the control',
   'Abrir en Controles': 'Open in Controls',
   'En el plano: {name}': 'On the plan: {name}',
   'Editar en el plano: {name}': 'Edit on the plan: {name}',
