@@ -22,6 +22,8 @@ export interface AttachedContext {
   buttons: { id: string; name: string }[];
   chosen?: string;
   adding: boolean;
+  /** 0.14 · N: the pencil opens the piece in its control's editor. */
+  editable?: boolean;
 }
 
 export function attachedBody(ctx: AttachedContext): string {
@@ -49,7 +51,21 @@ export function attachedBody(ctx: AttachedContext): string {
       const on = mine.length > 0;
       const chosen = mine.find(item => item.id === ctx.chosen);
       const name = pieceName(piece, ctx.buttons);
-      return `<div class="att-row${chosen ? ' on' : ''}"><span class="att-name">${glyph(piece.icon ?? 'mdi:gesture-tap-button')}<span><b>${esc(name)}</b>${kinds[piece.type] ? `<small>${esc(t(kinds[piece.type]))}</small>` : ''}</span></span><input type="checkbox" role="switch" class="att-sw-on" data-attached-toggle="${esc(piece.id)}" aria-label="${esc(t('En el plano: {name}', { name }))}" title="${esc(tc('control', 'En el plano'))}"${on ? ' checked' : ''}${!on && full ? ' disabled' : ''}>${on ? iconBtn(t('Editar en el plano: {name}', { name }), 'mdi:pencil', `data-command="attached-pick" data-att="${esc((chosen ?? mine[0]).id)}" aria-pressed="${!!chosen}"`) : '<span class="att-gap"></span>'}</div>`;
+      const fold = on
+        ? iconBtn(
+            t('Cómo se ve en el plano: {name}', { name }),
+            chosen ? 'mdi:chevron-up' : 'mdi:chevron-down',
+            `data-command="attached-pick" data-att="${esc((chosen ?? mine[0]).id)}" aria-pressed="${!!chosen}" aria-expanded="${!!chosen}"`,
+          )
+        : '<span class="att-gap"></span>';
+      const edit = ctx.editable
+        ? iconBtn(
+            t('Editar en el editor del control: {name}', { name }),
+            'mdi:pencil',
+            `data-command="attached-edit" data-piece="${esc(piece.id)}"`,
+          )
+        : '';
+      return `<div class="att-row${chosen ? ' on' : ''}"><span class="att-name">${glyph(piece.icon ?? 'mdi:gesture-tap-button')}<span><b>${esc(name)}</b>${kinds[piece.type] ? `<small>${esc(t(kinds[piece.type]))}</small>` : ''}</span></span>${fold}<input type="checkbox" role="switch" class="att-sw-on" data-attached-toggle="${esc(piece.id)}" aria-label="${esc(t('En el plano: {name}', { name }))}" title="${esc(tc('control', 'En el plano'))}"${on ? ' checked' : ''}${!on && full ? ' disabled' : ''}>${edit}</div>`;
     })
     .join('');
   const gone = ctx.attached

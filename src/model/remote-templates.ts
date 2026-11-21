@@ -144,6 +144,8 @@ class Draw {
     base: string = type,
   ): this {
     const [x, y, w, h] = at;
+    // A window asks for its open end first, as on the remote («Open» before «Close»).
+    if (extra.form === 'window' && names.length === 2) this.want([names[1], names[0]]);
     this.pieces.push({
       id: this.id(base),
       type,

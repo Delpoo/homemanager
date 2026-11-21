@@ -118,7 +118,7 @@ pre .add{display:inline-block;min-width:100%;margin:0 -12px;padding:0 12px;backg
 export const rfControlsStyles = `
 .dh .htx{display:grid;min-width:0;line-height:1.2}.dh .htx b{font-weight:500;font-size:17px}.dh .htx small{font-size:12px;font-weight:400;color:var(--hm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dh h2 .ico-tile{width:36px;height:36px}@media(max-width:480px){.dh .htx small{display:none}}
 .next.wide{width:100%;justify-content:center;height:48px;min-height:48px;font-size:15px}
-.lbl .lnk{border:0;background:transparent;padding:0;min-height:0;font:inherit;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--hm-brand);cursor:pointer}.lbl .lnk:hover{text-decoration:underline}
+.lbl.plain .sp{flex:1}.lbl .lnk{border:0;background:transparent;padding:0 4px;min-height:32px;font:inherit;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--hm-brand);cursor:pointer}.lbl .lnk:hover{text-decoration:underline}
 .list.rlist{border:1px solid var(--hm-line);border-radius:14px;padding:0 6px;background:var(--hm-surface)}
 .li .chev{flex:none;display:grid;place-items:center;color:var(--hm-muted)}.li .chev ha-icon{--mdc-icon-size:20px}
 .gtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}

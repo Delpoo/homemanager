@@ -184,10 +184,11 @@ export class HomeManagerIr extends HTMLElement {
       )?.id ?? '';
   }
 
-  openRemote(remoteId: string, design = false): void {
+  openRemote(remoteId: string, design = false, focus = ''): void {
     this.selected = remoteId;
-    // 0.14 · N: «Edit» in a symbol's Control opens its design.
+    // 0.14 · N: «Edit» in a symbol's Control opens its design (at one piece's button).
     this.editing = design ? 'layout' : '';
+    if (design && focus) this.focusRef = focus;
     this.render();
     if (this.requested && !this.saved.some(item => item.id === remoteId)) void this.refresh();
   }

@@ -3761,14 +3761,14 @@
       "icon": null,
       "wanted": [
         {
-          "id": "w-cerrar",
-          "name": "Cerrar",
-          "icon": "mdi:arrow-down"
-        },
-        {
           "id": "w-abrir",
           "name": "Abrir",
           "icon": "mdi:arrow-up"
+        },
+        {
+          "id": "w-cerrar",
+          "name": "Cerrar",
+          "icon": "mdi:arrow-down"
         },
         {
           "id": "w-favorita",
@@ -3898,14 +3898,14 @@
       "icon": null,
       "wanted": [
         {
-          "id": "w-cerrar",
-          "name": "Cerrar",
-          "icon": "mdi:arrow-down"
-        },
-        {
           "id": "w-abrir",
           "name": "Abrir",
           "icon": "mdi:arrow-up"
+        },
+        {
+          "id": "w-cerrar",
+          "name": "Cerrar",
+          "icon": "mdi:arrow-down"
         },
         {
           "id": "w-parar",

@@ -1,3 +1,4 @@
+import { globalControlStyle } from './control-style.js';
 import { t, tc } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import type { RfWidget, WidgetType } from '../integration/rf.js';
@@ -1067,7 +1068,12 @@ export class ControlDesigner extends HTMLElement {
     const canvas = layout.find(piece => piece.type === 'canvas');
     const grid = gridOf(layout);
     const height = grid.rows ?? Math.max(2, rows(layout));
-    const look = canvas?.style ? t(STYLE_LOOK[canvas.style]) : t(THEMES.find(([key]) => key === (canvas?.theme ?? 'hm'))?.[1] ?? 'Automático');
+    // 0.14 · M: with no style or theme of its own, the control follows the global style (Appearance).
+    const look = canvas?.style
+      ? t(STYLE_LOOK[canvas.style])
+      : canvas?.theme
+        ? t(THEMES.find(([key]) => key === canvas.theme)?.[1] ?? 'Automático')
+        : `${t('General')} · ${t(STYLE_LOOK[globalControlStyle()])}`;
     const more = [
       `<button type="button" class="mrow" data-command="auto-layout"><span class="mic">${glyph('mdi:auto-fix')}</span><span class="mtx"><b>${e(t('Volver al diseño automático'))}</b></span></button>`,
       this.options?.duplicate

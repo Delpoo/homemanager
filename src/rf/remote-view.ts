@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { getLanguage, t } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import { installPanelComponents } from '../ui/panel-components.js';
 import { rfText, remoteCell, positionRemoteWidget } from '../ui/rf-components.js';
@@ -333,7 +333,7 @@ export class HomeManagerRfRemote extends HTMLElement {
         const digits = chart?.digits;
         const number = raw.trim() ? Number(raw) : NaN;
         const value = digits !== undefined && Number.isFinite(number)
-          ? new Intl.NumberFormat(undefined, chart?.precision === 'significant'
+          ? new Intl.NumberFormat(getLanguage(), chart?.precision === 'significant'
               ? { maximumSignificantDigits: Math.max(1, digits) }
               : { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(number)
           : formatReading(raw);

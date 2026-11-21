@@ -27,7 +27,7 @@ input[role=switch]:checked{background:var(--hm-brand)}input[role=switch]:checked
 .seg .ib[aria-checked=true],.ib[aria-pressed=true]{background:var(--hm-surface);color:var(--hm-brand);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .colors{display:grid;gap:8px;grid-column:2/-1}
 .swatches{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.sw{width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--hm-ink) 18%,transparent);background:var(--c)}
+.sw{width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--hm-ink) 18%,transparent);background:var(--c)}@media(pointer:coarse){.sw{width:32px;height:32px;min-height:32px}}
 .sw[aria-pressed=true]{box-shadow:0 0 0 2px var(--hm-surface),0 0 0 4px var(--hm-brand)}
 .sw.custom{position:relative;overflow:hidden;background:conic-gradient(#D0453A,#D98B1F,#4F7A5A,#4F8FBF,#6F6BB8,#D0453A)}
 .sw.custom input{position:absolute;inset:0;width:100%;height:100%;min-height:0;padding:0;opacity:0;cursor:pointer}
