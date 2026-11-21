@@ -19,6 +19,7 @@ export const sheetStyles = `
 .cm-row{display:flex;align-items:center;gap:10px;min-height:48px}.cm-row>ha-icon{--mdc-icon-size:18px;color:var(--hm-muted);flex:none}.cm-lbl{flex:none;width:104px;font-size:13.5px;color:var(--hm-ink)}.cm-ctl{flex:1;min-width:0;display:flex;justify-content:flex-end}.cm-ctl select{width:100%;min-height:40px}
 .cm-via{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--hm-surface-2);width:100%}.cm-via button{flex:1;display:grid;place-items:center;min-height:36px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--hm-muted)}.cm-via button[aria-pressed=true]{background:var(--hm-surface);color:var(--hm-ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}.cm-via ha-icon{--mdc-icon-size:20px}
 .ctl-add.cm-add{width:100%;border-style:solid;margin-top:4px}
+.cm-card.cm-empty{align-items:center}.cm-card.cm-empty>ha-icon{--mdc-icon-size:28px;color:var(--hm-muted);padding:0 8px}
 .cm-card{display:flex;gap:12px;align-items:stretch;margin-top:10px;padding:10px;border:1px solid var(--hm-line);border-radius:14px;background:var(--hm-surface)}
 .cm-prev{flex:none;width:118px;height:150px;border-radius:12px;overflow:hidden;background:var(--hm-surface-2);position:relative;mask-image:linear-gradient(#000 78%,transparent);-webkit-mask-image:linear-gradient(#000 78%,transparent)}
 .cm-prev homemanager-rf-remote{position:absolute;left:0;top:0;width:300px;transform:scale(.39);transform-origin:top left;pointer-events:none}

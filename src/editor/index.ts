@@ -721,7 +721,10 @@ export class HomeManagerEditor extends HTMLElement {
     }
   }
   /** The control whose pieces can be pinned: its RF remote, its IR remote or its own design. */
-  private attachable(device: Device): { pieces: RfWidget[]; buttons: { id: string; name: string }[] } {
+  private attachable(device: Device): {
+    pieces: RfWidget[];
+    buttons: { id: string; name: string; icon?: string | null }[];
+  } {
     const entity = device.bindings.entityId ? this._hass?.states[device.bindings.entityId] : undefined;
     const fromEntity = entity?.attributes?.homemanager_remote ?? entity?.attributes?.homemanager_remote_button;
     const rfId = device.bindings.remoteId ?? (typeof fromEntity === 'string' ? fromEntity : null);
@@ -1945,7 +1948,12 @@ export class HomeManagerEditor extends HTMLElement {
         : via === 'ha' && device
           ? designRemote(device, this.configuration, this.sheet?.controls ?? device.bindings.controls ?? [])
           : undefined);
-    if (drawn) {
+    const empty = !!drawn && !rfRemote && !irRemote && !layoutOf(drawn).some(piece => piece.type !== 'canvas');
+    if (empty) {
+      // 0.14 · a symbol with no control yet: one door to create it, not a «Full control · 0 pieces» card.
+      this.controlPreview = undefined;
+      html += `<div class="cm-card cm-empty"><ha-icon icon="mdi:remote" aria-hidden="true"></ha-icon><div class="cm-info"><b>${esc(t('Todavía no tiene un control'))}</b><button type="button" class="primary" data-command="design-open" data-via="ha"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Crear el control'))}</button></div></div>`;
+    } else if (drawn) {
       const canvas = layoutOf(drawn).find(piece => piece.type === 'canvas');
       const style = t(STYLE_NAMES[canvas?.style ?? globalControlStyle()]);
       const pieces = layoutOf(drawn).filter(piece => piece.type !== 'canvas').length;
