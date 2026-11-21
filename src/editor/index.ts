@@ -738,8 +738,17 @@ export class HomeManagerEditor extends HTMLElement {
   private attachedBlock(device: Device): string {
     const { pieces, buttons } = this.attachable(device);
     const attached = device.display.attached ?? [];
-    if (!attached.some(item => item.id === this.attachedChosen)) this.attachedChosen = attached[0]?.id;
-    return attachedBody({ attached, pieces, buttons, chosen: this.attachedChosen, adding: this.attachedAdding });
+    // '' is «none open» (closed with ⌃); anything else unknown falls back to the first.
+    if (this.attachedChosen !== '' && !attached.some(item => item.id === this.attachedChosen))
+      this.attachedChosen = attached[0]?.id;
+    return attachedBody({
+      attached,
+      pieces,
+      buttons,
+      chosen: this.attachedChosen,
+      adding: this.attachedAdding,
+      editable: !!this.appContext,
+    });
   }
   /** A piece of the control goes on the plan next to the symbol, or leaves it. */
   private toggleAttached(pieceId: string, on: boolean): void {
@@ -1925,7 +1934,7 @@ export class HomeManagerEditor extends HTMLElement {
     html +=
       this.controlPicking && this.controlPicking === device?.id
         ? '<div class="ctl-pick" data-ctl-pick></div>'
-        : `<button type="button" class="ctl-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar otro control a este símbolo'))}</button>`;
+        : `<button type="button" class="ctl-add cm-add" data-command="control-pick"><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${esc(t('Agregar otro control a este símbolo'))}</button>`;
     // The chosen control, as a card with its preview.
     const rfRemote = via === 'rf' ? this.remotes.find(item => item.id === remoteId) : undefined;
     const irRemote = via === 'ir' ? infrared.find(item => item.id === irRemoteId) : undefined;
@@ -2641,6 +2650,27 @@ export class HomeManagerEditor extends HTMLElement {
           );
           break;
         }
+        case 'attached-edit': {
+          // 0.14 · N: the piece opens in its control's editor (an RF or IR remote), or in the symbol's own design.
+          const device = this.device();
+          if (!device || !this.flushDevice()) break;
+          const piece = this.attachable(device).pieces.find(item => item.id === button.dataset.piece);
+          const ref = piece?.buttons[0] ?? Object.values(piece?.slots ?? {})[0] ?? '';
+          const remoteId = device.bindings.remoteId;
+          const irRemoteId = remoteId ? undefined : device.bindings.irRemoteId;
+          if ((remoteId || irRemoteId) && this.appContext) {
+            this.dispatchEvent(
+              new CustomEvent('homemanager-shell-command', {
+                detail: { command: 'rf', ...(remoteId ? { remoteId } : { irRemoteId }), design: true, focus: ref },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+            break;
+          }
+          this.root.querySelector<HTMLButtonElement>('.cm-info [data-command=design-open]')?.click();
+          break;
+        }
         case 'control-unlink':
           this.setControlField(button.dataset.field as 'remoteId' | 'irRemoteId', '');
           break;
@@ -2955,6 +2985,12 @@ export class HomeManagerEditor extends HTMLElement {
           break;
         }
         case 'attached-pick':
+          // 0.14 · N: ⌄ opens a piece's look on the plan; ⌃ closes it again.
+          if (this.attachedChosen === button.dataset.att && button.getAttribute('aria-expanded') === 'true') {
+            this.attachedChosen = '';
+            this.render();
+            break;
+          }
           this.attachedChosen = button.dataset.att;
           this.render();
           this.dispatchEvent(

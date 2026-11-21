@@ -209,10 +209,10 @@ export class HomeManagerRf extends HTMLElement {
     this.infrared.stopCapture();
   }
 
-  openIrRemote(remoteId: string, design = false): void {
+  openIrRemote(remoteId: string, design = false, focus = ''): void {
     this.irTitle = this.irRemotes.find(remote => remote.id === remoteId)?.name ?? '';
     this.show('ir');
-    this.infrared.openRemote(remoteId, design);
+    this.infrared.openRemote(remoteId, design, focus);
   }
 
   private async load(): Promise<void> {
@@ -413,9 +413,9 @@ export class HomeManagerRf extends HTMLElement {
     return this.panel(
       head,
       `<button type="button" class="next wide" data-command="new"${canCreate ? '' : ' disabled'}>${icon('mdi:plus')}${e(t('Crear un control nuevo'))}</button>
-      <div class="lbl">${e(t('Emisores'))}<span class="grow"></span><button type="button" class="lnk" data-view="devices">${e(t('Equipos'))} ›</button></div>${this.renderNodes()}
-      ${panelLabel(t('Controles aprendidos'))}${items ? `<div class="list rlist">${items}</div>` : empty}
-      ${panelLabel(t('Recursos'))}<div class="gtiles">${tile('mdi:air-conditioner', t('Aire con estado completo'), 'data-view="absolute"')}${tile('mdi:database-outline', t('Biblioteca IR / RF'), 'data-view="catalog"')}${tile('mdi:clock-outline', t('Temporizadores y horarios'), 'data-command="timers"')}${tile('mdi:router-wireless', t('Equipos'), 'data-view="devices"')}</div>
+      <div class="lbl plain">${e(t('Emisores'))}<span class="sp"></span><button type="button" class="lnk" data-view="devices">${e(t('Equipos'))} ›</button></div>${this.renderNodes()}
+      <div class="lbl plain">${e(t('Controles aprendidos'))}</div>${items ? `<div class="list rlist">${items}</div>` : empty}
+      <div class="lbl plain">${e(t('Recursos'))}</div><div class="gtiles">${tile('mdi:air-conditioner', t('Aire con estado completo'), 'data-view="absolute"')}${tile('mdi:database-outline', t('Biblioteca IR / RF'), 'data-view="catalog"')}${tile('mdi:clock-outline', t('Temporizadores y horarios'), 'data-command="timers"')}${tile('mdi:router-wireless', t('Equipos'), 'data-view="devices"')}</div>
       <div class="gstyle">${icon('mdi:palette-outline')}<span>${e(t('Estilo general de los controles'))}</span><b>${e(t(STYLE_NAMES[general]))}</b><button type="button" class="ib sm" data-command="general-style" aria-label="${e(t('Cambiar en Ajustes'))}" title="${e(t('Cambiar en Ajustes'))}">${icon('mdi:chevron-right')}</button></div>${status}`,
     );
   }
@@ -1357,10 +1357,12 @@ export class HomeManagerRf extends HTMLElement {
   }
 
   /** Opens one remote's page, for example from a symbol that uses it (#73). */
-  openRemote(remoteId: string, design = false): void {
+  openRemote(remoteId: string, design = false, focus = ''): void {
     this.open(remoteId);
-    // 0.14 · N: «Edit» in a symbol's Control opens the remote straight in its editor.
-    if (design) void this.command('edit');
+    // 0.14 · N: «Edit» in a symbol's Control opens the remote straight in its editor (at one piece's button).
+    if (!design) return;
+    this.focusRef = focus;
+    void this.command('edit');
   }
   private open(remoteId: string): void {
     if (this.selected !== remoteId) this.closeLearn(false);

@@ -1,4 +1,4 @@
-import { t, tc } from '../i18n/index.js';
+import { getLanguage, t, tc } from '../i18n/index.js';
 import { escapeHTML as e } from '../card/types.js';
 import {
   BLOCK_SLOTS,
@@ -343,8 +343,9 @@ export function historyChart(
       );
     })
     .join('');
+  // In the app's language (the one of Home Assistant), not the browser's: «Sat 9:28 AM», not «sáb, 9:28 a. m.».
   const time = new Intl.DateTimeFormat(
-    undefined,
+    getLanguage(),
     piece.period === '7d' || piece.period === '30d'
       ? { month: 'short', day: 'numeric' }
       : piece.period === '1h'
@@ -353,7 +354,7 @@ export function historyChart(
   );
   const start = e(time.format(from)),
     end = e(time.format(to));
-  const limits = new Intl.NumberFormat(undefined, { maximumSignificantDigits: 4 });
+  const limits = new Intl.NumberFormat(getLanguage(), { maximumSignificantDigits: 4 });
   const unscale = scale === 'log' ? (value: number) => 10 ** value : (value: number) => value;
   const range =
     piece.h >= 2 && low !== high

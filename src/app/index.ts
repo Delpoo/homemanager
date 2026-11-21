@@ -191,7 +191,7 @@ export class HomeManagerApp extends HTMLElement {
     return { homes, selected: this.selected, narrow: this._narrow };
   }
   private shellCommand = (event: Event): void => {
-    const { command, homeId, remoteId, irRemoteId, from, pieceId, section, design } = (
+    const { command, homeId, remoteId, irRemoteId, from, pieceId, section, design, focus } = (
       event as CustomEvent<{
         command: string;
         homeId?: string;
@@ -201,6 +201,7 @@ export class HomeManagerApp extends HTMLElement {
         pieceId?: string;
         section?: SettingsSection;
         design?: boolean;
+        focus?: string;
       }>
     ).detail;
     // 0.13: a piece of a remote goes next to the symbol that uses it.
@@ -245,8 +246,8 @@ export class HomeManagerApp extends HTMLElement {
       if (from === 'settings') void this.card?.leaveSettings();
     }
     // From a symbol's Control › Design: straight to that remote's design (#73).
-    if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId, design);
-    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId, design);
+    if (command === 'rf' && remoteId) this.rfElement?.openRemote(remoteId, design, focus);
+    if (command === 'rf' && irRemoteId) this.rfElement?.openIrRemote(irRemoteId, design, focus);
     if (this.creating) this.root.querySelector<HTMLInputElement>('input[name=homeId]')?.focus();
   };
   /** The same menu remains usable while the RF manager or empty view is open. */
